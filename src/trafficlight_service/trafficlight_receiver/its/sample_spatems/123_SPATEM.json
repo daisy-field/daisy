@@ -1,0 +1,86 @@
+{
+  "SPATEM": {
+    "header": {
+      "protocolVersion": "1",
+      "messageID": "4",
+      "stationID": "123"
+    },
+    "spat": {
+      "intersections": {
+        "IntersectionState": {
+          "name": "Berlin\\20060\\20060_4",
+          "id": {
+            "region": "1",
+            "id": "1"
+          },
+          "revision": "1",
+          "status": "0000000000000000",
+          "moy": "315973",
+          "timeStamp": "7445",
+          "states": {
+            "MovementState": [
+              {
+                "signalGroup": "1",
+                "state-time-speed": {
+                  "MovementEvent": [
+                    {
+                      "eventState": {
+                        "permissive-Movement-Allowed": null
+                      },
+                      "timing": {
+                        "minEndTime": "6870",
+                        "maxEndTime": "14190",
+                        "likelyTime": "7960",
+                        "confidence": "8"
+                      }
+                    },
+                    {
+                      "eventState": {
+                        "permissive-clearance": null
+                      },
+                      "timing": {
+                        "minEndTime": "7960",
+                        "maxEndTime": "7990",
+                        "likelyTime": "7990",
+                        "confidence": "15"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "signalGroup": "2",
+                "state-time-speed": {
+                  "MovementEvent": [
+                    {
+                      "eventState": {
+                        "permissive-Movement-Allowed": null
+                      },
+                      "timing": {
+                        "minEndTime": "6870",
+                        "maxEndTime": "12990",
+                        "likelyTime": "7960",
+                        "confidence": "10"
+                      }
+                    },
+                    {
+                      "eventState": {
+                        "permissive-clearance": null
+                      },
+                      "timing": {
+                        "minEndTime": "7960",
+                        "maxEndTime": "7990",
+                        "likelyTime": "7990",
+                        "confidence": "15"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

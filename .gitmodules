@@ -1,0 +1,3 @@
+[submodule "dsrcpy"]
+	path = dsrcpy
+	url = ../../../diginet-ps/dsrcpy.git

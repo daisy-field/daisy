@@ -1,0 +1,248 @@
+{
+  "SPATEM": {
+    "header": {
+      "protocolVersion": "2",
+      "messageID": "4",
+      "stationID": "1192472"
+    },
+    "spat": {
+      "timeStamp": "315972",
+      "intersections": {
+        "IntersectionState": {
+          "id": {
+            "id": "20003"
+          },
+          "revision": "0",
+          "status": "0000001000000000",
+          "moy": "315972",
+          "timeStamp": "41848",
+          "states": {
+            "MovementState": [
+              {
+                "signalGroup": "1",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "permissive-Movement-Allowed": null
+                    },
+                    "timing": {
+                      "minEndTime": "7670"
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "2",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "stop-And-Remain": null
+                    },
+                    "timing": {
+                      "minEndTime": "7760"
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "3",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "permissive-Movement-Allowed": null
+                    },
+                    "timing": {
+                      "minEndTime": "7880"
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "4",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "dark": null
+                    },
+                    "timing": {
+                      "minEndTime": "7670"
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "5",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "stop-And-Remain": null
+                    },
+                    "timing": {
+                      "minEndTime": "7910"
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "6",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "stop-And-Remain": null
+                    },
+                    "timing": {
+                      "minEndTime": "7930"
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "7",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "dark": null
+                    },
+                    "timing": {
+                      "minEndTime": "7910"
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "8",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "dark": null
+                    },
+                    "timing": {
+                      "minEndTime": "7930"
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "9",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "stop-And-Remain": null
+                    },
+                    "timing": {
+                      "minEndTime": "7920"
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "10",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "permissive-clearance": null
+                    },
+                    "timing": {
+                      "minEndTime": "7650"
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "11",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "stop-And-Remain": null
+                    },
+                    "timing": {
+                      "minEndTime": "7660"
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "12",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "permissive-Movement-Allowed": null
+                    },
+                    "timing": {
+                      "minEndTime": "7790"
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "13",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "stop-And-Remain": null
+                    },
+                    "timing": {
+                      "minEndTime": "7860"
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "14",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "stop-And-Remain": null
+                    },
+                    "timing": {
+                      "minEndTime": "7840"
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "15",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "dark": null
+                    },
+                    "timing": {
+                      "minEndTime": "7860"
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "16",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "dark": null
+                    },
+                    "timing": {
+                      "minEndTime": "7840"
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "17",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "stop-And-Remain": null
+                    },
+                    "timing": {
+                      "minEndTime": "7830"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

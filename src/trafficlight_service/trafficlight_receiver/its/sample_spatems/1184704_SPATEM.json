@@ -1,0 +1,395 @@
+{
+  "SPATEM": {
+    "header": {
+      "protocolVersion": "2",
+      "messageID": "4",
+      "stationID": "1184704"
+    },
+    "spat": {
+      "timeStamp": "315980",
+      "intersections": {
+        "IntersectionState": {
+          "id": {
+            "id": "7135"
+          },
+          "revision": "0",
+          "status": "0000001000000000",
+          "moy": "315980",
+          "timeStamp": "30816",
+          "states": {
+            "MovementState": [
+              {
+                "signalGroup": "1",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "stop-And-Remain": null
+                    },
+                    "timing": {
+                      "minEndTime": "12689",
+                      "maxEndTime": "12949",
+                      "likelyTime": "12819",
+                      "confidence": "4"
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "2",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "stop-And-Remain": null
+                    },
+                    "timing": {
+                      "minEndTime": "12689",
+                      "maxEndTime": "12949",
+                      "likelyTime": "12819",
+                      "confidence": "4"
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "3",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "permissive-Movement-Allowed": null
+                    },
+                    "timing": {
+                      "minEndTime": "12309",
+                      "maxEndTime": "12329",
+                      "likelyTime": "12319",
+                      "confidence": "0"
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "4",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "stop-And-Remain": null
+                    },
+                    "timing": {
+                      "minEndTime": "12309",
+                      "maxEndTime": "12329",
+                      "likelyTime": "12319",
+                      "confidence": "0"
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "5",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "stop-And-Remain": null
+                    },
+                    "timing": {
+                      "minEndTime": "12309",
+                      "maxEndTime": "12329",
+                      "likelyTime": "12319",
+                      "confidence": "0"
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "6",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "permissive-Movement-Allowed": null
+                    },
+                    "timing": {
+                      "minEndTime": "12309",
+                      "maxEndTime": "12589",
+                      "likelyTime": "12449",
+                      "confidence": "0"
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "7",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "permissive-Movement-Allowed": null
+                    },
+                    "timing": {
+                      "minEndTime": "12309",
+                      "maxEndTime": "12329",
+                      "likelyTime": "12319",
+                      "confidence": "0"
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "8",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "stop-And-Remain": null
+                    },
+                    "timing": {
+                      "minEndTime": "12309",
+                      "maxEndTime": "12369",
+                      "likelyTime": "12339",
+                      "confidence": "0"
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "9",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "stop-And-Remain": null
+                    },
+                    "timing": {
+                      "minEndTime": "12309",
+                      "maxEndTime": "12369",
+                      "likelyTime": "12339",
+                      "confidence": "0"
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "10",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "stop-And-Remain": null
+                    },
+                    "timing": {
+                      "minEndTime": "12309",
+                      "maxEndTime": "12589",
+                      "likelyTime": "12449",
+                      "confidence": "0"
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "11",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "stop-And-Remain": null
+                    },
+                    "timing": {
+                      "minEndTime": "12309",
+                      "maxEndTime": "12589",
+                      "likelyTime": "12449",
+                      "confidence": "0"
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "12",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "dark": null
+                    },
+                    "timing": {
+                      "minEndTime": "12309",
+                      "maxEndTime": "12329",
+                      "likelyTime": "12319",
+                      "confidence": "0"
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "13",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "dark": null
+                    },
+                    "timing": {
+                      "minEndTime": "12309",
+                      "maxEndTime": "12329",
+                      "likelyTime": "12319",
+                      "confidence": "0"
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "14",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "dark": null
+                    },
+                    "timing": {
+                      "minEndTime": "12309",
+                      "maxEndTime": "12369",
+                      "likelyTime": "12339",
+                      "confidence": "0"
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "15",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "dark": null
+                    },
+                    "timing": {
+                      "minEndTime": "12309",
+                      "maxEndTime": "12369",
+                      "likelyTime": "12339",
+                      "confidence": "0"
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "16",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "dark": null
+                    },
+                    "timing": {
+                      "minEndTime": "12309",
+                      "maxEndTime": "12589",
+                      "likelyTime": "12449",
+                      "confidence": "0"
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "17",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "dark": null
+                    },
+                    "timing": {
+                      "minEndTime": "12309",
+                      "maxEndTime": "12589",
+                      "likelyTime": "12449",
+                      "confidence": "0"
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "18",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "stop-And-Remain": null
+                    },
+                    "timing": {
+                      "minEndTime": "12689",
+                      "maxEndTime": "12949",
+                      "likelyTime": "12819",
+                      "confidence": "4"
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "19",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "permissive-Movement-Allowed": null
+                    },
+                    "timing": {
+                      "minEndTime": "12309",
+                      "maxEndTime": "12329",
+                      "likelyTime": "12319",
+                      "confidence": "0"
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "20",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "stop-And-Remain": null
+                    },
+                    "timing": {
+                      "minEndTime": "12789",
+                      "maxEndTime": "12949",
+                      "likelyTime": "12869",
+                      "confidence": "7"
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "21",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "stop-And-Remain": null
+                    },
+                    "timing": {
+                      "minEndTime": "12309",
+                      "maxEndTime": "12329",
+                      "likelyTime": "12319",
+                      "confidence": "0"
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "22",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "stop-And-Remain": null
+                    },
+                    "timing": {
+                      "minEndTime": "12309",
+                      "maxEndTime": "12369",
+                      "likelyTime": "12339",
+                      "confidence": "0"
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "23",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "stop-And-Remain": null
+                    },
+                    "timing": {
+                      "minEndTime": "12789",
+                      "maxEndTime": "12949",
+                      "likelyTime": "12869",
+                      "confidence": "7"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

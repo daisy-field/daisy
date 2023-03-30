@@ -1,0 +1,177 @@
+{
+  "SPATEM": {
+    "header": {
+      "protocolVersion": "2",
+      "messageID": "4",
+      "stationID": "1193200"
+    },
+    "spat": {
+      "timeStamp": "315979",
+      "intersections": {
+        "IntersectionState": {
+          "id": {
+            "id": "17027"
+          },
+          "revision": "0",
+          "status": "0000001000000000",
+          "moy": "315979",
+          "timeStamp": "43824",
+          "states": {
+            "MovementState": [
+              {
+                "signalGroup": "1",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "stop-And-Remain": null
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "2",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "permissive-Movement-Allowed": null
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "3",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "stop-And-Remain": null
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "4",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "dark": null
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "5",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "permissive-Movement-Allowed": null
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "6",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "permissive-Movement-Allowed": null
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "7",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "stop-And-Remain": null
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "8",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "permissive-Movement-Allowed": null
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "9",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "permissive-Movement-Allowed": null
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "10",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "dark": null
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "11",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "dark": null
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "12",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "dark": null
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "13",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "dark": null
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "14",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "dark": null
+                    }
+                  }
+                }
+              },
+              {
+                "signalGroup": "15",
+                "state-time-speed": {
+                  "MovementEvent": {
+                    "eventState": {
+                      "permissive-Movement-Allowed": null
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

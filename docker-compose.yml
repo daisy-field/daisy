@@ -1,0 +1,8 @@
+version: '3.8'
+
+services:
+ v2x-service:
+  image: registry.gitlab.dai-labor.de/beintelligent/tp2-middleware/v2x-vehicle/master
+  ports:
+  - "8800:8800/udp"
+  - "4400:4400/udp"
