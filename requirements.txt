@@ -1,3 +1,1 @@
-pytz
-utm
-python-dateutil
+pyshark
