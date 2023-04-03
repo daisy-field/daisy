@@ -1,27 +1,27 @@
 import json
+from collections import defaultdict
+from collections.abc import MutableMapping
+
 import pyshark
+from pyshark.packet.fields import LayerField
+from pyshark.packet.fields import LayerFieldsContainer
+from pyshark.packet.layers.xml_layer import XmlLayer
 from pyshark.packet.packet import Packet
 
-from collections import defaultdict
-import argparse
-import datetime
-import os
-import re
-from collections.abc import MutableMapping
-from time import time
 
-import pandas as pd
+# TODO further cleanup, docstrings, typehints, splitting it from pyshark capture
+# TODO more copy pasta (e.g. argparse)
 
-def addLayerToDict(layer):
-    if isinstance(layer, pyshark.packet.layers.xml_layer.XmlLayer):
-        dict = {}
+def add_layer_to_dict(layer):
+    if isinstance(layer, XmlLayer):
+        dictionary = {}
         for field in layer.field_names:
-            result = addLayerToDict(layer.get_field(field))
-            if isinstance(result, list):
+            result = add_layer_to_dict(layer.get_field(field))
+            if isinstance(result, list):  # FIXME this part is never entered (since json->XML?), is info being skipped?
                 if hasattr(layer.get_field(field), "layer_name"):
-                    dict.update({layer.get_field(field).layer_name: result})
+                    dictionary.update({layer.get_field(field).layer_name: result})
                 else:
-                    # dict.update({f"RandomFieldName{randint(100000, 999999)}": result})
+                    # dictionary.update({f"RandomFieldName{randint(100000, 999999)}": result})
                     # Assumptions:
                     # - result has no layer_name, because it is a list
                     # - the list is never empty
@@ -30,34 +30,53 @@ def addLayerToDict(layer):
                     # - all dictionaries inside the list share the same key
                     # If this fails, try enabling the RandomFieldName above and look in the generated json
                     # what the result looks like and which assumption doesn't hold
-                    dict.update({next(iter(result[0].keys())): [res[next(iter(result[0].keys()))] for res in result]})
+                    dictionary.update(
+                        {next(iter(result[0].keys())): [res[next(iter(result[0].keys()))] for res in result]})
             else:
-                dict.update(result)
-        layer_list = {layer.layer_name: dict}
-
+                dictionary.update(result)
+        layer_list = {layer.layer_name: dictionary}
         return layer_list
-    elif isinstance(layer, pyshark.packet.fields.LayerFieldsContainer):
-        if len(layer.all_fields) > 5:
-            print(f"Layer count: {len(layer.all_fields)}, layer: {layer.all_fields}")
-        d_list = []
-        for field in layer.all_fields:
-            d_list.append(addLayerToDict(field))
-        dict = defaultdict(list)
-        for d in d_list: # you can list as many input dicts as you want here
-            for key, value in d.items():
-                dict[key].append(value)
-        return dict
-    elif isinstance(layer, pyshark.packet.fields.LayerField):
-        return {layer.name: layer.show}
-    elif isinstance(layer, list):
-        l = []
-        for sub_layer in layer:
-            l += [addLayerToDict(sub_layer)]
 
-        return l
+    elif isinstance(layer, LayerFieldsContainer):
+        if len(layer.fields) == 1:
+            return add_layer_to_dict(layer.fields[0])
+        d_list = []
+        for field in layer.fields:
+            d_list.append(add_layer_to_dict(field))
+        dictionary = defaultdict(list)
+        for d in d_list:  # you can list as many input dicts as you want here
+            for key, value in d.items():
+                dictionary[key].append(value)
+        return dictionary
+
+    elif isinstance(layer, LayerField):
+        return {layer.name: layer.show}
+
+    elif isinstance(layer, list): # FIXME this part is never entered (since json->XML?), is info being skipped?
+        d_list = []
+        for sub_layer in layer:
+            d_list += [add_layer_to_dict(sub_layer)]
+        return d_list
+
+
+def flatten_dict(dictionary, par_key=""):
+    seperator = "."
+    items = {}
+    for key, val in dictionary.items():
+        cur_key = par_key + seperator + key if par_key else key
+        if isinstance(val, MutableMapping):
+            items.update(flatten_dict(val, cur_key))
+        else:
+            items.update({cur_key: val})
+    return items
+
+
+def dict2json(dictionary):
+    return json.dumps(dictionary, indent=2)
+
 
 def packet2dict(p: Packet):
-    packet_dict = {}
+    p_dict = {}
 
     meta_dict = {
         "number": p.number,
@@ -66,20 +85,20 @@ def packet2dict(p: Packet):
         "time_epoch": p.sniff_timestamp,
         "time": str(p.sniff_time)
     }
-    packet_dict.update({"meta": meta_dict})
+    p_dict.update({"meta": meta_dict})
 
     for layer in p.layers:
-        packet_dict.update(addLayerToDict(layer))
+        p_dict.update(add_layer_to_dict(layer))
 
-    return packet_dict
+    return dict2json(flatten_dict(p_dict))
 
 
 def pyshark_capture():
-    capture = pyshark.LiveCapture(interface='any')
-    p: Packet
+    capture = pyshark.LiveCapture(interface='any')  # FIXME add exception for socket communication
     for p in capture.sniff_continuously():
         p_dict = packet2dict(p)
         print(p_dict)
+
 
 if __name__ == '__main__':
     pyshark_capture()
