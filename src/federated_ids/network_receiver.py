@@ -1,8 +1,13 @@
 import json
+import logging
+import pickle
+import queue
+import select
+import socket
+import threading
 from collections import defaultdict
 from collections.abc import MutableMapping
 
-import pyshark
 from pyshark.packet.fields import LayerField
 from pyshark.packet.fields import LayerFieldsContainer
 from pyshark.packet.layers.xml_layer import XmlLayer
@@ -12,12 +17,32 @@ from pyshark.packet.packet import Packet
 # TODO further cleanup, docstrings, typehints, splitting it from pyshark capture
 # TODO more copy pasta (e.g. argparse)
 
+def recvall(sock):
+    BUFF_SIZE = 4096  # 4 KiB
+    data = b''
+
+    while True:
+        part = sock.recv(BUFF_SIZE)
+        data += part
+        if len(part) < BUFF_SIZE:
+            # either 0 or end of data
+            break
+    return data
+
+
+def handle_client(client, address):
+    data = recvall(client)
+    q.put(data)
+    logging.info(f"Put data from {address} of length {len(data)} into queue ({q.qsize()})")
+    client.close()
+
+
 def add_layer_to_dict(layer):
     if isinstance(layer, XmlLayer):
         dictionary = {}
         for field in layer.field_names:
             result = add_layer_to_dict(layer.get_field(field))
-            if isinstance(result, list):  # FIXME this part is never entered (since json->XML?), is info being skipped?
+            if isinstance(result, list):  # FIXME no coverage in XML mode -> check with other PCAPs
                 if hasattr(layer.get_field(field), "layer_name"):
                     dictionary.update({layer.get_field(field).layer_name: result})
                 else:
@@ -52,7 +77,7 @@ def add_layer_to_dict(layer):
     elif isinstance(layer, LayerField):
         return {layer.name: layer.show}
 
-    elif isinstance(layer, list): # FIXME this part is never entered (since json->XML?), is info being skipped?
+    elif isinstance(layer, list):  # FIXME no coverage in XML mode -> check with other PCAPs
         d_list = []
         for sub_layer in layer:
             d_list += [add_layer_to_dict(sub_layer)]
@@ -94,11 +119,23 @@ def packet2dict(p: Packet):
 
 
 def pyshark_capture():
-    capture = pyshark.LiveCapture(interface='any')  # FIXME add exception for socket communication
-    for p in capture.sniff_continuously():
-        p_dict = packet2dict(p)
-        print(p_dict)
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.bind(('', 12000))
+    server_socket.listen(1000)
 
+    while True:
+        connection, client_address = server_socket.accept()
+        handle_client(connection, client_address)
+
+
+q = queue.Queue()
 
 if __name__ == '__main__':
-    pyshark_capture()
+    logging.basicConfig(level=logging.INFO)
+    receiver = threading.Thread(target=pyshark_capture).start()
+
+    while True:
+        data = q.get()
+        p: Packet = pickle.loads(data)
+        j_packet = packet2dict(p)
+        logging.info(f"Unpickled data: {len(j_packet)}")
