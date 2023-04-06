@@ -1,9 +1,5 @@
 import json
 import logging
-import pickle
-import queue
-import socket
-import threading
 from collections import defaultdict
 from collections.abc import MutableMapping
 
@@ -12,29 +8,11 @@ from pyshark.packet.fields import LayerFieldsContainer
 from pyshark.packet.layers.xml_layer import XmlLayer
 from pyshark.packet.packet import Packet
 
+from data_sources.message_stream import StreamEndpoint
+
 
 # TODO further cleanup, docstrings, typehints, splitting it from pyshark capture
 # TODO more copy pasta (e.g. argparse)
-
-def recvall(sock):
-    BUFF_SIZE = 4096  # 4 KiB
-    data = b''
-
-    while True:
-        part = sock.recv(BUFF_SIZE)
-        data += part
-        if len(part) < BUFF_SIZE:
-            # either 0 or end of data
-            break
-    return data
-
-
-def handle_client(client, address):
-    data = recvall(client)
-    q.put(data)
-    logging.info(f"Put data from {address} of length {len(data)} into queue ({q.qsize()})")
-    client.close()
-
 
 def add_layer_to_dict(layer):
     if isinstance(layer, XmlLayer):
@@ -117,24 +95,13 @@ def packet2dict(p: Packet):
     return dict2json(flatten_dict(p_dict))
 
 
-def pyshark_capture():
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.bind(('', 12000))
-    server_socket.listen(1000)
-
-    while True:
-        connection, client_address = server_socket.accept()
-        handle_client(connection, client_address)
-
-
-q = queue.Queue()
-
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
-    receiver = threading.Thread(target=pyshark_capture).start()
+    logging.basicConfig(level=logging.DEBUG)
+    endpoint = StreamEndpoint(addr=("127.0.0.1", 12000), multithreading=True)
+    endpoint.start(StreamEndpoint.EndpointType.SINK)
 
+    sum = 0
     while True:
-        data = q.get()
-        p: Packet = pickle.loads(data)
-        j_packet = packet2dict(p)
-        logging.info(f"Unpickled data: {len(j_packet)}")
+        packet = endpoint.recv()
+        sum += len(packet)
+        logging.info(f"Received Pyshark Packet: {len(packet)}, total data: {sum}")

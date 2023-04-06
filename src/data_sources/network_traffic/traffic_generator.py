@@ -1,23 +1,14 @@
 import argparse
 import datetime
+import logging
 import os
-import pickle
 import re
-import socket
 from time import time
 
 import pyshark
 from pyshark import capture
 
-
-# socket.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 8192)  # Buffer size 8192
-
-def send_data(data):  # FIXME socket comm
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_socket.settimeout(1.0)
-    addr = ("127.0.0.1", 12000)
-    client_socket.connect(addr)
-    client_socket.sendall(data)
+from data_sources.message_stream import StreamEndpoint
 
 
 def pcap2dict(pcap):
@@ -29,14 +20,18 @@ def pcap2dict(pcap):
     packet_count = len(pcap)
     step_size = packet_count // 20
     cur_packet = 0
+
+    logging.basicConfig(level=logging.DEBUG)
+    endpoint = StreamEndpoint(addr=("127.0.0.1", 13000), remote_addr=("127.0.0.1", 12000), multithreading=False)
+    endpoint.start(StreamEndpoint.EndpointType.SOURCE)
+
     while True:
         try:
             if cur_packet % step_size == 0:
                 print(f"Reading packet {cur_packet} of {packet_count}...")
             cur_packet += 1
             packet = pcap.next_packet()
-            p_packet = pickle.dumps(packet)
-            send_data(p_packet)
+            endpoint.send(packet)
         except StopIteration:
             break
 
