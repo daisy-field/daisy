@@ -10,6 +10,8 @@ import pyshark
 from pyshark import capture
 
 
+# socket.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 8192)  # Buffer size 8192
+
 def send_data(data):  # FIXME socket comm
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client_socket.settimeout(1.0)

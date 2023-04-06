@@ -2,7 +2,6 @@ import json
 import logging
 import pickle
 import queue
-import select
 import socket
 import threading
 from collections import defaultdict

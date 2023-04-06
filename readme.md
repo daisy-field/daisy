@@ -1,6 +1,7 @@
 # V2X-Vehicle (TL-Communication)
 
-Simple ROS-less Python service to make traffic light states transmitted by the local cohda box to the service available to other clients.
+Simple ROS-less Python service to make traffic light states transmitted by the local cohda box to the service available
+to other clients.
 
 ## Installation and Setup
 
@@ -18,12 +19,13 @@ See the DSRCpy package documentation for more information regarding that.
 
 #### Manual Setup
 
-Allows development directly without first building the images over the deployment pipeline before pulling it. It works, but why not just go for a pure python setup instead? 
+Allows development directly without first building the images over the deployment pipeline before pulling it. It works,
+but why not just go for a pure python setup instead?
 
 1. Clone this project, including the submodules.
-2. Build and start everything: 
-   - ``docker compose -f docker-compose.dev.yml up`` development container with preloaded DSRC packets (outdated)
-   - ``docker compose -f docker-compose.yml up`` production container that listens to the cohda box for messages.
+2. Build and start everything:
+    - ``docker compose -f docker-compose.dev.yml up`` development container with preloaded DSRC packets (outdated)
+    - ``docker compose -f docker-compose.yml up`` production container that listens to the cohda box for messages.
 
 ### Python
 
