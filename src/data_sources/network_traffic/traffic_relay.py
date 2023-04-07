@@ -2,7 +2,7 @@ import logging
 
 import pyshark
 
-from data_sources.message_stream import StreamEndpoint
+from communication.message_stream import StreamEndpoint
 
 
 def pyshark_capture():

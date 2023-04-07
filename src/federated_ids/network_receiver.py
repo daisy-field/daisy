@@ -8,7 +8,7 @@ from pyshark.packet.fields import LayerFieldsContainer
 from pyshark.packet.layers.xml_layer import XmlLayer
 from pyshark.packet.packet import Packet
 
-from data_sources.message_stream import StreamEndpoint
+from communication.message_stream import StreamEndpoint
 
 
 # TODO further cleanup, docstrings, typehints, splitting it from pyshark capture
@@ -102,6 +102,7 @@ if __name__ == '__main__':
 
     sum = 0
     while True:
-        packet = endpoint.recv()
+        packet = endpoint.receive()
         sum += len(packet)
+        d_packet = packet2dict(packet)
         logging.info(f"Received Pyshark Packet: {len(packet)}, total data: {sum}")

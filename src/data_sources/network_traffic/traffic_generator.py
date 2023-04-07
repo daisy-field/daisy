@@ -8,7 +8,7 @@ from time import time
 import pyshark
 from pyshark import capture
 
-from data_sources.message_stream import StreamEndpoint
+from communication.message_stream import StreamEndpoint
 
 
 def pcap2dict(pcap):

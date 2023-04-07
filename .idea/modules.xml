@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/v2x-rsu.iml" filepath="$PROJECT_DIR$/.idea/v2x-rsu.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/of-ids.iml" filepath="$PROJECT_DIR$/.idea/of-ids.iml" />
     </modules>
   </component>
 </project>
