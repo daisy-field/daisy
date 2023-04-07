@@ -45,6 +45,12 @@ class StreamEndpoint:
             self._logger = logger
             self._started = False
 
+        def start(self):
+            self._started = True
+
+        def stop(self):
+            self._started = False
+
         def connect(self):
             while self._started:
                 try:
@@ -207,6 +213,7 @@ class StreamEndpoint:
         if self._started:
             raise RuntimeError(f"Endpoint has already been started!")
         self._started = True
+        self._endpoint_socket.start()
 
         if self._endpoint_type.value == 0:
             if self._multithreading:
@@ -229,6 +236,7 @@ class StreamEndpoint:
             self._logger.debug("Endpoint has not been started!")
             return
         self._started = False
+        self._endpoint_socket.stop()
 
         if self._multithreading:
             self._thread.join()
@@ -250,7 +258,7 @@ class StreamEndpoint:
 
         p_obj = pickle.dumps(obj)
 
-        if self._multithreading:
+        if self._multithreading:  # FIXME BLOCKING?
             self._logger.debug(
                 f"Multithreading detected, putting object into internal buffer (size={self._buffer.qsize()})...")
             self._buffer.put(p_obj)
@@ -270,7 +278,7 @@ class StreamEndpoint:
         elif self._endpoint_type.value == 0:
             raise RuntimeError("Endpoint is not a sink!")
 
-        if self._multithreading:
+        if self._multithreading:  # FIXME BLOCKING?
             self._logger.debug(
                 f"Multithreading detected, retrieving object from internal buffer (size={self._buffer.qsize()})...")
             p_obj = self._buffer.get()
@@ -287,12 +295,15 @@ class StreamEndpoint:
 
         if self._multithreading:
             self._logger.debug("Multithreading enabled.")
-            while self._started:  # FIXME
-                self._logger.debug(
-                    f"Retrieving object to send from internal buffer (size={self._buffer.qsize()})...")
-                p_data = self._buffer.get()
-                self._endpoint_socket.send(p_data)
-                self._logger.debug(f"Pickled object sent of size {len(p_data)}.")
+            while self._started:  # FIXME CHECK
+                try:
+                    self._logger.debug(
+                        f"Retrieving object to send from internal buffer (size={self._buffer.qsize()})...")
+                    p_data = self._buffer.get(timeout=10)
+                    self._endpoint_socket.send(p_data)
+                    self._logger.debug(f"Pickled object sent of size {len(p_data)}.")  # FIXME
+                except queue.Empty:
+                    pass
             self._endpoint_socket.close()
 
     def _create_sink(self):
@@ -301,11 +312,14 @@ class StreamEndpoint:
         self._logger.debug("Connected to remote endpoint.")
 
         if self._multithreading:
-            self._logger.debug("Multithreading enabled.")  # FIXME
-            while self._started:  # FIXME
-                p_data = self._endpoint_socket.recv()
-                self._buffer.put(p_data)
-                self._logger.debug(f"Data received of size {len(p_data)}.")  # FIXME
+            self._logger.debug("Multithreading enabled.")
+            while self._started:  # FIXME CHECK
+                try:
+                    p_data = self._endpoint_socket.recv()
+                    self._buffer.put(p_data, timeout=10)
+                    self._logger.debug(f"Data received of size {len(p_data)}.")  # FIXME
+                except queue.Full:
+                    pass
             self._endpoint_socket.close()
 
     def __iter__(self):
