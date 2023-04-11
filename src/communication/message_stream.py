@@ -12,8 +12,8 @@ from typing import Tuple
 
 # TODO set up SSL https://docs.python.org/3/library/ssl.html
 # TODO checkout gzip/lzma/bz2/mgzip/zipfile for compression
-# TODO filter logging
 # TODO int conversions
+# TODO custom marshall functions
 
 class StreamEndpoint:
     class EndpointType(Enum):
@@ -70,13 +70,14 @@ class StreamEndpoint:
                         self._remote_sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, self._recv_b_size)
                     break
                 except OSError as e:
-                    self._logger.debug(f"{e.__class__.__name__}({e}) while trying to establish connection. Retrying...")
+                    self._logger.info(f"{e.__class__.__name__}({e}) while trying to establish connection. Retrying...")
                     sleep(1)
                     continue
 
         def close(self):
             """Closes the sockets of an endpoint, shutdowns any potential connection that might have been established.
             """
+
             def close_socket(sock: socket.socket):
                 try:
                     sock.shutdown(socket.SHUT_RDWR)
@@ -115,7 +116,7 @@ class StreamEndpoint:
                 try:
                     return send_payload(p_data)
                 except (OSError, RuntimeError) as e:
-                    self._logger.debug(f"{e.__class__.__name__}({e}) while trying to send data. Retrying...")
+                    self._logger.info(f"{e.__class__.__name__}({e}) while trying to send data. Retrying...")
                     self.connect()
 
         def recv(self, timeout: int = None) -> bytes:
@@ -152,7 +153,7 @@ class StreamEndpoint:
                 except (OSError, RuntimeError) as e:
                     if timeout is not None and type(e) is TimeoutError:
                         raise e
-                    self._logger.debug(f"{e.__class__.__name__}({e}) while trying to receive data. Retrying...")
+                    self._logger.info(f"{e.__class__.__name__}({e}) while trying to receive data. Retrying...")
                     self.connect()
 
         def _open(self):
@@ -241,9 +242,9 @@ class StreamEndpoint:
         """Starts the endpoint, either in dual-threaded fashion or as part of the main thread. By doing so, the two
         endpoints are connected and the datastream is opened.
 
-        :raises RuntimeError: If already called for the endpoint.
+        :raises RuntimeError: If endpoint has already been started.
         """
-        self._logger.debug("Starting endpoint...")
+        self._logger.info("Starting endpoint...")
         if self._started:
             raise RuntimeError(f"Endpoint has already been started!")
         self._started = True
@@ -251,47 +252,52 @@ class StreamEndpoint:
 
         if self._endpoint_type.value == 0:
             if self._multithreading:
+                self._logger.info("Multithreading detected, starting endpoint thread...")
                 self._thread = threading.Thread(target=self._create_source, name="AsyncSource")
                 self._thread.start()
             else:
                 self._create_source()
         else:
             if self._multithreading:
+                self._logger.info("Multithreading detected, starting endpoint thread...")
                 self._thread = threading.Thread(target=self._create_sink, name="AsyncSink")
                 self._thread.start()
             else:
                 self._create_sink()
 
-        self._logger.debug("Endpoint started.")
+        self._logger.info("Endpoint started.")
 
     def stop(self):
         """Stops the endpoint and closes the stream, cleaning up underlying structures. If multithreading is enabled,
         waits until the endpoint thread stops before performing cleanup.
+
+        :raises RuntimeError: If endpoint has not been started.
         """
-        self._logger.debug("Stopping endpoint...")
+        self._logger.info("Stopping endpoint...")
         if not self._started:
-            self._logger.debug("Endpoint has not been started!")
-            return
+            raise RuntimeError(f"Endpoint has not been started!")
         self._started = False
         self._endpoint_socket.stop()
 
         if self._multithreading:
+            self._logger.info("Multithreading detected, waiting for endpoint thread to stop...")
             self._thread.join()
-        else:
-            self._endpoint_socket.close()
-        self._logger.debug("Endpoint stopped.")
+        self._endpoint_socket.close()
+        self._logger.info("Endpoint stopped.")
 
     def send(self, obj: object):
         """Generic send function that sends any object as a pickle over the persistent datastream. If multithreading is
         enabled, this function is asynchronous, otherwise it is blocking.
 
         :param obj: Object to send.
+        :raises RuntimeError: If endpoint has not been started.
+        :raises NotImplementedError: If endpoint type does not support sending operation.
         """
         self._logger.debug("Sending object...")
         if not self._started:
             raise RuntimeError("Endpoint has not been started!")
         elif self._endpoint_type.value == 1:
-            raise RuntimeError("Endpoint is not a source!")
+            raise NotImplementedError("Endpoints of type source do not support the send operation!")
 
         p_obj = pickle.dumps(obj)
 
@@ -309,13 +315,15 @@ class StreamEndpoint:
 
         :param timeout: Timeout (seconds) to receive an object to return.
         :return: Received object.
+        :raises RuntimeError: If endpoint has not been started.
+        :raises NotImplementedError: If endpoint type does not support receiving operation.
         :raises TimeoutError: If timeout set and triggered.
         """
         self._logger.debug("Receiving object...")
         if not self._started:
             raise RuntimeError("Endpoint has not been started!")
         elif self._endpoint_type.value == 0:
-            raise RuntimeError("Endpoint is not a sink!")
+            raise NotImplementedError("Endpoints of type sink do not support the receive operation!")
 
         if self._multithreading:
             self._logger.debug(
@@ -326,8 +334,7 @@ class StreamEndpoint:
                 raise TimeoutError
         else:
             p_obj = self._endpoint_socket.recv(timeout)
-
-        self._logger.debug(f"Pickled object received of size {len(p_obj)}.")
+        self._logger.debug(f"Pickled data received of size {len(p_obj)}.")
         return pickle.loads(p_obj)
 
     def _create_source(self):
@@ -335,42 +342,44 @@ class StreamEndpoint:
         endpoints are connected and the datastream is opened. If started in multithreading mode, also starts the loop
         to send objects from the internal buffer.
         """
-        self._logger.debug("Creating source...")
+        self._logger.info("Creating source...")
         self._endpoint_socket.connect()
-        self._logger.debug("Connected to remote endpoint.")
+        self._logger.info("Source created.")
 
         if self._multithreading:
-            self._logger.debug("Multithreading enabled.")
+            self._logger.info(f"{self._thread.name}: Starting to send objects in asynchronous mode...")
             while self._started:
                 try:
+                    p_obj = self._buffer.get(timeout=10)
                     self._logger.debug(
-                        f"Retrieving object to send from internal buffer (size={self._buffer.qsize()})...")
-                    p_data = self._buffer.get(timeout=10)
-                    self._endpoint_socket.send(p_data)
-                    self._logger.debug(f"Pickled object sent of size {len(p_data)}.")
+                        f"{self._thread.name}: Retrieved and sending object (size: {len(p_obj)}) from buffer "
+                        f"(length: {self._buffer.qsize()})")
+                    self._endpoint_socket.send(p_obj)
                 except queue.Empty:
-                    pass
-            self._endpoint_socket.close()
+                    self._logger.warning(f"{self._thread.name}: Timeout triggered: Buffer empty.")
+            self._logger.info(f"{self._thread.name}: Stopping...")
 
     def _create_sink(self):
         """Creates the streaming endpoint as a sink, i.e. an endpoint that is able to receive messages. By doing so, two
         endpoints are connected and the datastream is opened. If started in multithreading mode, also starts the loop
         to receive objects and store them in the internal buffer.
         """
-        self._logger.debug("Creating sink...")
+        self._logger.info("Creating sink...")
         self._endpoint_socket.connect()
-        self._logger.debug("Connected to remote endpoint.")
+        self._logger.info("Sink created.")
 
         if self._multithreading:
-            self._logger.debug("Multithreading enabled.")
+            self._logger.info(f"{self._thread.name}: Starting to receive objects in asynchronous mode...")
             while self._started:
                 try:
-                    p_data = self._endpoint_socket.recv()
-                    self._buffer.put(p_data, timeout=10)
-                    self._logger.debug(f"Data received of size {len(p_data)}.")
+                    p_obj = self._endpoint_socket.recv()
+                    self._logger.debug(
+                        f"{self._thread.name}: Storing received object (size: {len(p_obj)}) in buffer "
+                        f"(length: {self._buffer.qsize()})...")
+                    self._buffer.put(p_obj, timeout=10)
                 except queue.Full:
-                    pass
-            self._endpoint_socket.close()
+                    self._logger.warning(f"{self._thread.name}: Timeout triggered: Buffer full. Discarding object...")
+            self._logger.info(f"{self._thread.name}: Stopping...")
 
     def __iter__(self):
         while self._started:
