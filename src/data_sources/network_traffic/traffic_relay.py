@@ -2,15 +2,16 @@ import logging
 
 import pyshark
 
-from communication.message_stream import StreamEndpoint
+import communication.message_stream as stream
 
 
 def pyshark_capture():
     logging.basicConfig(level=logging.DEBUG)
-    endpoint = StreamEndpoint(addr=("127.0.0.1", 13000), remote_addr=("127.0.0.1", 12000), multithreading=False)
-    endpoint.start(StreamEndpoint.EndpointType.SOURCE)
+    endpoint = stream.StreamEndpoint(addr=("127.0.0.1", 13000), remote_addr=("127.0.0.1", 12000),
+                                     endpoint_type=stream.SOURCE, multithreading=False)
+    endpoint.start()
 
-    capture = pyshark.LiveCapture(interface='eth0')  # FIXME add exception for socket communication
+    capture = pyshark.LiveCapture(interface='enx0826ae3a9e6e')  # FIXME add exception for socket communication
     for p in capture.sniff_continuously():
         endpoint.send(p)
 

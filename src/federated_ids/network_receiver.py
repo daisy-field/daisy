@@ -1,5 +1,6 @@
 import json
 import logging
+import typing
 from collections import defaultdict
 from collections.abc import MutableMapping
 
@@ -8,7 +9,7 @@ from pyshark.packet.fields import LayerFieldsContainer
 from pyshark.packet.layers.xml_layer import XmlLayer
 from pyshark.packet.packet import Packet
 
-from communication.message_stream import StreamEndpoint
+import communication.message_stream as stream
 
 
 # TODO further cleanup, docstrings, typehints, splitting it from pyshark capture
@@ -97,12 +98,11 @@ def packet2dict(p: Packet):
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
-    endpoint = StreamEndpoint(addr=("127.0.0.1", 12000), multithreading=True)
-    endpoint.start(StreamEndpoint.EndpointType.SINK)
+    endpoint = stream.StreamEndpoint(addr=("127.0.0.1", 12000), endpoint_type=stream.SINK, multithreading=True)
+    endpoint.start()
 
-    sum = 0
     while True:
         packet = endpoint.receive()
-        sum += len(packet)
+        packet = typing.cast(Packet, packet)
         d_packet = packet2dict(packet)
-        logging.info(f"Received Pyshark Packet: {len(packet)}, total data: {sum}")
+        logging.info(f"Received Pyshark Packet.")

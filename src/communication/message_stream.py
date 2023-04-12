@@ -3,23 +3,21 @@ import logging
 import pickle
 import queue
 import socket
+import sys
 import threading
-from enum import Enum
 from time import sleep
 from typing import Optional
 from typing import Tuple
 
-
 # TODO set up SSL https://docs.python.org/3/library/ssl.html
 # TODO checkout gzip/lzma/bz2/mgzip/zipfile for compression
-# TODO int conversions
 # TODO custom marshall functions
 
-class StreamEndpoint:
-    class EndpointType(Enum):
-        SOURCE = 0
-        SINK = 1
+SOURCE = 0
+SINK = 1
 
+
+class StreamEndpoint:
     class EndpointSocket:
         _addr: Tuple[str, int]
         _remote_addr: Optional[Tuple[str, int]]
@@ -46,48 +44,19 @@ class StreamEndpoint:
             self._remote_addr = remote_addr
             self._send_b_size = send_b_size
             self._recv_b_size = recv_b_size
+            self._sock = None
+            self._remote_sock = None
 
             self._logger = logger
             self._started = False
 
         def start(self):
             self._started = True
+            self._connect()
 
         def stop(self):
             self._started = False
-
-        def connect(self):
-            """Establishes a connection to the remote socket, opening the socket first and initializing the connection
-            socket if in server mode (sink). Fault-tolerant for breakdowns and resets in the connection.
-            """
-            while self._started:
-                try:
-                    self.close()
-                    self._open()
-                    if self._remote_addr is None:
-                        self._sock.listen(0)
-                        self._remote_sock, _ = self._sock.accept()
-                        self._remote_sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, self._recv_b_size)
-                    break
-                except OSError as e:
-                    self._logger.info(f"{e.__class__.__name__}({e}) while trying to establish connection. Retrying...")
-                    sleep(1)
-                    continue
-
-        def close(self):
-            """Closes the sockets of an endpoint, shutdowns any potential connection that might have been established.
-            """
-
-            def close_socket(sock: socket.socket):
-                try:
-                    sock.shutdown(socket.SHUT_RDWR)
-                except OSError:
-                    pass
-                sock.close()
-
-            if self._remote_addr is not None:
-                close_socket(self._remote_sock)
-            close_socket(self._sock)
+            self._close()
 
         def send(self, p_data: bytes):
             """Sends the given bytes of a single object over the connection, performing simple marshalling (size is
@@ -108,7 +77,7 @@ class StreamEndpoint:
                         sent_bytes += n_sent_bytes
 
                 payload_size = len(payload)
-                p_payload_size = bytes(ctypes.c_uint32(payload_size))  # FIXME BYTEORDER socket.htonl(x)
+                p_payload_size = bytes(ctypes.c_uint32(payload_size))
                 send_n_data(p_payload_size, 4)
                 send_n_data(payload, payload_size)
 
@@ -117,7 +86,7 @@ class StreamEndpoint:
                     return send_payload(p_data)
                 except (OSError, RuntimeError) as e:
                     self._logger.info(f"{e.__class__.__name__}({e}) while trying to send data. Retrying...")
-                    self.connect()
+                    self._connect()
 
         def recv(self, timeout: int = None) -> bytes:
             """Receives the bytes of a single object sent over the connection, performing simple marshalling (size is
@@ -131,17 +100,19 @@ class StreamEndpoint:
 
             def recv_payload():
                 def recv_n_data(size, buff_size=4096):
-                    data = b''
-                    while size > 0:
-                        n_data = self._remote_sock.recv(min(size, buff_size))
-                        if n_data == b'':
+                    data = bytearray(size)
+                    r_size = size
+                    while r_size > 0:
+                        n_data = self._remote_sock.recv(min(r_size, buff_size))
+                        n_size = len(n_data)
+                        if n_size == 0:
                             raise RuntimeError("Connection broken!")
-                        data += n_data
-                        size -= len(n_data)
+                        data[size - r_size:size - r_size + n_size] = n_data
+                        r_size -= n_size
                     return data
 
                 p_payload_size = recv_n_data(4, 1)
-                payload_size = int.from_bytes(p_payload_size, byteorder='little')  # FIXME BYTEORDER socket.ntohl(x)
+                payload_size = int.from_bytes(p_payload_size, byteorder=sys.byteorder)
                 return recv_n_data(payload_size)
 
             while self._started:
@@ -154,7 +125,25 @@ class StreamEndpoint:
                     if timeout is not None and type(e) is TimeoutError:
                         raise e
                     self._logger.info(f"{e.__class__.__name__}({e}) while trying to receive data. Retrying...")
-                    self.connect()
+                    self._connect()
+
+        def _connect(self):
+            """Establishes a connection to the remote socket, opening the socket first and initializing the connection
+            socket if in server mode (sink). Fault-tolerant for breakdowns and resets in the connection.
+            """
+            while self._started:
+                try:
+                    self._close()
+                    self._open()
+                    if self._remote_addr is None:
+                        self._sock.listen(0)
+                        self._remote_sock, _ = self._sock.accept()
+                        self._remote_sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, self._recv_b_size)
+                    break
+                except (OSError, RuntimeError) as e:
+                    self._logger.info(f"{e.__class__.__name__}({e}) while trying to establish connection. Retrying...")
+                    sleep(1)
+                    continue
 
         def _open(self):
             """Opens the main socket, binding it to a functioning address and if in client mode (source), also tries to
@@ -195,12 +184,29 @@ class StreamEndpoint:
                     return
             raise RuntimeError(f"Could not open socket with address ({self._addr}, {self._remote_addr})")
 
+        def _close(self):
+            """Closes the sockets of an endpoint, shutdowns any potential connection that might have been established.
+            """
+
+            def close_socket(sock: socket.socket):
+                if sock is None:
+                    return
+                try:
+                    sock.shutdown(socket.SHUT_RDWR)
+                except OSError:
+                    pass
+                sock.close()
+
+            if self._remote_addr is not None:
+                close_socket(self._remote_sock)
+            close_socket(self._sock)
+
         def __del__(self):
-            self.close()
+            self.stop()
 
     _logger: logging.Logger
 
-    _endpoint_type: EndpointType
+    _endpoint_type: int
     _endpoint_socket: EndpointSocket
 
     _multithreading: bool
@@ -209,7 +215,7 @@ class StreamEndpoint:
     _started: bool
 
     def __init__(self, addr: Tuple[str, int] = ("127.0.0.1", 12000), remote_addr: Tuple[str, int] = None,
-                 endpoint_type: EndpointType = EndpointType.SINK, send_b_size: int = 65536, recv_b_size: int = 65536,
+                 endpoint_type: int = -1, send_b_size: int = 65536, recv_b_size: int = 65536,
                  multithreading: bool = False):
         """Creates a new endpoint, one of a pair that is able to communicate with one another over a persistent
         stream in one-way fashion over BSD sockets. Allows the transmission of generic objects in both synchronous and
@@ -226,10 +232,12 @@ class StreamEndpoint:
         self._logger.debug("Initializing endpoint...")
 
         self._endpoint_type = endpoint_type
-        if endpoint_type.value == 0 and remote_addr is None:
+        if endpoint_type == SOURCE and remote_addr is None:
             raise ValueError("Endpoint of type source requires a remote address to pair to!")
-        elif endpoint_type.value == 1 and remote_addr is not None:
+        elif endpoint_type == SINK and remote_addr is not None:
             raise ValueError("Endpoint of type sink does not require a remote address to pair to!")
+        elif endpoint_type != SOURCE and endpoint_type != SINK:
+            raise ValueError("Endpoint has to be either of type sink or source!")
 
         self._endpoint_socket = StreamEndpoint.EndpointSocket(addr, remote_addr, send_b_size, recv_b_size, self._logger)
 
@@ -250,20 +258,15 @@ class StreamEndpoint:
         self._started = True
         self._endpoint_socket.start()
 
-        if self._endpoint_type.value == 0:
-            if self._multithreading:
+        if self._multithreading:
+            if self._endpoint_type == SOURCE:
                 self._logger.info("Multithreading detected, starting endpoint thread...")
                 self._thread = threading.Thread(target=self._create_source, name="AsyncSource")
                 self._thread.start()
             else:
-                self._create_source()
-        else:
-            if self._multithreading:
                 self._logger.info("Multithreading detected, starting endpoint thread...")
                 self._thread = threading.Thread(target=self._create_sink, name="AsyncSink")
                 self._thread.start()
-            else:
-                self._create_sink()
 
         self._logger.info("Endpoint started.")
 
@@ -282,7 +285,6 @@ class StreamEndpoint:
         if self._multithreading:
             self._logger.info("Multithreading detected, waiting for endpoint thread to stop...")
             self._thread.join()
-        self._endpoint_socket.close()
         self._logger.info("Endpoint stopped.")
 
     def send(self, obj: object):
@@ -296,8 +298,8 @@ class StreamEndpoint:
         self._logger.debug("Sending object...")
         if not self._started:
             raise RuntimeError("Endpoint has not been started!")
-        elif self._endpoint_type.value == 1:
-            raise NotImplementedError("Endpoints of type source do not support the send operation!")
+        elif self._endpoint_type == SINK:
+            raise NotImplementedError("Endpoints of type sink do not support the send operation!")
 
         p_obj = pickle.dumps(obj)
 
@@ -322,8 +324,8 @@ class StreamEndpoint:
         self._logger.debug("Receiving object...")
         if not self._started:
             raise RuntimeError("Endpoint has not been started!")
-        elif self._endpoint_type.value == 0:
-            raise NotImplementedError("Endpoints of type sink do not support the receive operation!")
+        elif self._endpoint_type == SOURCE:
+            raise NotImplementedError("Endpoints of type source do not support the receive operation!")
 
         if self._multithreading:
             self._logger.debug(
@@ -338,14 +340,9 @@ class StreamEndpoint:
         return pickle.loads(p_obj)
 
     def _create_source(self):
-        """Creates the streaming endpoint as a source, i.e. an endpoint that is able to send messages. By doing so, two
-        endpoints are connected and the datastream is opened. If started in multithreading mode, also starts the loop
-        to send objects from the internal buffer.
+        """Creates the streaming endpoint as an asynchronous source, i.e. an endpoint that is able to send messages.
+        Starts the loop to send objects retrieved from the internal buffer.
         """
-        self._logger.info("Creating source...")
-        self._endpoint_socket.connect()
-        self._logger.info("Source created.")
-
         if self._multithreading:
             self._logger.info(f"{self._thread.name}: Starting to send objects in asynchronous mode...")
             while self._started:
@@ -360,14 +357,9 @@ class StreamEndpoint:
             self._logger.info(f"{self._thread.name}: Stopping...")
 
     def _create_sink(self):
-        """Creates the streaming endpoint as a sink, i.e. an endpoint that is able to receive messages. By doing so, two
-        endpoints are connected and the datastream is opened. If started in multithreading mode, also starts the loop
-        to receive objects and store them in the internal buffer.
+        """Creates the streaming endpoint as asynchronous sink, i.e. an endpoint that is able to receive messages.
+        Starts the loop to receive objects and store them in the internal buffer.
         """
-        self._logger.info("Creating sink...")
-        self._endpoint_socket.connect()
-        self._logger.info("Sink created.")
-
         if self._multithreading:
             self._logger.info(f"{self._thread.name}: Starting to receive objects in asynchronous mode...")
             while self._started:
