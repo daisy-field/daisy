@@ -9,9 +9,9 @@ from time import sleep
 from typing import Optional
 from typing import Tuple
 
-# TODO set up SSL https://docs.python.org/3/library/ssl.html
-# TODO checkout gzip/lzma/bz2/mgzip/zipfile for compression
-# TODO custom marshall functions
+# TODO optional SSL https://docs.python.org/3/library/ssl.html
+# TODO optional gzip/lzma/bz2/mgzip/zipfile compression
+# TODO optional custom marshall functions
 
 SOURCE = 0
 SINK = 1
@@ -202,7 +202,8 @@ class StreamEndpoint:
             close_socket(self._sock)
 
         def __del__(self):
-            self.stop()
+            if self._started:
+                self.stop()
 
     _logger: logging.Logger
 
@@ -216,7 +217,7 @@ class StreamEndpoint:
 
     def __init__(self, addr: Tuple[str, int] = ("127.0.0.1", 12000), remote_addr: Tuple[str, int] = None,
                  endpoint_type: int = -1, send_b_size: int = 65536, recv_b_size: int = 65536,
-                 multithreading: bool = False):
+                 multithreading: bool = False, buffer_size: int = 1024):
         """Creates a new endpoint, one of a pair that is able to communicate with one another over a persistent
         stream in one-way fashion over BSD sockets. Allows the transmission of generic objects in both synchronous and
         asynchronous fashion.
@@ -227,6 +228,7 @@ class StreamEndpoint:
         :param send_b_size: Underlying send buffer size of socket.
         :param recv_b_size: Underlying receive buffer size of socket.
         :param multithreading: Enables transparent multithreading for speedup.
+        :param buffer_size: Size of shared buffer in multithreading mode.
         """
         self._logger = logging.getLogger(f"StreamEndpoint[{addr}]")
         self._logger.debug("Initializing endpoint...")
@@ -242,7 +244,7 @@ class StreamEndpoint:
         self._endpoint_socket = StreamEndpoint.EndpointSocket(addr, remote_addr, send_b_size, recv_b_size, self._logger)
 
         self._multithreading = multithreading
-        self._buffer = queue.Queue(maxsize=1024)
+        self._buffer = queue.Queue(maxsize=buffer_size)
         self._started = False
         self._logger.debug("Endpoint initialized.")
 
@@ -378,4 +380,5 @@ class StreamEndpoint:
             yield self.receive()
 
     def __del__(self):
-        self.stop()
+        if self._started:
+            self.stop()

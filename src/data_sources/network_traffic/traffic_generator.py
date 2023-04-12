@@ -8,7 +8,7 @@ from time import time
 import pyshark
 from pyshark import capture
 
-from communication.message_stream import StreamEndpoint
+import communication.message_stream as stream
 
 
 def pcap2dict(pcap):
@@ -22,8 +22,9 @@ def pcap2dict(pcap):
     cur_packet = 0
 
     logging.basicConfig(level=logging.DEBUG)
-    endpoint = StreamEndpoint(addr=("127.0.0.1", 13000), remote_addr=("127.0.0.1", 12000), multithreading=False)
-    endpoint.start(StreamEndpoint.EndpointType.SOURCE)
+    endpoint = stream.StreamEndpoint(addr=("127.0.0.1", 13000), remote_addr=("127.0.0.1", 12000),
+                                     endpoint_type=stream.SOURCE, multithreading=False, buffer_size=10000)
+    endpoint.start()
 
     while True:
         try:
@@ -34,6 +35,8 @@ def pcap2dict(pcap):
             endpoint.send(packet)
         except StopIteration:
             break
+
+    endpoint.stop()
 
 
 def pcap_convert(pcap_files):
@@ -51,6 +54,7 @@ def pcap_convert(pcap_files):
             pcap = pyshark.FileCapture(file)
             dict_list = pcap2dict(pcap)
             try_counter += 1
+            break
         if dict_list is None:
             print(f"Failed to read file '{file}'. Skipping...")
             failed_files += [file]

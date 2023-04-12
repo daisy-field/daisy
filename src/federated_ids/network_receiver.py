@@ -1,5 +1,6 @@
 import json
 import logging
+import pickle
 import typing
 from collections import defaultdict
 from collections.abc import MutableMapping
@@ -98,11 +99,17 @@ def packet2dict(p: Packet):
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
-    endpoint = stream.StreamEndpoint(addr=("127.0.0.1", 12000), endpoint_type=stream.SINK, multithreading=True)
+    endpoint = stream.StreamEndpoint(addr=("127.0.0.1", 12000), endpoint_type=stream.SINK,
+                                     multithreading=True, buffer_size=10000)
     endpoint.start()
 
-    while True:
-        packet = endpoint.receive()
-        packet = typing.cast(Packet, packet)
+    count = 1
+    t_size = 0
+    # while True:
+    #     packet = endpoint.receive()
+    #     packet = typing.cast(Packet, packet)
+    for packet in endpoint:
         d_packet = packet2dict(packet)
-        logging.info(f"Received Pyshark Packet.")
+        t_size += len(pickle.dumps(d_packet))
+        logging.info(f"Received Pyshark Packet {count}, total {t_size}")
+        count += 1
