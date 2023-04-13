@@ -371,7 +371,7 @@ class StreamEndpoint:
                     f"(length: {self._buffer.qsize()})")
                 self._endpoint_socket.send(p_obj)
             except queue.Empty:
-                self._logger.warning(f"{self._thread.name}: Timeout triggered: Buffer empty.")
+                self._logger.warning(f"{self._thread.name}: Timeout triggered: Buffer empty. Retrying...")
         self._logger.info(f"{self._thread.name}: Stopping...")
 
     def _create_sink(self):
