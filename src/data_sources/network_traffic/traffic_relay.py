@@ -1,20 +1,30 @@
+"""
+    Small pyshark forwarding relay, should ONLY be used when capturing packets on a remote machine due to the overhead
+    of sockets and system buffers.
+
+    Author: Fabian Hofmann
+    Modified: 13.04.22
+"""
+
 import logging
 
 import pyshark
 
-import communication.message_stream as stream
+import src.communication.message_stream as stream
 
 
-def pyshark_capture():
+# TODO add args to main for deployment
+
+def relay_pyshark_captures():
     logging.basicConfig(level=logging.DEBUG)
     endpoint = stream.StreamEndpoint(addr=("127.0.0.1", 13000), remote_addr=("127.0.0.1", 12000),
                                      endpoint_type=stream.SOURCE, multithreading=True, buffer_size=10000)
     endpoint.start()
 
-    capture = pyshark.LiveCapture(interface='wlp3s0')  # FIXME add exception for socket communication
+    capture = pyshark.LiveCapture(interface='eth0')  # FIXME add exception for endpoint communication
     for p in capture.sniff_continuously():
         endpoint.send(p)
 
 
 if __name__ == '__main__':
-    pyshark_capture()
+    relay_pyshark_captures()

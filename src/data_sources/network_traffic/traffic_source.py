@@ -1,3 +1,10 @@
+"""
+    TODO
+
+    Author: Jonathan Ackerschewski, Fabian Hofmann
+    Modified: 13.04.22
+"""
+
 import json
 import logging
 import pickle
@@ -10,11 +17,110 @@ from pyshark.packet.fields import LayerFieldsContainer
 from pyshark.packet.layers.xml_layer import XmlLayer
 from pyshark.packet.packet import Packet
 
+from abc import ABC
+
 import communication.message_stream as stream
 
+# TODO refactor via abstract classes, 2 versions (remote, local)
+# TODO further cleanup, docstrings, typehints
+# TODO add args to main for deployment
 
-# TODO further cleanup, docstrings, typehints, splitting it from pyshark capture
-# TODO more copy pasta (e.g. argparse)
+
+
+new_dict = {
+			'meta.len': 0,
+			'meta.time': 0,
+			'meta.protocols': 0
+			'ip.addr': 0
+			'sll.halen': 0
+			'sll.pkttype': 0
+			'sll.eth': 0
+			'sll.hatype': 0
+			'sll.unused': 0
+			'ipv6.addr': 0
+			'ipv6.plen': 0
+			'ipv6.tclass': 0
+			'ipv6.flow': 0
+			'ipv6.dst': 0
+			'ipv6.nxt': 0
+			'ipv6.src_host': 0
+			'ipv6.host': 0
+			'ipv6.hlim': 0
+			'tcp.window_size_scalefactor': 0
+			'tcp.checksum.status': 0
+			'tcp.analysis.bytes_in_flight': 0
+			'tcp.analysis.push_bytes_sent': 0
+			'tcp.payload': 0
+			'tcp.port': 0
+			'tcp.len': 0
+			'tcp.hdr_len': 0
+			'tcp.window_size': 0
+			'tcp.checksum': 0
+			'tcp.ack': 0
+			'tcp.srcport': 0
+			'tcp.stream': 0
+			'tcp.dstport': 0
+			'tcp.seq': 0
+			'tcp.window_size_value': 0
+			'tcp.status': 0
+			'tcp.urgent_pointer': 0
+			'tcp.nxtseq': 0
+			'data.data': 0
+			'data.len': 0
+			'tcp.analysis.acks_frame': 0
+			'tcp.analysis.ack_rtt': 0
+			'sll.ltype': 0
+			'cohda.Type': 0
+			'cohda.Ret': 0
+			'cohda.llc.MKxIFMsg.Ret': 0
+			'ipv6.addr': 0
+			'ipv6.dst': 0
+			'ipv6.plen': 0
+			'tcp.stream': 0
+			'tcp.payload': 0
+			'tcp.urgent_pointer': 0
+			'tcp.port': 0
+			'tcp.options.nop': 0
+			'tcp.options.timestamp': 0
+			'tcp.flags': 0
+			'tcp.window_size_scalefactor': 0
+			'tcp.dstport': 0
+			'tcp.len': 0
+			'tcp.checksum': 0
+			'tcp.window_size': 0
+			'tcp.srcport': 0
+			'tcp.checksum.status': 0
+			'tcp.nxtseq': 0
+			'tcp.status': 0
+			'tcp.analysis.bytes_in_flight': 0
+			'tcp.analysis.push_bytes_sent': 0
+			'tcp.ack': 0
+			'tcp.hdr_len': 0
+			'tcp.seq': 0
+			'tcp.window_size_value': 0
+			'data.data': 0
+			'data.len': 0
+			'tcp.analysis.acks_frame': 0
+			'tcp.analysis.ack_rtt': 0
+			'eth.src.addr': 0
+			'eth.src.eth.src_resolved': 0
+			'eth.src.ig': 0
+			'eth.src.src_resolved': 0
+			'eth.src.addr_resolved': 0
+			'ip.proto': 0
+			'ip.dst_host': 0
+			'ip.flags': 0
+			'ip.len': 0
+			'ip.checksum': 0
+			'ip.checksum.status': 0
+			'ip.version': 0
+			'ip.host': 0
+			'ip.status': 0
+			'ip.id': 0
+			'ip.hdr_len': 0
+			'ip.ttl'
+			}
+
 
 def add_layer_to_dict(layer):
     if isinstance(layer, XmlLayer):

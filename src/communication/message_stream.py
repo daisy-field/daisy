@@ -1,3 +1,10 @@
+"""
+    A persistent one-way communications stream between two endpoints over BSD sockets.
+
+    Author: Fabian Hofmann
+    Modified: 13.04.22
+"""
+
 import ctypes
 import logging
 import pickle
@@ -6,19 +13,24 @@ import socket
 import sys
 import threading
 from time import sleep
-from typing import Optional
-from typing import Tuple
+from typing import Callable, Optional, Tuple
 
 # TODO optional SSL https://docs.python.org/3/library/ssl.html
 # TODO optional gzip/lzma/bz2/mgzip/zipfile compression
-# TODO optional custom marshall functions
 
 SOURCE = 0
 SINK = 1
 
 
 class StreamEndpoint:
+    """One of a pair of endpoints that is able to communicate with one another over a persistent stream in one-way
+    fashion over BSD sockets. Allows the transmission of generic objects in both synchronous and asynchronous fashion.
+    """
+
     class EndpointSocket:
+        """A bundle of up to two sockets, that is used to communicate with another endpoint over a persistent TCP
+        connection in synchronous manner.
+        """
         _addr: Tuple[str, int]
         _remote_addr: Optional[Tuple[str, int]]
         _send_b_size: int
@@ -31,8 +43,7 @@ class StreamEndpoint:
 
         def __init__(self, addr: Tuple[str, int], remote_addr: Tuple[str, int], send_b_size: int, recv_b_size: int,
                      logger: logging.Logger):
-            """Creates a new socket endpoint, a bundle of up to two sockets, that is used to communicate with another
-            endpoint over a persistent TCP connection.
+            """Creates a new socket endpoint.
 
             :param addr: Address of endpoint.
             :param remote_addr: Address of remote endpoint to connect to.
@@ -209,6 +220,8 @@ class StreamEndpoint:
 
     _endpoint_type: int
     _endpoint_socket: EndpointSocket
+    _marshal_f: Callable[[object], bytes]
+    _unmarshal_f: Callable[[bytes], object]
 
     _multithreading: bool
     _thread: threading.Thread
@@ -217,14 +230,16 @@ class StreamEndpoint:
 
     def __init__(self, addr: Tuple[str, int] = ("127.0.0.1", 12000), remote_addr: Tuple[str, int] = None,
                  endpoint_type: int = -1, send_b_size: int = 65536, recv_b_size: int = 65536,
+                 marshal_f: Callable[[object], bytes] = pickle.dumps,
+                 unmarshal_f: Callable[[bytes], object] = pickle.loads,
                  multithreading: bool = False, buffer_size: int = 1024):
-        """Creates a new endpoint, one of a pair that is able to communicate with one another over a persistent
-        stream in one-way fashion over BSD sockets. Allows the transmission of generic objects in both synchronous and
-        asynchronous fashion.
+        """Creates a new endpoint.
 
         :param addr: Address of endpoint.
         :param remote_addr: Address of remote endpoint to connect to.
         :param endpoint_type: Every endpoint of a stream is either a source or a sink.
+        :param marshal_f: Marshal function to serialize objects to send into bytes.
+        :param unmarshal_f: Unmarshal function to deserialize received bytes into objects.
         :param send_b_size: Underlying send buffer size of socket.
         :param recv_b_size: Underlying receive buffer size of socket.
         :param multithreading: Enables transparent multithreading for speedup.
@@ -242,6 +257,8 @@ class StreamEndpoint:
             raise ValueError("Endpoint has to be either of type sink or source!")
 
         self._endpoint_socket = StreamEndpoint.EndpointSocket(addr, remote_addr, send_b_size, recv_b_size, self._logger)
+        self._marshal_f = marshal_f
+        self._unmarshal_f = unmarshal_f
 
         self._multithreading = multithreading
         self._buffer = queue.Queue(maxsize=buffer_size)
@@ -263,11 +280,11 @@ class StreamEndpoint:
         if self._multithreading:
             if self._endpoint_type == SOURCE:
                 self._logger.info("Multithreading detected, starting endpoint thread...")
-                self._thread = threading.Thread(target=self._create_source, name="AsyncSource")
+                self._thread = threading.Thread(target=self._create_source, name="AsyncSource", daemon=True)
                 self._thread.start()
             else:
                 self._logger.info("Multithreading detected, starting endpoint thread...")
-                self._thread = threading.Thread(target=self._create_sink, name="AsyncSink")
+                self._thread = threading.Thread(target=self._create_sink, name="AsyncSink", daemon=True)
                 self._thread.start()
 
         self._logger.info("Endpoint started.")
@@ -303,7 +320,7 @@ class StreamEndpoint:
         elif self._endpoint_type == SINK:
             raise NotImplementedError("Endpoints of type sink do not support the send operation!")
 
-        p_obj = pickle.dumps(obj)
+        p_obj = self._marshal_f(obj)
 
         if self._multithreading:
             self._logger.debug(
@@ -339,41 +356,39 @@ class StreamEndpoint:
         else:
             p_obj = self._endpoint_socket.recv(timeout)
         self._logger.debug(f"Pickled data received of size {len(p_obj)}.")
-        return pickle.loads(p_obj)
+        return self._unmarshal_f(p_obj)
 
     def _create_source(self):
         """Creates the streaming endpoint as an asynchronous source, i.e. an endpoint that is able to send messages.
         Starts the loop to send objects retrieved from the internal buffer.
         """
-        if self._multithreading:
-            self._logger.info(f"{self._thread.name}: Starting to send objects in asynchronous mode...")
-            while self._started:
-                try:
-                    p_obj = self._buffer.get(timeout=10)
-                    self._logger.debug(
-                        f"{self._thread.name}: Retrieved and sending object (size: {len(p_obj)}) from buffer "
-                        f"(length: {self._buffer.qsize()})")
-                    self._endpoint_socket.send(p_obj)
-                except queue.Empty:
-                    self._logger.warning(f"{self._thread.name}: Timeout triggered: Buffer empty.")
-            self._logger.info(f"{self._thread.name}: Stopping...")
+        self._logger.info(f"{self._thread.name}: Starting to send objects in asynchronous mode...")
+        while self._started:
+            try:
+                p_obj = self._buffer.get(timeout=10)
+                self._logger.debug(
+                    f"{self._thread.name}: Retrieved and sending object (size: {len(p_obj)}) from buffer "
+                    f"(length: {self._buffer.qsize()})")
+                self._endpoint_socket.send(p_obj)
+            except queue.Empty:
+                self._logger.warning(f"{self._thread.name}: Timeout triggered: Buffer empty.")
+        self._logger.info(f"{self._thread.name}: Stopping...")
 
     def _create_sink(self):
         """Creates the streaming endpoint as asynchronous sink, i.e. an endpoint that is able to receive messages.
         Starts the loop to receive objects and store them in the internal buffer.
         """
-        if self._multithreading:
-            self._logger.info(f"{self._thread.name}: Starting to receive objects in asynchronous mode...")
-            while self._started:
-                try:
-                    p_obj = self._endpoint_socket.recv()
-                    self._logger.debug(
-                        f"{self._thread.name}: Storing received object (size: {len(p_obj)}) in buffer "
-                        f"(length: {self._buffer.qsize()})...")
-                    self._buffer.put(p_obj, timeout=10)
-                except queue.Full:
-                    self._logger.warning(f"{self._thread.name}: Timeout triggered: Buffer full. Discarding object...")
-            self._logger.info(f"{self._thread.name}: Stopping...")
+        self._logger.info(f"{self._thread.name}: Starting to receive objects in asynchronous mode...")
+        while self._started:
+            try:
+                p_obj = self._endpoint_socket.recv()
+                self._logger.debug(
+                    f"{self._thread.name}: Storing received object (size: {len(p_obj)}) in buffer "
+                    f"(length: {self._buffer.qsize()})...")
+                self._buffer.put(p_obj, timeout=10)
+            except queue.Full:
+                self._logger.warning(f"{self._thread.name}: Timeout triggered: Buffer full. Discarding object...")
+        self._logger.info(f"{self._thread.name}: Stopping...")
 
     def __iter__(self):
         while self._started:

@@ -1,3 +1,10 @@
+"""
+    TODO
+
+    Author: Jonathan Ackerschewski, Fabian Hofmann
+    Modified: 13.04.22
+"""
+
 import argparse
 import datetime
 import logging
@@ -7,14 +14,17 @@ from time import time
 
 import pyshark
 from pyshark import capture
+from pyshark.capture.capture import TSharkCrashException
 
-import communication.message_stream as stream
+import src.communication.message_stream as stream
+
+# TODO further cleanup, docstrings, typehints
 
 
 def pcap2dict(pcap):
     try:
         pcap.load_packets()
-    except pyshark.capture.capture.TSharkCrashException:
+    except TSharkCrashException:
         return None
     pcap.reset()
     packet_count = len(pcap)
