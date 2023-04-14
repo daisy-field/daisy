@@ -16,7 +16,8 @@ import src.communication.message_stream as stream
 # TODO add args to main for deployment
 
 def relay_pyshark_captures():
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(format="%(asctime)s %(levelname)-8s %(message)s", datefmt="%Y-%m-%d %H:%M:%S",
+                        level=logging.DEBUG)
     endpoint = stream.StreamEndpoint(addr=("127.0.0.1", 13000), remote_addr=("127.0.0.1", 12000),
                                      endpoint_type=stream.SOURCE, multithreading=True, buffer_size=10000)
     endpoint.start()

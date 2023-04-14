@@ -2,7 +2,7 @@
     A persistent one-way communications stream between two endpoints over BSD sockets.
 
     Author: Fabian Hofmann
-    Modified: 13.04.22
+    Modified: 14.04.22
 """
 
 import ctypes
@@ -245,8 +245,8 @@ class StreamEndpoint:
         :param multithreading: Enables transparent multithreading for speedup.
         :param buffer_size: Size of shared buffer in multithreading mode.
         """
-        self._logger = logging.getLogger(f"StreamEndpoint[{addr}]")
-        self._logger.debug("Initializing endpoint...")
+        self._logger = logging.getLogger()
+        self._logger.info("Initializing endpoint...")
 
         self._endpoint_type = endpoint_type
         if endpoint_type == SOURCE and remote_addr is None:
@@ -263,7 +263,7 @@ class StreamEndpoint:
         self._multithreading = multithreading
         self._buffer = queue.Queue(maxsize=buffer_size)
         self._started = False
-        self._logger.debug("Endpoint initialized.")
+        self._logger.info("Endpoint initialized.")
 
     def start(self):
         """Starts the endpoint, either in dual-threaded fashion or as part of the main thread. By doing so, the two
@@ -286,7 +286,6 @@ class StreamEndpoint:
                 self._logger.info("Multithreading detected, starting endpoint thread...")
                 self._thread = threading.Thread(target=self._create_sink, name="AsyncSink", daemon=True)
                 self._thread.start()
-
         self._logger.info("Endpoint started.")
 
     def stop(self):
@@ -324,7 +323,7 @@ class StreamEndpoint:
 
         if self._multithreading:
             self._logger.debug(
-                f"Multithreading detected, putting object into internal buffer (size={self._buffer.qsize()})...")
+                f"Multithreading detected, putting object into buffer (size={self._buffer.qsize()})...")
             self._buffer.put(p_obj)
         else:
             self._endpoint_socket.send(p_obj)
@@ -348,7 +347,7 @@ class StreamEndpoint:
 
         if self._multithreading:
             self._logger.debug(
-                f"Multithreading detected, retrieving object from internal buffer (size={self._buffer.qsize()})...")
+                f"Multithreading detected, retrieving object from buffer (size={self._buffer.qsize()})...")
             try:
                 p_obj = self._buffer.get(timeout=timeout)
             except queue.Empty:
@@ -360,7 +359,7 @@ class StreamEndpoint:
 
     def _create_source(self):
         """Creates the streaming endpoint as an asynchronous source, i.e. an endpoint that is able to send messages.
-        Starts the loop to send objects retrieved from the internal buffer.
+        Starts the loop to send objects retrieved from the buffer.
         """
         self._logger.info(f"{self._thread.name}: Starting to send objects in asynchronous mode...")
         while self._started:
@@ -376,7 +375,7 @@ class StreamEndpoint:
 
     def _create_sink(self):
         """Creates the streaming endpoint as asynchronous sink, i.e. an endpoint that is able to receive messages.
-        Starts the loop to receive objects and store them in the internal buffer.
+        Starts the loop to receive objects and store them in the buffer.
         """
         self._logger.info(f"{self._thread.name}: Starting to receive objects in asynchronous mode...")
         while self._started:
