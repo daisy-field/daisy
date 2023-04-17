@@ -13,19 +13,15 @@ import re
 from time import time
 
 import pyshark
-from pyshark import capture
 from pyshark.capture.capture import TSharkCrashException
 
 import src.communication.message_stream as stream
+
 
 # TODO further cleanup, docstrings, typehints
 
 
 def pcap2dict(pcap):
-    try:
-        pcap.load_packets()
-    except TSharkCrashException:
-        return None
     pcap.reset()
     packet_count = len(pcap)
     step_size = packet_count // 20
@@ -60,13 +56,17 @@ def pcap_convert(pcap_files):
         print(f"Starting file {file}")
         try_counter = 0
         dict_list = None
-        while dict_list is None and try_counter < 10:
+        while try_counter < 10:
             print("Trying to read file...")
-            pcap = pyshark.FileCapture(file)
-            dict_list = pcap2dict(pcap)
-            try_counter += 1
+            try:
+                pcap = pyshark.FileCapture(file)
+                pcap.load_packets()
+            except TSharkCrashException:
+                try_counter += 1
+                continue
+            pcap2dict(pcap)
             break
-        if dict_list is None:
+        if dict_list is None:  # FIXME
             print(f"Failed to read file '{file}'. Skipping...")
             failed_files += [file]
             continue
