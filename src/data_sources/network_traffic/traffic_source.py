@@ -121,40 +121,10 @@ import communication.message_stream as stream
 
 def add_layer_to_dict(layer):
     if isinstance(layer, (XmlLayer, JsonLayer)): # FIXME TEST DIFFERENT MODI
-        dictionary = {}
-        for field in layer.field_names:
-            result = add_layer_to_dict(layer.get_field(field))
-            if isinstance(result, list):  # FIXME no coverage in XML mode -> check with other PCAPs
-                if hasattr(layer.get_field(field), "layer_name"):
-                    dictionary.update({layer.get_field(field).layer_name: result})
-                else:
-                    # dictionary.update({f"RandomFieldName{randint(100000, 999999)}": result})
-                    # Assumptions:
-                    # - result has no layer_name, because it is a list
-                    # - the list is never empty
-                    # - all elements inside the list are dictionaries
-                    # - all dictionaries inside the list have one element
-                    # - all dictionaries inside the list share the same key
-                    # If this fails, try enabling the RandomFieldName above and look in the generated json
-                    # what the result looks like and which assumption doesn't hold
-                    dictionary.update(
-                        {next(iter(result[0].keys())): [res[next(iter(result[0].keys()))] for res in result]})
-            else:
-                dictionary.update(result)
-        layer_list = {layer.layer_name: dictionary}
-        return layer_list
+        return add_xml_layer_to_dict(layer)
 
     elif isinstance(layer, LayerFieldsContainer):
-        if len(layer.fields) == 1:
-            return add_layer_to_dict(layer.fields[0])
-        d_list = []  # FIXME only necessary for XML mode (json mode only has == 1)
-        for field in layer.fields:
-            d_list.append(add_layer_to_dict(field))
-        dictionary = defaultdict(list)
-        for d in d_list:  # you can list as many input dicts as you want here
-            for key, value in d.items():
-                dictionary[key].append(value)
-        return dictionary
+        return add_layer_field_container_to_dict(layer)
 
     elif isinstance(layer, LayerField):
         return {layer.name: layer.show}
@@ -165,6 +135,46 @@ def add_layer_to_dict(layer):
             d_list += [add_layer_to_dict(sub_layer)]
         return d_list
 
+
+def add_xml_layer_to_dict(xml_layer):
+    dictionary = {}
+    for field_name in xml_layer.field_names:
+        result_dictionary = add_layer_to_dict(xml_layer.get_field(field_name))
+
+        if isinstance(result_dictionary, list):  # FIXME no coverage in XML mode -> check with other PCAPs
+            dictionary = add_list_to_dict(xml_layer, field_name, result_dictionary)
+
+        else:
+            dictionary.update(result_dictionary)
+
+    layer_dictionary = {xml_layer.layer_name: dictionary}
+    return layer_dictionary
+
+
+def add_list_to_dict(xml_layer, field_name, result_dictionary):
+    dictionary = {}
+    if hasattr(xml_layer.get_field(field_name), "layer_name"):
+        dictionary[xml_layer.get_field(field_name).layer_name] = result_dictionary
+
+    else:
+        dictionary[next(iter(result_dictionary[0].keys()))] = [res[next(iter(result_dictionary[0].keys()))] for res in result_dictionary]
+    return dictionary
+
+
+def add_layer_field_container_to_dict(layer_field_container):
+    if len(layer_field_container.fields) == 1:
+        return add_layer_to_dict(layer_field_container.fields[0])
+
+    d_list = []  # FIXME only necessary for XML mode (json mode only has == 1)
+    for field in layer_field_container.fields:
+        d_list.append(add_layer_to_dict(field))
+
+    dictionary = defaultdict(list)
+    for d in d_list:
+        for key, value in d.items():
+            dictionary[key].append(value)
+
+    return dictionary
 
 def flatten_dict(dictionary, par_key=""):
     seperator = "."
