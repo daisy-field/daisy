@@ -18,9 +18,6 @@ import numpy as np
 from src.communication.message_stream import StreamEndpoint, SINK
 
 
-# TODO docstrings
-
-
 class DataSource(ABC):
     """An abstract wrapper around an existing data point generator that yields data points as objects as they come,
     before stream processing them in three steps that have to be implemented: First the object is MAPped to a
@@ -58,33 +55,34 @@ class DataSource(ABC):
 
     @abstractmethod
     def map(self, o_point: object) -> dict:
-        """TODO
+        """Deserializes a data object into a dictionary with the datapoint's feature names as keys and values as values.
 
-        :param o_point:
-        :return:
+        :param o_point: Datapoint as object
+        :return: Datapoint as dictionary
         """
         raise NotImplementedError
 
     @abstractmethod
     def filter(self, d_point: dict) -> dict:
-        """TODO
+        """Filters the datapoint dictionary by removing features from the vector based on a set condition (or filter).
 
-        :param d_point:
-        :return:
+        :param d_point: Datapoint as dictionary.
+        :return: Datapoint as dictionary.
         """
         raise NotImplementedError
 
     @abstractmethod
     def reduce(self, d_point: dict) -> np.ndarray:
-        """TODO
+        """Reduces the datapoint dictionary into a numpy array/vector, stripped from any feature names and redundant
+        information.
 
-        :param d_point:
-        :return:
+        :param d_point: Datapoint as dictionary.
+        :return: Datapoint as numpy array.
         """
         raise NotImplementedError
 
     def open(self):
-        """TODO
+        """Must be called before data can be retrieved; in multithreading mode also starts the loader thread as daemon.
         """
         self._logger.info("Starting data source...")
         if self._opened:
@@ -97,7 +95,8 @@ class DataSource(ABC):
         self._logger.info("Data source started.")
 
     def close(self):
-        """TODO
+        """Shuts down any thread running in the background to load data into the data source iff in multithreading mode.
+        Can be reopened.
         """
         self._logger.info("Stopping data source...")
         if not self._opened:
@@ -112,7 +111,8 @@ class DataSource(ABC):
         return self.reduce(self.filter(self.map(o_point)))
 
     def _loader(self):
-        """TODO
+        """Data loader for multithreading mode, loads data from the generator and processes it to store it in the shared
+        buffer.
         """
         self._logger.info(f"{self._thread.name}: Starting to process data points in asynchronous mode...")
         for o_point in self._generator:
@@ -129,9 +129,9 @@ class DataSource(ABC):
         self._logger.info(f"{self._thread.name}: Stopping...")
 
     def __iter__(self) -> Iterator[np.ndarray]:
-        """TODO
+        """Generator that supports multithreading to retrieve processed datapoints.
 
-        :return:
+        :return: Generator object for datapoints as numpy arrays.
         """
         self._logger.info("Retrieving data points from data source...")
         if not self._opened:
@@ -182,7 +182,7 @@ class RemoteDataSource(DataSource, ABC):
         self._logger.info("Remote data source initialized.")
 
     def open(self):
-        """TODO
+        """Like the super-method, but also starts and opens/connects the endpoint.
         """
         self._logger.info("Starting remote data source...")
         try:
@@ -193,7 +193,7 @@ class RemoteDataSource(DataSource, ABC):
         self._logger.info("Remote data source started.")
 
     def close(self):
-        """TODO
+        """Like the super-method, but also stops and closes the endpoint.
         """
         self._logger.info("Stopping remote data source...")
         try:
