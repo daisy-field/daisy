@@ -11,6 +11,7 @@ import pickle
 from collections import defaultdict
 from collections.abc import MutableMapping
 
+import numpy as np
 from pyshark.packet.fields import LayerField
 from pyshark.packet.fields import LayerFieldsContainer
 from pyshark.packet.layers.xml_layer import XmlLayer
@@ -18,9 +19,8 @@ from pyshark.packet.layers.json_layer import JsonLayer
 from pyshark.packet.packet import Packet
 
 import communication.message_stream as stream
+from data_sources.data_source import DataSource, RemoteDataSource
 
-# TODO refactor via abstract classes, 2 versions (remote, local)
-# TODO further cleanup, docstrings, typehints
 # TODO add args to main for deployment
 
 
@@ -119,12 +119,78 @@ import communication.message_stream as stream
 # }
 
 
-def add_layer_to_dict(layer):
-    if isinstance(layer, (XmlLayer, JsonLayer)): # FIXME TEST DIFFERENT MODI
-        return add_xml_layer_to_dict(layer)
+class TrafficSource(DataSource):
+    """
+    TODO
+    """
+
+    def reduce(self, d_point: dict) -> np.ndarray:
+        """
+        TODO
+        :param d_point:
+        :return:
+        """
+        pass
+
+    def filter(self, d_point: dict) -> dict:
+        """
+        TODO
+        :param d_point:
+        :return:
+        """
+        pass
+
+    def map(self, o_point: (XmlLayer, JsonLayer)) -> dict:
+        """
+        TODO
+        :param o_point:
+        :return:
+        """
+        return _add_layer_to_dict(o_point)
+
+
+class RemoteTrafficSource(RemoteDataSource, TrafficSource):
+    """
+    TODO
+    """
+
+    def reduce(self, d_point: dict) -> np.ndarray:
+        """
+        TODO
+        :param d_point:
+        :return:
+        """
+        pass
+
+    def filter(self, d_point: dict) -> dict:
+        """
+        TODO
+        :param d_point:
+        :return:
+        """
+        pass
+
+    def map(self, o_point: (XmlLayer, JsonLayer)) -> dict:
+        """
+        TODO
+        :param o_point:
+        :return:
+        """
+        return _add_layer_to_dict(o_point)
+
+
+def _add_layer_to_dict(layer: (XmlLayer, JsonLayer)):
+    """
+    Creates a dictionary out of a packet captured by PyShark. This is the entrypoint for a recursive process.
+
+    :param layer: The base layer of the packet
+    :return: A dictionary containing dictionaries for the sub-layers
+    """
+    if isinstance(layer, (XmlLayer, JsonLayer)):  # FIXME TEST DIFFERENT MODI
+        return _add_xml_layer_to_dict(layer)
 
     elif isinstance(layer, LayerFieldsContainer):
-        return add_layer_field_container_to_dict(layer)
+        return _add_layer_field_container_to_dict(layer)
 
     elif isinstance(layer, LayerField):
         return {layer.name: layer.show}
@@ -132,42 +198,66 @@ def add_layer_to_dict(layer):
     elif isinstance(layer, list):  # FIXME no coverage in XML mode -> check with other PCAPs
         d_list = []
         for sub_layer in layer:
-            d_list += [add_layer_to_dict(sub_layer)]
+            d_list += [_add_layer_to_dict(sub_layer)]
         return d_list
 
 
-def add_xml_layer_to_dict(xml_layer):
+def _add_xml_layer_to_dict(layer: (XmlLayer, JsonLayer)):
+    """
+    Creates a dictionary out of a xml layer or json layer and returns it.
+    This is part of a recursive function. For the entrypoint see _add_layer_to_dict.
+
+    :param layer: An XML or Json layer from a PyShark packet.
+    :return: A dictionary of the given layer
+    """
     dictionary = {}
-    for field_name in xml_layer.field_names:
-        result_dictionary = add_layer_to_dict(xml_layer.get_field(field_name))
+    for field_name in layer.field_names:
+        result_dictionary = _add_layer_to_dict(layer.get_field(field_name))
 
         if isinstance(result_dictionary, list):  # FIXME no coverage in XML mode -> check with other PCAPs
-            dictionary = add_list_to_dict(xml_layer, field_name, result_dictionary)
+            dictionary = _add_list_to_dict(layer, field_name, result_dictionary)
 
         else:
             dictionary.update(result_dictionary)
 
-    layer_dictionary = {xml_layer.layer_name: dictionary}
+    layer_dictionary = {layer.layer_name: dictionary}
     return layer_dictionary
 
 
-def add_list_to_dict(xml_layer, field_name, result_dictionary):
+def _add_list_to_dict(layer: (XmlLayer, JsonLayer), field_name: str, value_list: list):
+    """
+    Creates a dictionary out of the given parameters. This function is called by _add_xml_layer_to_dict.
+    This is part of a recursive function. For the entrypoint see _add_layer_to_dict.
+
+    :param layer: The XML or JSON layer the value_list is part of
+    :param field_name: The current name of the field in the XML or JSON layer
+    :param value_list: The list in the XML or JSON layer under the name of field_name
+    :return: A dictionary for the field_name and value_list
+    """
     dictionary = {}
-    if hasattr(xml_layer.get_field(field_name), "layer_name"):
-        dictionary[xml_layer.get_field(field_name).layer_name] = result_dictionary
+    if hasattr(layer.get_field(field_name), "layer_name"):
+        dictionary[layer.get_field(field_name).layer_name] = value_list
 
     else:
-        dictionary[next(iter(result_dictionary[0].keys()))] = [res[next(iter(result_dictionary[0].keys()))] for res in result_dictionary]
+        dictionary[next(iter(value_list[0].keys()))] = \
+            [res[next(iter(value_list[0].keys()))] for res in value_list]
     return dictionary
 
 
-def add_layer_field_container_to_dict(layer_field_container):
+def _add_layer_field_container_to_dict(layer_field_container: LayerFieldsContainer):
+    """
+    Creates a dictionary out of a layerFieldContainer from a PyShark packet.
+    This is part of a recursive function. For the entrypoint see _add_layer_to_dict.
+
+    :param layer_field_container: The LayerFieldContainer encountered in the PyShark packet
+    :return: A dictionary for the LayerFieldContainer
+    """
     if len(layer_field_container.fields) == 1:
-        return add_layer_to_dict(layer_field_container.fields[0])
+        return _add_layer_to_dict(layer_field_container.fields[0])
 
     d_list = []  # FIXME only necessary for XML mode (json mode only has == 1)
     for field in layer_field_container.fields:
-        d_list.append(add_layer_to_dict(field))
+        d_list.append(_add_layer_to_dict(field))
 
     dictionary = defaultdict(list)
     for d in d_list:
@@ -176,23 +266,45 @@ def add_layer_field_container_to_dict(layer_field_container):
 
     return dictionary
 
-def flatten_dict(dictionary, par_key=""):
-    seperator = "."
+
+def flatten_dict(dictionary: dict, seperator: str = ".", par_key: str = ""):
+    """
+    Creates a flat dictionary (a dictionary without sub-dictionaries) from the given dictionary. The keys of
+    sub-dictionaries are merged into the parent dictionary by combining the keys and adding a seperator:
+    {a: {b: c, d: e}, f: g} becomes {a.b: c, a.d: e, f: g} assuming the seperator as '.'
+
+    :param dictionary: The dictionary to flatten
+    :param seperator: The seperator to use
+    :param par_key: The key of the parent dictionary
+    :return: A flat dictionary with keys merged and seperated using the seperator
+    """
     items = {}
     for key, val in dictionary.items():
         cur_key = par_key + seperator + key if par_key else key
         if isinstance(val, MutableMapping):
-            items.update(flatten_dict(val, cur_key))
+            items.update(flatten_dict(val, par_key=cur_key, seperator=seperator))
         else:
             items.update({cur_key: val})
     return items
 
 
-def dict2json(dictionary):
+def dict2json(dictionary: dict):
+    """
+    Takes a dictionary and returns a json object in form of a string.
+
+    :param dictionary: The dictionary to convert to json string
+    :return: A JSON string from the dictionary
+    """
     return json.dumps(dictionary, indent=2)
 
 
 def packet2dict(p: Packet):
+    """
+    Takes a single PyShark packet and converts it into a dictionary.
+
+    :param p: The packet to convert
+    :return: The dictionary generated from the packet
+    """
     p_dict = {}
 
     meta_dict = {
@@ -205,7 +317,7 @@ def packet2dict(p: Packet):
     p_dict.update({"meta": meta_dict})
 
     for layer in p.layers:
-        p_dict.update(add_layer_to_dict(layer))
+        p_dict.update(_add_layer_to_dict(layer))
 
     return dict2json(flatten_dict(p_dict))
 
