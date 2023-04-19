@@ -149,7 +149,7 @@ class TrafficSource(DataSource):
         return _add_layer_to_dict(o_point)
 
 
-class RemoteTrafficSource(RemoteDataSource, TrafficSource):
+class RemoteTrafficSource(RemoteDataSource):
     """
     TODO
     """
