@@ -130,7 +130,8 @@ class TrafficSource(DataSource):
         :param d_point:
         :return:
         """
-        pass
+        return d_point
+        #return np.asarray(d_point.values())
 
     def filter(self, d_point: dict) -> dict:
         """
@@ -138,7 +139,7 @@ class TrafficSource(DataSource):
         :param d_point:
         :return:
         """
-        pass
+        return d_point
 
     def map(self, o_point: (XmlLayer, JsonLayer)) -> dict:
         """
@@ -146,7 +147,7 @@ class TrafficSource(DataSource):
         :param o_point:
         :return:
         """
-        return _add_layer_to_dict(o_point)
+        return packet_to_dict(o_point)
 
 
 class RemoteTrafficSource(RemoteDataSource):
@@ -160,7 +161,8 @@ class RemoteTrafficSource(RemoteDataSource):
         :param d_point:
         :return:
         """
-        pass
+        return d_point
+        #return np.asarray(d_point.values())
 
     def filter(self, d_point: dict) -> dict:
         """
@@ -168,7 +170,7 @@ class RemoteTrafficSource(RemoteDataSource):
         :param d_point:
         :return:
         """
-        pass
+        return d_point
 
     def map(self, o_point: (XmlLayer, JsonLayer)) -> dict:
         """
@@ -176,10 +178,10 @@ class RemoteTrafficSource(RemoteDataSource):
         :param o_point:
         :return:
         """
-        return _add_layer_to_dict(o_point)
+        return packet_to_dict(o_point)
 
 
-def _add_layer_to_dict(layer: (XmlLayer, JsonLayer)):
+def _add_layer_to_dict(layer: (XmlLayer, JsonLayer)) -> (dict, list):
     """
     Creates a dictionary out of a packet captured by PyShark. This is the entrypoint for a recursive process.
 
@@ -201,8 +203,11 @@ def _add_layer_to_dict(layer: (XmlLayer, JsonLayer)):
             d_list += [_add_layer_to_dict(sub_layer)]
         return d_list
 
+    else:
+        logging.warning("No if case matched")
 
-def _add_xml_layer_to_dict(layer: (XmlLayer, JsonLayer)):
+
+def _add_xml_layer_to_dict(layer: (XmlLayer, JsonLayer)) -> dict:
     """
     Creates a dictionary out of a xml layer or json layer and returns it.
     This is part of a recursive function. For the entrypoint see _add_layer_to_dict.
@@ -224,7 +229,7 @@ def _add_xml_layer_to_dict(layer: (XmlLayer, JsonLayer)):
     return layer_dictionary
 
 
-def _add_list_to_dict(layer: (XmlLayer, JsonLayer), field_name: str, value_list: list):
+def _add_list_to_dict(layer: (XmlLayer, JsonLayer), field_name: str, value_list: list) -> dict:
     """
     Creates a dictionary out of the given parameters. This function is called by _add_xml_layer_to_dict.
     This is part of a recursive function. For the entrypoint see _add_layer_to_dict.
@@ -244,7 +249,7 @@ def _add_list_to_dict(layer: (XmlLayer, JsonLayer), field_name: str, value_list:
     return dictionary
 
 
-def _add_layer_field_container_to_dict(layer_field_container: LayerFieldsContainer):
+def _add_layer_field_container_to_dict(layer_field_container: LayerFieldsContainer) -> dict:
     """
     Creates a dictionary out of a layerFieldContainer from a PyShark packet.
     This is part of a recursive function. For the entrypoint see _add_layer_to_dict.
@@ -267,7 +272,7 @@ def _add_layer_field_container_to_dict(layer_field_container: LayerFieldsContain
     return dictionary
 
 
-def flatten_dict(dictionary: dict, seperator: str = ".", par_key: str = ""):
+def flatten_dict(dictionary: (dict, list), seperator: str = ".", par_key: str = "") -> dict:
     """
     Creates a flat dictionary (a dictionary without sub-dictionaries) from the given dictionary. The keys of
     sub-dictionaries are merged into the parent dictionary by combining the keys and adding a seperator:
@@ -288,7 +293,7 @@ def flatten_dict(dictionary: dict, seperator: str = ".", par_key: str = ""):
     return items
 
 
-def dict2json(dictionary: dict):
+def dict_to_json(dictionary: dict) -> str:
     """
     Takes a dictionary and returns a json object in form of a string.
 
@@ -298,7 +303,7 @@ def dict2json(dictionary: dict):
     return json.dumps(dictionary, indent=2)
 
 
-def packet2dict(p: Packet):
+def packet_to_dict(p: Packet) -> dict:
     """
     Takes a single PyShark packet and converts it into a dictionary.
 
@@ -319,23 +324,17 @@ def packet2dict(p: Packet):
     for layer in p.layers:
         p_dict.update(_add_layer_to_dict(layer))
 
-    return dict2json(flatten_dict(p_dict))
+    return flatten_dict(p_dict)
 
 
 if __name__ == '__main__':
     logging.basicConfig(format="%(asctime)s %(levelname)-8s %(message)s", datefmt="%Y-%m-%d %H:%M:%S",
                         level=logging.DEBUG)
-    endpoint = stream.StreamEndpoint(addr=("127.0.0.1", 12000), endpoint_type=stream.SINK,
-                                     multithreading=True, buffer_size=10000)
-    endpoint.start()
 
-    count = 1
-    t_size = 0
-    # while True:
-    #     packet = endpoint.receive()
-    #     packet = typing.cast(Packet, packet)
-    for packet in endpoint:
-        d_packet = packet2dict(packet)
-        t_size += len(pickle.dumps(d_packet))
-        logging.info(f"Received Pyshark Packet {count}, total {t_size}")
-        count += 1
+    count = 0
+    with RemoteTrafficSource(multithreading=True) as rts:
+        for packet in rts:
+            count += 1
+            if count > 16:
+                break
+            logging.info(f"Received Pyshark Packet: {packet}")
