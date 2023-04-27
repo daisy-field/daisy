@@ -22,7 +22,7 @@ def relay_pyshark_captures():
                                      endpoint_type=stream.SOURCE, multithreading=True, buffer_size=10000)
     endpoint.start()
 
-    capture = pyshark.LiveCapture(interface='enx0826ae3a9e6e')  # FIXME add exception for endpoint communication
+    capture = pyshark.LiveCapture(interface='any')  # FIXME add exception for endpoint communication
     for p in capture.sniff_continuously():
         endpoint.send(p)
 

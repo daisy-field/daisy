@@ -24,99 +24,73 @@ from data_sources.data_source import DataSource, RemoteDataSource
 # TODO add args to main for deployment
 
 
-# new_dict = {
-#     'meta.len': 0,
-#     'meta.time': 0,
-#     'meta.protocols': 0,
-#     'ip.addr': 0,
-#     'sll.halen': 0,
-#     'sll.pkttype': 0,
-#     'sll.eth': 0,
-#     'sll.hatype': 0,
-#     'sll.unused': 0,
-#     'ipv6.addr': 0,
-#     'ipv6.plen': 0,
-#     'ipv6.tclass': 0,
-#     'ipv6.flow': 0,
-#     'ipv6.dst': 0,
-#     'ipv6.nxt': 0,
-#     'ipv6.src_host': 0,
-#     'ipv6.host': 0,
-#     'ipv6.hlim': 0,
-#     'tcp.window_size_scalefactor': 0,
-#     'tcp.checksum.status': 0,
-#     'tcp.analysis.bytes_in_flight': 0,
-#     'tcp.analysis.push_bytes_sent': 0,
-#     'tcp.payload': 0,
-#     'tcp.port': 0,
-#     'tcp.len': 0,
-#     'tcp.hdr_len': 0,
-#     'tcp.window_size': 0,
-#     'tcp.checksum': 0,
-#     'tcp.ack': 0,
-#     'tcp.srcport': 0,
-#     'tcp.stream': 0,
-#     'tcp.dstport': 0,
-#     'tcp.seq': 0,
-#     'tcp.window_size_value': 0,
-#     'tcp.status': 0,
-#     'tcp.urgent_pointer': 0,
-#     'tcp.nxtseq': 0,
-#     'data.data': 0,
-#     'data.len': 0,
-#     'tcp.analysis.acks_frame': 0,
-#     'tcp.analysis.ack_rtt': 0,
-#     'sll.ltype': 0,
-#     'cohda.Type': 0,
-#     'cohda.Ret': 0,
-#     'cohda.llc.MKxIFMsg.Ret': 0,
-#     'ipv6.addr': 0,
-#     'ipv6.dst': 0,
-#     'ipv6.plen': 0,
-#     'tcp.stream': 0,
-#     'tcp.payload': 0,
-#     'tcp.urgent_pointer': 0,
-#     'tcp.port': 0,
-#     'tcp.options.nop': 0,
-#     'tcp.options.timestamp': 0,
-#     'tcp.flags': 0,
-#     'tcp.window_size_scalefactor': 0,
-#     'tcp.dstport': 0,
-#     'tcp.len': 0,
-#     'tcp.checksum': 0,
-#     'tcp.window_size': 0,
-#     'tcp.srcport': 0,
-#     'tcp.checksum.status': 0,
-#     'tcp.nxtseq': 0,
-#     'tcp.status': 0,
-#     'tcp.analysis.bytes_in_flight': 0,
-#     'tcp.analysis.push_bytes_sent': 0,
-#     'tcp.ack': 0,
-#     'tcp.hdr_len': 0,
-#     'tcp.seq': 0,
-#     'tcp.window_size_value': 0,
-#     'data.data': 0,
-#     'data.len': 0,
-#     'tcp.analysis.acks_frame': 0,
-#     'tcp.analysis.ack_rtt': 0,
-#     'eth.src.addr': 0,
-#     'eth.src.eth.src_resolved': 0,
-#     'eth.src.ig': 0,
-#     'eth.src.src_resolved': 0,
-#     'eth.src.addr_resolved': 0,
-#     'ip.proto': 0,
-#     'ip.dst_host': 0,
-#     'ip.flags': 0,
-#     'ip.len': 0,
-#     'ip.checksum': 0,
-#     'ip.checksum.status': 0,
-#     'ip.version': 0,
-#     'ip.host': 0,
-#     'ip.status': 0,
-#     'ip.id': 0,
-#     'ip.hdr_len': 0,
-#     'ip.ttl': 0
-# }
+features = {
+     'meta.len': 0,
+     'meta.time': 0,
+     'meta.protocols': 0,
+     'ip.addr': 0,
+     'sll.halen': 0,
+     'sll.pkttype': 0,
+     'sll.eth': 0,
+     'sll.hatype': 0,
+     'sll.unused': 0,
+     'ipv6.tclass': 0,
+     'ipv6.flow': 0,
+     'ipv6.nxt': 0,
+     'ipv6.src_host': 0,
+     'ipv6.host': 0,
+     'ipv6.hlim': 0,
+     'sll.ltype': 0,
+     'cohda.Type': 0,
+     'cohda.Ret': 0,
+     'cohda.llc.MKxIFMsg.Ret': 0,
+     'ipv6.addr': 0,
+     'ipv6.dst': 0,
+     'ipv6.plen': 0,
+     'tcp.stream': 0,
+     'tcp.payload': 0,
+     'tcp.urgent_pointer': 0,
+     'tcp.port': 0,
+     'tcp.options.nop': 0,
+     'tcp.options.timestamp': 0,
+     'tcp.flags': 0,
+     'tcp.window_size_scalefactor': 0,
+     'tcp.dstport': 0,
+     'tcp.len': 0,
+     'tcp.checksum': 0,
+     'tcp.window_size': 0,
+     'tcp.srcport': 0,
+     'tcp.checksum.status': 0,
+     'tcp.nxtseq': 0,
+     'tcp.status': 0,
+     'tcp.analysis.bytes_in_flight': 0,
+     'tcp.analysis.push_bytes_sent': 0,
+     'tcp.ack': 0,
+     'tcp.hdr_len': 0,
+     'tcp.seq': 0,
+     'tcp.window_size_value': 0,
+     'data.data': 0,
+     'data.len': 0,
+     'tcp.analysis.acks_frame': 0,
+     'tcp.analysis.ack_rtt': 0,
+     'eth.src.addr': 0,
+     'eth.src.eth.src_resolved': 0,
+     'eth.src.ig': 0,
+     'eth.src.src_resolved': 0,
+     'eth.src.addr_resolved': 0,
+     'ip.proto': 0,
+     'ip.dst_host': 0,
+     'ip.flags': 0,
+     'ip.len': 0,
+     'ip.checksum': 0,
+     'ip.checksum.status': 0,
+     'ip.version': 0,
+     'ip.host': 0,
+     'ip.status': 0,
+     'ip.id': 0,
+     'ip.hdr_len': 0,
+     'ip.ttl': 0
+ }
 
 
 class TrafficSource(DataSource):
@@ -130,7 +104,8 @@ class TrafficSource(DataSource):
         :param d_point:
         :return:
         """
-        pass
+        return np.array(list(d_point.values()))
+        #return np.asarray(d_point.values())
 
     def filter(self, d_point: dict) -> dict:
         """
@@ -138,7 +113,11 @@ class TrafficSource(DataSource):
         :param d_point:
         :return:
         """
-        pass
+        new_d_point = {}
+        for feature in features:
+            new_d_point[feature] = d_point.pop(feature)
+        d_point.clear()
+        return new_d_point
 
     def map(self, o_point: (XmlLayer, JsonLayer)) -> dict:
         """
@@ -146,7 +125,7 @@ class TrafficSource(DataSource):
         :param o_point:
         :return:
         """
-        return _add_layer_to_dict(o_point)
+        return packet_to_dict(o_point)
 
 
 class RemoteTrafficSource(RemoteDataSource):
@@ -160,7 +139,8 @@ class RemoteTrafficSource(RemoteDataSource):
         :param d_point:
         :return:
         """
-        pass
+        return d_point
+        #return np.asarray(d_point.values())
 
     def filter(self, d_point: dict) -> dict:
         """
@@ -168,7 +148,7 @@ class RemoteTrafficSource(RemoteDataSource):
         :param d_point:
         :return:
         """
-        pass
+        return d_point
 
     def map(self, o_point: (XmlLayer, JsonLayer)) -> dict:
         """
@@ -176,10 +156,10 @@ class RemoteTrafficSource(RemoteDataSource):
         :param o_point:
         :return:
         """
-        return _add_layer_to_dict(o_point)
+        return packet_to_dict(o_point)
 
 
-def _add_layer_to_dict(layer: (XmlLayer, JsonLayer)):
+def _add_layer_to_dict(layer: (XmlLayer, JsonLayer)) -> (dict, list):
     """
     Creates a dictionary out of a packet captured by PyShark. This is the entrypoint for a recursive process.
 
@@ -201,8 +181,11 @@ def _add_layer_to_dict(layer: (XmlLayer, JsonLayer)):
             d_list += [_add_layer_to_dict(sub_layer)]
         return d_list
 
+    else:
+        logging.warning("No if case matched")
 
-def _add_xml_layer_to_dict(layer: (XmlLayer, JsonLayer)):
+
+def _add_xml_layer_to_dict(layer: (XmlLayer, JsonLayer)) -> dict:
     """
     Creates a dictionary out of a xml layer or json layer and returns it.
     This is part of a recursive function. For the entrypoint see _add_layer_to_dict.
@@ -224,7 +207,7 @@ def _add_xml_layer_to_dict(layer: (XmlLayer, JsonLayer)):
     return layer_dictionary
 
 
-def _add_list_to_dict(layer: (XmlLayer, JsonLayer), field_name: str, value_list: list):
+def _add_list_to_dict(layer: (XmlLayer, JsonLayer), field_name: str, value_list: list) -> dict:
     """
     Creates a dictionary out of the given parameters. This function is called by _add_xml_layer_to_dict.
     This is part of a recursive function. For the entrypoint see _add_layer_to_dict.
@@ -244,7 +227,7 @@ def _add_list_to_dict(layer: (XmlLayer, JsonLayer), field_name: str, value_list:
     return dictionary
 
 
-def _add_layer_field_container_to_dict(layer_field_container: LayerFieldsContainer):
+def _add_layer_field_container_to_dict(layer_field_container: LayerFieldsContainer) -> dict:
     """
     Creates a dictionary out of a layerFieldContainer from a PyShark packet.
     This is part of a recursive function. For the entrypoint see _add_layer_to_dict.
@@ -267,7 +250,7 @@ def _add_layer_field_container_to_dict(layer_field_container: LayerFieldsContain
     return dictionary
 
 
-def flatten_dict(dictionary: dict, seperator: str = ".", par_key: str = ""):
+def flatten_dict(dictionary: (dict, list), seperator: str = ".", par_key: str = "") -> dict:
     """
     Creates a flat dictionary (a dictionary without sub-dictionaries) from the given dictionary. The keys of
     sub-dictionaries are merged into the parent dictionary by combining the keys and adding a seperator:
@@ -288,7 +271,7 @@ def flatten_dict(dictionary: dict, seperator: str = ".", par_key: str = ""):
     return items
 
 
-def dict2json(dictionary: dict):
+def dict_to_json(dictionary: dict) -> str:
     """
     Takes a dictionary and returns a json object in form of a string.
 
@@ -298,7 +281,7 @@ def dict2json(dictionary: dict):
     return json.dumps(dictionary, indent=2)
 
 
-def packet2dict(p: Packet):
+def packet_to_dict(p: Packet) -> dict:
     """
     Takes a single PyShark packet and converts it into a dictionary.
 
@@ -319,23 +302,17 @@ def packet2dict(p: Packet):
     for layer in p.layers:
         p_dict.update(_add_layer_to_dict(layer))
 
-    return dict2json(flatten_dict(p_dict))
+    return flatten_dict(p_dict)
 
 
 if __name__ == '__main__':
     logging.basicConfig(format="%(asctime)s %(levelname)-8s %(message)s", datefmt="%Y-%m-%d %H:%M:%S",
                         level=logging.DEBUG)
-    endpoint = stream.StreamEndpoint(addr=("127.0.0.1", 12000), endpoint_type=stream.SINK,
-                                     multithreading=True, buffer_size=10000)
-    endpoint.start()
 
-    count = 1
-    t_size = 0
-    # while True:
-    #     packet = endpoint.receive()
-    #     packet = typing.cast(Packet, packet)
-    for packet in endpoint:
-        d_packet = packet2dict(packet)
-        t_size += len(pickle.dumps(d_packet))
-        logging.info(f"Received Pyshark Packet {count}, total {t_size}")
-        count += 1
+    count = 0
+    with RemoteTrafficSource(multithreading=True) as rts:
+        for packet in rts:
+            count += 1
+            if count > 16:
+                break
+            logging.info(f"Received Pyshark Packet: {packet}")

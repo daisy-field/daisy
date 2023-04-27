@@ -33,7 +33,7 @@ class DataSource(ABC):
 
     _multithreading: bool
     _thread: threading.Thread
-    _buffer: queue.Queue[np.ndarray]
+    _buffer: queue.Queue
     _opened: bool
 
     def __init__(self, generator: Iterator[object], multithreading: bool = False, buffer_size: int = 1024):
@@ -150,6 +150,13 @@ class DataSource(ABC):
                 yield self._process(o_point)
         self._logger.info("Data source exhausted or closed.")
 
+    def __enter__(self):
+        self.open()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
     def __del__(self):
         if self._opened:
             self.close()
@@ -202,6 +209,13 @@ class RemoteDataSource(DataSource, ABC):
             pass
         super().close()
         self._logger.info("Remote data source stopped.")
+
+    def __enter__(self):
+        self.open()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
 
     def __del__(self):
         if self._opened:
