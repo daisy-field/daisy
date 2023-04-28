@@ -2,7 +2,7 @@
     TODO
 
     Author: Jonathan Ackerschewski, Fabian Hofmann
-    Modified: 13.04.22
+    Modified: 28.04.22
 """
 
 import json
@@ -19,10 +19,10 @@ from pyshark.packet.packet import Packet
 
 from data_sources.data_source import DataSource, RemoteDataSource
 
-# TODO add args to main for deployment
+# TODO ADD ARGS TO DEPLOYMENT
 
-
-features = {
+# FIXME TURN INTO TUPLE (IMMUTABLE)
+default_f = {
     'meta.len': 0,
     'meta.time': 0,
     'meta.protocols': 0,
@@ -96,34 +96,38 @@ class TrafficSource(DataSource):
     TODO
     """
 
-    def reduce(self, d_point: dict) -> np.ndarray:
-        """
-        TODO
-        :param d_point:
-        :return:
-        """
-        return np.array(list(d_point.values()))
-        # return np.asarray(d_point.values())
+    f_features: dict
 
-    def filter(self, d_point: dict) -> dict:
-        """
-        TODO
-        :param d_point:
-        :return:
-        """
-        new_d_point = {}
-        for feature in features:
-            new_d_point[feature] = d_point.pop(feature, None)
-        d_point.clear()
-        return new_d_point
+    def __init__(self, file: str, multithreading: bool = False, buffer_size: int = 1024,
+                 f_features: list[str] = default_f):  # FIXME ARGS from datasource + filter
+        self.f_features = default_f
+        super().__init__()  # TODO file opening and handing it to the underlying metaclass as generator object
 
     def map(self, o_point: (XmlLayer, JsonLayer)) -> dict:
-        """
-        TODO
-        :param o_point:
-        :return:
+        """Wrapper of the pyshark packet deserialization functions.
+
+        :param o_point: Datapoint as pyshark packet.
+        :return: Datapoint as a flattened dictionary.
         """
         return packet_to_dict(o_point)
+
+    def filter(self, d_point: dict) -> dict:
+        """Filters the pyshark packet according to a pre-defined
+
+        :param d_point: Datapoint as dictionary.
+        :return: Datapoint as dictionary.
+        """
+        return {f_feature: d_point.pop(f_feature, None) for f_feature in self.f_features}
+
+    def reduce(self, d_point: dict) -> np.ndarray:
+        """TODO
+
+        :param d_point: Datapoint as dictionary.
+        :return: Datapoint as dictionary.
+        """
+        return np.asarray(list(d_point.values()))
+
+    # TODO File reader is missing, must be integrated from the traffic generator
 
 
 class RemoteTrafficSource(RemoteDataSource):
@@ -131,34 +135,36 @@ class RemoteTrafficSource(RemoteDataSource):
     TODO
     """
 
-    def reduce(self, d_point: dict) -> np.ndarray:
-        """
-        TODO
-        :param d_point:
-        :return:
-        """
-        return np.array(list(d_point.values()))
-        # return np.asarray(d_point.values())
+    f_features: dict
 
-    def filter(self, d_point: dict) -> dict:
-        """
-        TODO
-        :param d_point:
-        :return:
-        """
-        new_d_point = {}
-        for feature in features:
-            new_d_point[feature] = d_point.pop(feature, None)
-        d_point.clear()
-        return new_d_point
+    def __init__(self, file: str, multithreading: bool = False, buffer_size: int = 1024,
+                 f_features: list[str] = default_f):  # FIXME ARGS
+        self.f_features = default_f
+        super().__init__()
 
     def map(self, o_point: (XmlLayer, JsonLayer)) -> dict:
-        """
-        TODO
-        :param o_point:
-        :return:
+        """Wrapper of the pyshark packet deserialization functions.
+
+        :param o_point: Datapoint as pyshark packet.
+        :return: Datapoint as a flattened dictionary.
         """
         return packet_to_dict(o_point)
+
+    def filter(self, d_point: dict) -> dict:
+        """Filters the pyshark packet according to a pre-defined
+
+        :param d_point: Datapoint as dictionary.
+        :return: Datapoint as dictionary.
+        """
+        return {f_feature: d_point.pop(f_feature, None) for f_feature in self.f_features}
+
+    def reduce(self, d_point: dict) -> np.ndarray:
+        """TODO
+
+        :param d_point: Datapoint as dictionary.
+        :return: Datapoint as dictionary.
+        """
+        return np.asarray(list(d_point.values()))
 
 
 def _add_layer_to_dict(layer: (XmlLayer, JsonLayer)) -> (dict, list):
@@ -273,7 +279,7 @@ def flatten_dict(dictionary: (dict, list), seperator: str = ".", par_key: str = 
     return items
 
 
-def dict_to_json(dictionary: dict) -> str:
+def dict_to_json(dictionary: dict) -> str:  # FIXME CAN THIS BE REMOVED?
     """
     Takes a dictionary and returns a json object in form of a string.
 

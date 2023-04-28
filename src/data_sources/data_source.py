@@ -57,8 +57,8 @@ class DataSource(ABC):
     def map(self, o_point: object) -> dict:
         """Deserializes a data object into a dictionary with the datapoint's feature names as keys and values as values.
 
-        :param o_point: Datapoint as object
-        :return: Datapoint as dictionary
+        :param o_point: Datapoint as object.
+        :return: Datapoint as dictionary.
         """
         raise NotImplementedError
 

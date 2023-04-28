@@ -88,7 +88,7 @@ if __name__ == '__main__':
     # Create arguments and descriptions
     p = argparse.ArgumentParser(description="Reads a pcap file or a directory containing pcap files and converts them"
                                             " to a csv file")
-    p.add_argument("pcap_path", metavar="pcap", type=str, nargs='+', help="The pcap files or the paths to directories"
+    p.add_argument("pcap_path", metavar="pcap", type=str, nargs="+", help="The pcap files or the paths to directories"
                                                                           " containing pcap files. If directory is"
                                                                           " given, only files ending in .pcap are"
                                                                           " considered")
