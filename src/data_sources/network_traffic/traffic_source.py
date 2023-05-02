@@ -1,16 +1,18 @@
 """
-    TODO
+    Implementations of the data source interface that allows the processing and provision of pyshark packets, either via
+    file inputs, life capture, or a remote source that generates packets in either fashion.
 
     Author: Jonathan Ackerschewski, Fabian Hofmann
-    Modified: 28.04.22
+    Modified: 02.05.23
 """
 
-import json
 import logging
 from collections import defaultdict
 from collections.abc import MutableMapping
+from typing import Iterator, Tuple
 
 import numpy as np
+import pyshark
 from pyshark.packet.fields import LayerField
 from pyshark.packet.fields import LayerFieldsContainer
 from pyshark.packet.layers.json_layer import JsonLayer
@@ -18,90 +20,95 @@ from pyshark.packet.layers.xml_layer import XmlLayer
 from pyshark.packet.packet import Packet
 
 from data_sources.data_source import DataSource, RemoteDataSource
+from src.communication.message_stream import StreamEndpoint
 
 # TODO ADD ARGS TO DEPLOYMENT
 
-# FIXME TURN INTO TUPLE (IMMUTABLE)
-default_f = {
-    'meta.len': 0,
-    'meta.time': 0,
-    'meta.protocols': 0,
-    'ip.addr': 0,
-    'sll.halen': 0,
-    'sll.pkttype': 0,
-    'sll.eth': 0,
-    'sll.hatype': 0,
-    'sll.unused': 0,
-    'ipv6.tclass': 0,
-    'ipv6.flow': 0,
-    'ipv6.nxt': 0,
-    'ipv6.src_host': 0,
-    'ipv6.host': 0,
-    'ipv6.hlim': 0,
-    'sll.ltype': 0,
-    'cohda.Type': 0,
-    'cohda.Ret': 0,
-    'cohda.llc.MKxIFMsg.Ret': 0,
-    'ipv6.addr': 0,
-    'ipv6.dst': 0,
-    'ipv6.plen': 0,
-    'tcp.stream': 0,
-    'tcp.payload': 0,
-    'tcp.urgent_pointer': 0,
-    'tcp.port': 0,
-    'tcp.options.nop': 0,
-    'tcp.options.timestamp': 0,
-    'tcp.flags': 0,
-    'tcp.window_size_scalefactor': 0,
-    'tcp.dstport': 0,
-    'tcp.len': 0,
-    'tcp.checksum': 0,
-    'tcp.window_size': 0,
-    'tcp.srcport': 0,
-    'tcp.checksum.status': 0,
-    'tcp.nxtseq': 0,
-    'tcp.status': 0,
-    'tcp.analysis.bytes_in_flight': 0,
-    'tcp.analysis.push_bytes_sent': 0,
-    'tcp.ack': 0,
-    'tcp.hdr_len': 0,
-    'tcp.seq': 0,
-    'tcp.window_size_value': 0,
-    'data.data': 0,
-    'data.len': 0,
-    'tcp.analysis.acks_frame': 0,
-    'tcp.analysis.ack_rtt': 0,
-    'eth.src.addr': 0,
-    'eth.src.eth.src_resolved': 0,
-    'eth.src.ig': 0,
-    'eth.src.src_resolved': 0,
-    'eth.src.addr_resolved': 0,
-    'ip.proto': 0,
-    'ip.dst_host': 0,
-    'ip.flags': 0,
-    'ip.len': 0,
-    'ip.checksum': 0,
-    'ip.checksum.status': 0,
-    'ip.version': 0,
-    'ip.host': 0,
-    'ip.status': 0,
-    'ip.id': 0,
-    'ip.hdr_len': 0,
-    'ip.ttl': 0
-}
+default_f = (
+    'meta.len',
+    'meta.time',
+    'meta.protocols',
+    'ip.addr',
+    'sll.halen',
+    'sll.pkttype',
+    'sll.eth',
+    'sll.hatype',
+    'sll.unused',
+    'ipv6.tclass',
+    'ipv6.flow',
+    'ipv6.nxt',
+    'ipv6.src_host',
+    'ipv6.host',
+    'ipv6.hlim',
+    'sll.ltype',
+    'cohda.Type',
+    'cohda.Ret',
+    'cohda.llc.MKxIFMsg.Ret',
+    'ipv6.addr',
+    'ipv6.dst',
+    'ipv6.plen',
+    'tcp.stream',
+    'tcp.payload',
+    'tcp.urgent_pointer',
+    'tcp.port',
+    'tcp.options.nop',
+    'tcp.options.timestamp',
+    'tcp.flags',
+    'tcp.window_size_scalefactor',
+    'tcp.dstport',
+    'tcp.len',
+    'tcp.checksum',
+    'tcp.window_size',
+    'tcp.srcport',
+    'tcp.checksum.status',
+    'tcp.nxtseq',
+    'tcp.status',
+    'tcp.analysis.bytes_in_flight',
+    'tcp.analysis.push_bytes_sent',
+    'tcp.ack',
+    'tcp.hdr_len',
+    'tcp.seq',
+    'tcp.window_size_value',
+    'data.data',
+    'data.len',
+    'tcp.analysis.acks_frame',
+    'tcp.analysis.ack_rtt',
+    'eth.src.addr',
+    'eth.src.eth.src_resolved',
+    'eth.src.ig',
+    'eth.src.src_resolved',
+    'eth.src.addr_resolved',
+    'ip.proto',
+    'ip.dst_host',
+    'ip.flags',
+    'ip.len',
+    'ip.checksum',
+    'ip.checksum.status',
+    'ip.version',
+    'ip.host',
+    'ip.status',
+    'ip.id',
+    'ip.hdr_len',
+    'ip.ttl'
+)
 
 
 class TrafficSource(DataSource):
+    """TODO
     """
-    TODO
-    """
+    f_features: Tuple[str, ...]
 
-    f_features: dict
+    def __init__(self, generator: Iterator[object], multithreading: bool = False, buffer_size: int = 1024,
+                 f_features: Tuple[str, ...] = default_f):
+        """TODO
 
-    def __init__(self, file: str, multithreading: bool = False, buffer_size: int = 1024,
-                 f_features: list[str] = default_f):  # FIXME ARGS from datasource + filter
-        self.f_features = default_f
-        super().__init__()  # TODO file opening and handing it to the underlying metaclass as generator object
+        :param generator:
+        :param multithreading:
+        :param buffer_size:
+        :param f_features:
+        """
+        self.f_features = f_features
+        super().__init__(generator, multithreading, buffer_size)
 
     def map(self, o_point: (XmlLayer, JsonLayer)) -> dict:
         """Wrapper of the pyshark packet deserialization functions.
@@ -112,7 +119,7 @@ class TrafficSource(DataSource):
         return packet_to_dict(o_point)
 
     def filter(self, d_point: dict) -> dict:
-        """Filters the pyshark packet according to a pre-defined
+        """Filters the pyshark packet according to a pre-defined TODO
 
         :param d_point: Datapoint as dictionary.
         :return: Datapoint as dictionary.
@@ -130,49 +137,65 @@ class TrafficSource(DataSource):
     # TODO File reader is missing, must be integrated from the traffic generator
 
 
-class RemoteTrafficSource(RemoteDataSource):
+class FileTrafficSource(TrafficSource):
+    """TODO
     """
-    TODO
+
+    def __init__(self,
+                 multithreading: bool = False, buffer_size: int = 1024, f_features: Tuple[str, ...] = default_f):
+        self.f_features = f_features
+        super().__init__(self, endpoint, addr, multithreading, buffer_size)  # FIXME OPENING FILES, PASSING AS GEN ARG
+
+
+class LifeTrafficSource(TrafficSource):
+    """TODO
     """
 
-    f_features: dict
+    def __init__(self, interfaces: = ['any'],
+                 multithreading: bool = False, buffer_size: int = 1024, f_features: Tuple[str, ...] = default_f):
+        capture = pyshark.LiveCapture(interface=interfaces)
+        capture_generator = capture.sniff_continuously()
+        super().__init__(self, capture_generator, multithreading, buffer_size, f_features)  # FIXME STARTING CAPTURE, PASSING AS GEN ARG
 
-    def __init__(self, file: str, multithreading: bool = False, buffer_size: int = 1024,
-                 f_features: list[str] = default_f):  # FIXME ARGS
-        self.f_features = default_f
-        super().__init__()
 
-    def map(self, o_point: (XmlLayer, JsonLayer)) -> dict:
-        """Wrapper of the pyshark packet deserialization functions.
+class RemoteTrafficSource(TrafficSource, RemoteDataSource):
+    """TODO
+    """
 
-        :param o_point: Datapoint as pyshark packet.
-        :return: Datapoint as a flattened dictionary.
-        """
-        return packet_to_dict(o_point)
+    def __init__(self, endpoint: StreamEndpoint = None, addr: Tuple[str, int] = ("127.0.0.1", 12000),
+                 multithreading: bool = False, buffer_size: int = 1024, f_features: Tuple[str, ...] = default_f):
+        self.f_features = f_features
+        RemoteDataSource.__init__(self, endpoint, addr, multithreading, buffer_size)
 
-    def filter(self, d_point: dict) -> dict:
-        """Filters the pyshark packet according to a pre-defined
 
-        :param d_point: Datapoint as dictionary.
-        :return: Datapoint as dictionary.
-        """
-        return {f_feature: d_point.pop(f_feature, None) for f_feature in self.f_features}
+def packet_to_dict(p: Packet) -> dict:
+    """Takes a single pyshark packet and converts it into a dictionary.
 
-    def reduce(self, d_point: dict) -> np.ndarray:
-        """TODO
+    :param p: The packet to convert.
+    :return: The dictionary generated from the packet.
+    """
+    p_dict = {}
 
-        :param d_point: Datapoint as dictionary.
-        :return: Datapoint as dictionary.
-        """
-        return np.asarray(list(d_point.values()))
+    meta_dict = {
+        "number": p.number,
+        "len": p.length,
+        "protocols": [x.layer_name for x in p.layers],
+        "time_epoch": p.sniff_timestamp,
+        "time": str(p.sniff_time)
+    }
+    p_dict.update({"meta": meta_dict})
+
+    for layer in p.layers:
+        p_dict.update(_add_layer_to_dict(layer))
+
+    return flatten_dict(p_dict)
 
 
 def _add_layer_to_dict(layer: (XmlLayer, JsonLayer)) -> (dict, list):
-    """
-    Creates a dictionary out of a packet captured by PyShark. This is the entrypoint for a recursive process.
+    """Creates a dictionary out of a packet captured by pyshark. This is the entrypoint for a recursive process.
 
-    :param layer: The base layer of the packet
-    :return: A dictionary containing dictionaries for the sub-layers
+    :param layer: The base layer of the packet.
+    :return: A dictionary containing dictionaries for the sub-layers.
     """
     if isinstance(layer, (XmlLayer, JsonLayer)):  # FIXME TEST DIFFERENT MODI
         return _add_xml_layer_to_dict(layer)
@@ -194,12 +217,11 @@ def _add_layer_to_dict(layer: (XmlLayer, JsonLayer)) -> (dict, list):
 
 
 def _add_xml_layer_to_dict(layer: (XmlLayer, JsonLayer)) -> dict:
-    """
-    Creates a dictionary out of a xml layer or json layer and returns it.
+    """Creates a dictionary out of a xml layer or json layer and returns it.
     This is part of a recursive function. For the entrypoint see _add_layer_to_dict.
 
-    :param layer: An XML or Json layer from a PyShark packet.
-    :return: A dictionary of the given layer
+    :param layer: An XML or Json layer from a pyshark packet.
+    :return: A dictionary of the given layer.
     """
     dictionary = {}
     for field_name in layer.field_names:
@@ -216,14 +238,13 @@ def _add_xml_layer_to_dict(layer: (XmlLayer, JsonLayer)) -> dict:
 
 
 def _add_list_to_dict(layer: (XmlLayer, JsonLayer), field_name: str, value_list: list) -> dict:
-    """
-    Creates a dictionary out of the given parameters. This function is called by _add_xml_layer_to_dict.
+    """Creates a dictionary out of the given parameters. This function is called by _add_xml_layer_to_dict.
     This is part of a recursive function. For the entrypoint see _add_layer_to_dict.
 
-    :param layer: The XML or JSON layer the value_list is part of
-    :param field_name: The current name of the field in the XML or JSON layer
-    :param value_list: The list in the XML or JSON layer under the name of field_name
-    :return: A dictionary for the field_name and value_list
+    :param layer: The XML or JSON layer the value_list is part of.
+    :param field_name: The current name of the field in the XML or JSON layer.
+    :param value_list: The list in the XML or JSON layer under the name of field_name.
+    :return: A dictionary for the field_name and value_list.
     """
     dictionary = {}
     if hasattr(layer.get_field(field_name), "layer_name"):
@@ -236,12 +257,11 @@ def _add_list_to_dict(layer: (XmlLayer, JsonLayer), field_name: str, value_list:
 
 
 def _add_layer_field_container_to_dict(layer_field_container: LayerFieldsContainer) -> dict:
-    """
-    Creates a dictionary out of a layerFieldContainer from a PyShark packet.
+    """Creates a dictionary out of a layerFieldContainer from a pyshark packet.
     This is part of a recursive function. For the entrypoint see _add_layer_to_dict.
 
-    :param layer_field_container: The LayerFieldContainer encountered in the PyShark packet
-    :return: A dictionary for the LayerFieldContainer
+    :param layer_field_container: The LayerFieldContainer encountered in the pyshark packet.
+    :return: A dictionary for the LayerFieldContainer.
     """
     if len(layer_field_container.fields) == 1:
         return _add_layer_to_dict(layer_field_container.fields[0])
@@ -259,15 +279,14 @@ def _add_layer_field_container_to_dict(layer_field_container: LayerFieldsContain
 
 
 def flatten_dict(dictionary: (dict, list), seperator: str = ".", par_key: str = "") -> dict:
-    """
-    Creates a flat dictionary (a dictionary without sub-dictionaries) from the given dictionary. The keys of
+    """Creates a flat dictionary (a dictionary without sub-dictionaries) from the given dictionary. The keys of
     sub-dictionaries are merged into the parent dictionary by combining the keys and adding a seperator:
     {a: {b: c, d: e}, f: g} becomes {a.b: c, a.d: e, f: g} assuming the seperator as '.'
 
-    :param dictionary: The dictionary to flatten
-    :param seperator: The seperator to use
-    :param par_key: The key of the parent dictionary
-    :return: A flat dictionary with keys merged and seperated using the seperator
+    :param dictionary: The dictionary to flatten.
+    :param seperator: The seperator to use.
+    :param par_key: The key of the parent dictionary.
+    :return: A flat dictionary with keys merged and seperated using the seperator.
     """
     items = {}
     for key, val in dictionary.items():
@@ -279,38 +298,13 @@ def flatten_dict(dictionary: (dict, list), seperator: str = ".", par_key: str = 
     return items
 
 
-def dict_to_json(dictionary: dict) -> str:  # FIXME CAN THIS BE REMOVED?
-    """
-    Takes a dictionary and returns a json object in form of a string.
-
-    :param dictionary: The dictionary to convert to json string
-    :return: A JSON string from the dictionary
-    """
-    return json.dumps(dictionary, indent=2)
-
-
-def packet_to_dict(p: Packet) -> dict:
-    """
-    Takes a single PyShark packet and converts it into a dictionary.
-
-    :param p: The packet to convert
-    :return: The dictionary generated from the packet
-    """
-    p_dict = {}
-
-    meta_dict = {
-        "number": p.number,
-        "len": p.length,
-        "protocols": [x.layer_name for x in p.layers],
-        "time_epoch": p.sniff_timestamp,
-        "time": str(p.sniff_time)
-    }
-    p_dict.update({"meta": meta_dict})
-
-    for layer in p.layers:
-        p_dict.update(_add_layer_to_dict(layer))
-
-    return flatten_dict(p_dict)
+# def dict_to_json(dictionary: dict) -> str:  # FIXME CAN THIS BE REMOVED?
+#     """Takes a dictionary and returns a json object in form of a string.
+#
+#     :param dictionary: The dictionary to convert to json string.
+#     :return: A JSON string from the dictionary.
+#     """
+#     return json.dumps(dictionary, indent=2)
 
 
 if __name__ == '__main__':

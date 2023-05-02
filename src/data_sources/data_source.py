@@ -3,8 +3,8 @@
     underlying generators, but also remote communication endpoints that hand over generic data points in
     streaming-manner.
 
-    Author: Fabian Hofmann
-    Modified: 14.04.22
+    Author: Fabian Hofmann, Jonathan Ackerschewski
+    Modified: 14.04.23
 """
 
 import logging

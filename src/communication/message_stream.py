@@ -2,7 +2,7 @@
     A persistent one-way communications stream between two endpoints over BSD sockets.
 
     Author: Fabian Hofmann
-    Modified: 14.04.22
+    Modified: 14.04.23
 """
 
 import ctypes

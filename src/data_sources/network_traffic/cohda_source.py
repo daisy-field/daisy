@@ -1,3 +1,10 @@
+"""
+    TODO
+
+    Author: Seraphin Zunzer, Fabian Hofmann
+    Modified: 02.05.23
+"""
+
 from data_sources.network_traffic.traffic_source import TrafficSource
 from datetime import datetime
 
@@ -13,18 +20,16 @@ class CohdaSource(TrafficSource):
     """
 
     def compare(self, point_ts: datetime, attack_ts: []):
-        """
-            Check if date time object from a datapoint is in between two date time objects
+        """Check if date time object from a datapoint is in between two date time objects
 
-            :param attack_ts: array of two datetime objects [start, end]
-            :param point_ts: datetime object for datapoint
-            :return: boolean: true if datapoint time is in time range
+        :param attack_ts: array of two datetime objects [start, end]
+        :param point_ts: datetime object for datapoint
+        :return: boolean: true if datapoint time is in time range
         """
         return attack_ts[0] <= point_ts <= attack_ts[1]
 
     def map(self, o_point: dict):
-        """
-            Add labels to datapoint based on the simulated attacks in the collected network data
+        """Add labels to datapoint based on the simulated attacks in the collected network data
 
         :param o_point: dictionary of datapoint
         :return: dictionary including label

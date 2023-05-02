@@ -2,7 +2,7 @@
     TODO
 
     Author: Jonathan Ackerschewski, Fabian Hofmann
-    Modified: 13.04.22
+    Modified: 13.04.23
 """
 
 import argparse
@@ -19,6 +19,7 @@ import src.communication.message_stream as stream
 
 
 # TODO further cleanup, docstrings, typehints
+# TODO MERGE INTO TRAFFIC SOURCE
 
 
 def pcap2dict(pcap):
