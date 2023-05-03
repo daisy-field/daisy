@@ -298,11 +298,11 @@ class StreamEndpoint:
         if not self._started:
             raise RuntimeError(f"Endpoint has not been started!")
         self._started = False
-        self._endpoint_socket.stop()
 
         if self._multithreading:
             self._logger.info("Multithreading detected, waiting for endpoint thread to stop...")
             self._thread.join()
+        self._endpoint_socket.stop()
         self._logger.info("Endpoint stopped.")
 
     def send(self, obj: object):

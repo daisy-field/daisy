@@ -19,8 +19,8 @@ from pyshark.packet.layers.json_layer import JsonLayer
 from pyshark.packet.layers.xml_layer import XmlLayer
 from pyshark.packet.packet import Packet
 
-from data_sources.data_source import DataSource, RemoteDataSource
-from src.communication.message_stream import StreamEndpoint
+from data_sources.data_source import DataSource, RemoteSourceHandler
+from src.communication import StreamEndpoint
 
 # TODO ADD ARGS TO DEPLOYMENT
 
@@ -158,14 +158,14 @@ class LifeTrafficSource(TrafficSource):
         super().__init__(self, capture_generator, multithreading, buffer_size, f_features)  # FIXME STARTING CAPTURE, PASSING AS GEN ARG
 
 
-class RemoteTrafficSource(TrafficSource, RemoteDataSource):
+class RemoteTrafficSourceHandler(TrafficSource, RemoteSourceHandler):
     """TODO
     """
 
     def __init__(self, endpoint: StreamEndpoint = None, addr: Tuple[str, int] = ("127.0.0.1", 12000),
                  multithreading: bool = False, buffer_size: int = 1024, f_features: Tuple[str, ...] = default_f):
         self.f_features = f_features
-        RemoteDataSource.__init__(self, endpoint, addr, multithreading, buffer_size)
+        RemoteSourceHandler.__init__(self, endpoint, addr, multithreading, buffer_size)
 
 
 def packet_to_dict(p: Packet) -> dict:
@@ -312,7 +312,7 @@ if __name__ == '__main__':
                         level=logging.DEBUG)
 
     count = 0
-    with RemoteTrafficSource(multithreading=True) as rts:
+    with RemoteTrafficSourceHandler(multithreading=True) as rts:
         for packet in rts:
             count += 1
             if count > 16:
