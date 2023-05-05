@@ -68,7 +68,7 @@ class DataProcessor(ABC):
         as all to be implemented functionality should be covered by the three abstract methods that are called by it.
 
         :param o_point: Data point as object.
-        :return: Processed data point as numpy array.
+        :return: Processed data point as vector.
         """
         return self.reduce(self.filter(self.map(o_point)))
 

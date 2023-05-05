@@ -1,6 +1,6 @@
 """
-    Implementations of the data source interface that allows the processing and provision of pyshark packets, either via
-    file inputs, life capture, or a remote source that generates packets in either fashion.
+    Implementations of the data source helper interface that allows the processing and provisioning of pyshark packets,
+    either via file inputs, live capture, or a remote source that generates packets in either fashion.
 
     Author: Jonathan Ackerschewski, Fabian Hofmann
     Modified: 02.05.23
@@ -10,7 +10,7 @@ import json
 import logging
 from collections import defaultdict
 from collections.abc import MutableMapping
-from typing import Tuple, Iterator
+from typing import Iterator
 
 import numpy as np
 import pyshark
@@ -23,9 +23,10 @@ from pyshark.packet.packet import Packet
 
 from src.data_sources.data_source import DataProcessor, SourceHandler
 
-# TODO File reader is missing, to be integrated as a SourceHandler!
-# TODO Live capture filter?
-# TODO More Testing! ADD ARGS TO DEPLOYMENT
+# TODO FILE SOURCE HANDLER (@JONATHAN)
+# TODO LIVE CAPTURE FILTER
+# TODO TESTING, ADD ARGS
+# TODO FIXME COVERAGE CHECKS IN PARSING FUNCTIONS
 
 
 default_f = (
@@ -100,9 +101,9 @@ default_f = (
 class PysharkProcessor(DataProcessor):
     """A simple data processor implementation supporting the processing of pyshark packets.
     """
-    f_features: Tuple[str, ...]
+    f_features: tuple[str, ...]
 
-    def __init__(self, f_features: Tuple[str, ...] = default_f):
+    def __init__(self, f_features: tuple[str, ...] = default_f):
         """Creates a new pyshark processor.
 
         :param f_features: Selection of features that every data point will have after processing.
@@ -112,8 +113,8 @@ class PysharkProcessor(DataProcessor):
     def map(self, o_point: (XmlLayer, JsonLayer)) -> dict:
         """Wrapper around the pyshark packet deserialization functions.
 
-        :param o_point: Datapoint as pyshark packet.
-        :return: Datapoint as a flattened dictionary.
+        :param o_point: Data point as pyshark packet.
+        :return: Data point as a flattened dictionary.
         """
         return packet_to_dict(o_point)
 
@@ -121,16 +122,16 @@ class PysharkProcessor(DataProcessor):
         """Filters the pyshark packet according to a pre-defined filter which is applied to every dictionary in order of
         the selected features in the filter. Features that do not exist are set to None.
 
-        :param d_point: Datapoint as dictionary.
-        :return: Datapoint as dictionary, ordered.
+        :param d_point: Data point as dictionary.
+        :return: Data point as dictionary, ordered.
         """
         return {f_feature: d_point.pop(f_feature, None) for f_feature in self.f_features}
 
     def reduce(self, d_point: dict) -> np.ndarray:
         """Transform the pyshark data point directly into a numpy array without further processing.
 
-        :param d_point: Datapoint as dictionary.
-        :return: Datapoint as dictionary.
+        :param d_point: Data point as dictionary.
+        :return: Data point as vector.
         """
         return np.asarray(list(d_point.values()))
 
