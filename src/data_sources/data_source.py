@@ -12,7 +12,7 @@ import logging
 import queue
 import threading
 from abc import ABC, abstractmethod
-from typing import Iterator, Tuple
+from typing import Iterator
 
 import numpy as np
 
@@ -122,11 +122,10 @@ class SimpleSourceHandler(SourceHandler):
     closed, yielding data points as objects as they are yielded. Can be infinite or finite; no matter, no control over
     the generator is natively supported.
     """
-
     _generator: Iterator[object]
 
     def __init__(self, generator: Iterator[object]):
-        """Creates the source handler, simply wrapping it around the given generator.
+        """Creates a source handler, simply wrapping it around the given generator.
 
         :param generator: Generator object from which data points are retrieved.
         """
@@ -146,19 +145,57 @@ class SimpleSourceHandler(SourceHandler):
         return self._generator
 
 
-class RemoteSourceHandler(SourceHandler):  # TODO (refactor from below)
+class RemoteSourceHandler(SourceHandler):
+    """The wrapper implementation to support and handle remote streaming endpoints of the Endpoint module as data
+    sources. Considered infinite in nature, as it allows the generation of data point objects from a connected
+    endpoint, until the client closes the handler.
+    """
+    _endpoint: StreamEndpoint
 
-    def __init__(self):
-        pass
+    def __init__(self, endpoint: StreamEndpoint = None, addr: tuple[str, int] = ("127.0.0.1", 12000),
+                 multithreading: bool = False, buffer_size: int = 1024):
+        """Creates a new remote source handler from a given stream endpoint. If no endpoint is provided, creates a new
+        one instead with basic parameters.
+
+        :param endpoint: Streaming endpoint from which data points are retrieved.
+        :param addr: If no endpoint is provided, local address of new endpoint.
+        :param multithreading: Enables transparent multithreading for speedup.
+        :param buffer_size: Size of shared buffer in multithreading mode.
+        """
+        self._logger = logging.getLogger()
+        self._logger.info("Initializing remote source handler...")
+        if endpoint is None:
+            endpoint = StreamEndpoint(addr=addr, endpoint_type=SINK,
+                                      multithreading=multithreading, buffer_size=buffer_size)
+        self._endpoint = endpoint
+        self._logger.info("Remote source handler initialized.")
 
     def open(self):
-        pass
+        """Starts and opens/connects the endpoint of the source handler.
+        """
+        self._logger.info("Starting remote data source...")
+        try:
+            self._endpoint.start()
+        except RuntimeError:
+            pass
+        self._logger.info("Remote data source started.")
 
     def close(self):
-        pass
+        """Stops and closes the endpoint of the source handler.
+        """
+        self._logger.info("Stopping remote data source...")
+        try:
+            self._endpoint.stop()
+        except RuntimeError:
+            pass
+        self._logger.info("Remote data source stopped.")
 
     def __iter__(self) -> Iterator[object]:
-        pass
+        """Returns the wrapped endpoint generator, as it supports object retrieval directly.
+
+        :return: Endpoint generator object for data points as objects.
+        """
+        return self._endpoint.__iter__()
 
 
 class DataSource:
@@ -285,50 +322,3 @@ class DataSource:
     def __del__(self):
         if self._opened:
             self.close()
-
-
-class RemoteSourceHandler(SourceHandler):
-    """An abstract implementation of a data source, that comes with support to the streaming endpoint module, as it
-    allows the generation of data point objects from a connected endpoint. FIXME
-    """
-    _endpoint: StreamEndpoint
-
-    def __init__(self, endpoint: StreamEndpoint = None, addr: Tuple[str, int] = ("127.0.0.1", 12000),
-                 multithreading: bool = False, buffer_size: int = 1024):
-        """Creates a new remote data source from a given stream endpoint. If no endpoint is provided, creates a new one
-        instead with basic parameters. FIXME
-
-        :param endpoint: Streaming endpoint from which data points are retrieved.
-        :param addr: If no endpoint is provided, local address of new endpoint.
-        :param multithreading: Enables transparent multithreading for speedup.
-        :param buffer_size: Size of shared buffer(s) in multithreading mode.
-        """
-        self._logger = logging.getLogger()
-        self._logger.info("Initializing remote data source...")
-        if endpoint is None:
-            endpoint = StreamEndpoint(addr=addr, endpoint_type=SINK,
-                                      multithreading=multithreading, buffer_size=buffer_size)
-        self._endpoint = endpoint
-
-        super().__init__(self._endpoint.__iter__())
-        self._logger.info("Remote data source initialized.")
-
-    def open(self):
-        """Like the super-method, but also starts and opens/connects the endpoint.FIXME
-        """
-        self._logger.info("Starting remote data source...")
-        try:
-            self._endpoint.start()
-        except RuntimeError:
-            pass
-        self._logger.info("Remote data source started.")
-
-    def close(self):
-        """Like the super-method, but also stops and closes the endpoint. FIXME
-        """
-        self._logger.info("Stopping remote data source...")
-        try:
-            self._endpoint.stop()
-        except RuntimeError:
-            pass
-        self._logger.info("Remote data source stopped.")

@@ -13,7 +13,7 @@ import socket
 import sys
 import threading
 from time import sleep
-from typing import Callable, Optional, Tuple
+from typing import Callable, Optional
 
 # TODO optional SSL https://docs.python.org/3/library/ssl.html
 # TODO optional gzip/lzma/bz2/mgzip/zipfile compression
@@ -31,8 +31,8 @@ class StreamEndpoint:
         """A bundle of up to two sockets, that is used to communicate with another endpoint over a persistent TCP
         connection in synchronous manner.
         """
-        _addr: Tuple[str, int]
-        _remote_addr: Optional[Tuple[str, int]]
+        _addr: tuple[str, int]
+        _remote_addr: Optional[tuple[str, int]]
         _send_b_size: int
         _recv_b_size: int
         _sock: Optional[socket.socket]
@@ -41,15 +41,13 @@ class StreamEndpoint:
         _logger: logging.Logger
         _started: bool
 
-        def __init__(self, addr: Tuple[str, int], remote_addr: Tuple[str, int], send_b_size: int, recv_b_size: int,
-                     logger: logging.Logger):
+        def __init__(self, addr: tuple[str, int], remote_addr: tuple[str, int], send_b_size: int, recv_b_size: int):
             """Creates a new socket endpoint.
 
             :param addr: Address of endpoint.
             :param remote_addr: Address of remote endpoint to connect to.
             :param send_b_size: Underlying send buffer size of socket.
             :param recv_b_size: Underlying receive buffer size of socket.
-            :param logger: Logger to use.
             """
             self._addr = addr
             self._remote_addr = remote_addr
@@ -58,7 +56,7 @@ class StreamEndpoint:
             self._sock = None
             self._remote_sock = None
 
-            self._logger = logger
+            self._logger = logging.getLogger()
             self._started = False
 
         def start(self):
@@ -228,7 +226,7 @@ class StreamEndpoint:
     _buffer: queue.Queue
     _started: bool
 
-    def __init__(self, addr: Tuple[str, int] = ("127.0.0.1", 12000), remote_addr: Tuple[str, int] = None,
+    def __init__(self, addr: tuple[str, int] = ("127.0.0.1", 12000), remote_addr: tuple[str, int] = None,
                  endpoint_type: int = -1, send_b_size: int = 65536, recv_b_size: int = 65536,
                  marshal_f: Callable[[object], bytes] = pickle.dumps,
                  unmarshal_f: Callable[[bytes], object] = pickle.loads,
@@ -256,7 +254,7 @@ class StreamEndpoint:
         elif endpoint_type != SOURCE and endpoint_type != SINK:
             raise ValueError("Endpoint has to be either of type sink or source!")
 
-        self._endpoint_socket = StreamEndpoint.EndpointSocket(addr, remote_addr, send_b_size, recv_b_size, self._logger)
+        self._endpoint_socket = StreamEndpoint.EndpointSocket(addr, remote_addr, send_b_size, recv_b_size)
         self._marshal_f = marshal_f
         self._unmarshal_f = unmarshal_f
 

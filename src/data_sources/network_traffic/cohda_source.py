@@ -5,15 +5,16 @@
     Modified: 02.05.23
 """
 
-from data_sources.network_traffic.traffic_source import TrafficSource
 from datetime import datetime
+
+from src.data_sources.network_traffic.pyshark_source import PysharkProcessor
 
 
 # TODO: Differentiate between client IDS
 # Can i assume that the default filter ist valid.
 
 
-class CohdaSource(TrafficSource):
+class CohdaSource(PysharkProcessor):
     """ A class inheriting from the Traffic Source and overwriting the MAP function.
         Used to process the existing datasets captured on COHDA Boxes 2 and 5 on March 6th.
         Labels are appended according to the used protocol, timestamps, source and destination ip addresses.

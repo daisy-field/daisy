@@ -6,23 +6,27 @@
     Modified: 02.05.23
 """
 
+import json
 import logging
 from collections import defaultdict
 from collections.abc import MutableMapping
-from typing import Iterator, Tuple
+from typing import Tuple, Iterator
 
 import numpy as np
 import pyshark
+from pyshark.capture.live_capture import LiveCapture
 from pyshark.packet.fields import LayerField
 from pyshark.packet.fields import LayerFieldsContainer
 from pyshark.packet.layers.json_layer import JsonLayer
 from pyshark.packet.layers.xml_layer import XmlLayer
 from pyshark.packet.packet import Packet
 
-from data_sources.data_source import DataSource, RemoteSourceHandler
-from src.communication import StreamEndpoint
+from src.data_sources.data_source import DataProcessor, SourceHandler
 
-# TODO ADD ARGS TO DEPLOYMENT
+# TODO File reader is missing, to be integrated as a SourceHandler!
+# TODO Live capture filter?
+# TODO More Testing! ADD ARGS TO DEPLOYMENT
+
 
 default_f = (
     'meta.len',
@@ -93,25 +97,20 @@ default_f = (
 )
 
 
-class TrafficSource(DataSource):
-    """TODO
+class PysharkProcessor(DataProcessor):
+    """A simple data processor implementation supporting the processing of pyshark packets.
     """
     f_features: Tuple[str, ...]
 
-    def __init__(self, generator: Iterator[object], multithreading: bool = False, buffer_size: int = 1024,
-                 f_features: Tuple[str, ...] = default_f):
-        """TODO
+    def __init__(self, f_features: Tuple[str, ...] = default_f):
+        """Creates a new pyshark processor.
 
-        :param generator:
-        :param multithreading:
-        :param buffer_size:
-        :param f_features:
+        :param f_features: Selection of features that every data point will have after processing.
         """
         self.f_features = f_features
-        super().__init__(generator, multithreading, buffer_size)
 
     def map(self, o_point: (XmlLayer, JsonLayer)) -> dict:
-        """Wrapper of the pyshark packet deserialization functions.
+        """Wrapper around the pyshark packet deserialization functions.
 
         :param o_point: Datapoint as pyshark packet.
         :return: Datapoint as a flattened dictionary.
@@ -119,53 +118,55 @@ class TrafficSource(DataSource):
         return packet_to_dict(o_point)
 
     def filter(self, d_point: dict) -> dict:
-        """Filters the pyshark packet according to a pre-defined TODO
+        """Filters the pyshark packet according to a pre-defined filter which is applied to every dictionary in order of
+        the selected features in the filter. Features that do not exist are set to None.
 
         :param d_point: Datapoint as dictionary.
-        :return: Datapoint as dictionary.
+        :return: Datapoint as dictionary, ordered.
         """
         return {f_feature: d_point.pop(f_feature, None) for f_feature in self.f_features}
 
     def reduce(self, d_point: dict) -> np.ndarray:
-        """TODO
+        """Transform the pyshark data point directly into a numpy array without further processing.
 
         :param d_point: Datapoint as dictionary.
         :return: Datapoint as dictionary.
         """
         return np.asarray(list(d_point.values()))
 
-    # TODO File reader is missing, must be integrated from the traffic generator
 
-
-class FileTrafficSource(TrafficSource):
-    """TODO
+class LivePysharkHandler(SourceHandler):
+    """The wrapper implementation to support and handle pyshark live captures as data sources. Considered infinite in
+    nature, as it allows the generation of pyshark packets, until the capture is stopped.
     """
+    _capture: LiveCapture
+    _generator: Iterator[Packet]
 
-    def __init__(self,
-                 multithreading: bool = False, buffer_size: int = 1024, f_features: Tuple[str, ...] = default_f):
-        self.f_features = f_features
-        super().__init__(self, endpoint, addr, multithreading, buffer_size)  # FIXME OPENING FILES, PASSING AS GEN ARG
+    def __init__(self, interfaces: list = 'any'):
+        """Creates a new basic pyshark live capture handler on the given interfaces.
 
+        :param interfaces: Network interfaces to capture. If not given, runs on all interfaces.
+        """
+        self._capture = pyshark.LiveCapture(interface=interfaces)
 
-class LifeTrafficSource(TrafficSource):
-    """TODO
-    """
+    def open(self):
+        """Starts the pyshark live caption, initializing the wrapped generator.
+        """
+        self._generator = self._capture.sniff_continuously()
 
-    def __init__(self, interfaces: = ['any'],
-                 multithreading: bool = False, buffer_size: int = 1024, f_features: Tuple[str, ...] = default_f):
-        capture = pyshark.LiveCapture(interface=interfaces)
-        capture_generator = capture.sniff_continuously()
-        super().__init__(self, capture_generator, multithreading, buffer_size, f_features)  # FIXME STARTING CAPTURE, PASSING AS GEN ARG
+    def close(self):
+        """Stops the live caption, essentially disabling the generator. Note that the generator might block if one
+        tries to retrieve an object from it after that point.
+        """
+        self._capture.close()
 
+    def __iter__(self) -> Iterator[Packet]:
+        """Returns the wrapped generator. Note this does not catch problems after a close() on the handler is called ---
+        one must not retrieve objects after as it will result in a deadlock!
 
-class RemoteTrafficSourceHandler(TrafficSource, RemoteSourceHandler):
-    """TODO
-    """
-
-    def __init__(self, endpoint: StreamEndpoint = None, addr: Tuple[str, int] = ("127.0.0.1", 12000),
-                 multithreading: bool = False, buffer_size: int = 1024, f_features: Tuple[str, ...] = default_f):
-        self.f_features = f_features
-        RemoteSourceHandler.__init__(self, endpoint, addr, multithreading, buffer_size)
+        :return: Pyshark generator object for data points as pyshark packets.
+        """
+        return self._generator
 
 
 def packet_to_dict(p: Packet) -> dict:
@@ -298,23 +299,22 @@ def flatten_dict(dictionary: (dict, list), seperator: str = ".", par_key: str = 
     return items
 
 
-# def dict_to_json(dictionary: dict) -> str:  # FIXME CAN THIS BE REMOVED?
-#     """Takes a dictionary and returns a json object in form of a string.
+def dict_to_json(dictionary: dict) -> str:  # FIXME CAN THIS BE REMOVED?
+    """Takes a dictionary and returns a json object in form of a string.
+
+    :param dictionary: The dictionary to convert to json string.
+    :return: A JSON string from the dictionary.
+    """
+    return json.dumps(dictionary, indent=2)
+
+# if __name__ == '__main__':
+#     logging.basicConfig(format="%(asctime)s %(levelname)-8s %(message)s", datefmt="%Y-%m-%d %H:%M:%S",
+#                         level=logging.DEBUG)
 #
-#     :param dictionary: The dictionary to convert to json string.
-#     :return: A JSON string from the dictionary.
-#     """
-#     return json.dumps(dictionary, indent=2)
-
-
-if __name__ == '__main__':
-    logging.basicConfig(format="%(asctime)s %(levelname)-8s %(message)s", datefmt="%Y-%m-%d %H:%M:%S",
-                        level=logging.DEBUG)
-
-    count = 0
-    with RemoteTrafficSourceHandler(multithreading=True) as rts:
-        for packet in rts:
-            count += 1
-            if count > 16:
-                break
-            logging.info(f"Received Pyshark Packet: {packet}")
+#     count = 0
+#     with RemoteTrafficSourceHandler(multithreading=True) as rts:
+#         for packet in rts:
+#             count += 1
+#             if count > 16:
+#                 break
+#             logging.info(f"Received Pyshark Packet: {packet}")
