@@ -4,17 +4,18 @@
     Author: Seraphin Zunzer
     Modified: 09.05.22
 """
+import logging
 import threading
+
 import dash
-from dash.dependencies import Output, Input
+import dash_bootstrap_components as dbc
 import dash_core_components as dcc
 import dash_html_components as html
-import plotly
-import plotly.graph_objs as go
-import dash_bootstrap_components as dbc
-import plotly.express as px
 import pandas as pd
-import logging
+import plotly
+import plotly.express as px
+import plotly.graph_objs as go
+from dash.dependencies import Output, Input
 
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
@@ -114,7 +115,6 @@ class Dashboard(threading.Thread):
         """
         max_display = 30
 
-
         @_app.callback(
             Output('pie-graph', 'figure'),
             [Input('graph-update', "n_intervals")])
@@ -145,7 +145,6 @@ class Dashboard(threading.Thread):
             )
 
             return fig
-
 
         @_app.callback(Output('client_2_output', 'children'),
                        [Input('graph-update', 'n_intervals')])
@@ -226,8 +225,6 @@ class Dashboard(threading.Thread):
                 state,
                 dbc.Table(table_header + table_body, bordered=True)
             ])
-
-
 
         @_app.callback(Output('client_5_output', 'children'),
                        [Input('graph-update', 'n_intervals')])

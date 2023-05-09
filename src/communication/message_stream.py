@@ -17,6 +17,8 @@ from typing import Callable, Optional
 
 # TODO optional SSL https://docs.python.org/3/library/ssl.html
 # TODO optional gzip/lzma/bz2/mgzip/zipfile compression
+# TODO duplex (only one type of endpoint that is both able to receive and send)
+# TODO support exclusionary server that only wants to re-connect to specific client
 
 SOURCE = 0
 SINK = 1

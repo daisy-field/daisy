@@ -40,23 +40,23 @@ class CohdaProcessor(PysharkProcessor):
         :param d_point: Data point as dictionary.
         :return: Labeled data point as vector.
         """
-        if (self._client_id == 5 and _is_interval(d_point['meta.time'].to_datetime(), attack_tool_ts)
+        if (self._client_id == 5 and _in_interval(d_point['meta.time'].to_datetime(), attack_tool_ts)
                 and any([x in d_point['meta.protocols'] for x in ["http", "tcp"]])
                 and all([x in d_point['ip.addr'] for x in ["192.168.213.86", "185."]])):
             d_point['label'] = "Installation Attack Tool"
-        elif (self._client_id == 5 and _is_interval(d_point['meta.time'].to_datetime(), brute_force_ts)
+        elif (self._client_id == 5 and _in_interval(d_point['meta.time'].to_datetime(), brute_force_ts)
               and any([x in d_point['meta.protocols'] for x in ["ssh", "tcp"]])
               and all([x in d_point['ip.addr'] for x in ["192.168.230.3", "192.168.213.86"]])):
             d_point['label'] = "SSH Brute Force"
-        elif (self._client_id == 5 and _is_interval(d_point['meta.time'].to_datetime(), privilege_ts)
+        elif (self._client_id == 5 and _in_interval(d_point['meta.time'].to_datetime(), privilege_ts)
               and any([x in d_point['meta.protocols'] for x in ["ssh", "tcp"]])
               and all([x in d_point['ip.addr'] for x in ["192.168.230.3", "192.168.213.86"]])):
             d_point['label'] = "SSH Privilege Escalation"
-        elif (self._client_id == 2 and _is_interval(d_point['meta.time'].to_datetime(), brute_force_ts)
+        elif (self._client_id == 2 and _in_interval(d_point['meta.time'].to_datetime(), brute_force_ts)
               and any([x in d_point['meta.protocols'] for x in ["ssh", "tcp"]])
               and all([x in d_point['ip.addr'] for x in ["192.168.230.3", "130.149.98.119"]])):
             d_point['label'] = "SSH Brute Force Response"
-        elif (self._client_id == 2 and _is_interval(d_point['meta.time'].to_datetime(), privilege_ts)
+        elif (self._client_id == 2 and _in_interval(d_point['meta.time'].to_datetime(), privilege_ts)
               and any([x in d_point['meta.protocols'] for x in ["ssh", "tcp"]])
               and all([x in d_point['ip.addr'] for x in ["192.168.230.3", "130.149.98.119"]])):
             d_point['label'] = "SSH Data Leakage"
@@ -66,7 +66,7 @@ class CohdaProcessor(PysharkProcessor):
         return super().reduce(d_point)
 
 
-def _is_interval(timestamp: datetime, interval: [datetime, datetime]) -> bool:
+def _in_interval(timestamp: datetime, interval: [datetime, datetime]) -> bool:
     """Checks if a timestamp is in an interval.
 
     :param timestamp: Timestamp to check.

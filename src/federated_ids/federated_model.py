@@ -1,5 +1,6 @@
 import keras
 from tensorflow.keras.models import Sequential
+
 input_size = 70
 
 
