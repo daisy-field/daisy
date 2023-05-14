@@ -33,14 +33,21 @@ class StreamEndpoint:
     class EndpointSocket:
         """A bundle of up to two sockets, that is used to communicate with another endpoint over a persistent TCP
         connection in synchronous manner. Supports authentication and encryption over SSL, and stream compression using
-        LZ4.
+        LZ4. Thread-safe. (TODO)
         """
+        _listen_socks: dict[tuple, socket.socket] = {}  # FIXME multithreading
+        _listen_lock = threading.Lock()
+        _acc_socks: dict[tuple, socket.socket] = {}  # FIXME multithreading
+        _acc_lock = threading.Lock()
+
         _addr: tuple[str, int]
         _remote_addr: Optional[tuple[str, int]]
+        _server_mode: bool
+
         _send_b_size: int
         _recv_b_size: int
         _sock: Optional[socket.socket]
-        _remote_sock: Optional[socket.socket]
+        _sock_lock: threading.Lock
 
         _logger: logging.Logger
         _started: bool
@@ -50,25 +57,27 @@ class StreamEndpoint:
             """Creates a new socket endpoint.
 
             :param addr: Address of endpoint.
-            :param remote_addr: Address of remote endpoint to connect to.
+            :param remote_addr: Address of remote endpoint to connect to if in client mode.
             :param send_b_size: Underlying send buffer size of socket.
             :param recv_b_size: Underlying receive buffer size of socket.
             """
             self._addr = addr
             self._remote_addr = remote_addr
+            self._server_mode = remote_addr is None
+
             self._send_b_size = send_b_size
             self._recv_b_size = recv_b_size
             self._sock = None
-            self._remote_sock = None
+            self._sock_lock = threading.Lock()
 
             self._logger = logging.getLogger()
             self._started = False
 
-        def start(self, timeout: int = None):  # TODO
+        def start(self, timeout: int = None):  # FIXME locks
             self._started = True
             self._connect(timeout=timeout)
 
-        def stop(self):
+        def stop(self):  # FIXME locks
             self._started = False
             self._close()
 
@@ -97,7 +106,9 @@ class StreamEndpoint:
 
             while self._started:
                 try:
-                    return send_payload(p_data)
+                    with self._sock_lock:
+                        send_payload(p_data)
+                    return
                 except (OSError, RuntimeError) as e:
                     self._logger.info(f"{e.__class__.__name__}({e}) while trying to send data. Retrying...")
                     self._connect()
@@ -117,7 +128,7 @@ class StreamEndpoint:
                     data = bytearray(size)
                     r_size = size
                     while r_size > 0:
-                        n_data = self._remote_sock.recv(min(r_size, buff_size))
+                        n_data = self._sock.recv(min(r_size, buff_size))
                         n_size = len(n_data)
                         if n_size == 0:
                             raise RuntimeError("Connection broken!")
@@ -131,9 +142,10 @@ class StreamEndpoint:
 
             while self._started:
                 try:
-                    self._remote_sock.settimeout(timeout)
-                    p_data = recv_payload()
-                    self._remote_sock.settimeout(None)
+                    with self._sock_lock:
+                        self._sock.settimeout(timeout)
+                        p_data = recv_payload()
+                        self._sock.settimeout(None)
                     return p_data
                 except (OSError, RuntimeError) as e:
                     if timeout is not None and type(e) is TimeoutError:
@@ -143,26 +155,29 @@ class StreamEndpoint:
 
         def _connect(self):
             """Establishes a connection to the remote socket, opening the socket first and initializing the connection
-            socket if in server mode (sink). Fault-tolerant for breakdowns and resets in the connection. FIXME
+            socket if in server mode. Fault-tolerant for breakdowns and resets in the connection. FIXME
             """
             while self._started:
                 try:
-                    self._close()
-                    self._open()
-                    if self._remote_addr is None:
-                        self._sock.listen(0) # FIXME NONBLOCKING
-                        self._remote_sock, _ = self._sock.accept()
-                        self._remote_sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, self._recv_b_size)
-                        _close_socket(self._sock)
-                    break
+                    with self._sock_lock:
+                        self._close()
+                        self._open()
+                        if self._server_mode:
+                            with StreamEndpoint.EndpointSocket._acc_lock:  # FIXME
+                                if self._remote_addr in StreamEndpoint.EndpointSocket._acc_socks:
+                                    self._sock = StreamEndpoint.EndpointSocket._acc_socks[self._remote_addr]
+                                else:
+                                    self._sock, self._remote_addr = self._sock.accept()
+                                    self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, self._recv_b_size)
+                        break
                 except (OSError, RuntimeError) as e:
                     self._logger.info(f"{e.__class__.__name__}({e}) while trying to establish connection. Retrying...")
                     sleep(1)
                     continue
 
         def _open(self):
-            """Opens the main socket, binding it to a functioning address and if in client mode (source), also tries to
-            establish a connection to the remote socket. Supports hostname resolution. FIXME
+            """Opens the main socket, binding it to a functioning address and if in client mode (remote_addr is not
+            None), also tries to establish a connection to the remote socket. Supports hostname resolution. FIXME
 
             :raises RuntimeError: If none of the addresses succeed to create a working socket.
             """
@@ -179,32 +194,36 @@ class StreamEndpoint:
                     try:
                         self._sock = socket.socket(r_af, r_t, r_p)
                         self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                    except OSError:
-                        self._sock = None
-                        continue
-                    try:
-                        self._sock.bind(s_addr)
+                        if self._server_mode:
+                            with StreamEndpoint.EndpointSocket._listen_lock:
+                                a_name = socket.getnameinfo(s_addr, socket.NI_NUMERICSERV)
+                                if a_name in StreamEndpoint.EndpointSocket._listen_socks:
+                                    self._sock = StreamEndpoint.EndpointSocket._listen_socks[a_name]  # FIXME
+                                else:
+                                    self._sock.bind(s_addr)
+                                    self._sock.listen(65535)
+                                    StreamEndpoint.EndpointSocket._listen_socks[a_name] = self._sock
+                        else:
+                            self._sock.bind(s_addr)
+                            self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, self._send_b_size)
+                            self._sock.connect(r_addr)
                     except OSError:
                         self._sock.close()
                         self._sock = None
                         continue
-                    if self._remote_addr is not None:
-                        try:
-                            self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, self._send_b_size)
-                            self._sock.connect(r_addr)
-                        except OSError:
-                            self._sock.close()
-                            self._sock = None
-                            continue
                     return
             raise RuntimeError(f"Could not open socket with address ({self._addr}, {self._remote_addr})")
 
         def _close(self):
-            """Closes the sockets of an endpoint, shutdowns any potential connection that might have been established.
+            """Closes the socket of an endpoint, shutdowns any potential connection that might have been established.
             """
-            if self._remote_addr is not None:
-                _close_socket(self._remote_sock)
-            _close_socket(self._sock)
+            if self._sock is None:
+                return
+            try:  # FIXME check global structures to clean
+                self._sock.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
+            self._sock.close()
 
         def __del__(self):
             if self._started:
@@ -261,7 +280,7 @@ class StreamEndpoint:
 
     def start(self, timeout: int = None):
         """Starts the endpoint, either in dual-threaded fashion or as part of the main thread. By doing so, the two
-        endpoints are connected and the datastream is opened. FIXME Blocking in default-mode if timeout not set.
+        endpoints are connected and the datastream is opened.
 
         :param timeout: Timeout (seconds) to receive an object to return.
         :raises RuntimeError: If endpoint has already been started.
@@ -383,15 +402,3 @@ class StreamEndpoint:
     def __del__(self):
         if self._started:
             self.stop()
-
-
-def _close_socket(sock: socket.socket):
-    """Helper function to close a sockets after shutting down any potential connection that might have been established.
-    """
-    if sock is None:
-        return
-    try:
-        sock.shutdown(socket.SHUT_RDWR)
-    except OSError:
-        pass
-    sock.close()
