@@ -43,7 +43,7 @@ class StreamEndpoint:
 
         _addr: tuple[str, int]
         _remote_addr: Optional[tuple[str, int]]
-        _server_mode: bool
+        _acceptor: bool
         _send_b_size: int
         _recv_b_size: int
 
@@ -53,18 +53,19 @@ class StreamEndpoint:
         _logger: logging.Logger
         _started: bool
 
-        def __init__(self, addr: tuple[str, int], remote_addr: tuple[str, int] = None, server_mode: bool = True,
-                     send_b_size: int = 65536, recv_b_size: int = 65536):  # FIXME ARGS
+        def __init__(self, addr: tuple[str, int], remote_addr: tuple[str, int] = None, acceptor: bool = True,
+                     send_b_size: int = 65536, recv_b_size: int = 65536):
             """Creates a new socket endpoint.
 
             :param addr: Address of endpoint.
             :param remote_addr: Address of remote endpoint to connect to if in client mode. # FIXME
+            :param acceptor: TODO
             :param send_b_size: Underlying send buffer size of socket.
             :param recv_b_size: Underlying receive buffer size of socket.
             """
             self._addr = addr
             self._remote_addr = remote_addr
-            self._server_mode = server_mode
+            self._acceptor = acceptor
 
             self._send_b_size = send_b_size
             self._recv_b_size = recv_b_size
@@ -74,7 +75,7 @@ class StreamEndpoint:
             self._logger = logging.getLogger()
             self._started = False
 
-        def start(self, timeout: int = None):
+        def start(self, timeout: int = None):  # FIXME
             self._started = True
             with self._sock_lock:
                 self._open()
@@ -91,26 +92,10 @@ class StreamEndpoint:
 
             :param p_data: Bytes to send.
             """
-
-            # noinspection PyTypeChecker
-            def send_payload(payload):
-                def send_n_data(data, size):
-                    sent_bytes = 0
-                    while sent_bytes < size:
-                        n_sent_bytes = self._sock.send(data[sent_bytes:])
-                        if n_sent_bytes == 0:
-                            raise RuntimeError("Connection broken!")
-                        sent_bytes += n_sent_bytes
-
-                payload_size = len(payload)
-                p_payload_size = bytes(ctypes.c_uint32(payload_size))
-                send_n_data(p_payload_size, 4)
-                send_n_data(payload, payload_size)
-
             while self._started:
                 try:
                     with self._sock_lock:
-                        send_payload(p_data)
+                        _send_payload(self._sock, p_data)
                     return
                 except (OSError, RuntimeError) as e:
                     self._logger.info(f"{e.__class__.__name__}({e}) while trying to send data. Retrying...")
@@ -126,29 +111,11 @@ class StreamEndpoint:
             :return: Received bytes.
             :raises TimeoutError: If timeout set and triggered.
             """
-
-            def recv_payload():
-                def recv_n_data(size, buff_size=4096):
-                    data = bytearray(size)
-                    r_size = size
-                    while r_size > 0:
-                        n_data = self._sock.recv(min(r_size, buff_size))
-                        n_size = len(n_data)
-                        if n_size == 0:
-                            raise RuntimeError("Connection broken!")
-                        data[size - r_size:size - r_size + n_size] = n_data
-                        r_size -= n_size
-                    return data
-
-                p_payload_size = recv_n_data(4, 1)
-                payload_size = int.from_bytes(p_payload_size, byteorder=sys.byteorder)
-                return recv_n_data(payload_size)
-
             while self._started:
                 try:
                     with self._sock_lock:
                         self._sock.settimeout(timeout)
-                        p_data = recv_payload()
+                        p_data = _recv_payload(self._sock)
                         self._sock.settimeout(None)
                     return p_data
                 except (OSError, RuntimeError) as e:
@@ -161,70 +128,17 @@ class StreamEndpoint:
         def _open(self):
             """Establishes a connection to the remote socket, opening the socket first and initializing the connection
             socket if in server mode. Fault-tolerant for breakdowns and resets in the connection. FIXME
-            """
-
-            def create_socket():
-                """Opens the main socket, binding it to a functioning address and if in client mode (remote_addr is not
-                None), also tries to establish a connection to the remote socket. Supports hostname resolution. FIXME
-
-                :raises RuntimeError: If none of the addresses succeed to create a working socket.
-                """
-                for res in socket.getaddrinfo(*self._addr, type=socket.SOCK_STREAM):
-                    s_af, s_t, s_p, _, s_addr = res
-
-                    if not self._server_mode:
-                        r_res_list = socket.getaddrinfo(*self._remote_addr, family=s_af.value, type=s_t.value,
-                                                        proto=s_p)
-                    else:
-                        r_res_list = [res]
-
-                    for r_res in r_res_list:
-                        r_af, r_t, r_p, _, r_addr = r_res
-                        try:
-                            self._sock = socket.socket(r_af, r_t, r_p)
-                            self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                            if self._server_mode:
-                                l_name = socket.getnameinfo(s_addr, socket.NI_NUMERICSERV)
-                                with StreamEndpoint.EndpointSocket._listen_lock:
-                                    l_sock_t = StreamEndpoint.EndpointSocket._listen_socks.get(l_name, None)
-                                if l_sock_t is not None:
-                                    self._sock = l_sock_t[0]  # FIXME
-                                    self._sock = l_sock_t[0]  # FIXME
-                                else:
-                                    self._sock.bind(s_addr)
-                                    self._sock.listen(65535)
-                                    with StreamEndpoint.EndpointSocket._listen_lock:
-                                        StreamEndpoint.EndpointSocket._listen_socks[l_name] = self._sock  # FIXME
-                            else:
-                                self._sock.bind(s_addr)
-                                self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, self._send_b_size)
-                                self._sock.connect(r_addr)
-                        except OSError:
-                            self._sock.close()
-                            self._sock = None
-                            continue
-                        return
-                raise RuntimeError(f"Could not open socket with address ({self._addr}, {self._remote_addr})")
-
+            """  # FIXME NAME
             while self._started:
                 try:
                     self._close()
-                    create_socket()
-                    if self._server_mode:
-                        with StreamEndpoint.EndpointSocket._acc_lock:  # FIXME
-                            a_sock = StreamEndpoint.EndpointSocket._acc_socks.pop(self._remote_addr, None)
-                        if a_sock is not None:
-                            self._sock = a_sock
-                        else:
-                            a_sock, a_remote_addr = self._sock.accept()  # FIXME
-                            a_sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, self._recv_b_size)
-                            if self._remote_addr is None or self._remote_addr == a_remote_addr:
-                                self._sock, self._remote_addr = a_sock, a_remote_addr
-                            else:
-                                with StreamEndpoint.EndpointSocket._acc_lock:
-                                    StreamEndpoint.EndpointSocket._acc_socks[self._remote_addr] = a_sock
-                                continue
-                        break
+                    if self._acceptor:
+                        self._sock = self.create_a_socket()
+                    else:
+                        self._sock = self.create_c_socket()
+                    self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, self._send_b_size)
+                    self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, self._recv_b_size)
+                    return
                 except (OSError, RuntimeError) as e:
                     self._logger.info(f"{e.__class__.__name__}({e}) while trying to establish connection. Retrying...")
                     sleep(1)
@@ -245,10 +159,89 @@ class StreamEndpoint:
             if self._started:
                 self.stop()
 
+        @classmethod
+        def create_a_socket(cls, addr: tuple[str, int], remote_addr: tuple[str, int] = None) -> socket.socket:
+            """Opens the main socket, binding it to a functioning address and if in client mode (remote_addr is not
+            None), also tries to establish a connection to the remote socket. Supports hostname resolution. FIXME
+
+            :param addr:
+            :param remote_addr:
+            :raises RuntimeError: If none of the addresses succeed to create a working socket.
+            :return:
+            """
+            for res in socket.getaddrinfo(*addr, type=socket.SOCK_STREAM):
+                s_af, s_t, s_p, _, s_addr = res
+                l_sock = None
+                try:
+                    l_name = socket.getnameinfo(s_addr, socket.NI_NUMERICSERV)
+                    with cls._listen_lock:
+                        l_sock_t = cls._listen_socks.get(l_name, None)
+                    if l_sock_t is not None:
+                        l_sock, l_sock_lock = l_sock_t  # FIXME
+                    else:
+
+                        l_sock = socket.socket(s_af, s_t, s_p)
+                        l_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                        l_sock.bind(s_addr)
+                        l_sock.listen(65535)
+                        with cls._listen_lock:
+                            cls._listen_socks[l_name] = l_sock  # FIXME
+                except OSError:
+                    l_sock.close()
+                    continue
+                # try:
+                #
+                # break
+                #
+                #     with StreamEndpoint.EndpointSocket._acc_lock:  # FIXME
+                #         a_sock = StreamEndpoint.EndpointSocket._acc_socks.pop(self._remote_addr, None)
+                #     if a_sock is not None:
+                #         self._sock = a_sock
+                #     else:
+                #         a_sock, a_remote_addr = self._sock.accept()  # FIXME
+                #         a_sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, self._recv_b_size)
+                #         if self._remote_addr is None or self._remote_addr == a_remote_addr:
+                #             self._sock, self._remote_addr = a_sock, a_remote_addr
+                #         else:
+                #             with StreamEndpoint.EndpointSocket._acc_lock:
+                #                 StreamEndpoint.EndpointSocket._acc_socks[self._remote_addr] = a_sock
+                #             continue
+                #     break
+                return
+            raise RuntimeError(f"Could not open socket with address ({self._addr}, {self._remote_addr})")
+
+        @classmethod
+        def create_c_socket(cls, addr: tuple[str, int], remote_addr: tuple[str, int] = None) -> socket.socket:
+            """Opens the main socket, binding it to a functioning address and if in client mode (remote_addr is not
+            None), also tries to establish a connection to the remote socket. Supports hostname resolution. FIXME
+
+            :param addr:
+            :param remote_addr:
+            :raises RuntimeError: If none of the addresses succeed to create a working socket.
+            :return:
+            """
+            for res in socket.getaddrinfo(*addr, type=socket.SOCK_STREAM):
+                s_af, s_t, s_p, _, s_addr = res
+                r_res_list = socket.getaddrinfo(*remote_addr, family=s_af.value, type=s_t.value, proto=s_p)
+
+                for r_res in r_res_list:
+                    r_af, r_t, r_p, _, r_addr = r_res
+                    sock = None
+                    try:
+                        sock = socket.socket(r_af, r_t, r_p)
+                        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                        sock.bind(s_addr)
+                        sock.connect(r_addr)
+                    except OSError:
+                        sock.close()
+                        continue
+                    return sock
+            raise RuntimeError(f"Could not open socket with address ({addr}, {remote_addr})")
+
     _logger: logging.Logger
 
     _endpoint_type: int
-    _endpoint_socket: EndpointSocket
+    _endpoint_socket: StreamEndpoint.EndpointSocket
     _marshal_f: Callable[[object], bytes]
     _unmarshal_f: Callable[[bytes], object]
 
@@ -260,14 +253,15 @@ class StreamEndpoint:
     _started: bool
 
     def __init__(self, addr: tuple[str, int] = ("127.0.0.1", 12000), remote_addr: tuple[str, int] = None,
-                 send_b_size: int = 65536, recv_b_size: int = 65536, compression: bool = False,
-                 marshal_f: Callable[[object], bytes] = pickle.dumps,
+                 server_mode: bool = True, send_b_size: int = 65536, recv_b_size: int = 65536,
+                 compression: bool = False, marshal_f: Callable[[object], bytes] = pickle.dumps,
                  unmarshal_f: Callable[[bytes], object] = pickle.loads,
                  multithreading: bool = False, buffer_size: int = 1024):  # FIXME ARGS
         """Creates a new endpoint.
 
         :param addr: Address of endpoint.
         :param remote_addr: Address of remote endpoint to connect to.
+        :param server_mode: TODO
         :param send_b_size: Underlying send buffer size of socket.
         :param recv_b_size: Underlying receive buffer size of socket.
         :param compression: Enables lz4 stream compression for bandwidth optimization.
@@ -279,7 +273,7 @@ class StreamEndpoint:
         self._logger = logging.getLogger()
         self._logger.info("Initializing endpoint...")
 
-        self._endpoint_socket = StreamEndpoint.EndpointSocket(addr, remote_addr, send_b_size, recv_b_size)
+        self._endpoint_socket = StreamEndpoint.EndpointSocket(addr, remote_addr, server_mode, send_b_size, recv_b_size)
 
         if compression:
             self._marshal_f = lambda d: compress(marshal_f(d))
@@ -418,3 +412,62 @@ class StreamEndpoint:
     def __del__(self):
         if self._started:
             self.stop()
+
+
+# noinspection PyTypeChecker
+def _send_payload(sock: socket.socket, payload: bytes):
+    """TODO
+
+    :param sock:
+    :param payload:
+    """
+    payload_size = len(payload)
+    p_payload_size = bytes(ctypes.c_uint32(payload_size))
+    _send_n_data(sock, p_payload_size, 4)
+    _send_n_data(sock, payload, payload_size)
+
+
+def _recv_payload(sock: socket.socket) -> bytes:
+    """TODO
+
+    :param sock:
+    :return:
+    """
+    p_payload_size = _recv_n_data(sock, 4, 1)
+    payload_size = int.from_bytes(p_payload_size, byteorder=sys.byteorder)
+    return _recv_n_data(sock, payload_size)
+
+
+def _send_n_data(sock: socket.socket, data: bytes, size: int):
+    """TODO
+
+    :param sock:
+    :param data:
+    :param size:
+    """
+    sent_bytes = 0
+    while sent_bytes < size:
+        n_sent_bytes = sock.send(data[sent_bytes:])
+        if n_sent_bytes == 0:
+            raise RuntimeError("Connection broken!")
+        sent_bytes += n_sent_bytes
+
+
+def _recv_n_data(sock: socket.socket, size: int, buff_size: int = 4096) -> bytes:
+    """TODO
+
+    :param sock:
+    :param size:
+    :param buff_size:
+    :return:
+    """
+    data = bytearray(size)
+    r_size = size
+    while r_size > 0:
+        n_data = sock.recv(min(r_size, buff_size))
+        n_size = len(n_data)
+        if n_size == 0:
+            raise RuntimeError("Connection broken!")
+        data[size - r_size:size - r_size + n_size] = n_data
+        r_size -= n_size
+    return data
