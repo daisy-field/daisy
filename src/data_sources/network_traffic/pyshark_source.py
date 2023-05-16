@@ -100,6 +100,7 @@ default_f = (
 
 class PysharkProcessor(DataProcessor):
     """A simple data processor implementation supporting the processing of pyshark packets.
+    # FIXME CHECK DOCSTRING
     """
     f_features: tuple[str, ...]
 
@@ -139,6 +140,7 @@ class PysharkProcessor(DataProcessor):
 class LivePysharkHandler(SourceHandler):
     """The wrapper implementation to support and handle pyshark live captures as data sources. Considered infinite in
     nature, as it allows the generation of pyshark packets, until the capture is stopped.
+    # FIXME CHECK DOCSTRING
     """
     _capture: LiveCapture
     _generator: Iterator[Packet]

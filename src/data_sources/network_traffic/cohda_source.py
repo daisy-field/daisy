@@ -20,6 +20,7 @@ class CohdaProcessor(PysharkProcessor):
     """An extension of the pyshark processor to support the labeling of the data stream for evaluation purposes.
     Currently static, as the existing datasets captured on Cohda boxes 2 and 5 on March 6th contain attacks. Labels are
     appended according to the used protocol, timestamps, source and destination ip addresses.
+    # FIXME CHECK DOCSTRING
     """
     _client_id: int
 
