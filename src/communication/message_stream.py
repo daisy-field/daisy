@@ -28,12 +28,13 @@ from lz4.frame import compress, decompress
 class EndpointSocket:
     """A bundle of up to two sockets, that is used to communicate with another endpoint over a persistent TCP
     connection in synchronous manner. Supports authentication and encryption over SSL, and stream compression using
-    LZ4. Thread-safe. (TODO)
+    LZ4. Thread-safe. (TODO EXTEND SAFETY BLOCK)
     """
-    _listen_socks: dict[tuple, tuple[socket.socket, threading.Lock]] = {}  # FIXME multithreading
+    _listen_socks: dict[tuple, tuple[socket.socket, dict[tuple, socket.socket], threading.Lock]] = {} # FIXME
     _listen_lock = threading.Lock()
-    _acc_socks: dict[tuple, socket.socket] = {}  # FIXME multithreading
-    _acc_lock = threading.Lock()
+    _acc_socks: list[tuple[tuple, socket.socket]] = [] # FIXME THIS SHOULD BE SORTED UNDER THE TUPLES OF LISTEN SOCKS
+    _acc_addrs: set[tuple] = {} # FIXME THIS SHOULD BE SORTED UNDER THE TUPLES OF LISTEN SOCKS
+    _acc_lock = threading.Lock() # FIXME THIS SHOULD BE SORTED UNDER THE TUPLES OF LISTEN SOCKS
 
     _addr: tuple[str, int]
     _remote_addr: Optional[tuple[str, int]]
@@ -60,9 +61,9 @@ class EndpointSocket:
         self._addr = addr
         self._remote_addr = remote_addr
         self._acceptor = acceptor
-
         self._send_b_size = send_b_size
         self._recv_b_size = recv_b_size
+
         self._sock = None
         self._sock_lock = threading.Lock()
 
@@ -74,7 +75,7 @@ class EndpointSocket:
         with self._sock_lock:
             self._open(timeout=timeout)
 
-    def stop(self):  # FIXME locks
+    def stop(self):  # FIXME THREADING
         self._started = False
         with self._sock_lock:
             self._close()
@@ -127,10 +128,10 @@ class EndpointSocket:
             try:
                 self._close()
                 if self._acceptor:
-                    l_sock, l_sock_lock = self._create_l_socket()  # FIXME BLOCK
+                    l_sock, l_sock_lock = self._get_l_socket()  # FIXME BLOCK
                     self._accept(l_sock, l_sock_lock)
                 else:
-                    self._sock = self._create_c_socket()  # FIXME BLOCK
+                    self._sock = self._get_c_socket()  # FIXME BLOCK
                 self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, self._send_b_size)
                 self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, self._recv_b_size)
                 return
@@ -139,19 +140,22 @@ class EndpointSocket:
                 sleep(1)
                 continue
 
-    def _accept(self, l_sock: object, l_sock_lock: object) -> object: # FIXME BLOCK
+    def _accept(self, l_sock: socket.socket, c_socks: dict[tuple, socket.socket], l_sock_lock: threading.Lock): # FIXME BLOCK
         """
 
         :param l_sock:
         :param l_sock_lock:
         """
         while self._started:
-            with EndpointSocket._acc_lock:  # FIXME
-                a_sock = EndpointSocket._acc_socks.pop(self._remote_addr, None)
+            with l_sock_lock:  # FIXME
+                a_sock = c_socks.pop(self._remote_addr, None)
             if a_sock is not None:
                 self._sock = a_sock
                 break
             else:
+                with EndpointSocket._acc_lock:  # FIXME
+                    a_sock = EndpointSocket._acc_socks.pop(self._remote_addr, None)
+
                 with l_sock_lock:
                     a_sock, a_remote_addr = l_sock.accept()
                 if self._remote_addr is None or self._remote_addr == a_remote_addr:
@@ -160,7 +164,7 @@ class EndpointSocket:
                     break
                 else:
                     with EndpointSocket._acc_lock:
-                        EndpointSocket._acc_socks[a_remote_addr] = a_sock
+                        EndpointSocket._acc_socks.append((a_remote_addr, a_sock))
                     continue
 
     def _close(self):
@@ -173,7 +177,7 @@ class EndpointSocket:
             self.stop()
 
     @classmethod
-    def _create_l_socket(cls, addr: tuple[str, int], remote_addr: tuple[str, int] = None) -> socket.socket:
+    def _get_l_socket(cls, addr: tuple[str, int], remote_addr: tuple[str, int] = None) -> socket.socket:
         """Opens the main socket, binding it to a functioning address and if in client mode (remote_addr is not
         None), also tries to establish a connection to the remote socket. Supports hostname resolution. FIXME
 
@@ -188,7 +192,7 @@ class EndpointSocket:
             with cls._listen_lock:
                 l_sock_t = cls._listen_socks.get(l_name, None)
                 if l_sock_t is not None:
-                    l_sock, l_sock_lock = l_sock_t
+                    l_sock, c_socks, l_sock_lock = l_sock_t
                 else:
                     try:
                         l_sock = socket.socket(s_af, s_t, s_p)
@@ -199,12 +203,13 @@ class EndpointSocket:
                         _close_socket(l_sock)
                         continue
                     l_sock_lock = threading.Lock()
-                    cls._listen_socks[l_name] = l_sock, l_sock_lock
-            return l_sock, l_sock_lock
+                    c_socks = {}
+                    cls._listen_socks[l_name] = l_sock, c_socks, l_sock_lock
+            return l_sock, c_socks, l_sock_lock
         raise RuntimeError(f"Could not open socket with address ({addr}, {remote_addr})")
 
     @classmethod
-    def _create_c_socket(cls, addr: tuple[str, int], remote_addr: tuple[str, int] = None) -> socket.socket:
+    def _get_c_socket(cls, addr: tuple[str, int], remote_addr: tuple[str, int] = None) -> socket.socket:
         """Opens the main socket, binding it to a functioning address and if in client mode (remote_addr is not
         None), also tries to establish a connection to the remote socket. Supports hostname resolution. FIXME
 
@@ -238,7 +243,6 @@ class StreamEndpoint:
     """
     _logger: logging.Logger
 
-    _endpoint_type: int
     _endpoint_socket: EndpointSocket
     _marshal_f: Callable[[object], bytes]
     _unmarshal_f: Callable[[bytes], object]
