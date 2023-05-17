@@ -30,8 +30,8 @@ def pcap2dict(pcap):
 
     logging.basicConfig(format="%(asctime)s %(levelname)-8s %(message)s", datefmt="%Y-%m-%d %H:%M:%S",
                         level=logging.DEBUG)
-    endpoint = stream.StreamEndpoint(addr=("127.0.0.1", 13000), remote_addr=("127.0.0.1", 12000),
-                                     endpoint_type=stream.SOURCE, multithreading=False, buffer_size=10000)
+    endpoint = stream.StreamEndpoint(addr=("127.0.0.1", 13000), remote_addr=("127.0.0.1", 12000), multithreading=False,
+                                     buffer_size=10000)
     endpoint.start()
 
     while True:

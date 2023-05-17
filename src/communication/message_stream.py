@@ -140,17 +140,16 @@ class EndpointSocket:
         """  # FIXME NAME
         while self._started:
             try:
-                self._close()
+                self._close() # TODO CHECK CLOSE FOR GLOBAL ATTRIBUTES UPDATES
                 if self._acceptor:
-                    l_sock, l_sock_lock = self._get_l_socket(self._addr, self._remote_addr)  # FIXME BLOCK
                     while self._started and self._sock is None:
-                        self._sock, remote_addr = self._get_a_socket(l_sock, l_sock_lock, self._remote_addr)
-                    self._remote_addr = self._sock.getpeername()
+                        self._sock, remote_addr = self._get_a_socket(self._addr, self._remote_addr) # FIXME BLOCK
+                    self._remote_addr = remote_addr
                 else:
-                    self._sock = self._get_c_socket()  # FIXME BLOCK
+                    self._sock = self._get_c_socket(self._addr, self._remote_addr)  # FIXME BLOCK
                 self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, self._send_b_size)
                 self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, self._recv_b_size)
-                return
+                break
             except (OSError, RuntimeError) as e:
                 self._logger.info(f"{e.__class__.__name__}({e}) while trying to establish connection. Retrying...")
                 sleep(1)
@@ -172,55 +171,15 @@ class EndpointSocket:
     # _lock = threading.Lock()
 
     @classmethod
-    def _get_l_socket(cls, addr: tuple[str, int], remote_addr: tuple[str, int] = None) \
-            -> tuple[socket.socket, threading.Lock]:
-        """Opens the main socket, binding it to a functioning address and if in client mode (remote_addr is not
-        None), also tries to establish a connection to the remote socket. Supports hostname resolution. FIXME
+    def _get_a_socket(cls, addr: tuple[str, int] = None, remote_addr: tuple[str, int] = None) -> tuple(socket.socket, tuple[str, int]):
+        """TODO
 
         :param addr:
         :param remote_addr:
         :raises RuntimeError: If none of the addresses succeed to create a working socket.
         :return:
         """
-        for res in socket.getaddrinfo(*addr, type=socket.SOCK_STREAM):
-            s_af, s_t, s_p, _, s_addr = res
-            l_name = socket.getnameinfo(s_addr, socket.NI_NUMERICSERV)
-            with cls._lock:
-                l_sock_t = cls._listen_socks.get(l_name, None)
-                if l_sock_t is not None:
-                    l_sock, l_sock_lock = l_sock_t
-                else:
-                    try:
-                        l_sock = socket.socket(s_af, s_t, s_p)
-                        l_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                        l_sock.bind(s_addr)
-                        l_sock.listen(65535)
-                    except OSError:
-                        _close_socket(l_sock)
-                        continue
-                    l_sock_lock = threading.Lock()
-                    cls._listen_socks[l_name] = l_sock, l_sock_lock
-                    cls._acc_a_socks[l_name] = {}, threading.Lock()
-                    cls._acc_p_socks[l_name] = queue.Queue()  # FIXME MAYBE LOCK DOWN MAX SIZE
-                cls._active_counter[l_name] += cls._active_counter[l_name]
-            return l_sock, l_sock_lock
-        raise RuntimeError(f"Could not open socket with address ({addr}, {remote_addr})")
-
-    # _listen_socks: dict[tuple, tuple[socket.socket, threading.Lock]] = {}
-    # _acc_a_socks: dict[tuple, tuple[dict[tuple, socket.socket], threading.Lock]] = {}
-    # _acc_p_socks: dict[tuple, queue.Queue[tuple, socket.socket]] = {}
-    # _active_counter: dict[tuple, int]
-    # _lock = threading.Lock()
-
-    @classmethod
-    def _get_a_socket(cls, l_sock: socket.socket, l_sock_lock: threading.Lock,
-                      remote_addr: tuple[str, int] = None) -> socket.socket:  # FIXME BLOCK
-        """
-
-        :param l_sock:
-        :param l_sock_lock:
-        """
-        
+        l_addr, l_sock, l_sock_lock = cls._get_l_socket()
 
         with l_sock_lock:  # FIXME
 
@@ -233,6 +192,7 @@ class EndpointSocket:
                 a_sock = EndpointSocket._acc_socks.pop(self._remote_addr, None)
             with l_sock_lock:
                 a_sock, a_remote_addr = l_sock.accept()
+                raise RuntimeError(f"Could not open connector socket with address ({addr}, {remote_addr})")
             if self._remote_addr is None or self._remote_addr == a_remote_addr:
                 self._sock = a_sock
                 self._remote_addr = a_remote_addr
@@ -242,9 +202,16 @@ class EndpointSocket:
                     EndpointSocket._acc_socks.append((a_remote_addr, a_sock))
                 continue
 
+
+    # _listen_socks: dict[tuple, tuple[socket.socket, threading.Lock]] = {}
+    # _acc_a_socks: dict[tuple, tuple[dict[tuple, socket.socket], threading.Lock]] = {}
+    # _acc_p_socks: dict[tuple, queue.Queue[tuple, socket.socket]] = {}
+    # _active_counter: dict[tuple, int]
+    # _lock = threading.Lock()
+
     @classmethod
-    def _get_c_socket(cls, addr: tuple[str, int],
-                      remote_addr: tuple[str, int] = None) -> socket.socket:  # FIXME BLOCKING
+    def _get_l_socket(cls, addr: tuple[str, int], remote_addr: tuple[str, int] = None) \
+            -> tuple[tuple[str, str], socket.socket, threading.Lock]:
         """Opens the main socket, binding it to a functioning address and if in client mode (remote_addr is not
         None), also tries to establish a connection to the remote socket. Supports hostname resolution. FIXME
 
@@ -252,7 +219,39 @@ class EndpointSocket:
         :param remote_addr:
         :raises RuntimeError: If none of the addresses succeed to create a working socket.
         :return:
-        """
+        """# FIXME DOCS
+        for res in socket.getaddrinfo(*addr, type=socket.SOCK_STREAM):
+            s_af, s_t, s_p, _, s_addr = res
+            l_addr = socket.getnameinfo(s_addr, socket.NI_NUMERICSERV)
+            with cls._lock:
+                l_sock, l_sock_lock = cls._listen_socks.get(l_addr, (None, None))
+                if l_sock is None:
+                    try:
+                        l_sock = socket.socket(s_af, s_t, s_p)
+                        l_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                        l_sock.bind(s_addr)
+                        l_sock.listen(65535)
+                    except OSError:
+                        _close_socket(l_sock)
+                        continue
+                    l_sock_lock = threading.Lock()
+                    cls._listen_socks[l_addr] = l_sock, l_sock_lock
+                    cls._acc_a_socks[l_addr] = {}, threading.Lock()
+                    cls._acc_p_socks[l_addr] = queue.Queue()  # FIXME MAYBE LOCK DOWN MAX SIZE
+                cls._active_counter[l_addr] = cls._active_counter.get(l_addr, 0) + 1
+            return l_addr, l_sock, l_sock_lock
+        raise RuntimeError(f"Could not open listen socket with address ({addr})")
+
+    @classmethod
+    def _get_c_socket(cls, addr: tuple[str, int], remote_addr: tuple[str, int] = None) -> socket.socket:
+        """Opens the main socket, binding it to a functioning address and if in client mode (remote_addr is not
+        None), also tries to establish a connection to the remote socket. Supports hostname resolution.
+
+        :param addr:
+        :param remote_addr:
+        :raises RuntimeError: If none of the addresses succeed to create a working socket.
+        :return:
+        """# FIXME DOCS, BLOCKING
         for res in socket.getaddrinfo(*addr, type=socket.SOCK_STREAM):
             s_af, s_t, s_p, _, s_addr = res
             r_res_list = socket.getaddrinfo(*remote_addr, family=s_af.value, type=s_t.value, proto=s_p)
@@ -268,7 +267,7 @@ class EndpointSocket:
                     _close_socket(sock)
                     continue
                 return sock
-        raise RuntimeError(f"Could not open socket with address ({addr}, {remote_addr})")
+        raise RuntimeError(f"Could not open connector socket with address ({addr}, {remote_addr})")
 
 
 class StreamEndpoint:
@@ -290,7 +289,7 @@ class StreamEndpoint:
     _started: bool
 
     def __init__(self, addr: tuple[str, int] = ("127.0.0.1", 12000), remote_addr: tuple[str, int] = None,
-                 server_mode: bool = True, send_b_size: int = 65536, recv_b_size: int = 65536,
+                 acceptor: bool = True, send_b_size: int = 65536, recv_b_size: int = 65536,
                  compression: bool = False, marshal_f: Callable[[object], bytes] = pickle.dumps,
                  unmarshal_f: Callable[[bytes], object] = pickle.loads,
                  multithreading: bool = False, buffer_size: int = 1024):
@@ -298,7 +297,7 @@ class StreamEndpoint:
 
         :param addr: Address of endpoint.
         :param remote_addr: Address of remote endpoint to connect to.
-        :param server_mode: TODO
+        :param acceptor: TODO
         :param send_b_size: Underlying send buffer size of socket.
         :param recv_b_size: Underlying receive buffer size of socket.
         :param compression: Enables lz4 stream compression for bandwidth optimization.
@@ -310,7 +309,7 @@ class StreamEndpoint:
         self._logger = logging.getLogger()
         self._logger.info("Initializing endpoint...")
 
-        self._endpoint_socket = EndpointSocket(addr, remote_addr, server_mode, send_b_size, recv_b_size)
+        self._endpoint_socket = EndpointSocket(addr, remote_addr, acceptor, send_b_size, recv_b_size)
 
         if compression:
             self._marshal_f = lambda d: compress(marshal_f(d))
@@ -453,7 +452,7 @@ class StreamEndpoint:
 
 # noinspection PyTypeChecker
 def _send_payload(sock: socket.socket, payload: bytes):
-    """TODO
+    """TODO DOCS
 
     :param sock:
     :param payload:
@@ -465,7 +464,7 @@ def _send_payload(sock: socket.socket, payload: bytes):
 
 
 def _send_n_data(sock: socket.socket, data: bytes, size: int):
-    """TODO
+    """TODO DOCS
 
     :param sock:
     :param data:
@@ -480,7 +479,7 @@ def _send_n_data(sock: socket.socket, data: bytes, size: int):
 
 
 def _recv_payload(sock: socket.socket) -> bytes:
-    """TODO
+    """TODO DOCS
 
     :param sock:
     :return:
@@ -491,7 +490,7 @@ def _recv_payload(sock: socket.socket) -> bytes:
 
 
 def _recv_n_data(sock: socket.socket, size: int, buff_size: int = 4096) -> bytes:
-    """TODO
+    """TODO DOCS
 
     :param sock:
     :param size:
@@ -514,7 +513,7 @@ def _close_socket(sock: socket.socket):
     """Closes the socket of an endpoint, shutdowns any potential connection that might have been established.
     :param sock:
     :return:
-    """  # TODO
+    """  # TODO DOCS
     if sock is None:
         return
     try:

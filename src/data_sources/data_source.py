@@ -170,8 +170,7 @@ class RemoteSourceHandler(SourceHandler):
         self._logger = logging.getLogger()
         self._logger.info("Initializing remote source handler...")
         if endpoint is None:
-            endpoint = StreamEndpoint(addr=addr, endpoint_type=SINK,
-                                      multithreading=multithreading, buffer_size=buffer_size)
+            endpoint = StreamEndpoint(addr=addr, multithreading=multithreading, buffer_size=buffer_size)
         self._endpoint = endpoint
         self._logger.info("Remote source handler initialized.")
 
