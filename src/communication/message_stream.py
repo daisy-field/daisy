@@ -35,21 +35,25 @@ class EndpointSocket:
     :cvar _listen_socks: TODO
     :cvar _acc_a_socks: TODO
     :cvar _acc_p_socks: TODO
-    :cvar _active_counter: TODO
+    :cvar _reg_a_conns: TODO
+    :cvar _req_a_conns: TODO
+    :cvar _active_l_counter: TODO
     :cvar _lock: TODO
     """
     _listen_socks: dict[tuple[str, int], tuple[socket.socket, threading.Lock]] = {}
     _acc_a_socks: dict[tuple[str, int], tuple[dict[tuple[str, int], socket.socket], threading.Lock]] = {}
     _acc_p_socks: dict[tuple[str, int], queue.Queue[tuple[socket.socket, tuple[str, int]]]] = {}
-    _active_counter: dict[tuple[str, int], int]
+    _reg_a_conns: set[tuple[str, int]] = {}
+    _req_a_conns: set[tuple[str, int]] = {}
+    _active_l_counter: dict[tuple[str, int], int] = {}
     _lock = threading.Lock()
 
     _addr: tuple[str, int]
     _remote_addr: Optional[tuple[str, int]]
     _acceptor: bool
+
     _send_b_size: int
     _recv_b_size: int
-
     _sock: Optional[socket.socket]
     _sock_lock: threading.Lock
 
@@ -69,9 +73,11 @@ class EndpointSocket:
         self._addr = addr
         self._remote_addr = remote_addr
         self._acceptor = acceptor
+        if remote_addr is not None and acceptor:
+            self._req_remote(remote_addr) # FIXME, DOES ONLY WORK IN RARE CIRCUMSTANCES
+
         self._send_b_size = send_b_size
         self._recv_b_size = recv_b_size
-
         self._sock = None
         self._sock_lock = threading.Lock()
 
@@ -131,7 +137,7 @@ class EndpointSocket:
     # _listen_socks: dict[tuple[str, int], tuple[socket.socket, threading.Lock]] = {}
     # _acc_a_socks: dict[tuple[str, int], tuple[dict[tuple[str, int], socket.socket], threading.Lock]] = {}
     # _acc_p_socks: dict[tuple[str, int], queue.Queue[tuple[tuple[str, int], socket.socket]]] = {}
-    # _active_counter: dict[tuple[str, int], int]
+    # _active_l_counter: dict[tuple[str, int], int]
     # _lock = threading.Lock()
 
     def _open(self):
@@ -168,8 +174,30 @@ class EndpointSocket:
     # _listen_socks: dict[tuple[str, int], tuple[socket.socket, threading.Lock]] = {}
     # _acc_a_socks: dict[tuple[str, int], tuple[dict[tuple[str, int], socket.socket], threading.Lock]] = {}
     # _acc_p_socks: dict[tuple[str, int], queue.Queue[tuple[tuple[str, int], socket.socket]]] = {}
-    # _active_counter: dict[tuple[str, int], int]
+    # _active_l_counter: dict[tuple[str, int], int]
     # _lock = threading.Lock()
+
+    @classmethod
+    def _req_remote(cls, remote_addr):
+        """
+
+        :param remote_addr: 
+        :return: 
+        """  # FIXME DOCS, CHECKING
+        with cls._lock:
+            if remote_addr in cls._req_a_conns:
+                raise ValueError()  # TODO
+            cls._req_a_conns.add(remote_addr)
+
+    @classmethod
+    def _reg_remote(cls, remote_addr):
+        """
+
+        :param remote_addr: 
+        :return: 
+        """  # FIXME DOCS, CHECKING
+        with cls._lock:
+            cls._reg_a_conns.add(remote_addr)
 
     @classmethod
     def _get_a_socket(cls, addr: tuple[str, int], remote_addr: tuple[str, int] = None) \
@@ -183,33 +211,49 @@ class EndpointSocket:
         """  # FIXME DOCS, BLOCKING, CHECKING
         l_addr, l_sock, l_sock_lock = cls._get_l_socket(addr, remote_addr)
         with cls._lock:
-            acc_a_socks, acc_a_lock = cls._acc_a_socks[addr]
-            acc_p_socks = cls._acc_p_socks[addr]
+            acc_a_socks, acc_a_lock = cls._acc_a_socks[l_addr]
+            acc_p_socks = cls._acc_p_socks[l_addr]
 
-        a_sock = a_addr = None
-
+        # Check the active connection cache first, as another Endpoint
+        # might have accepted this one's registered connection already.
         with acc_a_lock:
             a_sock = acc_a_socks.pop(remote_addr, None)
         if a_sock is not None:
             return a_sock, remote_addr
 
+        # Check the pending connection queue, if this thread does not care
+        # about the address of the remote peer. If connection, registers it.
         if remote_addr is None:
+            a_sock = a_addr = None
             try:
                 a_sock, a_addr = acc_p_socks.get_nowait()
             except queue.Empty:
                 pass
             if a_sock is not None:
+                cls._reg_remote(a_addr)
                 return a_sock, a_addr
 
+        # Check the OS connection backlog for pending connections, if address
+        # of remote peer undefined or found, then uses it for this Endpoint.
+        # If new connection, also registers it.
         with l_sock_lock:
             a_sock, a_addr = l_sock.accept()  # FIXME BLOCK
         a_addr = socket.getnameinfo(a_addr, socket.NI_NUMERICHOST)[0], \
             int(socket.getnameinfo(a_addr, socket.NI_NUMERICSERV)[1])
-        if remote_addr is None or remote_addr == a_addr:
+        if remote_addr is None:
+            cls._reg_remote(a_addr)
             return a_sock, a_addr
-        acc_p_socks.put((a_sock, a_addr))
+        if remote_addr == a_addr:
+            return a_sock, a_addr
 
-        return a_sock, a_addr
+        # Any other connections are either stored in the active connection cache
+        # if registered, or put into the pending connection queue.
+        with cls._lock, acc_a_lock:
+            if a_addr in cls._reg_a_conns:
+                acc_a_socks[a_addr] = a_sock
+            else:
+                acc_p_socks.put((a_sock, a_addr))
+        return None, None
 
     @classmethod
     def _get_l_socket(cls, addr: tuple[str, int], remote_addr: tuple[str, int] = None) \
@@ -241,7 +285,7 @@ class EndpointSocket:
                     cls._listen_socks[l_addr] = l_sock, l_sock_lock
                     cls._acc_a_socks[l_addr] = {}, threading.Lock()
                     cls._acc_p_socks[l_addr] = queue.Queue()  # FIXME MAYBE LOCK DOWN MAX SIZE
-                cls._active_counter[l_addr] = cls._active_counter.get(l_addr, 0) + 1
+                cls._active_l_counter[l_addr] = cls._active_l_counter.get(l_addr, 0) + 1
             return l_addr, l_sock, l_sock_lock
         raise RuntimeError(f"Could not open listen socket with address ({addr})")
 
