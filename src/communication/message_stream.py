@@ -29,7 +29,7 @@ from lz4.frame import compress, decompress
 class EndpointSocket:
     """A bundle of up to two sockets, that is used to communicate with another endpoint over a persistent TCP
     connection in synchronous manner. Supports authentication and encryption over SSL, and stream compression using
-    LZ4. Thread-safe. (TODO EXTEND SAFETY BLOCK)
+    LZ4. Thread-safe. (TODO EXTEND SAFETY BLOCK DOC)
 
     # FIXME CHECK DOCSTRING
     :cvar _listen_socks: TODO
@@ -148,6 +148,7 @@ class EndpointSocket:
             try:
                 self._close()  # TODO CHECK CLOSE FOR GLOBAL ATTRIBUTES UPDATES
                 if self._acceptor:
+                    remote_addr = self._remote_addr
                     while self._started and self._sock is None:
                         self._sock, remote_addr = self._get_a_socket(self._addr, self._remote_addr)  # FIXME BLOCK
                     self._remote_addr = remote_addr
@@ -164,7 +165,7 @@ class EndpointSocket:
     def _close(self):
         """Closes the socket of an endpoint, shutdowns any potential connection that might have been established.
         """  # FIXME check global structures to clean
-        _close_socket(self._sock)  # FIXME DECREMENT COUNTER FOR CLASS ATTRIBUTES
+        _close_socket(self._sock)  # FIXME DECREMENT COUNTER FOR CLASS ATTRIBUTES, MAPPING, LISTEN SOCKETS...
         self._sock = None
 
     def __del__(self):
@@ -176,66 +177,73 @@ class EndpointSocket:
         """
 
         :param remote_addr: 
-        :raises Runtime Error:
+        :raises RuntimeError:
         :return: 
         """  # FIXME DOCS, CHECKING
         addr_mapping = set()
         for _, _, _, _, addr in socket.getaddrinfo(*remote_addr, type=socket.SOCK_STREAM):
+            addr = socket.getnameinfo(addr, socket.NI_NUMERICSERV)[0], \
+                int(socket.getnameinfo(addr, socket.NI_NUMERICSERV)[1])
             addr_mapping.add(addr)
+        for addr in addr_mapping:
             with cls._lock:
                 if addr in cls._reg_r_addrs:
-                    raise ValueError  # TODO
+                    raise ValueError  # TODO ERROR
                 cls._reg_r_addrs.add(addr)
         with cls._lock:
             if remote_addr in cls._addr_map:
-                raise ValueError  # TODO
+                raise ValueError  # TODO ERROR
             cls._addr_map[remote_addr] = addr_mapping
 
     @classmethod
-    def _get_a_socket(cls, addr: tuple[str, int], remote_addr: tuple[str, int] = None) \
-            -> tuple[Optional[socket.socket], Optional[tuple[str, int]]]:
-        """TODO
+    def _get_a_acc_sock(cls, l_addr: tuple[str, int], remote_addr: tuple[str, int]) -> Optional[socket.socket]:
+        """
 
-        :param addr:
-        :param remote_addr:
-        :raises RuntimeError: 
-        :return:
+        :param l_addr: 
+        :param remote_addr: 
+        :return: 
         """  # FIXME DOCS, BLOCKING, CHECKING
-        l_addr, l_sock, l_sock_lock = cls._get_l_socket(addr, remote_addr)
         with cls._lock:
+            acc_a_socks, acc_a_lock = cls._acc_a_socks[l_addr]
+        for _, _, _, _, addr in socket.getaddrinfo(*remote_addr, type=socket.SOCK_STREAM):
+            addr = socket.getnameinfo(addr, socket.NI_NUMERICSERV)[0], \
+                int(socket.getnameinfo(addr, socket.NI_NUMERICSERV)[1])
+            with acc_a_lock:
+                a_sock = acc_a_socks.pop(addr, None)  # FIXME WHAT ABOUT THE MAPPING?
+            if a_sock is not None:
+                return a_sock
+        return None
+
+    @classmethod
+    def _get_p_acc_sock(cls, l_addr: tuple[str, int]):
+        """
+        
+        :param l_addr: 
+        :return: 
+        """  # FIXME DOCS, BLOCKING, CHECKING
+        with cls._lock:
+            acc_p_socks = cls._acc_p_socks[l_addr]
+        try:
+            return acc_p_socks.get_nowait()
+        except queue.Empty:
+            return None, None
+
+    @classmethod
+    def _get_n_acc_sock(cls, l_addr: tuple[str, int]):
+        with cls._lock:
+            l_sock, l_sock_lock = cls._listen_socks[l_addr]
             acc_a_socks, acc_a_lock = cls._acc_a_socks[l_addr]
             acc_p_socks = cls._acc_p_socks[l_addr]
 
-        # Check the active connection cache first, as another Endpoint
-        # might have accepted this one's registered connection already.
-        with acc_a_lock:
-            a_sock = acc_a_socks.pop(remote_addr, None) # FIXME REMOTE ADDR ALIASES!
-        if a_sock is not None:
-            return a_sock, remote_addr
-
-        # Check the pending connection queue, if this thread does not care
-        # about the address of the remote peer. If connection, registers it.
-        if remote_addr is None:
-            a_sock = a_addr = None
-            try:
-                a_sock, a_addr = acc_p_socks.get_nowait()
-            except queue.Empty:
-                pass
-            if a_sock is not None:
-                cls._reg_remote(a_addr)
-                return a_sock, a_addr
-
-        # Check the OS connection backlog for pending connections, processing it the following:
-        # 1. If it is the predefined remote peer, uses it for Endpoint.
-        # 2. If it is an already registered remote peer, puts it into cache.
-        # 3. If the predefined remote peer is undefined, uses it for Endpoint.
-        # Any other connection is stored in the pending connection queue.
         with l_sock_lock:
             a_sock, a_addr = l_sock.accept()  # FIXME BLOCK
-        a_addr = socket.getnameinfo(a_addr, socket.NI_NUMERICHOST)[0], \
+        a_addr = socket.getnameinfo(a_addr, socket.NI_NUMERICSERV)[0], \
             int(socket.getnameinfo(a_addr, socket.NI_NUMERICSERV)[1])
-        if remote_addr == a_addr: # FIXME REMOTE ADDR ALIASES!
-            return a_sock, a_addr
+        for _, _, _, _, r_addr in socket.getaddrinfo(*remote_addr, type=socket.SOCK_STREAM): # FIXME TOBE REMOVED DUE TO LADDR REDUNDANCY
+            r_addr = socket.getnameinfo(r_addr, socket.NI_NUMERICSERV)[0], \
+                int(socket.getnameinfo(r_addr, socket.NI_NUMERICSERV)[1])
+            if r_addr == a_addr:
+                return a_sock, remote_addr
         with cls._lock, acc_a_lock:
             if a_addr in cls._reg_r_addrs:
                 acc_a_socks[a_addr] = a_sock
@@ -247,19 +255,50 @@ class EndpointSocket:
         return None, None
 
     @classmethod
-    def _get_l_socket(cls, addr: tuple[str, int], remote_addr: tuple[str, int] = None) \
-            -> tuple[tuple[str, int], socket.socket, threading.Lock]:
+    def _get_a_socket(cls, addr: tuple[str, int], remote_addr: tuple[str, int] = None) \
+            -> tuple[Optional[socket.socket], Optional[tuple[str, int]]]:
+        """TODO
+
+        :param addr:
+        :param remote_addr:
+        :raises RuntimeError: 
+        :return:
+        """  # FIXME DOCS, BLOCKING, CHECKING
+        l_addr, _, _ = cls._get_l_socket(addr)
+
+        # Check the active connection cache first, as another Endpoint
+        # might have accepted this one's registered connection already.
+        a_sock = cls._get_a_acc_sock(l_addr, remote_addr)
+        if a_sock is not None:
+            return a_sock, remote_addr
+
+        # Check the pending connection queue, if this thread does not care
+        # about the address of the remote peer. If connection, registers it.
+        if remote_addr is None:
+            a_sock, a_addr = cls._get_p_acc_sock(l_addr)
+            if a_sock is not None:
+                cls._reg_remote(a_addr)
+                return a_sock, a_addr
+
+        # Check the OS connection backlog for pending connections, processing it the following:
+        # 1. If it is the predefined remote peer, uses it for Endpoint.
+        # 2. If it is an already registered remote peer, puts it into cache.
+        # 3. If the predefined remote peer is undefined, uses it for Endpoint.
+        # Any other connection is stored in the pending connection queue.
+        # TODO REFACTOR OUT OF ACCEPT
+
+    @classmethod
+    def _get_l_socket(cls, addr: tuple[str, int]) -> tuple[tuple[str, int], socket.socket, threading.Lock]:
         """Opens the main socket, binding it to a functioning address and if in client mode (remote_addr is not
         None), also tries to establish a connection to the remote socket. Supports hostname resolution. FIXME
 
         :param addr:
-        :param remote_addr:
         :raises RuntimeError: If none of the addresses succeed to create a working socket.
         :return:
         """  # FIXME DOCS, CHECKING
         for res in socket.getaddrinfo(*addr, type=socket.SOCK_STREAM):
             s_af, s_t, s_p, _, s_addr = res
-            l_addr = socket.getnameinfo(s_addr, socket.NI_NUMERICHOST)[0], \
+            l_addr = socket.getnameinfo(s_addr, socket.NI_NUMERICSERV)[0], \
                 int(socket.getnameinfo(s_addr, socket.NI_NUMERICSERV)[1])
             with cls._lock:
                 l_sock, l_sock_lock = cls._listen_socks.get(l_addr, (None, None))
