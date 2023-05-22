@@ -19,15 +19,16 @@ from typing import Callable, Optional
 from lz4.frame import compress, decompress
 
 
-# duplex
-# support exclusionary server that only wants to re-connect to specific client
-# n:m endpoints
-# fault tolerant/durable to IP changes (but same hostname/FQN/DNS)
-# better underlying datastructures to support accepted sockets handling
-# removed nonblocking start functionalities as this caused more troubles than it provided use to it.
-
 # TODO optional SSL https://docs.python.org/3/library/ssl.html
+
 # TODO check for bugs in class data structures when connections are accepted (potentially used, stored) before regis
+# TODO just implement a resort method re-sorts the queue and the dict (checking the registered addrs), but that should
+# TODO be periodically called, maybe after every start and close.
+
+# TODO possibly also add unregister, which cleans everything up
+
+# TODO cleanup of class datastructures, when to perform this? (see above) especially for the listen sockets?
+
 
 class EndpointSocket:
     """A bundle of up to two sockets, that is used to communicate with another endpoint over a persistent TCP
@@ -156,7 +157,7 @@ class EndpointSocket:
                 self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, self._send_b_size)
                 self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, self._recv_b_size)
                 break
-            except (OSError, RuntimeError) as e:
+            except (OSError, ValueError, RuntimeError) as e:
                 self._logger.info(f"{e.__class__.__name__}({e}) while trying to establish connection. Retrying...")
                 sleep(1)
                 continue
@@ -256,7 +257,7 @@ class EndpointSocket:
                     l_sock_lock = threading.Lock()
                     cls._listen_socks[l_addr] = l_sock, l_sock_lock
                     cls._acc_r_socks[l_addr] = {}, threading.Lock()
-                    cls._acc_p_socks[l_addr] = queue.Queue()  # FIXME MAYBE LOCK DOWN MAX SIZE
+                    cls._acc_p_socks[l_addr] = queue.Queue(maxsize=512)
                 cls._act_l_counts[l_addr] = cls._act_l_counts.get(l_addr, 0) + 1
             return l_addr, l_sock, l_sock_lock
         raise RuntimeError(f"Could not open listen socket with address ({addr})")
@@ -327,7 +328,10 @@ class EndpointSocket:
             return a_sock, a_addr
 
         # Any other connection is stored in the pending connection queue.
-        acc_p_socks.put((a_sock, a_addr))
+        try:
+            acc_p_socks.put_nowait((a_sock, a_addr))
+        except queue.Full:
+            _close_socket(a_sock)
         return None, None
 
     @classmethod
