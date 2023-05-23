@@ -19,91 +19,118 @@ from datetime import datetime, timedelta
 import logging
 from src.federated_ids import federated_model as fm
 import src.communication.message_stream as ms
+from src.data_sources import *
+
 
 logging.basicConfig(format="%(asctime)s %(levelname)-8s %(message)s", datefmt="%Y-%m-%d %H:%M:%S",
                         level=logging.DEBUG)
 
-HOST = "127.0.0.1"  # The server's hostname or IP address
-SERVER_PORT = 65432  # The port of the server
-CLIENT_PORT = None  # The port used by the client, set by cli
-DATA_RECEIVING_PORT = None  # port for incoming data
-CLIENT_ID = None  # will be set with command line arguments
 
-data_batchsize = 256
-input_size = 70
-threshold_prediction = 2.2
+class Client:
+    """
+        Class to create a single federated client. Parameters ID, Port and Receiving Port are received from arguments
+        Optimized client for real-world dataset.
+        Federated learning client that receives the global model weights, detects attacks in the arriving real-world
+        datastreams from the data simulator, and trains the local model afterward.
+        This model is transmitted to the Server for weight aggregation using FedAVG
 
-global GLOBAL_WEIGHTS
-global train_count
+        :args: ClientID ClientPort DataReceivingPort
+        """
 
-
-
-
-# -----------------------------------------  Data Receiving & Prediction Thread ----------------------------
-
-class Data_Receiving_Thread(threading.Thread):
-    """Class to create thread for receiving incoming data"""
-
-    def __init__(self):
-        self.cohda_host = "127.0.0.1"
-        self.cohda_port = DATA_RECEIVING_PORT
+    def __init__(self,  addr: Tuple[str, int], remote_addr: Tuple[str, int], eval_addr: Tuple[str, int],
+                 data_source: DataSource, input_vector_size: int = 70, threshold_prediction: int = 2.2,
+                 data_batchsize: int=256):
 
         self.train_data_batch = []  # container for data that should be trained with
         self.train_data_label = []
+
 
         self.data_container = []
         self.label_container = []
         self.time_container = []
 
-        # initialize socket
-        self.data_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.data_socket.bind((self.cohda_host, self.cohda_port))
-        self.data_socket.listen()
-
-        # initialize metrics
-        self.metrics = [0, 0, 0, 0]
+        self._addr = addr
+        self._remote_addr = remote_addr
+        self._data_batchsize = data_batchsize
+        self._input_vector_size = input_vector_size
+        self._threshold_prediction = threshold_prediction
+        self._eval_addr = eval_addr
+        self._data_sorce = data_source
+        self._global_weights = []
+        self._train_count = 0
 
         # initialize prediction model and thread
         input_format = keras.layers.Input(shape=(input_size,))
         enc, dec = fm.FederatedModel.build()
         self.autoencoder = tf.keras.models.Model(inputs=input_format, outputs=dec(enc(input_format)))
         self.autoencoder.compile(optimizer=keras.optimizers.Adam(lr=0.0001), loss='mse', metrics=[])
+
+        #fm.FederatedModel.create_model()
         threading.Thread.__init__(self)
 
-    def recv_single_sample(self):
-        """Receive one data sample from data simulator
+    def training(self):
+        while 1:
+            try:
+                self._global_weights = _agg_endpoint.recv(300)
+            except socket.timeout:
+                logging.warning("Server not available")
+                continue
 
-        :return: single data sample
+            if len(train_data_batch) >= 1:
+                train_dataset = np.array([item for sublist in data_thread.train_data_batch for item in sublist])
+                logging.info(f"Start training on client {CLIENT_ID} with {len(train_dataset)} samples")
+                self.local_weights = self.client_update(self._global_weights, train_dataset)
+                data_thread.train_data_label = []
+                data_thread.train_data_batch = []
+
+                try:
+                    _agg_endpoint.send(self._local_weights)
+                except:
+                    logging.error("Could not send weights back")
+
+                logging.info("Finished training, closed session")
+                K.clear_session()  # clear model
+            else:
+                logging.warning("No data available for training")
+                _agg_endpoint.send("No data")
+
+    def client_update(self, old_server_weights: [], dataset:[]):
         """
-        conn, addr = self.data_socket.accept()
-        with conn:
-            while True:
-                data = conn.recv(6024)
-                if not data:
-                    break
-                conn.close()
-                return json.loads(data)[0], json.loads(data)[1]  # convert data from binary json to list
+        Performs training using the received server model weights on the client's dataset
+
+        :param dataset: current dataset for training in this round
+        :return: new weights after training
+        """
+        model = fm.FederatedModel.create_model()
+        model.set_weights(old_server_weights)
+        history = model.fit(dataset, dataset, verbose=1, epochs=0, batch_size=32)
+        weights = model.get_weights()  # get new weights
+        return weights
 
     def run(self):
         """Collect samples until the data batch size is reached. Save this batch
 
         :return: -
+
         """
-        while 1:
-            try:
-                # receive one sample and add it to container and store receiving time
+        logging.info(f"START CLIENT {self._addr}")
 
-                x, y = self.recv_single_sample()
-                self.data_container.append(x)
-                self.label_container.append(y)
-                self.time_container.append(datetime.now())
+        # create data receiving thread
+        data_thread = Data_Receiving_Thread()
+        data_thread.start()
 
-            except Exception as e:
-                logging.error("Error occured while data receiving!")
-                print(e)
+        _agg_endpoint = ms.EndpointSocket(addr=self._addr, remote_addr=self._remote_addr)
+        _eval_endpoint = ms.EndpointSocket(addr=self._addr, remote_addr=self._eval_addr)
 
+        t = Thread(target=training,  name="Training", daemon=True)
+        t.start()
+
+        self._data_sorce.open()
+        for i in self._data_sorce:
+            self.data_container.append(i)
+            self.label_container.append(i)
+            self.time_container.append(datetime.now())
             if len(self.data_container) > data_batchsize:
-
                 # start prediction
                 self.start_prediction()
 
@@ -111,6 +138,7 @@ class Data_Receiving_Thread(threading.Thread):
                 self.data_container = []
                 self.label_container = []
                 self.time_container = []
+
 
     def start_prediction(self):
         """If Model is trained and data for prediction is available start prediction, otherwise train model
@@ -171,8 +199,8 @@ class Data_Receiving_Thread(threading.Thread):
         outliers = z_scores > threshold_prediction
 
         # get lists of the predicted and the true labels
-        prediction = ["ANOMALY" if l else "BENIGN" for l in outliers]
-        labels_true = ["BENIGN" if k == "BENIGN" else "ANOMALY" for k in true_labels]
+        prediction = [self.anomaly if l else self.normal" for l in outliers]
+        labels_true = ["BENIGN" if k == "BENIGN" else self.anomaly for k in true_labels]
 
         # calculate the time needed for all traffic
         time_needed = [(datetime.now() - pred_time[j]).total_seconds() for j in range(len(true_labels))]
@@ -236,29 +264,74 @@ class Data_Receiving_Thread(threading.Thread):
                 file.write(f'{round(i * 0.1, 2)}	{tpr}\n')
 
 
-
-    def confusion_matrice(self, prediction:[], true_labels:[]):
-        """Calculate confusion matrice
-
-        :param prediction: Array containing the predicted labels
-        :param true_labels: Array containing the true labels
-        :return: False positives, True positives, False negatives, True negatives
+    class metrics_object():
         """
-        fp = 0
-        tp = 0
-        fn = 0
-        tn = 0
-        for i in range(0, len(prediction)):
-            if (prediction[i] == "ANOMALY" and true_labels[i] == "BENIGN"):
-                fp += 1
-            elif (prediction[i] == "ANOMALY" and true_labels[i] == "ANOMALY"):
-                tp += 1
-            elif (prediction[i] == "BENIGN" and true_labels[i] == "ANOMALY"):
-                fn += 1
-            elif (prediction[i] == "BENIGN" and true_labels[i] == "BENIGN"):
-                tn += 1
 
-        return fp, tp, fn, tn
+        """
+
+        def __init__(self, prediction:[], true_labels:[], anomaly: String, normal: String):
+            """Calculate confusion matrice
+
+            :return: False positives, True positives, False negatives, True negatives
+            """
+
+            print("Evaluation Object created")
+            self.prediction = prediction
+            self.true_labels = true_labels
+            self.normal = normal
+            self.anomaly = anomaly
+            fp = 0
+            tp = 0
+            fn = 0
+            tn = 0
+            for i in range(0, len(self.prediction)):
+                if self.prediction[i] == self.anomaly and self.true_labels[i] == self.normal:
+                    fp += 1
+                elif self.prediction[i] == self.anomaly and self.true_labels[i] == self.anomaly:
+                    tp += 1
+                elif self.prediction[i] == self.normal and self.true_labels[i] == self.anomaly:
+                    fn += 1
+                elif self.prediction[i] == self.normal and self.true_labels[i] == self.normal:
+                    tn += 1
+            self.metrics=[fp, tp, fn, tn]
+
+        def get_confusion_matrix(self):
+            """Getter for confusion matrix
+
+            :return: List: [False Positives, True Positives, False Negatives, True Negatives]
+            """
+            return self.metrics
+
+        def false_positive_r(self):
+            """ Calculate False Positive Rate
+
+            :return: False Positive Rate
+            """
+            fp = self.metrics[0]
+            tn = self.metrics[3]
+            return (fp + tn) and fp / (fp + tn)
+
+        def true_positive_r(self):
+            """ Calculate True Positive Rate
+
+            :return: True Positive Rate
+            """
+            tp = self.metrics[1]
+            fn = self.metrics[2]
+            return (tp + fn) and tp / (tp + fn)
+
+
+        def accuracy(self):
+            """ Calculate Accuracy
+
+            :return: Accuracy
+            """
+            fp = self.metrics[0]
+            tp = self.metrics[1]
+            fn = self.metrics[2]
+            tn = self.metrics[3]
+            return (tp + tn) / (tp + tn + fp + fn)
+
 
     def process_anomalys(self, predictions:[], true_labels:[]):
         """Function to process anomalies, e.g. delete packets, throw alerts etc.
@@ -276,224 +349,7 @@ class Data_Receiving_Thread(threading.Thread):
                 if predictions[i] == "anomaly":
                     txt_file.write(f" {timestamp} - {true_labels[i]}  \n")
 
-    def calculate_metrics(self):
-        """Calculate evaluation rates from last predictions from the saved confusion matrix
-
-        :return: False positive rate, true positive rate, accuracy
-        """
-        fp = self.metrics[0]
-        tp = self.metrics[1]
-        fn = self.metrics[2]
-        tn = self.metrics[3]
-        fpr = (fp + tn) and fp / (fp + tn)
-        tpr = (tp + fn) and tp / (tp + fn)
-        ac = (tp + tn) / (tp + tn + fp + fn)
-        self.metrics = [0, 0, 0, 0]
-        return fpr, tpr, ac
 
 
 
-class Client():
-    """
-    Class to create a single federated client. Parameters ID, Port and Receiving Port are received from arguments
-    Optimized client for real-world dataset.
-    Federated learning client that receives the global model weights, detects attacks in the arriving real-world
-    datastreams from the data simulator, and trains the local model afterward.
-    This model is transmitted to the Server for weight aggregation using FedAVG
 
-    :args: ClientID ClientPort DataReceivingPort
-    """
-
-    def client_update(self, old_server_weights: [], dataset:[]):
-        """
-        Performs training using the received server model weights on the client's dataset
-
-        :param dataset: current dataset for training in this round
-        :return: new weights after training
-        """
-        input_format = keras.layers.Input(shape=(input_size,))
-        enc, dec = FederatedModel.build()
-        autoencoder = tf.keras.models.Model(inputs=input_format, outputs=dec(enc(input_format)))
-        autoencoder.compile(optimizer=keras.optimizers.Adam(lr=0.0001), loss='mse', metrics=[])
-        autoencoder.set_weights(old_server_weights)
-
-        history = autoencoder.fit(dataset, dataset, verbose=1, epochs=0, batch_size=32)
-
-        weights = autoencoder.get_weights()  # get new weights
-        return weights
-
-
-    def recv_global_weights_from_server(self, s:socket):
-        """
-        Receive global weights from the server
-
-        :return: latest global server weights
-        """
-        binary_data = b''
-        s.settimeout(300.0)  # after 5min, assume the server is down
-        conn, addr = s.accept()
-        with conn:
-            while True:
-                recv_data = conn.recv(30000)
-                if not recv_data:
-                    break
-                binary_data = b"".join([binary_data, recv_data])
-        conn.close()
-
-        received_data = json.loads(binary_data)
-        new_global_weights = self.unpack_weights(received_data)
-        return new_global_weights
-
-
-
-    def unpack_weights(self, received_data:bytearray):
-        """Unpack local weigths from json format
-
-        :param received_data: Bytedata received from server
-        :return: List of latest server weights
-        """
-        weight_list = []
-        for layer in range(0, len(received_data)):
-            weight_list.append(np.array(received_data[layer]))
-        return weight_list
-
-
-
-    def pack_weights(self, global_weights: [], metrics:[]):
-        """Pack local weigths into json format for transmission
-
-        :param global_weights: New weights calculated on this client
-        :param metrics: Metrics that are transmitted to server
-        :return: Converted and encrypted message
-        """
-        list_of_weights = [f'client_{CLIENT_ID}', [metrics[0]], [metrics[1]], [metrics[2]], [metrics[3]]]
-        for layer in range(0, len(global_weights)):
-            list_of_weights.append(global_weights[layer].tolist())
-        return json.dumps(list_of_weights).encode()
-
-
-    def send_weights_to_server(self, weights: [], metrics:[]):
-        """Send local weights back to server
-
-        :param weights:
-        :param metrics:
-        :return:
-        """
-        bytes_weights_data = self.pack_weights(weights, metrics)
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.connect((HOST, SERVER_PORT))
-            s.sendall(bytes_weights_data)
-
-
-    def register_client(self, ID:int, Client_Port:int, Server_port:int):
-        """Register client at the server
-
-        :param ID: Clients ID
-        :param Client_Port: Port of this client
-        :param Server_port: Port of the central server
-        :return: True if successful
-        """
-        logging.info("Try registration: ")
-        bytes_weights_data = json.dumps(
-            ["registration", ID, Client_Port, Server_port]).encode()
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.connect((HOST, SERVER_PORT))
-            s.sendall(bytes_weights_data)
-        return True
-
-
-    def no_data_message(self, ID:int, Client_Port:int, Server_port:int):
-        """Send message with no data flag to the server
-
-        :param ID: Clients ID
-        :param Client_Port: Port of this client
-        :param Server_port: Port of the central server
-        :return: True if successful
-        """
-        bytes_weights_data = json.dumps(
-            ["no data", ID, Client_Port, Server_port]).encode()
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.connect((HOST, SERVER_PORT))
-            s.sendall(bytes_weights_data)
-        return
-
-
-    def update_registration(self, registered:bool, last_registration:datetime):
-        """Check if registration is still valid.
-
-        :param registered:
-        :param last_registation:
-        :return: True if client is registered, False if not and the time of last successful registration
-        """
-
-        if (not registered) and ((datetime.now() - last_registration).total_seconds() > 15):
-            try:
-                logging.info("Registration request")
-                # try registration and update time
-                last_registration = datetime.now()
-                registered = self.register_client(CLIENT_ID, CLIENT_PORT, SERVER_PORT)
-                if registered:
-                    logging.info(f"Registration successful! {CLIENT_ID} {CLIENT_PORT} {DATA_RECEIVING_PORT}")
-                    return True, last_registration
-            except Exception as e:
-                logging.warning(f"Client {CLIENT_ID}: Failed to register at server. Retry in 10sec.")
-                return False, last_registration
-        else:
-            return True, last_registration
-
-
-if __name__ == "__main__":
-    logging.info(f"START CLIENT {sys.argv[1]} on {sys.argv[2]} with datasource on {sys.argv[3]}")
-
-    CLIENT_ID = int(sys.argv[1])
-    CLIENT_PORT = int(sys.argv[2])
-    DATA_RECEIVING_PORT = int(sys.argv[3])
-
-
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # open socket
-    s.bind((HOST, CLIENT_PORT))  # bind process to port
-    s.listen()
-
-    # initialize variables
-    registered = False
-    train_count = 0
-    last_registration = datetime.now() - timedelta(seconds=90)
-
-    # create data receiving thread
-    data_thread = Data_Receiving_Thread()
-    data_thread.start()
-    Client = Client()
-
-    endpoint = ms.EndpointSocket(addr= ("127.0.0.1",45999), remote_addr=("127.0.0.1",46888) )
-
-    while 1:
-
-        try:
-            GLOBAL_WEIGHTS = endpoint.recv(120)
-        except socket.timeout:
-            logging.warning("Server not available")
-            continue
-
-        if len(data_thread.train_data_batch) >= 1:
-
-            train_dataset = np.array([item for sublist in data_thread.train_data_batch for item in
-                                         sublist])
-            logging.info(f"Start training on client {CLIENT_ID} with {len(train_dataset)} samples")
-            client_weights = Client.client_update(GLOBAL_WEIGHTS, train_dataset)
-            train_count +=1
-            data_thread.train_data_label = []
-            data_thread.train_data_batch = []
-
-            try:
-                endpoint.send([client_weights,data_thread.metrics])
-                fpr, tpr, ac = data_thread.calculate_metrics()
-                with open(f'results/clientmetrics/client_{CLIENT_ID}tpr_fpr.txt', 'a') as file:
-                    file.write(f'{tpr}		{fpr}	{ac}\n')
-            except:
-               logging.error("Could not send weights back")
-
-            logging.info("Finished training, closed session")
-            K.clear_session()  # clear model
-        else:
-            logging.warning("No data available for training")
-            endpoint.send("No data")
