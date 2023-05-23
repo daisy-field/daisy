@@ -22,6 +22,43 @@ log.setLevel(logging.ERROR)
 
 # TODO implement continious evaluation metrics receiving from clients, save the values and adapt callbacks to plot them
 
+overall_tp += tp
+overall_tn += tn
+overall_fp += fp
+overall_fn += fn
+
+print(f"{answering_client} finished!")
+client_states.append([answering_client, client_dict[answering_client], "up", fp, tp, fn, tn])
+
+OFFLINE_CLIENTS[:] = (value for value in OFFLINE_CLIENTS if
+                      value != answering_client)  # remove element if in offline list
+else:
+# skip if malformed weights received
+print("")
+
+# no more responses from any clients
+except socket.timeout:
+break
+
+# calculate average metrics and store them in files
+
+overall_fpr = (overall_fp + overall_tn) and overall_fp / (overall_fp + overall_tn)
+overall_tpr = (overall_tp + overall_fn) and overall_tp / (overall_tp + overall_fn)
+overall_fnr = (overall_fn + overall_tp) and overall_fn / (overall_fn + overall_tp)
+overall_ac = (overall_tp + overall_tn + overall_fp + overall_fn) and (overall_tp + overall_tn) / (
+            overall_tp + overall_tn + overall_fp + overall_fn)
+try:
+    overall_f1 = (2 * overall_tp) / ((2 * overall_tp) + overall_fp + overall_fn)
+except ZeroDivisionError:
+    overall_f1 = 0
+
+with open('results/tpr_fpr.txt', 'a') as file:
+    file.write(
+        f'{round}	{overall_tpr}	{overall_fpr}	{overall_fnr}	{overall_ac}	{overall_f1}\n')  # {sum(f1rates) / len(f1rates)}{sum(tprates) / len(tprates)},{sum(fprates) / len(fprates)},
+
+
+
+
 
 class Dashboard(threading.Thread):
     """
