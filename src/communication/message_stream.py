@@ -21,14 +21,7 @@ from lz4.frame import compress, decompress
 
 # TODO optional SSL https://docs.python.org/3/library/ssl.html
 
-# TODO check for bugs in class data structures when connections are accepted (potentially used, stored) before regis
-# TODO just implement a resort method re-sorts the queue and the dict (checking the registered addrs), but that should
-# TODO be periodically called, maybe after every start and close.
-
-# TODO possibly also add unregister, which cleans everything up
-
-# TODO cleanup of class datastructures, when to perform this? (see above) especially for the listen sockets?
-
+# TODO documentation, more debugging and some mild refactoring still necessary
 
 class EndpointSocket:
     """A bundle of up to two sockets, that is used to communicate with another endpoint over a persistent TCP
@@ -80,6 +73,7 @@ class EndpointSocket:
         self._acceptor = acceptor
         if remote_addr is not None and acceptor:
             self._reg_remote(remote_addr)
+            self._fix_rp_acc_socks(addr, remote_addr)
 
         self._send_b_size = send_b_size
         self._recv_b_size = recv_b_size
@@ -92,12 +86,15 @@ class EndpointSocket:
     def start(self):
         self._started = True
         with self._sock_lock:
-            self._open()
+            self._connect()
 
-    def stop(self):
+    def stop(self, shutdown: bool = False):
         self._started = False
         with self._sock_lock:
-            self._close()
+            _close_socket(self._sock)
+            if shutdown:
+                self._unreg_remote(self._addr, self._remote_addr)
+            self._close_l_socket(self._addr)
 
     def send(self, p_data: bytes):
         """Sends the given bytes of a single object over the connection, performing simple marshalling (size is
@@ -114,7 +111,7 @@ class EndpointSocket:
             except (OSError, RuntimeError) as e:
                 self._logger.info(f"{e.__class__.__name__}({e}) while trying to send data. Retrying...")
                 with self._sock_lock:
-                    self._open()
+                    self._connect()
 
     def recv(self, timeout: int = None) -> bytes:
         """Receives the bytes of a single object sent over the connection, performing simple marshalling (size is
@@ -137,16 +134,16 @@ class EndpointSocket:
                     raise e
                 self._logger.info(f"{e.__class__.__name__}({e}) while trying to receive data. Retrying...")
                 with self._sock_lock:
-                    self._open()
+                    self._connect()
 
-    def _open(self):
+    def _connect(self):
         """(Re-)Establishes a connection to a/the remote endpoint socket, first performing any necessary cleanup of the
         underlying socket, before opening it again and trying to connect/accept a remote endpoint socket. Fault-tolerant
         for breakdowns and resets in the connection. Blocking.
         """
         while self._started:
             try:
-                self._close()
+                _close_socket(self._sock)
                 if self._acceptor:
                     remote_addr = self._remote_addr
                     while self._started and self._sock is None:
@@ -162,15 +159,9 @@ class EndpointSocket:
                 sleep(1)
                 continue
 
-    def _close(self):
-        """Closes the socket of an endpoint, shutdowns any potential connection that might have been established.
-        """  # FIXME DECREMENT COUNTER FOR CLASS ATTRIBUTES, MAPPING, LISTEN SOCKETS...
-        _close_socket(self._sock)
-        self._sock = None
-
     def __del__(self):
         if self._started:
-            self.stop()
+            self.stop(shutdown=True)
 
     @classmethod
     def _reg_remote(cls, remote_addr: tuple[str, int]):
@@ -196,40 +187,55 @@ class EndpointSocket:
             cls._addr_map[remote_addr] = addr_mapping
 
     @classmethod
-    def _get_a_socket(cls, addr: tuple[str, int], remote_addr: tuple[str, int] = None) \
-            -> tuple[Optional[socket.socket], Optional[tuple[str, int]]]:
-        """TODO
+    def _fix_rp_acc_socks(cls, addr: tuple[str, int], remote_addr: tuple[str, int]):
+        """
 
         :param addr:
         :param remote_addr:
-        :raises RuntimeError: 
-        :return:
-        """  # FIXME DOCS
+        """  # FIXME DOCS, NAME, CHECKING
         l_addr, _, _ = cls._get_l_socket(addr)
+        with cls._lock:
+            addr_mapping = cls._addr_map[remote_addr]
+            acc_p_socks = cls._acc_p_socks[l_addr]
+            acc_r_socks, acc_r_lock = cls._acc_r_socks[l_addr]
 
-        # Check the active connection cache first, as another Endpoint
-        # might have accepted this one's registered connection already.
-        a_sock = cls._get_r_acc_sock(l_addr, remote_addr)
-        if a_sock is not None:
-            return a_sock, remote_addr
+        p_socks = []
+        while True:
+            try:
+                a_sock, a_addr = acc_p_socks.get_nowait()
+                with acc_r_lock:
+                    if a_addr in addr_mapping:
+                        _close_socket(acc_r_socks.pop(a_addr, None))
+                        acc_r_socks[a_addr] = a_sock
+                p_socks.append((a_sock, a_addr))
+            except queue.Empty:
+                break
+        for a_sock, a_addr in p_socks:
+            try:
+                acc_p_socks.put_nowait((a_sock, a_addr))
+            except queue.Full:
+                _close_socket(a_sock)
 
-        # Check the pending connection queue, if this thread does not care
-        # about the address of the remote peer. If connection, registers it.
-        if remote_addr is None:
-            a_sock, a_addr = cls._get_p_acc_sock(l_addr)
+    @classmethod
+    def _unreg_remote(cls, addr: tuple[str, int], remote_addr: tuple[str, int]):
+        """
+        
+        :param remote_addr: 
+        """  # FIXME DOCS, NAME, CHECKING
+        l_addr, _, _ = cls._get_l_socket(addr)
+        with cls._lock:
+            addr_mapping = cls._addr_map[remote_addr]
+            acc_p_socks = cls._acc_p_socks[l_addr]
+            acc_r_socks, acc_r_lock = cls._acc_r_socks[l_addr]
+
+        for a_addr in addr_mapping:
+            with acc_r_lock:
+                a_sock = acc_r_socks.pop(a_addr, None)
             if a_sock is not None:
-                cls._reg_remote(a_addr)
-                return a_sock, a_addr
-
-        # Check the OS connection backlog for pending connections
-        a_sock, a_addr = cls._get_n_acc_sock(l_addr, remote_addr)
-        if a_sock is not None:
-            if remote_addr is None:
-                cls._reg_remote(a_addr)
-                return a_sock, a_addr
-            else:
-                return a_sock, remote_addr
-        return None, None
+                try:
+                    acc_p_socks.put_nowait((a_sock, a_addr))
+                except queue.Full:
+                    _close_socket(a_sock)
 
     @classmethod
     def _get_l_socket(cls, addr: tuple[str, int]) -> tuple[tuple[str, int], socket.socket, threading.Lock]:
@@ -261,6 +267,60 @@ class EndpointSocket:
                 cls._act_l_counts[l_addr] = cls._act_l_counts.get(l_addr, 0) + 1
             return l_addr, l_sock, l_sock_lock
         raise RuntimeError(f"Could not open listen socket with address ({addr})")
+
+    @classmethod
+    def _close_l_socket(cls, addr: tuple[str, int]):
+        """
+        
+        :param addr:
+        """  # FIXME DOCS,
+        l_addr, l_sock, l_sock_lock = cls._get_l_socket(addr)
+
+        with cls._lock, l_sock_lock:
+            cls._act_l_counts[l_addr] = cls._act_l_counts.get(l_addr, 0) - 1
+            if cls._act_l_counts[l_addr] > 0:
+                return
+            cls._listen_socks.pop(l_addr, None)
+            cls._acc_r_socks.pop(l_addr, None)
+            cls._acc_p_socks.pop(l_addr, None)
+            cls._act_l_counts.pop(l_addr, None)
+            _close_socket(l_sock)
+
+    @classmethod
+    def _get_a_socket(cls, addr: tuple[str, int], remote_addr: tuple[str, int] = None) \
+            -> tuple[Optional[socket.socket], Optional[tuple[str, int]]]:
+        """
+
+        :param addr:
+        :param remote_addr:
+        :raises RuntimeError: 
+        :return:
+        """  # FIXME DOCS
+        l_addr, _, _ = cls._get_l_socket(addr)
+
+        # Check the active connection cache first, as another Endpoint
+        # might have accepted this one's registered connection already.
+        a_sock = cls._get_r_acc_sock(l_addr, remote_addr)
+        if a_sock is not None:
+            return a_sock, remote_addr
+
+        # Check the pending connection queue, if this thread does not care
+        # about the address of the remote peer. If connection, registers it.
+        if remote_addr is None:
+            a_sock, a_addr = cls._get_p_acc_sock(l_addr)
+            if a_sock is not None:
+                cls._reg_remote(a_addr)
+                return a_sock, a_addr
+
+        # Check the OS connection backlog for pending connections
+        a_sock, a_addr = cls._get_n_acc_sock(l_addr, remote_addr)
+        if a_sock is not None:
+            if remote_addr is None:
+                cls._reg_remote(a_addr)
+                return a_sock, a_addr
+            else:
+                return a_sock, remote_addr
+        return None, None
 
     @classmethod
     def _get_r_acc_sock(cls, l_addr: tuple[str, int], remote_addr: tuple[str, int]) -> Optional[socket.socket]:
@@ -320,6 +380,7 @@ class EndpointSocket:
         # 2. If it is an already registered remote peer, puts it into cache.
         with cls._lock, acc_r_lock:
             if a_addr in cls._reg_r_addrs:
+                _close_socket(acc_r_socks.pop(a_addr, None))
                 acc_r_socks[a_addr] = a_sock
                 return None, None
 

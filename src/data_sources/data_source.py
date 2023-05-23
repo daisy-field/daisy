@@ -16,7 +16,7 @@ from typing import Iterator
 
 import numpy as np
 
-from src.communication import StreamEndpoint, SINK
+from src.communication import StreamEndpoint
 
 
 class DataProcessor(ABC):
@@ -147,8 +147,8 @@ class SimpleSourceHandler(SourceHandler):
         return self._generator
 
 
-class RemoteSourceHandler(SourceHandler):
-    """The wrapper implementation to support and handle remote streaming endpoints of the Endpoint module as data
+class SimpleRemoteSourceHandler(SourceHandler):
+    """The simple wrapper implementation to support and handle remote streaming endpoints of the Endpoint module as data
     sources. Considered infinite in nature, as it allows the generation of data point objects from a connected
     endpoint, until the client closes the handler.
 
@@ -221,7 +221,7 @@ class DataSource:
     _buffer: queue.Queue
     _opened: bool
 
-    def __init__(self, data_processor: DataProcessor = DataProcessor(),
+    def __init__(self, data_processor: DataProcessor,
                  source_handler: SourceHandler = None, generator: Iterator[object] = None,
                  multithreading: bool = False, buffer_size: int = 1024):
         """Creates a new data source.
