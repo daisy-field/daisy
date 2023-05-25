@@ -20,7 +20,7 @@ class FederatedModel():
         return encoder, decoder
 
     @staticmethod
-    def create_model():
+    def compile_model():
         """
 
         :return:
