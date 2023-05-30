@@ -20,6 +20,7 @@ import logging
 from src.federated_ids import federated_model as fm
 import src.communication.message_stream as ms
 import src.data_sources.data_source as ds
+import src.federated_ids.metrics as metrics
 from typing import Tuple
 
 
@@ -38,74 +39,7 @@ class Client:
         :args: ClientID ClientPort DataReceivingPort
         """
 
-    class metrics_object():
-        """ Object latest evaluation metrics
-        """
-        metrics = []
-
-        def __init__(self, prediction: [], true_labels: [], anomaly: str, normal: str):
-            """Calculate confusion matrice
-
-            :return: False positives, True positives, False negatives, True negatives
-            """
-
-            logging.info("Evaluation Object created")
-            self.prediction = prediction
-            self.true_labels = true_labels
-            self.normal = normal
-            self.anomaly = anomaly
-            fp = 0
-            tp = 0
-            fn = 0
-            tn = 0
-            for i in range(0, len(self.prediction)):
-                if self.prediction[i] == self.anomaly and self.true_labels[i] == self.normal:
-                    fp += 1
-                elif self.prediction[i] == self.anomaly and self.true_labels[i] == self.anomaly:
-                    tp += 1
-                elif self.prediction[i] == self.normal and self.true_labels[i] == self.anomaly:
-                    fn += 1
-                elif self.prediction[i] == self.normal and self.true_labels[i] == self.normal:
-                    tn += 1
-            self.metrics = [fp, tp, fn, tn]
-
-        def get_confusion_matrix(self):
-            """Getter for confusion matrix
-
-            :return: List: [False Positives, True Positives, False Negatives, True Negatives]
-            """
-            return self.metrics
-
-        def false_positive_r(self):
-            """ Calculate False Positive Rate
-
-            :return: False Positive Rate
-            """
-            fp = self.metrics[0]
-            tn = self.metrics[3]
-            return (fp + tn) and fp / (fp + tn)
-
-        def true_positive_r(self):
-            """ Calculate True Positive Rate
-
-            :return: True Positive Rate
-            """
-            tp = self.metrics[1]
-            fn = self.metrics[2]
-            return (tp + fn) and tp / (tp + fn)
-
-        def accuracy(self):
-            """ Calculate Accuracy
-
-            :return: Accuracy
-            """
-            fp = self.metrics[0]
-            tp = self.metrics[1]
-            fn = self.metrics[2]
-            tn = self.metrics[3]
-            return (tp + tn) / (tp + tn + fp + fn)
-
-    def __init__(self, addr: Tuple[str, int], remote_addr: Tuple[str, int], eval_addr: Tuple[str, int],
+    def __init__(self, addr: Tuple[str, int], agg_addr: Tuple[str, int], eval_addr: Tuple[str, int],
                  data_source: ds.DataSource, federated_model: fm.FederatedModel, threshold_prediction: int = 2.2,
                  train_batchsize: int=256):
 
@@ -118,7 +52,7 @@ class Client:
         self.time_queue = []
 
         self._addr = addr
-        self._remote_addr = remote_addr
+        self._agg_addr = agg_addr
         self._eval_addr = eval_addr
 
         self._data_batchsize = train_batchsize
@@ -146,7 +80,7 @@ class Client:
         data_thread = Data_Receiving_Thread()
         data_thread.start()
 
-        _agg_endpoint = ms.EndpointSocket(addr=self._addr, remote_addr=self._remote_addr)
+        _agg_endpoint = ms.EndpointSocket(addr=self._addr, remote_addr=self._agg_addr)
         _eval_endpoint = ms.EndpointSocket(addr=self._addr, remote_addr=self._eval_addr)
 
         t = Thread(target=training, name="Training", daemon=True)
@@ -155,7 +89,7 @@ class Client:
         self._data_sorce.open()
         for i in self._data_sorce:
             self.data_queue.append(i)
-            self.label_queue.append(i)
+            self.label_queue.append("Normal")
             self.time_queue.append(datetime.now())
             if len(self.data_queue) > self._data_batchsize:
                 self.start_prediction(_eval_endpoint)
@@ -209,7 +143,7 @@ class Client:
 
         time_needed = [(datetime.now() - pred_time[j]).total_seconds() for j in range(len(true_labels))]
 
-        evaluation = metrics_object(prediction, labels_true)
+        metrics_obj = metrics.MetricsObject(prediction, labels_true, "Benign", "Anomaly")
 
         logging.info(
             f'Client {self._addr}: False positives: {evaluation.metrics[0]}, True positives: {evaluation.metrics[1]},'
@@ -218,7 +152,7 @@ class Client:
         # self.store_anomalies(labels_true, z_scores, time_needed, outliers)
         # self.analyze_MAD(z_scores, labels_true)
 
-        endpoint.send(evaluation)
+        endpoint.send(metrics_obj)
 
     def mad_score(self, points):
         """
@@ -317,9 +251,6 @@ class Client:
         weights = model.get_weights()  # get new weights
         return weights
 
-
-
-
     def process_anomalys(self, predictions:[], true_labels:[]):
         """Function to process anomalies, e.g. delete packets, throw alerts etc.
         In this case write anomaly to file with timestamp.
@@ -335,9 +266,6 @@ class Client:
             for i in range(len(predictions)):
                 if predictions[i] == "anomaly":
                     txt_file.write(f" {timestamp} - {true_labels[i]}  \n")
-
-
-
 
 if __name__ == "__main__":
     client = Client(("127.0.0.1", 54321), ("127.0.0.1", 54322),("127.0.0.1", 54323))#TODO fm.FederatedModel())
