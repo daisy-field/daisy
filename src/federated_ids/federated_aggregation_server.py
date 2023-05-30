@@ -22,6 +22,9 @@ from src.federated_ids import federated_model as fm
 import src.communication.message_stream as ms
 
 
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
+
 
 class aggregation_server():
 
