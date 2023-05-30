@@ -69,3 +69,12 @@ class MetricsObject():
         fn = self.metrics[2]
         tn = self.metrics[3]
         return (tp + tn) / (tp + tn + fp + fn)
+
+    def f1(selfself):
+        fp = self.metrics[0]
+        tp = self.metrics[1]
+        fn = self.metrics[2]
+        try:
+            return (2 * tp) / ((2 * tp) + fp + fn)
+        except ZeroDivisionError:
+            return  0
