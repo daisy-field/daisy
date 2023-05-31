@@ -59,7 +59,10 @@ class EndpointSocket:
 
     def __init__(self, addr: tuple[str, int], remote_addr: tuple[str, int] = None, acceptor: bool = True,
                  send_b_size: int = 65536, recv_b_size: int = 65536):
-        """Creates a new endpoint socket.
+        """Creates a new endpoint socket. Implementation note: A pre-defined remote address is not a guarantee that this
+        endpoint will successfully be allowed to initialize for this remote address --- for example if another endpoint
+        sock with the same remote address (be it generic or pre-defined) has already been registered, then the current
+        one will throw an error.
 
         :param addr: Address of endpoint.
         :param remote_addr: Address of remote endpoint to be connected to. Mandatory in initiator mode (acceptor set to
@@ -166,7 +169,8 @@ class EndpointSocket:
     @classmethod
     def _reg_remote(cls, remote_addr: tuple[str, int]):
         """Registers a remote address into the class datastructures, notifying other endpoints of its existence. Tries
-        to both resolve the address and finds its fully qualified hostname to reserve all its aliases.
+        to both resolve the address and finds its fully qualified hostname to reserve all its aliases. If only a single
+        alias is already registered, aborts the whole registration process and registers no of the aliases.
 
         :param remote_addr: Remote address to register.
         :raises ValueError: If remote address is already registered (possibly by another caller).
@@ -176,23 +180,26 @@ class EndpointSocket:
             addr = _convert_addr_to_name(addr)
             addr_mapping.add(addr)
 
-        for addr in addr_mapping:
-            with cls._lock:
-                if addr in cls._reg_r_addrs:
-                    raise ValueError(f"Remote address {addr} (resolved from {remote_addr}) is already registered!")
-                cls._reg_r_addrs.add(addr)
         with cls._lock:
             if remote_addr in cls._addr_map:
                 raise ValueError(f"Remote address {remote_addr} is already registered!")
+            for addr in addr_mapping:
+                if addr in cls._reg_r_addrs:
+                    raise ValueError(f"Remote address {addr} (resolved from {remote_addr}) is already registered!")
+
             cls._addr_map[remote_addr] = addr_mapping
+            for addr in addr_mapping:
+                cls._reg_r_addrs.add(addr)
 
     @classmethod
     def _fix_rp_acc_socks(cls, addr: tuple[str, int], remote_addr: tuple[str, int]):
+        """After a remote address has been registered, cycles the waiting connections of that remote address to the
+        registered socket dictionary from the pending socket queue. Necessary, as new endpoint sockets may be created 
+        while the listening socket is already opened and connections are already getting accepted.
+        
+        :param addr: Address of endpoint.
+        :param remote_addr: Remote address that was registered.
         """
-
-        :param addr:
-        :param remote_addr:
-        """  # FIXME DOCS, NAME, CHECKING
         l_addr, _, _ = cls._get_l_socket(addr)
         with cls._lock:
             addr_mapping = cls._addr_map[remote_addr]
@@ -207,7 +214,8 @@ class EndpointSocket:
                     if a_addr in addr_mapping:
                         _close_socket(acc_r_socks.pop(a_addr, None))
                         acc_r_socks[a_addr] = a_sock
-                p_socks.append((a_sock, a_addr))
+                    else:
+                        p_socks.append((a_sock, a_addr))
             except queue.Empty:
                 break
         for a_sock, a_addr in p_socks:
@@ -218,17 +226,22 @@ class EndpointSocket:
 
     @classmethod
     def _unreg_remote(cls, addr: tuple[str, int], remote_addr: tuple[str, int]):
-        """
+        """Unregisters a remote address from the class datastructures. Uses the existing mappings from the original
+        resolution. Also cycles any pending connections of that remote address from the registered socket dictionary to
+        the pending socket queue so the connection may be accepted by any other (generic or pre-defined) endpoint
+        socket listening on the same address.
         
-        :param remote_addr: 
-        """  # FIXME DOCS, NAME, CHECKING
+        :param remote_addr: Remote address that was registered.
+        """
         l_addr, _, _ = cls._get_l_socket(addr)
         with cls._lock:
-            addr_mapping = cls._addr_map[remote_addr]
+            addr_mapping = cls._addr_map.pop(remote_addr)
             acc_p_socks = cls._acc_p_socks[l_addr]
             acc_r_socks, acc_r_lock = cls._acc_r_socks[l_addr]
 
         for a_addr in addr_mapping:
+            with cls._lock:
+                cls._reg_r_addrs.discard(a_addr)
             with acc_r_lock:
                 a_sock = acc_r_socks.pop(a_addr, None)
             if a_sock is not None:
@@ -239,13 +252,13 @@ class EndpointSocket:
 
     @classmethod
     def _get_l_socket(cls, addr: tuple[str, int]) -> tuple[tuple[str, int], socket.socket, threading.Lock]:
-        """Opens the main socket, binding it to a functioning address and if in client mode (remote_addr is not
-        None), also tries to establish a connection to the remote socket. Supports hostname resolution. FIXME
+        """Gets the socket listening to a given address. If this socket does not exist already, creates it and with it 
+        all accompanying datastructures. Supports address resolution.
 
-        :param addr:
-        :raises RuntimeError: If none of the addresses succeed to create a working socket.
-        :return:
-        """  # FIXME DOCS
+        :param addr: Address of listen socket.
+        :raises RuntimeError: If none of the addresses/aliases succeed to create a working socket.
+        :return: A tupel consisting of the address, the socket, and a lock to be used for accessing the socket.
+        """
         for res in socket.getaddrinfo(*addr, type=socket.SOCK_STREAM):
             s_af, s_t, s_p, _, s_addr = res
             l_addr = _convert_addr_to_name(s_addr)
@@ -270,32 +283,37 @@ class EndpointSocket:
 
     @classmethod
     def _close_l_socket(cls, addr: tuple[str, int]):
-        """
+        """Closes the socket listening to a given address, iff there are no further endpoint sockets listening on the 
+        same socket as well.
         
-        :param addr:
-        """  # FIXME DOCS,
+        :param addr: Address of socket to close.
+        """
         l_addr, l_sock, l_sock_lock = cls._get_l_socket(addr)
 
         with cls._lock, l_sock_lock:
             cls._act_l_counts[l_addr] = cls._act_l_counts.get(l_addr, 0) - 1
             if cls._act_l_counts[l_addr] > 0:
                 return
-            cls._listen_socks.pop(l_addr, None)
-            cls._acc_r_socks.pop(l_addr, None)
-            cls._acc_p_socks.pop(l_addr, None)
-            cls._act_l_counts.pop(l_addr, None)
+            cls._listen_socks.pop(l_addr)
+            cls._acc_r_socks.pop(l_addr)
+            cls._acc_p_socks.pop(l_addr)
+            cls._act_l_counts.pop(l_addr)
             _close_socket(l_sock)
 
     @classmethod
     def _get_a_socket(cls, addr: tuple[str, int], remote_addr: tuple[str, int] = None) \
             -> tuple[Optional[socket.socket], Optional[tuple[str, int]]]:
-        """
+        """Gets a connection (accepted) socket assigned to a socket of a given address. The connection socket can either
+        be connected to an arbitrary endpoint or to a pre-defined remote peer (remote address). If remote address is not
+        pre-defined, also registers the remote peer's address. As the underlying datastructures are shared between all
+        endpoint sockets (of a process), a connection socket can either be retrieved from them or directly from the
+        listen socket.
 
-        :param addr:
-        :param remote_addr:
-        :raises RuntimeError: 
-        :return:
-        """  # FIXME DOCS
+        :param addr: Address of listen socket.
+        :param remote_addr: Address of remote endpoint to be connected to.
+        :raises RuntimeError: If none of the addresses/aliases of the listen socket succeed to get a working socket.
+        :return: Tuple of the connection socket and the address of the remote peer.
+        """
         l_addr, _, _ = cls._get_l_socket(addr)
 
         # Check the active connection cache first, as another Endpoint
@@ -309,15 +327,21 @@ class EndpointSocket:
         if remote_addr is None:
             a_sock, a_addr = cls._get_p_acc_sock(l_addr)
             if a_sock is not None:
-                cls._reg_remote(a_addr)
-                return a_sock, a_addr
+                try:
+                    cls._reg_remote(a_addr)
+                    return a_sock, a_addr
+                except ValueError:
+                    _close_socket(a_sock)
 
         # Check the OS connection backlog for pending connections
         a_sock, a_addr = cls._get_n_acc_sock(l_addr, remote_addr)
         if a_sock is not None:
             if remote_addr is None:
-                cls._reg_remote(a_addr)
-                return a_sock, a_addr
+                try:
+                    cls._reg_remote(a_addr)
+                    return a_sock, a_addr
+                except ValueError:
+                    _close_socket(a_sock)
             else:
                 return a_sock, remote_addr
         return None, None
@@ -499,12 +523,13 @@ class StreamEndpoint:
             self._recv_thread.start()
         self._logger.info("Endpoint started.")
 
-    def stop(self):
+    def stop(self, shutdown=False):
         """Stops the endpoint and closes the stream, cleaning up underlying structures. If multithreading is enabled,
         waits until the endpoint thread stops before performing cleanup. Note this does not guarantee the sending and
         receiving of all objects still pending --- they may still be in internal buffers and will be processed if the
         endpoint is opened again, or get discarded by the underlying socket.
 
+        :param shutdown: If set, also cleans up underlying datastructures of the socket communication.
         :raises RuntimeError: If endpoint has not been started.
         """
         self._logger.info("Stopping endpoint...")
@@ -516,7 +541,7 @@ class StreamEndpoint:
             self._logger.info("Multithreading detected, waiting for endpoint sender/receiver threads to stop...")
             self._send_thread.join()
             self._recv_thread.join()
-        self._endpoint_socket.stop()
+        self._endpoint_socket.stop(shutdown)
         self._logger.info("Endpoint stopped.")
 
     def send(self, obj: object):
@@ -600,7 +625,7 @@ class StreamEndpoint:
 
     def __del__(self):
         if self._started:
-            self.stop()
+            self.stop(shutdown=True)
 
 
 def _convert_addr_to_name(addr: tuple) -> tuple[str, int]:
