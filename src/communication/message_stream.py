@@ -20,7 +20,7 @@ from lz4.frame import compress, decompress
 
 
 # TODO optional SSL https://docs.python.org/3/library/ssl.html
-
+# connectors do not need local addresses
 # TODO documentation, more debugging and some mild refactoring still necessary
 
 class EndpointSocket:
@@ -286,7 +286,7 @@ class EndpointSocket:
         """Closes the socket listening to a given address, iff there are no further endpoint sockets listening on the 
         same socket as well.
         
-        :param addr: Address of socket to close.
+        :param addr: Address of listen socket to close.
         """
         l_addr, l_sock, l_sock_lock = cls._get_l_socket(addr)
 
@@ -348,12 +348,13 @@ class EndpointSocket:
 
     @classmethod
     def _get_r_acc_sock(cls, l_addr: tuple[str, int], remote_addr: tuple[str, int]) -> Optional[socket.socket]:
-        """
+        """Retrieves and returns a registered connection (accepted) socket assigned to a socket of a given address, if 
+        it exists in the (shared) active registered connection cache.
 
-        :param l_addr: 
-        :param remote_addr: 
-        :return: 
-        """  # FIXME DOCS
+        :param l_addr: Address of listen socket.
+        :param remote_addr: Address of remote endpoint to be connected to.
+        :return: Tuple of the registered connection socket and the address of the remote peer.
+        """
         with cls._lock:
             acc_r_socks, acc_r_lock = cls._acc_r_socks[l_addr]
         for _, _, _, _, addr in socket.getaddrinfo(*remote_addr, type=socket.SOCK_STREAM):
@@ -366,11 +367,12 @@ class EndpointSocket:
 
     @classmethod
     def _get_p_acc_sock(cls, l_addr: tuple[str, int]) -> tuple[Optional[socket.socket], Optional[tuple[str, int]]]:
+        """Retrieves and returns a pending, not registered connection (accepted) socket assigned to a socket of a
+        given address, if there is one in the pending connection queue.
+
+        :param l_addr: Address of listen socket.
+        :return: Tuple of a connection socket and the address of the remote peer.
         """
-        
-        :param l_addr: 
-        :return: 
-        """  # FIXME DOCS
         with cls._lock:
             acc_p_socks = cls._acc_p_socks[l_addr]
         try:
@@ -381,11 +383,16 @@ class EndpointSocket:
     @classmethod
     def _get_n_acc_sock(cls, l_addr: tuple[str, int], remote_addr: tuple[str, int]) \
             -> tuple[Optional[socket.socket], Optional[tuple[str, int]]]:
-        """
+        """Retrieves and returns a pending connection (accepted) socket from the OS connection backlog. The connection
+        socket can either be connected to an arbitrary endpoint or to a pre-defined remote peer (remote address). If the
+        remote address is not pre-defined, returns any connection socket that does not belong to another (registered)
+        endpoint socket, otherwise stores them in the shared data structures. The same is done the other way around with
+        the pending connection queue.
 
-        :param l_addr: 
-        :return: 
-        """  # FIXME DOCS
+        :param l_addr: Address of listen socket.
+        :param remote_addr: Address of remote endpoint to be connected to.
+        :return: Tuple of a connection socket and the address of the remote peer.
+        """
         with cls._lock:
             l_sock, l_sock_lock = cls._listen_socks[l_addr]
             acc_r_socks, acc_r_lock = cls._acc_r_socks[l_addr]
@@ -421,14 +428,14 @@ class EndpointSocket:
 
     @classmethod
     def _get_c_socket(cls, addr: tuple[str, int], remote_addr: tuple[str, int]) -> socket.socket:
-        """Opens the main socket, binding it to a functioning address and if in client mode (remote_addr is not
-        None), also tries to establish a connection to the remote socket. Supports hostname resolution.
-
+        """Creates and returns a connection socket to a given remote address, that is also bound to a specific address,
+        if given.
+        
         :param addr: Local address to bind endpoint to.
-        :param remote_addr:
+        :param remote_addr: Address of remote endpoint to be connected to.
         :raises RuntimeError: If none of the addresses succeed to create a working socket.
-        :return:
-        """  # FIXME DOCS
+        :return: The connection socket.
+        """
         for res in socket.getaddrinfo(*addr, type=socket.SOCK_STREAM):
             s_af, s_t, s_p, _, s_addr = res
             r_res_list = socket.getaddrinfo(*remote_addr, family=s_af.value, type=s_t.value, proto=s_p)
