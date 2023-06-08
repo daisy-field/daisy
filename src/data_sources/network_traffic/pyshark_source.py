@@ -10,22 +10,21 @@ import json
 import logging
 from collections import defaultdict
 from collections.abc import MutableMapping
-from typing import Iterator
+from typing import Iterator, Optional
 import os
 
 import numpy as np
 import pyshark
 from pyshark.capture.live_capture import LiveCapture
-from pyshark.packet.fields import LayerField
-from pyshark.packet.fields import LayerFieldsContainer
+from pyshark.capture.file_capture import FileCapture
+from pyshark.capture.capture import TSharkCrashException
+from pyshark.packet.fields import LayerField, LayerFieldsContainer
 from pyshark.packet.layers.json_layer import JsonLayer
 from pyshark.packet.layers.xml_layer import XmlLayer
 from pyshark.packet.packet import Packet
 
 from src.data_sources.data_source import DataProcessor, SourceHandler
 
-# TODO FILE SOURCE HANDLER (@JONATHAN)
-# TODO LIVE CAPTURE FILTER
 # TODO TESTING, ADD ARGS
 # TODO FIXME COVERAGE CHECKS IN PARSING FUNCTIONS
 
@@ -172,72 +171,85 @@ class LivePysharkHandler(SourceHandler):
 
 
 class PcapHandler(SourceHandler):
+    """The wrapper implementation to support and handle any amount of pcap files as data sources. Finite: finishes after
+    all files have been processed.
+    """
+    _logger: logging.Logger
 
-    def __init__(self, *file_names: str, try_count: int = 3):
-        '''
-        This handler manages pcap files and yields single packets from those files. As a parameter any number of
-        strings can be passed. Each string should be a name of a file or directory. In case a directory is passed,
-        all files ending in .pcap are used. In case a single file is passed, it is used regardless of file ending.
+    _pcap_files: list[str]
 
-        :param file_names: list of paths of single files or directories containing .pcap files
-        '''
+    _cur_file_counter: int
+    _cur_file_handle: Optional[FileCapture]
+    _try_counter: int
+
+    def __init__(self, *file_names: str, try_counter: int = 3):
+        """Creates a new pcap file handler.
+
+        :param file_names: List of paths of single files or directories containing .pcap files. Each string should be a
+        name of a file or directory. In case a directory is passed, all files ending in .pcap are used. In case a single
+        file is passed, it is used regardless of file ending.
+        :param try_counter: Number of attempts to open a specific pcap file until throwing an exception.
+        """
+        self._logger = logging.getLogger()
+
         self._pcap_files = []
-        self._cur_file_counter = 0
-        self._cur_file_handle = None
-        self._try_count = try_count
-        self._opened = False
         for path in file_names:
             if os.path.isdir(path):
-
                 # Variables in following line are: file_tuple[0] = <sub>-directories; file_tuple[2] = files in directory
                 dirs = [(file_tuple[0], file_tuple[2]) for file_tuple in os.walk(path)]
                 files = [os.path.join(file_tuple[0], file_name) for file_tuple in dirs for file_name in file_tuple[1]
                          if file_name.endswith(".pcap")]
-                if not files:
-                    print(f"Directory '{path}' does not contain any .pcap files.")
-                    exit(1)
+                if files is None:
+                    raise ValueError(f"Directory '{path}' does not contain any .pcap files!")
                 self._pcap_files += files
-            elif os.path.isfile(path):
+            elif os.path.isfile(path) and path.endswith(".pcap"):
                 self._pcap_files.append(path)
-
         if not self._pcap_files:
-            print(f"No files could be found.")
-            exit(1)
+            raise ValueError(f"No .pcap files in '{file_names}' could be found.")
+
+        self._cur_file_counter = 0
+        self._cur_file_handle = None
+        self._try_counter = try_counter
+
+    def open(self):
+        """Opens and resets the pcap file handler to the very beginning of the file list.
+        """
+        self._cur_file_counter = 0
+        self._cur_file_handle = None
+
+    def close(self):
+        """Closes any file of the pcap file handler.
+        """
+        if self._cur_file_handle is not None:
+            self._cur_file_handle.close()
 
     def _open(self):
+        """Opens the next file of the pcap file list, trying to open it several times until succeeding (known bug from
+        the pyshark library).
+        """
         try_counter = 0
-        while try_counter < self._try_count:
+        while try_counter < self._try_counter:
             try:
                 self._cur_file_handle = pyshark.FileCapture(self._pcap_files[self._cur_file_counter])
                 break
             except TSharkCrashException:
                 try_counter += 1
                 continue
-
-        if try_counter == self._try_count:
-            print("Could not open File")
+        if try_counter == self._try_counter:
+            raise RuntimeError(f"Could not open File '{self._pcap_files[self._cur_file_counter]}'")
         self._cur_file_counter += 1
 
-    def open(self):
-        self._opened = True
-        self._cur_file_counter = 0
-        self._cur_file_handle = None
+    def __iter__(self) -> Iterator[Packet]:
+        """Returns a generator that yields pyshark packets from each file after another, opening and closing them when
+        being actively read.
 
-    def close(self):
-        self._opened = False
-        if self._cur_file_handle is not None:
-            self._cur_file_handle.close()
-
-    def __iter__(self) -> Iterator[object]:
-        if not self._opened:
-            print("Run open method first")
-            exit(1)
-
+        :return: Generator object for data points as pyshark packets.
+        """
         for _ in self._pcap_files:
             self._open()
             for packet in self._cur_file_handle:
                 yield packet
-            self.close()
+            self._cur_file_handle.close()
 
 
 def packet_to_dict(p: Packet) -> dict:
