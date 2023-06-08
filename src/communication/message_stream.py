@@ -3,7 +3,7 @@
     and LZ4 compression.
 
     Author: Fabian Hofmann
-    Modified: 10.05.23
+    Modified: 08.06.23
 """
 
 import ctypes
@@ -20,22 +20,20 @@ from lz4.frame import compress, decompress
 
 
 # TODO optional SSL https://docs.python.org/3/library/ssl.html
-# connectors do not need local addresses
-# TODO documentation, more debugging and some mild refactoring still necessary
 
 class EndpointSocket:
     """A bundle of up to two sockets, that is used to communicate with another endpoint over a persistent TCP
     connection in synchronous manner. Supports authentication and encryption over SSL, and stream compression using
-    LZ4. Thread-safe. (TODO EXTEND SAFETY BLOCK DOC, REWRITE DOC)
+    LZ4. Thread-safe for both access to the same endpoint socket and using multiple threads using endpoint sockets
+    set to the same address (this is organized through an array of class variables, see below for more info).
 
-    # FIXME CHECK DOCSTRING
-    :cvar _listen_socks:
-    :cvar _acc_r_socks:
-    :cvar _acc_p_socks:
-    :cvar _reg_r_addrs:
-    :cvar _addr_map:
-    :cvar _act_l_counts:
-    :cvar _lock:
+    :cvar _listen_socks: Active listen sockets, along with a respective lock to access each safely.
+    :cvar _acc_r_socks: Pending registered connection cache for each listen socket.
+    :cvar _acc_p_socks: Pending unregistered connection queue for each listen socket.
+    :cvar _reg_r_addrs: Registered remote addresses .
+    :cvar _addr_map: Mapping between registered remote addresses and their aliases.
+    :cvar _act_l_counts: Active thread counter for each listen socket. Socket closes if counter reaches zero.
+    :cvar _lock: General purpose lock to ensure safe access to class variables.
     """
     _listen_socks: dict[tuple[str, int], tuple[socket.socket, threading.Lock]] = {}
     _acc_r_socks: dict[tuple[str, int], tuple[dict[tuple[str, int], socket.socket], threading.Lock]] = {}
@@ -170,7 +168,7 @@ class EndpointSocket:
     def _reg_remote(cls, remote_addr: tuple[str, int]):
         """Registers a remote address into the class datastructures, notifying other endpoints of its existence. Tries
         to both resolve the address and finds its fully qualified hostname to reserve all its aliases. If only a single
-        alias is already registered, aborts the whole registration process and registers no of the aliases.
+        alias is already registered, aborts the whole registration process and registers none of the aliases.
 
         :param remote_addr: Remote address to register.
         :raises ValueError: If remote address is already registered (possibly by another caller).
@@ -457,9 +455,8 @@ class EndpointSocket:
 class StreamEndpoint:
     """One of a pair of endpoints that is able to communicate with one another over a persistent stateless stream over
     BSD sockets. Allows the transmission of generic objects in both synchronous and asynchronous fashion. Supports SSL
-    and LZ4 compression for the stream.
-
-    # FIXME CHECK DOCSTRING
+    and LZ4 compression for the stream. Thread-safe for both access to the same endpoint and using multiple threads
+    using endpoints set to the same address.
     """
     _logger: logging.Logger
 

@@ -5,7 +5,7 @@
     its own implementation of the DataProcessor class.
 
     Author: Fabian Hofmann, Jonathan Ackerschewski
-    Modified: 03.05.23
+    Modified: 08.06.23
 """
 
 import logging
@@ -121,8 +121,6 @@ class SimpleSourceHandler(SourceHandler):
     """The simplest productive source handler - an actual wrapper around a generator that is always open and cannot be
     closed, yielding data points as objects as they are yielded. Can be infinite or finite; no matter, no control over
     the generator is natively supported.
-
-    # FIXME CHECK DOCSTRING
     """
     _generator: Iterator[object]
 
@@ -151,8 +149,6 @@ class SimpleRemoteSourceHandler(SourceHandler):
     """The simple wrapper implementation to support and handle remote streaming endpoints of the Endpoint module as data
     sources. Considered infinite in nature, as it allows the generation of data point objects from a connected
     endpoint, until the client closes the handler.
-
-    # FIXME CHECK DOCSTRING
     """
     _logger: logging.Logger
     _endpoint: StreamEndpoint
@@ -208,8 +204,6 @@ class DataSource:
     processed and converted into numpy vectors/arrays.
 
     Supports the processing of data points in both synchronous and asynchronous fashion by default.
-
-    # FIXME CHECK DOCSTRING
     """
     _logger: logging.Logger
 

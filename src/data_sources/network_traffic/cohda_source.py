@@ -1,8 +1,9 @@
 """
-    TODO
+    Implementations of the data source processor interface that allows the processing and provisioning of pyshark
+    packets that are captured from cohda boxes.
 
     Author: Seraphin Zunzer, Fabian Hofmann
-    Modified: 02.05.23
+    Modified: 08.06.23
 """
 
 from datetime import datetime
@@ -20,12 +21,11 @@ class CohdaProcessor(PysharkProcessor):
     """An extension of the pyshark processor to support the labeling of the data stream for evaluation purposes.
     Currently static, as the existing datasets captured on Cohda boxes 2 and 5 on March 6th contain attacks. Labels are
     appended according to the used protocol, timestamps, source and destination ip addresses.
-    # FIXME CHECK DOCSTRING
     """
     _client_id: int
 
     def __init__(self, client_id: int, f_features: tuple[str, ...] = default_f):
-        """Creates a new cohda . FIXME
+        """Creates a new cohda processor for a specific client.
 
         :param client_id: ID of client that
         :param f_features: Selection of features that every data point will have after processing.
