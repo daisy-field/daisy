@@ -54,13 +54,13 @@ class CohdaProcessor(PysharkProcessor):
 
 # Existing datasets captured on Cohda boxes 2 and 5 on March 6th contains attacks in the following:
 march23_events: list[tuple[int, tuple[datetime, datetime], list[str], list[str], str]] = \
-    [(5, (datetime(2023, 3, 6, 12, 34, 00), datetime(2023, 3, 6, 12, 40, 00)),
+    [(5, (datetime(2023, 3, 6, 12, 34, 17), datetime(2023, 3, 6, 12, 40, 28)),
       ["http", "tcp"], ["192.168.213.86", "185."], "Installation Attack Tool"),
-     (5, (datetime(2023, 3, 6, 12, 49, 00), datetime(2023, 3, 6, 13, 23, 00)),
+     (5, (datetime(2023, 3, 6, 12, 49, 4), datetime(2023, 3, 6, 13, 23, 16)),
       ["ssh", "tcp"], ["192.168.230.3", "192.168.213.86"], "SSH Brute Force"),
-     (5, (datetime(2023, 3, 6, 13, 25, 00), datetime(2023, 3, 6, 13, 32, 00)),
+     (5, (datetime(2023, 3, 6, 13, 25, 27), datetime(2023, 3, 6, 13, 31, 11)),
       ["ssh", "tcp"], ["192.168.230.3", "192.168.213.86"], "SSH Privilege Escalation"),
-     (2, (datetime(2023, 3, 6, 12, 49, 00), datetime(2023, 3, 6, 13, 23, 00)),
+     (2, (datetime(2023, 3, 6, 12, 49, 4), datetime(2023, 3, 6, 13, 23, 16)),
       ["ssh", "tcp"], ["192.168.230.3", "130.149.98.119"], "SSH Brute Force Response"),
-     (2, (datetime(2023, 3, 6, 13, 25, 00), datetime(2023, 3, 6, 13, 32, 00)),
+     (2, (datetime(2023, 3, 6, 13, 25, 27), datetime(2023, 3, 6, 13, 31, 11)),
       ["ssh", "tcp"], ["192.168.230.3", "130.149.98.119"], "SSH Data Leakage")]
