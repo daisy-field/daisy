@@ -316,13 +316,14 @@ class EndpointSocket:
 
         # Check the active connection cache first, as another Endpoint
         # might have accepted this one's registered connection already.
-        a_sock = cls._get_r_acc_sock(l_addr, remote_addr)
-        if a_sock is not None:
-            return a_sock, remote_addr
+        if remote_addr is not None:
+            a_sock = cls._get_r_acc_sock(l_addr, remote_addr)
+            if a_sock is not None:
+                return a_sock, remote_addr
 
         # Check the pending connection queue, if this thread does not care
         # about the address of the remote peer. If connection, registers it.
-        if remote_addr is None:
+        else:
             a_sock, a_addr = cls._get_p_acc_sock(l_addr)
             if a_sock is not None:
                 try:
