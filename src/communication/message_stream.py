@@ -146,6 +146,7 @@ class EndpointSocket:
             try:
                 _close_socket(self._sock)
                 if self._acceptor:
+                    self._sock = None
                     remote_addr = self._remote_addr
                     while self._started and self._sock is None:
                         self._sock, remote_addr = self._get_a_socket(self._addr, self._remote_addr)
@@ -156,7 +157,8 @@ class EndpointSocket:
                 self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, self._recv_b_size)
                 break
             except (OSError, ValueError, RuntimeError) as e:
-                self._logger.info(f"{e.__class__.__name__}({e}) while trying to establish connection. Retrying...")
+                self._logger.info(f"{e.__class__.__name__}({e}) while trying to establish connection "
+                                  f"to {self._remote_addr}. Retrying...")
                 sleep(1)
                 continue
 
@@ -275,7 +277,7 @@ class EndpointSocket:
                     cls._listen_socks[l_addr] = l_sock, l_sock_lock
                     cls._acc_r_socks[l_addr] = {}, threading.Lock()
                     cls._acc_p_socks[l_addr] = queue.Queue(maxsize=512)
-                cls._act_l_counts[l_addr] = cls._act_l_counts.get(l_addr, 0) + 1
+                cls._act_l_counts[l_addr] = cls._act_l_counts.get(l_addr, 0) + 1  # FIXME increases it every call
             return l_addr, l_sock, l_sock_lock
         raise RuntimeError(f"Could not open listen socket with address ({addr})")
 
@@ -402,10 +404,11 @@ class EndpointSocket:
         a_addr = _convert_addr_to_name(a_addr)
 
         # 1. If it is the predefined remote peer, uses it for Endpoint.
-        for _, _, _, _, r_addr in socket.getaddrinfo(*remote_addr, type=socket.SOCK_STREAM):
-            r_addr = _convert_addr_to_name(r_addr)
-            if r_addr == a_addr:
-                return a_sock, a_addr
+        if remote_addr is not None:
+            for _, _, _, _, r_addr in socket.getaddrinfo(*remote_addr, type=socket.SOCK_STREAM):
+                r_addr = _convert_addr_to_name(r_addr)
+                if r_addr == a_addr:
+                    return a_sock, a_addr
 
         # 2. If it is an already registered remote peer, puts it into cache.
         with cls._lock, acc_r_lock:
@@ -625,6 +628,8 @@ class StreamEndpoint:
         self._logger.info(f"AsyncReceiver: Stopping...")
 
     def __iter__(self):
+        if not self._started:
+            raise RuntimeError("Endpoint has not been started!")
         while self._started:
             yield self.receive()
 
