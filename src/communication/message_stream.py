@@ -10,6 +10,7 @@ import ctypes
 import logging
 import pickle
 import queue
+import select
 import socket
 import sys
 import threading
@@ -117,7 +118,7 @@ class EndpointSocket:
     def recv(self, timeout: int = None) -> bytes:
         """Receives the bytes of a single object sent over the connection, performing simple marshalling (size is
         received first, then the bytes of the object). Fault-tolerant for breakdowns and resets in the connection.
-        Blocking in default-mode if timeout not set.
+        Semi-Blocking in default-mode (i.e. occasionally checks if there is data to receive) if timeout not set.
 
         :param timeout: Timeout (seconds) to receive an object to return.
         :return: Received bytes.
@@ -126,9 +127,11 @@ class EndpointSocket:
         while self._started:
             try:
                 with self._sock_lock:
-                    self._sock.settimeout(timeout)
+                    if timeout is not None and not select.select([self._sock], [], [], timeout)[0]:
+                        raise TimeoutError
+                    elif not select.select([self._sock], [], [], 0)[0]:
+                        continue
                     p_data = _recv_payload(self._sock)
-                    self._sock.settimeout(None)
                 return p_data
             except (OSError, RuntimeError) as e:
                 if timeout is not None and type(e) is TimeoutError:
@@ -136,6 +139,7 @@ class EndpointSocket:
                 self._logger.info(f"{e.__class__.__name__}({e}) while trying to receive data. Retrying...")
                 with self._sock_lock:
                     self._connect()
+            sleep(1)
 
     def _connect(self):
         """(Re-)Establishes a connection to a/the remote endpoint socket, first performing any necessary cleanup of the
@@ -453,7 +457,7 @@ class EndpointSocket:
                     _close_socket(sock)
                     continue
                 return sock
-        raise RuntimeError(f"Could not open connector socket with address ({addr}, {remote_addr})")
+        raise RuntimeError(f"Could not open connector socket ({addr}, {remote_addr})")
 
 
 class StreamEndpoint:
@@ -494,7 +498,7 @@ class StreamEndpoint:
         :param buffer_size: Size of shared buffer in multithreading mode.
         """
         self._logger = logging.getLogger()
-        self._logger.info("Initializing endpoint...")
+        self._logger.info(f"Initializing endpoint ({addr}, {remote_addr})...")
 
         self._endpoint_socket = EndpointSocket(addr, remote_addr, acceptor, send_b_size, recv_b_size)
 
@@ -509,7 +513,7 @@ class StreamEndpoint:
         self._send_buffer = queue.Queue(maxsize=buffer_size)
         self._recv_buffer = queue.Queue(maxsize=buffer_size)
         self._started = False
-        self._logger.info("Endpoint initialized.")
+        self._logger.info(f"Endpoint ({addr}, {remote_addr}) initialized.")
 
     def start(self):
         """Starts the endpoint, either in dual-threaded fashion or as part of the main thread. By doing so, the two

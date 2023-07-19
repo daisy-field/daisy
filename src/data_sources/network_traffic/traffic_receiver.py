@@ -11,7 +11,7 @@ def relay_pyshark_receiver():
     endpoint.start()
 
     for p in endpoint:
-        print("x")
+        print(p)
 
 
 if __name__ == '__main__':
