@@ -3,7 +3,7 @@
     and LZ4 compression.
 
     Author: Fabian Hofmann
-    Modified: 08.06.23
+    Modified: 20.07.23
 """
 
 import ctypes
@@ -44,6 +44,8 @@ class EndpointSocket:
     _act_l_counts: dict[tuple[str, int], int] = {}
     _lock = threading.Lock()
 
+    _logger: logging.Logger
+
     _addr: tuple[str, int]
     _remote_addr: Optional[tuple[str, int]]
     _acceptor: bool
@@ -53,16 +55,16 @@ class EndpointSocket:
     _sock: Optional[socket.socket]
     _sock_lock: threading.Lock
 
-    _logger: logging.Logger
     _started: bool
 
-    def __init__(self, addr: tuple[str, int], remote_addr: tuple[str, int] = None, acceptor: bool = True,
+    def __init__(self, name: str, addr: tuple[str, int], remote_addr: tuple[str, int] = None, acceptor: bool = True,
                  send_b_size: int = 65536, recv_b_size: int = 65536):
         """Creates a new endpoint socket. Implementation note: A pre-defined remote address is not a guarantee that this
         endpoint will successfully be allowed to initialize for this remote address --- for example if another endpoint
         sock with the same remote address (be it generic or pre-defined) has already been registered, then the current
         one will throw an error.
 
+        :param name: Name of endpoint for logging purposes.
         :param addr: Address of endpoint.
         :param remote_addr: Address of remote endpoint to be connected to. Mandatory in initiator mode (acceptor set to
         false), for acceptor mode this fixes the remote endpoint that is allowed to be connected to this endpoint.
@@ -70,6 +72,8 @@ class EndpointSocket:
         :param send_b_size: Underlying send buffer size of socket.
         :param recv_b_size: Underlying receive buffer size of socket.
         """
+        self._logger = logging.getLogger(name)
+
         self._addr = addr
         self._remote_addr = remote_addr
         self._acceptor = acceptor
@@ -82,7 +86,6 @@ class EndpointSocket:
         self._sock = None
         self._sock_lock = threading.Lock()
 
-        self._logger = logging.getLogger()
         self._started = False
 
     def start(self):
@@ -479,13 +482,14 @@ class StreamEndpoint:
     _recv_buffer: queue.Queue
     _started: bool
 
-    def __init__(self, addr: tuple[str, int] = ("127.0.0.1", 12000), remote_addr: tuple[str, int] = None,
+    def __init__(self, name: str, addr: tuple[str, int], remote_addr: tuple[str, int] = None,
                  acceptor: bool = True, send_b_size: int = 65536, recv_b_size: int = 65536,
                  compression: bool = False, marshal_f: Callable[[object], bytes] = pickle.dumps,
                  unmarshal_f: Callable[[bytes], object] = pickle.loads,
                  multithreading: bool = False, buffer_size: int = 1024):
         """Creates a new endpoint.
 
+        :param name: Name of endpoint for logging purposes.
         :param addr: Address of endpoint.
         :param remote_addr: Address of remote endpoint to be connected to. Optional in acceptor mode.
         :param acceptor: Determines whether the endpoint accepts or initiates connections to/from other endpoints.
@@ -497,10 +501,10 @@ class StreamEndpoint:
         :param multithreading: Enables transparent multithreading for speedup.
         :param buffer_size: Size of shared buffer in multithreading mode.
         """
-        self._logger = logging.getLogger()
+        self._logger = logging.getLogger(name)
         self._logger.info(f"Initializing endpoint ({addr}, {remote_addr})...")
 
-        self._endpoint_socket = EndpointSocket(addr, remote_addr, acceptor, send_b_size, recv_b_size)
+        self._endpoint_socket = EndpointSocket(name, addr, remote_addr, acceptor, send_b_size, recv_b_size)
 
         if compression:
             self._marshal_f = lambda d: compress(marshal_f(d))

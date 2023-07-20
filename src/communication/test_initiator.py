@@ -1,12 +1,12 @@
 import logging
-from time import sleep
 
 import src.communication.message_stream as stream
 
-logging.basicConfig(format="%(asctime)s %(levelname)-8s %(message)s", datefmt="%Y-%m-%d %H:%M:%S",
+logging.basicConfig(format="%(asctime)s %(levelname)-5s %(name)-10s %(message)s",
+                    datefmt="%Y-%m-%d %H:%M:%S",
                     level=logging.DEBUG)
-endpoint = stream.StreamEndpoint(addr=("127.0.0.1", 13000), remote_addr=("127.0.0.1", 32000), acceptor=False,
-                                 multithreading=True, buffer_size=10000)
+endpoint = stream.StreamEndpoint(name="Sender", addr=("127.0.0.1", 13000), remote_addr=("127.0.0.1", 32000),
+                                 acceptor=False, multithreading=True, buffer_size=10000)
 endpoint.start()
 
 while True:
@@ -15,4 +15,3 @@ while True:
         print(endpoint.receive())
     except TimeoutError:
         print("nothing to receive")
-

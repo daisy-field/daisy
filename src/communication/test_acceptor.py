@@ -9,7 +9,6 @@ def t1():
 
 
 def t2():
-
     endpoint.start()
 
     while True:
@@ -20,13 +19,14 @@ def t2():
             print("nothing to receive")
 
 
-logging.basicConfig(format="%(asctime)s %(levelname)-8s %(message)s", datefmt="%Y-%m-%d %H:%M:%S",
+logging.basicConfig(format="%(asctime)s %(levelname)-5s %(name)-10s %(message)s",
+                    datefmt="%Y-%m-%d %H:%M:%S",
                     level=logging.DEBUG)
 
-dummy = stream.StreamEndpoint(addr=("127.0.0.1", 31000), remote_addr=("127.0.0.1", 14000), acceptor=True,
-                              multithreading=True, buffer_size=10000)
-endpoint = stream.StreamEndpoint(addr=("127.0.0.1", 32000), remote_addr=("127.0.0.1", 13000), acceptor=True,
-                                 multithreading=True, buffer_size=10000)
+dummy = stream.StreamEndpoint(name="Dummy", addr=("127.0.0.1", 31000), remote_addr=("127.0.0.1", 14000),
+                              acceptor=True, multithreading=True, buffer_size=10000)
+endpoint = stream.StreamEndpoint(name="Receiver", addr=("127.0.0.1", 32000), remote_addr=("127.0.0.1", 13000),
+                                 acceptor=True, multithreading=True, buffer_size=10000)
 
-threading.Thread(target=t1, daemon=True)
-threading.Thread(target=t2, daemon=True)
+threading.Thread(target=t1, daemon=True).start()
+threading.Thread(target=t2, daemon=True).start()
