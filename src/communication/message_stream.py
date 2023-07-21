@@ -31,7 +31,7 @@ class EndpointSocket:
     :cvar _listen_socks: Active listen sockets, along with a respective lock to access each safely.
     :cvar _acc_r_socks: Pending registered connection cache for each listen socket.
     :cvar _acc_p_socks: Pending unregistered connection queue for each listen socket.
-    :cvar _reg_r_addrs: Registered remote addresses .
+    :cvar _reg_r_addrs: Registered remote addresses.
     :cvar _addr_map: Mapping between registered remote addresses and their aliases.
     :cvar _act_l_counts: Active thread counter for each listen socket. Socket closes if counter reaches zero.
     :cvar _lock: General purpose lock to ensure safe access to class variables.
@@ -91,15 +91,18 @@ class EndpointSocket:
     def start(self):
         self._started = True
         with self._sock_lock:
+            if self._acceptor:
+                self._open_l_socket(self._addr)
             self._connect()
 
     def stop(self, shutdown: bool = False):
         self._started = False
         with self._sock_lock:
             _close_socket(self._sock)
-            if shutdown:
-                self._unreg_remote(self._addr, self._remote_addr)
-            self._close_l_socket(self._addr)
+            if self._acceptor:
+                if shutdown:
+                    self._unreg_remote(self._addr, self._remote_addr)
+                self._close_l_socket(self._addr)
 
     def send(self, p_data: bytes):
         """Sends the given bytes of a single object over the connection, performing simple marshalling (size is
@@ -258,7 +261,19 @@ class EndpointSocket:
                     _close_socket(a_sock)
 
     @classmethod
-    def _get_l_socket(cls, addr: tuple[str, int]) -> tuple[tuple[str, int], socket.socket, threading.Lock]:
+    def _open_l_socket(cls, addr: tuple[str, int]):
+        """Opens the socket listening to a given address, iff there are no further endpoint sockets listening on the
+        same socket as well.
+
+        :param addr: Address of listen socket to open.
+        """
+        cls._get_l_socket(addr, new_endpoint=True)
+        # with cls._lock:
+        #     cls._act_l_counts[l_addr] = cls._act_l_counts.get(l_addr, 0) + 1
+
+    @classmethod
+    def _get_l_socket(cls, addr: tuple[str, int], new_endpoint: bool = False) \
+            -> tuple[tuple[str, int], socket.socket, threading.Lock]:
         """Gets the socket listening to a given address. If this socket does not exist already, creates it and with it 
         all accompanying datastructures. Supports address resolution.
 
@@ -284,7 +299,8 @@ class EndpointSocket:
                     cls._listen_socks[l_addr] = l_sock, l_sock_lock
                     cls._acc_r_socks[l_addr] = {}, threading.Lock()
                     cls._acc_p_socks[l_addr] = queue.Queue(maxsize=512)
-                cls._act_l_counts[l_addr] = cls._act_l_counts.get(l_addr, 0) + 1  # FIXME increases it every call
+                if new_endpoint:
+                    cls._act_l_counts[l_addr] = cls._act_l_counts.get(l_addr, 0) + 1
             return l_addr, l_sock, l_sock_lock
         raise RuntimeError(f"Could not open listen socket with address ({addr})")
 
