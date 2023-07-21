@@ -1,5 +1,6 @@
 import logging
 from time import sleep
+
 import src.communication.message_stream as stream
 
 logging.basicConfig(format="%(asctime)s %(levelname)-8s %(name)-10s %(message)s",
@@ -11,8 +12,8 @@ endpoint.start()
 
 while True:
     endpoint.send("ping")
+    try:
+        print(endpoint.receive(5))
+    except TimeoutError:
+        print("nothing to receive")
     sleep(2)
-    # try:
-    #     print(endpoint.receive(1))
-    # except TimeoutError:
-    #     print("nothing to receive")

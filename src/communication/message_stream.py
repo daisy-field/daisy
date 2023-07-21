@@ -326,7 +326,7 @@ class EndpointSocket:
     @classmethod
     def _get_a_socket(cls, addr: tuple[str, int], remote_addr: tuple[str, int] = None) \
             -> tuple[Optional[socket.socket], Optional[tuple[str, int]]]:
-        """Gets a connection (accepted) socket assigned to a socket of a given address. The connection socket can either
+        """Gets an accepted connection socket assigned to a socket of a given address. The connection socket can either
         be connected to an arbitrary endpoint or to a pre-defined remote peer (remote address). If remote address is not
         pre-defined, also registers the remote peer's address. As the underlying datastructures are shared between all
         endpoint sockets (of a process), a connection socket can either be retrieved from them or directly from the
@@ -372,7 +372,7 @@ class EndpointSocket:
 
     @classmethod
     def _get_r_acc_sock(cls, l_addr: tuple[str, int], remote_addr: tuple[str, int]) -> Optional[socket.socket]:
-        """Retrieves and returns a registered connection (accepted) socket assigned to a socket of a given address, if 
+        """Retrieves and returns a registered (accepted) connection socket assigned to a socket of a given address, if
         it exists in the (shared) active registered connection cache.
 
         :param l_addr: Address of listen socket.
@@ -391,7 +391,7 @@ class EndpointSocket:
 
     @classmethod
     def _get_p_acc_sock(cls, l_addr: tuple[str, int]) -> tuple[Optional[socket.socket], Optional[tuple[str, int]]]:
-        """Retrieves and returns a pending, not registered connection (accepted) socket assigned to a socket of a
+        """Retrieves and returns a pending, not registered (accepted) connection socket assigned to a socket of a
         given address, if there is one in the pending connection queue.
 
         :param l_addr: Address of listen socket.
@@ -407,11 +407,11 @@ class EndpointSocket:
     @classmethod
     def _get_n_acc_sock(cls, l_addr: tuple[str, int], remote_addr: tuple[str, int]) \
             -> tuple[Optional[socket.socket], Optional[tuple[str, int]]]:
-        """Retrieves and returns a pending connection (accepted) socket from the OS connection backlog. The connection
-        socket can either be connected to an arbitrary endpoint or to a pre-defined remote peer (remote address). If the
-        remote address is not pre-defined, returns any connection socket that does not belong to another (registered)
-        endpoint socket, otherwise stores them in the shared data structures. The same is done the other way around with
-        the pending connection queue.
+        """Retrieves, accepts, and returns a pending connection socket from the OS connection backlog if there is one.
+        The connection socket can either be connected to an arbitrary endpoint or to a pre-defined remote peer (remote
+        address). If the remote address is not pre-defined, returns any connection socket that does not belong to
+        another (registered) endpoint socket, otherwise stores them in the shared data structures. The same is done the
+        other way around with the pending connection queue.
 
         :param l_addr: Address of listen socket.
         :param remote_addr: Address of remote endpoint to be connected to.
@@ -423,6 +423,8 @@ class EndpointSocket:
             acc_p_socks = cls._acc_p_socks[l_addr]
 
         with l_sock_lock:
+            if not select.select([l_sock], [], [], 0)[0]:
+                return None, None
             a_sock, a_addr = l_sock.accept()
         a_addr = _convert_addr_to_name(a_addr)
 
@@ -476,7 +478,7 @@ class EndpointSocket:
                     _close_socket(sock)
                     continue
                 return sock
-        raise RuntimeError(f"Could not open connector socket ({addr}, {remote_addr})")
+        raise RuntimeError(f"Could not open connection socket ({addr}, {remote_addr})")
 
 
 class StreamEndpoint:
