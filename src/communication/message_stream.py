@@ -424,7 +424,7 @@ class EndpointSocket:
 
         with l_sock_lock:
             if not select.select([l_sock], [], [], 0)[0]:
-                return None, None
+                raise RuntimeError(f"Could not open connection socket ({l_addr}, {remote_addr})")
             a_sock, a_addr = l_sock.accept()
         a_addr = _convert_addr_to_name(a_addr)
 
