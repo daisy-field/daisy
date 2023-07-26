@@ -3,7 +3,7 @@
     and LZ4 compression.
 
     Author: Fabian Hofmann
-    Modified: 20.07.23
+    Modified: 26.07.23
 """
 
 import ctypes
@@ -538,8 +538,8 @@ class StreamEndpoint:
         self._logger.info(f"Endpoint ({addr}, {remote_addr}) initialized.")
 
     def start(self):
-        """Starts the endpoint, either in dual-threaded fashion or as part of the main thread. By doing so, the two
-        endpoints are connected and the datastream is opened.
+        """Starts the endpoint, either in threaded fashion or as part of the main thread. By doing so, the two endpoints
+        are connected and the datastream is opened. This method is blocking (until a connection is established).
 
         :raises RuntimeError: If endpoint has already been started.
         """
