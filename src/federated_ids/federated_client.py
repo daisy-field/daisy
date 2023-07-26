@@ -5,27 +5,22 @@
 # ---------------------------------------------------------------
 
 
-
+import logging
 import socket
 import threading
+from datetime import datetime
+from typing import Tuple
+
 import numpy as np
-import json
-import tensorflow as tf
-from tensorflow.keras.models import Sequential
 from tensorflow.keras import backend as K
-import keras
-import sys, time
-from datetime import datetime, timedelta
-import logging
-from src.federated_ids import federated_model as fm
+
 import src.communication.message_stream as ms
 import src.data_sources.data_source as ds
 import src.federated_ids.metrics as metrics
-from typing import Tuple
-
+from src.federated_ids import federated_model as fm
 
 logging.basicConfig(format="%(asctime)s %(levelname)-8s %(message)s", datefmt="%Y-%m-%d %H:%M:%S",
-                        level=logging.DEBUG)
+                    level=logging.DEBUG)
 
 
 class Client:
@@ -41,11 +36,10 @@ class Client:
 
     def __init__(self, addr: Tuple[str, int], agg_addr: Tuple[str, int], eval_addr: Tuple[str, int],
                  data_source: ds.DataSource, federated_model: fm.FederatedModel, threshold_prediction: int = 2.2,
-                 train_batchsize: int=256):
+                 train_batchsize: int = 256):
 
         self.train_data_batch = []  # container for data that should be trained with
         self.train_data_label = []
-
 
         self.data_queue = []
         self.label_queue = []
@@ -115,7 +109,8 @@ class Client:
             self.data_batch_queue.append(self.data_queue)
             self.label_batch_queue.append(self.label_queue)
 
-    def make_predictions(self, endpoint: ms.StreamEndpoint, dataset:np.array, true_labels: np.array, pred_time: np.array):
+    def make_predictions(self, endpoint: ms.StreamEndpoint, dataset: np.array, true_labels: np.array,
+                         pred_time: np.array):
         """Make predictions on the last databatch with latest global model weights.
 
         :param prediction_weights:
@@ -238,7 +233,7 @@ class Client:
                 logging.warning("No data available for training")
                 _agg_endpoint.send("No data")
 
-    def client_update(self, old_server_weights: [], dataset:[]):
+    def client_update(self, old_server_weights: [], dataset: []):
         """
         Performs training using the received server model weights on the client's dataset
 
@@ -251,7 +246,7 @@ class Client:
         weights = model.get_weights()  # get new weights
         return weights
 
-    def process_anomalys(self, predictions:[], true_labels:[]):
+    def process_anomalys(self, predictions: [], true_labels: []):
         """Function to process anomalies, e.g. delete packets, throw alerts etc.
         In this case write anomaly to file with timestamp.
 
@@ -267,7 +262,7 @@ class Client:
                 if predictions[i] == "anomaly":
                     txt_file.write(f" {timestamp} - {true_labels[i]}  \n")
 
-if __name__ == "__main__":
-    client = Client(("127.0.0.1", 54321), ("127.0.0.1", 54322),("127.0.0.1", 54323))#TODO fm.FederatedModel())
-    client.run()
 
+if __name__ == "__main__":
+    client = Client(("127.0.0.1", 54321), ("127.0.0.1", 54322), ("127.0.0.1", 54323))  # TODO fm.FederatedModel())
+    client.run()

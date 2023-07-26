@@ -659,6 +659,13 @@ class StreamEndpoint:
         while self._started:
             yield self.receive()
 
+    def __enter__(self):
+        self.start()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.stop(shutdown=True)
+
     def __del__(self):
         if self._started:
             self.stop(shutdown=True)

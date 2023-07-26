@@ -11,27 +11,18 @@
 # and aggregates them using FedAVG.
 
 
-import numpy as np
-import keras
-import tensorflow as tf
-import json
-import socket
-from tabulate import tabulate
-from tensorflow.keras.models import Sequential
-from src.federated_ids import federated_model as fm
-import src.communication.message_stream as ms
-from typing import Tuple
 import logging
+from typing import Tuple
 
+import src.communication.message_stream as ms
+from src.federated_ids import federated_model as fm
 
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
 
 class aggregation_server():
-
     client_queue = []
-
 
     class registration_thread()
 
@@ -50,11 +41,9 @@ class aggregation_server():
                 new_client = ms.StreamEndpoint(self._addr)
                 client_queue.append[new_client]
 
-
     def __init__(self, addr: Tuple[str, int], federated_model: fm.FederatedModel):
         self._addr = addr
         self.model = federated_model.create_model()
-
 
     def start_client_training(client: ms.StreamEndpoint):
         """
@@ -66,7 +55,6 @@ class aggregation_server():
         """
         client.send(self.model.get_weights())
 
-
     def client_response(self, client):
         """
         Receive updated model weights
@@ -75,7 +63,6 @@ class aggregation_server():
         :return: Multiple variables, none if it is a no data or registration message, the client data and metrics otherwise
         """
         averaged_sum(client.recv())
-
 
     def averaged_sum(self, client_weights):
         """
@@ -94,7 +81,6 @@ class aggregation_server():
             self.model.set_weights(global_weights)
         except:
             print("Malformed weights received!")
-
 
     def federated_training(self):
         """Conduct federated training, send out weigths to clients and receive local weights

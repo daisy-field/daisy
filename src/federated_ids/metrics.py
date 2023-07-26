@@ -1,8 +1,3 @@
-
-
-
-
-
 class MetricsObject():
     """ Object latest evaluation metrics
     """
@@ -77,4 +72,4 @@ class MetricsObject():
         try:
             return (2 * tp) / ((2 * tp) + fp + fn)
         except ZeroDivisionError:
-            return  0
+            return 0

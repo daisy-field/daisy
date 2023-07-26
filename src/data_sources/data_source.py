@@ -5,7 +5,7 @@
     its own implementation of the DataProcessor class.
 
     Author: Fabian Hofmann, Jonathan Ackerschewski
-    Modified: 08.06.23
+    Modified: 26.07.23
 """
 
 import logging
@@ -153,7 +153,8 @@ class SimpleRemoteSourceHandler(SourceHandler):
     _logger: logging.Logger
     _endpoint: StreamEndpoint
 
-    def __init__(self, endpoint: StreamEndpoint = None, addr: tuple[str, int] = ("127.0.0.1", 12000),
+    def __init__(self, endpoint: StreamEndpoint = None,
+                 addr: tuple[str, int] = ("127.0.0.1", 12000), remote_addr: tuple[str, int] = None,
                  multithreading: bool = False, buffer_size: int = 1024):
         """Creates a new remote source handler from a given stream endpoint. If no endpoint is provided, creates a new
         one instead with basic parameters.
@@ -166,7 +167,7 @@ class SimpleRemoteSourceHandler(SourceHandler):
         self._logger = logging.getLogger()
         self._logger.info("Initializing remote source handler...")
         if endpoint is None:
-            endpoint = StreamEndpoint(name="RemoteSource", addr=addr,
+            endpoint = StreamEndpoint(name="RemoteSource", addr=addr, remote_addr=remote_addr,
                                       multithreading=multithreading, buffer_size=buffer_size)
         self._endpoint = endpoint
         self._logger.info("Remote source handler initialized.")

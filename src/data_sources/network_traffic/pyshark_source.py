@@ -8,16 +8,16 @@
 
 import json
 import logging
+import os
 from collections import defaultdict
 from collections.abc import MutableMapping
 from typing import Iterator, Optional
-import os
 
 import numpy as np
 import pyshark
-from pyshark.capture.live_capture import LiveCapture
-from pyshark.capture.file_capture import FileCapture
 from pyshark.capture.capture import TSharkCrashException
+from pyshark.capture.file_capture import FileCapture
+from pyshark.capture.live_capture import LiveCapture
 from pyshark.packet.fields import LayerField, LayerFieldsContainer
 from pyshark.packet.layers.json_layer import JsonLayer
 from pyshark.packet.layers.xml_layer import XmlLayer
@@ -25,7 +25,6 @@ from pyshark.packet.packet import Packet
 
 from src.data_sources.data_source import DataProcessor, SourceHandler
 
-# TODO TESTING, ADD ARGS
 # TODO FIXME COVERAGE CHECKS IN PARSING FUNCTIONS
 
 
@@ -389,15 +388,3 @@ def dict_to_json(dictionary: dict) -> str:  # FIXME CAN THIS BE REMOVED?
     :return: A JSON string from the dictionary.
     """
     return json.dumps(dictionary, indent=2)
-
-# if __name__ == '__main__':
-#     logging.basicConfig(format="%(asctime)s %(levelname)-8s %(message)s", datefmt="%Y-%m-%d %H:%M:%S",
-#                         level=logging.DEBUG)
-#
-#     count = 0
-#     with RemoteTrafficSourceHandler(multithreading=True) as rts:
-#         for packet in rts:
-#             count += 1
-#             if count > 16:
-#                 break
-#             logging.info(f"Received Pyshark Packet: {packet}")
