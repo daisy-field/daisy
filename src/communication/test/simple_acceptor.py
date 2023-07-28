@@ -53,7 +53,17 @@ def clashing_acceptor():
                                 acceptor=True, multithreading=True, buffer_size=10000)
 
 
-def single_acceptor():
+def single_message_acceptor():
+    endpoint = StreamEndpoint(name="Acceptor", addr=("127.0.0.1", 32000), remote_addr=("127.0.0.1", 13000),
+                              acceptor=True, multithreading=True, buffer_size=10000)
+    endpoint.start()
+
+    print(endpoint.receive())
+    endpoint.stop()
+    print("No Block")
+
+
+def simple_acceptor():
     endpoint = StreamEndpoint(name="Acceptor", addr=("127.0.0.1", 32000), remote_addr=("127.0.0.1", 13000),
                               acceptor=True, multithreading=True, buffer_size=10000)
     endpoint.start()
@@ -72,6 +82,7 @@ if __name__ == "__main__":
     logging.basicConfig(format="%(asctime)s %(levelname)-8s %(name)-10s %(message)s", datefmt="%Y-%m-%d %H:%M:%S",
                         level=logging.INFO)
 
-    # single_initiator()
-    # multithreaded_initiator(2)
-    clashing_acceptor()
+    # simple_acceptor()
+    # single_message_acceptor()
+    multithreaded_acceptor(100)
+    # clashing_acceptor()

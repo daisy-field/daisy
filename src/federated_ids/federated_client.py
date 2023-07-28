@@ -72,13 +72,13 @@ class Client:
 
         # create data receiving thread
         data_thread = Data_Receiving_Thread()
-        data_thread.start()
+        data_thread.open()
 
         _agg_endpoint = ms.EndpointSocket(addr=self._addr, remote_addr=self._agg_addr)
         _eval_endpoint = ms.EndpointSocket(addr=self._addr, remote_addr=self._eval_addr)
 
         t = Thread(target=training, name="Training", daemon=True)
-        t.start()
+        t.open()
 
         self._data_sorce.open()
         for i in self._data_sorce:

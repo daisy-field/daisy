@@ -5,19 +5,23 @@
     its own implementation of the DataProcessor class.
 
     Author: Fabian Hofmann, Jonathan Ackerschewski
-    Modified: 26.07.23
+    Modified: 27.07.23
 """
 
 import logging
 import queue
 import threading
 from abc import ABC, abstractmethod
-from typing import Iterator
+from typing import Callable, Iterator
 
 import numpy as np
 
 from src.communication import StreamEndpoint
 
+# TODO RELAY
+# TODO DOC SIMPLE PROCESSOR
+# TODO logging: levels, messages, names
+# TODO factory functions
 
 class DataProcessor(ABC):
     """An abstract data processor that has to process data points as they come in the following three steps:
@@ -73,6 +77,33 @@ class DataProcessor(ABC):
         return self.reduce(self.filter(self.map(o_point)))
 
 
+class SimpleDataProcessor(DataProcessor):
+    """FIXME
+    """
+    _process_fn: Callable[[object], np.ndarray]
+
+    def __init__(self, process_fn: Callable[[object], np.ndarray]):
+        """TODO
+
+        :param process_fn:
+        """
+        self._process_fn = process_fn
+
+    def map(self, o_point: object) -> dict:
+        pass
+
+    def filter(self, d_point: dict) -> dict:
+        pass
+
+    def reduce(self, d_point: dict) -> np.ndarray:
+        pass
+
+    def process(self, o_point: object) -> np.ndarray:
+        """FIXME
+        """
+        return self._process_fn(o_point)
+
+
 class SourceHandler(ABC):
     """An abstract wrapper around a generator-like structure that has to yield data points as objects as they come for
     processing. That generator may be infinite or finite, as long as it is bounded on both sides by the following two
@@ -84,7 +115,8 @@ class SourceHandler(ABC):
 
     Note that as DataSource, wraps itself a given source handler to retrieve objects, open() and close() do not need to
     be implemented to be idempotent and arbitrarily permutable. Same can be assumed for __iter__() as it will only be
-    called when the source handler has been opened already.
+    called when the source handler has been opened already. At the same time, __iter__() must be exhausted after close()
+    has been called.
     """
 
     @abstractmethod
@@ -167,7 +199,7 @@ class SimpleRemoteSourceHandler(SourceHandler):
         self._logger = logging.getLogger()
         self._logger.info("Initializing remote source handler...")
         if endpoint is None:
-            endpoint = StreamEndpoint(name="RemoteSource", addr=addr, remote_addr=remote_addr,
+            endpoint = StreamEndpoint("RemoteSourceHandler", addr, remote_addr, acceptor=True,
                                       multithreading=multithreading, buffer_size=buffer_size)
         self._endpoint = endpoint
         self._logger.info("Remote source handler initialized.")
@@ -209,36 +241,42 @@ class DataSource:
     """
     _logger: logging.Logger
 
-    _data_processor: DataProcessor
     _source_handler: SourceHandler
+
+    _data_processor: DataProcessor
 
     _multithreading: bool
     _thread: threading.Thread
     _buffer: queue.Queue
     _opened: bool
 
-    def __init__(self, data_processor: DataProcessor,
-                 source_handler: SourceHandler = None, generator: Iterator[object] = None,
+    def __init__(self, source_handler: SourceHandler = None, generator: Iterator[object] = None,
+                 data_processor: DataProcessor = None, process_fn: Callable[[object], np.ndarray] = lambda o: o,
                  multithreading: bool = False, buffer_size: int = 1024):
         """Creates a new data source.
 
-        :param data_processor: Processor containing the methods on how to process individual data points.
         :param source_handler: Actual source that provisions the data points to the data source.
-        :param generator: Generator object from which data points are retrieved.
+        :param generator: Generator object from which data points are retrieved, fallback from source handler.
+        :param data_processor: Processor containing the methods on how to process individual data points.
+        :param process_fn: Processor functioning to process individual data points. If neither processor nor function
+        provided, defaults to NOP.
         :param multithreading: Enables transparent multithreading for speedup.
         :param buffer_size: Size of shared buffer in multithreading mode.
         """
         self._logger = logging.getLogger()
         self._logger.info("Initializing data source...")
 
-        self._data_processor = data_processor
-
-        if generator is not None:
-            self._source_handler = SimpleSourceHandler(generator)
-        elif source_handler is not None:
+        if source_handler is not None:
             self._source_handler = source_handler
+        elif generator is not None:
+            self._source_handler = SimpleSourceHandler(generator)
         else:
-            raise ValueError("Data source requires either a generator or data source handle to load data from!")
+            raise ValueError("Data source requires either a data source handler or a generator to load data from!")
+
+        if data_processor is not None:
+            self._data_processor = data_processor
+        else:
+            self._data_processor = SimpleDataProcessor(process_fn)
 
         self._multithreading = multithreading
         self._buffer = queue.Queue(buffer_size)
@@ -268,10 +306,10 @@ class DataSource:
         if not self._opened:
             raise RuntimeError(f"Data source has not been opened!")
         self._opened = False
+        self._source_handler.close()
 
         if self._multithreading:
             self._thread.join()
-        self._source_handler.close()
         self._logger.info("Data source stopped.")
 
     def _loader(self):
@@ -324,3 +362,77 @@ class DataSource:
     def __del__(self):
         if self._opened:
             self.close()
+
+
+class DataSourceRelay:
+    """FIXME
+
+    """
+    _logger: logging.Logger
+
+    _data_source: DataSource
+    _endpoint: StreamEndpoint
+
+    _multithreading: bool
+    _thread: threading.Thread
+
+    def __init__(self, data_source: DataSource = None, endpoint: StreamEndpoint = None,
+                 source_handler: SourceHandler = None, generator: Iterator[object] = None,
+                 data_processor: DataProcessor = None, process_fn: Callable[[object], np.ndarray] = lambda o: o,
+                 addr: tuple[str, int] = ("127.0.0.1", 12000), remote_addr: tuple[str, int] = None,
+                 multithreading: bool = False, buffer_size: int = 1024):
+        """FIXME Creates a new remote source handler from a given stream endpoint. If no endpoint is provided, creates a new
+        one instead with basic parameters.
+
+        :param endpoint: Streaming endpoint from which data points are retrieved.
+        :param addr: If no endpoint is provided, local address of new endpoint.
+        :param multithreading: Enables transparent multithreading for speedup.
+        :param buffer_size: Size of shared buffer in multithreading mode.
+        """
+        self._logger = logging.getLogger()
+
+        if data_source is None:
+            data_source = DataSource(source_handler, generator, data_processor, process_fn, multithreading, buffer_size)
+        self._data_source = data_source
+
+        if endpoint is None:
+            endpoint = StreamEndpoint("DataSourceRelay", addr, remote_addr, acceptor=False,
+                                      multithreading=multithreading, buffer_size=buffer_size)
+        self._endpoint = endpoint
+
+        self._multithreading = multithreading
+
+    def start(self):
+        """FIXME Starts and opens/connects the endpoint of the source handler.
+        """
+        self._logger.info("Starting remote data source...")
+        try:
+            self._data_source.open()
+            self._endpoint.start()
+        except RuntimeError:
+            pass
+        self._logger.info("Remote data source started.")
+
+    def stop(self):
+        """FIXME Stops and closes the endpoint of the source handler.
+        """
+        self._logger.info("Stopping remote data source...")
+        try:
+            self._data_source.close()
+            self._endpoint.stop()
+        except RuntimeError:
+            pass
+        self._logger.info("Remote data source stopped.")
+
+    def _relay(self):
+        """TODO
+
+        :return:
+        """
+        self._logger.info("Retrieving data points from data source...")
+        for d_point in self._data_source:
+            self._endpoint.send(d_point)
+        self._logger.info("Data source exhausted or closed.")
+
+    def __del__(self):
+        self.stop()

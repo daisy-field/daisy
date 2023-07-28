@@ -491,8 +491,8 @@ class EndpointSocket:
 class StreamEndpoint:
     """One of a pair of endpoints that is able to communicate with one another over a persistent stateless stream over
     BSD sockets. Allows the transmission of generic objects in both synchronous and asynchronous fashion. Supports SSL
-    and LZ4 compression for the stream. Allows the usage of the same address by multiple endpoints. However, not thread-
-    safe by itself.
+    and LZ4 compression for the stream. Thread-safe for both access to the same endpoint and using multiple threads
+    using endpoints set to the same address.
     """
     _logger: logging.Logger
 
@@ -617,22 +617,32 @@ class StreamEndpoint:
 
         :param timeout: Timeout (seconds) to receive an object to return.
         :return: Received object.
-        :raises RuntimeError: If endpoint has not been started.
+        :raises RuntimeError: If endpoint has not been started or has been stopped.
         :raises TimeoutError: If timeout set and triggered.
         """
         self._logger.debug("Receiving object...")
         if not self._started:
             raise RuntimeError("Endpoint has not been started!")
 
+        p_obj = None
         if self._multithreading:
             self._logger.debug(
                 f"Multithreading detected, retrieving object from buffer (size={self._recv_buffer.qsize()})...")
-            try:
-                p_obj = self._recv_buffer.get(timeout=timeout)
-            except queue.Empty:
-                raise TimeoutError
+            while self._started:
+                try:
+                    if timeout is not None:
+                        p_obj = self._recv_buffer.get(timeout=timeout)
+                    else:
+                        p_obj = self._recv_buffer.get(timeout=10)
+                except queue.Empty:
+                    if timeout is not None:
+                        raise TimeoutError
+                    continue
         else:
             p_obj = self._endpoint_socket.recv(timeout)
+
+        if p_obj is None:
+            raise RuntimeError("Endpoint has not been started!")
         self._logger.debug(f"Pickled data received of size {len(p_obj)}.")
         return self._unmarshal_f(p_obj)
 
@@ -669,10 +679,11 @@ class StreamEndpoint:
         self._logger.info(f"AsyncReceiver: Stopping...")
 
     def __iter__(self):
-        if not self._started:
-            raise RuntimeError("Endpoint has not been started!")
         while self._started:
-            yield self.receive()
+            try:
+                yield self.receive()
+            except RuntimeError:
+                break
 
     def __enter__(self):
         self.start()

@@ -25,6 +25,8 @@ from pyshark.packet.packet import Packet
 
 from src.data_sources.data_source import DataProcessor, SourceHandler
 
+# TODO logging: levels, messages, names
+# TODO factory functions
 # TODO FIXME COVERAGE CHECKS IN PARSING FUNCTIONS
 
 
@@ -171,10 +173,10 @@ class LivePysharkHandler(SourceHandler):
 
 class PcapHandler(SourceHandler):
     """The wrapper implementation to support and handle any amount of pcap files as data sources. Finite: finishes after
-    all files have been processed.
+    all files have been processed. Warning: Note entirely compliant with the source handler abstract class: Neither
+    fully thread safe, nor does its __iter__() method shut down after close() has been called. Due to its finite nature,
+    acceptable however, as this handler is nearly always only closed ones all data points have been retrieved.
     """
-    _logger: logging.Logger
-
     _pcap_files: list[str]
 
     _cur_file_counter: int
@@ -189,8 +191,6 @@ class PcapHandler(SourceHandler):
         file is passed, it is used regardless of file ending.
         :param try_counter: Number of attempts to open a specific pcap file until throwing an exception.
         """
-        self._logger = logging.getLogger()
-
         self._pcap_files = []
         for path in file_names:
             if os.path.isdir(path):

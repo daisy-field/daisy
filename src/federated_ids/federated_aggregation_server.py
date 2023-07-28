@@ -89,7 +89,7 @@ class aggregation_server():
         """
 
         t = Thread(target=registration_thread, name="Registration", daemon=True)
-        t.start()
+        t.open()
 
         _round = 0
         while 1:

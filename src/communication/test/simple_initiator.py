@@ -43,7 +43,15 @@ def multithreaded_initiator(num_threads: int):
         sleep(random.randrange(2))
 
 
-def single_initiator():
+def single_message_initiator():
+    endpoint = StreamEndpoint(name="Initiator", addr=("127.0.0.1", 13000), remote_addr=("127.0.0.1", 32000),
+                              acceptor=False, multithreading=True, buffer_size=10000)
+    endpoint.start()
+
+    endpoint.send(f"ping")
+
+
+def simple_initiator():
     endpoint = StreamEndpoint(name="Initiator", addr=("127.0.0.1", 13000), remote_addr=("127.0.0.1", 32000),
                               acceptor=False, multithreading=True, buffer_size=10000)
     endpoint.start()
@@ -62,5 +70,6 @@ if __name__ == "__main__":
     logging.basicConfig(format="%(asctime)s %(levelname)-8s %(name)-10s %(message)s", datefmt="%Y-%m-%d %H:%M:%S",
                         level=logging.INFO)
 
-    # single_initiator()
-    multithreaded_initiator(2)
+    # simple_initiator()
+    # single_message_initiator()
+    multithreaded_initiator(100)

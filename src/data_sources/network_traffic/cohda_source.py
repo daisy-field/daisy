@@ -13,6 +13,8 @@ import numpy as np
 from src.data_sources.network_traffic.pyshark_source import PysharkProcessor, default_f
 
 
+# TODO factory functions
+
 class CohdaProcessor(PysharkProcessor):
     """An extension of the pyshark processor to support the labeling of the data stream for evaluation purposes. Labels
     are appended according to the used protocol, timestamps, source and destination ip addresses.
