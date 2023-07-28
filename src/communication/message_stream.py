@@ -14,12 +14,13 @@ import select
 import socket
 import sys
 import threading
-from time import sleep
+from time import sleep, time
 from typing import Callable, Optional
 
 from lz4.frame import compress, decompress
 
 
+# TODO logging: levels, messages
 # TODO optional SSL https://docs.python.org/3/library/ssl.html
 
 class EndpointSocket:
@@ -55,7 +56,7 @@ class EndpointSocket:
     _sock: Optional[socket.socket]
     _sock_lock: threading.Lock
 
-    _started: bool
+    _opened: bool
 
     def __init__(self, name: str, addr: tuple[str, int], remote_addr: tuple[str, int] = None, acceptor: bool = True,
                  send_b_size: int = 65536, recv_b_size: int = 65536):
@@ -77,28 +78,31 @@ class EndpointSocket:
         self._addr = addr
         self._remote_addr = remote_addr
         self._acceptor = acceptor
-        if remote_addr is not None and acceptor:
+        if acceptor and remote_addr is not None:
             self._reg_remote(remote_addr)
             self._fix_rp_acc_socks(addr, remote_addr)
+        elif not acceptor and remote_addr is None:
+            raise ValueError("Initiating endpoint socket requires a remote address!")
 
         self._send_b_size = send_b_size
         self._recv_b_size = recv_b_size
         self._sock = None
         self._sock_lock = threading.Lock()
 
-        self._started = False
+        self._opened = False
 
-    def start(self):
-        self._started = True
+    def open(self):
+        self._opened = True
         with self._sock_lock:
             if self._acceptor:
                 self._open_l_socket(self._addr)
             self._connect()
 
-    def stop(self, shutdown: bool = False):
-        self._started = False
+    def close(self, shutdown: bool = False):
+        self._opened = False
         with self._sock_lock:
             _close_socket(self._sock)
+            self._sock = None
             if self._acceptor:
                 if shutdown:
                     self._unreg_remote(self._addr, self._remote_addr)
@@ -106,59 +110,62 @@ class EndpointSocket:
 
     def send(self, p_data: bytes):
         """Sends the given bytes of a single object over the connection, performing simple marshalling (size is
-        sent first, then the bytes of the object). Fault-tolerant for breakdowns and resets in the connection.
-        Blocking.
+        sent first, then the bytes of the object). Fault-tolerant for breakdowns and resets in the connection. Blocking.
 
         :param p_data: Bytes to send.
         """
-        while self._started:
+        while self._opened:
             try:
                 with self._sock_lock:
+                    if self._sock is None:
+                        continue
                     _send_payload(self._sock, p_data)
                 return
-            except (OSError, RuntimeError) as e:
+            except (OSError, ValueError, RuntimeError) as e:
                 self._logger.info(f"{e.__class__.__name__}({e}) while trying to send data. Retrying...")
                 with self._sock_lock:
                     self._connect()
 
-    def recv(self, timeout: int = None) -> bytes:
+    def recv(self, timeout: int = None) -> Optional[bytes]:
         """Receives the bytes of a single object sent over the connection, performing simple marshalling (size is
         received first, then the bytes of the object). Fault-tolerant for breakdowns and resets in the connection.
-        Semi-Blocking in default-mode (i.e. occasionally checks if there is data to receive) if timeout not set.
+        Blocking in default-mode if timeout not set.
 
         :param timeout: Timeout (seconds) to receive an object to return.
-        :return: Received bytes.
+        :return: Received bytes or None of end point socket has been closed.
         :raises TimeoutError: If timeout set and triggered.
         """
-        while self._started:
+        while self._opened:
             try:
                 with self._sock_lock:
+                    if self._sock is None:
+                        continue
                     if timeout is not None and not select.select([self._sock], [], [], timeout)[0]:
                         raise TimeoutError
                     elif not select.select([self._sock], [], [], 0)[0]:
                         continue
                     p_data = _recv_payload(self._sock)
                 return p_data
-            except (OSError, RuntimeError) as e:
+            except (OSError, ValueError, RuntimeError) as e:
                 if timeout is not None and type(e) is TimeoutError:
                     raise e
                 self._logger.info(f"{e.__class__.__name__}({e}) while trying to receive data. Retrying...")
                 with self._sock_lock:
                     self._connect()
-            sleep(1)
+        return None
 
     def _connect(self):
         """(Re-)Establishes a connection to a/the remote endpoint socket, first performing any necessary cleanup of the
         underlying socket, before opening it again and trying to connect/accept a remote endpoint socket. Fault-tolerant
         for breakdowns and resets in the connection. Blocking.
         """
-        while self._started:
+        while self._opened:
             try:
                 _close_socket(self._sock)
                 if self._acceptor:
                     self._sock = None
                     remote_addr = self._remote_addr
-                    while self._started and self._sock is None:
+                    while self._opened and self._sock is None:
                         self._sock, remote_addr = self._get_a_socket(self._addr, self._remote_addr)
                     self._remote_addr = remote_addr
                 else:
@@ -166,15 +173,15 @@ class EndpointSocket:
                 self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, self._send_b_size)
                 self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, self._recv_b_size)
                 break
-            except (OSError, ValueError, RuntimeError) as e:
+            except (OSError, ValueError, AttributeError, RuntimeError) as e:
                 self._logger.info(f"{e.__class__.__name__}({e}) while trying to establish connection "
                                   f"to {self._remote_addr}. Retrying...")
                 sleep(1)
                 continue
 
     def __del__(self):
-        if self._started:
-            self.stop(shutdown=True)
+        if self._opened:
+            self.close(shutdown=True)
 
     @classmethod
     def _reg_remote(cls, remote_addr: tuple[str, int]):
@@ -484,8 +491,8 @@ class EndpointSocket:
 class StreamEndpoint:
     """One of a pair of endpoints that is able to communicate with one another over a persistent stateless stream over
     BSD sockets. Allows the transmission of generic objects in both synchronous and asynchronous fashion. Supports SSL
-    and LZ4 compression for the stream. Thread-safe for both access to the same endpoint and using multiple threads
-    using endpoints set to the same address.
+    and LZ4 compression for the stream. Allows the usage of the same address by multiple endpoints. However, not thread-
+    safe by itself.
     """
     _logger: logging.Logger
 
@@ -547,7 +554,7 @@ class StreamEndpoint:
         if self._started:
             raise RuntimeError(f"Endpoint has already been started!")
         self._started = True
-        self._endpoint_socket.start()
+        self._endpoint_socket.open()
 
         if self._multithreading:
             self._logger.info("Multithreading detected, starting endpoint sender/receiver threads...")
@@ -557,25 +564,31 @@ class StreamEndpoint:
             self._recv_thread.start()
         self._logger.info("Endpoint started.")
 
-    def stop(self, shutdown=False):
+    def stop(self, shutdown=False, timeout=10):
         """Stops the endpoint and closes the stream, cleaning up underlying structures. If multithreading is enabled,
-        waits until the endpoint thread stops before performing cleanup. Note this does not guarantee the sending and
+        waits for both endpoint threads to stop before finishing. Note this does not guarantee the sending and
         receiving of all objects still pending --- they may still be in internal buffers and will be processed if the
         endpoint is opened again, or get discarded by the underlying socket.
 
         :param shutdown: If set, also cleans up underlying datastructures of the socket communication.
+        :param timeout: If shutdown not set, allows the sender thread to process remaining messages until timeout.
         :raises RuntimeError: If endpoint has not been started.
         """
         self._logger.info("Stopping endpoint...")
         if not self._started:
             raise RuntimeError(f"Endpoint has not been started!")
+
+        if not shutdown and self._multithreading:
+            start = time()
+            while not self._send_buffer.empty() and time() - start > timeout:
+                sleep(1)
         self._started = False
+        self._endpoint_socket.close(shutdown)
 
         if self._multithreading:
             self._logger.info("Multithreading detected, waiting for endpoint sender/receiver threads to stop...")
             self._send_thread.join()
             self._recv_thread.join()
-        self._endpoint_socket.stop(shutdown)
         self._logger.info("Endpoint stopped.")
 
     def send(self, obj: object):
@@ -635,7 +648,7 @@ class StreamEndpoint:
                     f"(length: {self._send_buffer.qsize()})")
                 self._endpoint_socket.send(p_obj)
             except queue.Empty:
-                self._logger.warning(f"AsyncSender: Timeout triggered: Buffer empty. Retrying...")
+                self._logger.debug(f"AsyncSender: Timeout triggered: Buffer empty. Retrying...")
         self._logger.info(f"AsyncSender: Stopping...")
 
     def _create_receiver(self):
@@ -645,12 +658,14 @@ class StreamEndpoint:
         while self._started:
             try:
                 p_obj = self._endpoint_socket.recv()
+                if p_obj is None:
+                    continue
                 self._logger.debug(
                     f"AsyncReceiver: Storing received object (size: {len(p_obj)}) in buffer "
                     f"(length: {self._recv_buffer.qsize()})...")
                 self._recv_buffer.put(p_obj, timeout=10)
             except queue.Full:
-                self._logger.warning(f"AsyncReceiver: Timeout triggered: Buffer full. Discarding object...")
+                self._logger.debug(f"AsyncReceiver: Timeout triggered: Buffer full. Discarding object...")
         self._logger.info(f"AsyncReceiver: Stopping...")
 
     def __iter__(self):
