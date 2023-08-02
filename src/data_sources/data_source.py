@@ -18,6 +18,7 @@ import numpy as np
 
 from src.communication import StreamEndpoint
 
+
 # TODO RELAY
 # TODO DOC SIMPLE PROCESSOR
 # TODO logging: levels, messages, names

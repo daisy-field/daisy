@@ -20,7 +20,6 @@ from typing import Callable, Optional
 from lz4.frame import compress, decompress
 
 
-# TODO logging: levels, messages
 # TODO optional SSL https://docs.python.org/3/library/ssl.html
 
 class EndpointSocket:
@@ -36,6 +35,7 @@ class EndpointSocket:
     :cvar _addr_map: Mapping between registered remote addresses and their aliases.
     :cvar _act_l_counts: Active thread counter for each listen socket. Socket closes if counter reaches zero.
     :cvar _lock: General purpose lock to ensure safe access to class variables.
+    :cvar _cls_logger: General purpose logger for class methods.
     """
     _listen_socks: dict[tuple[str, int], tuple[socket.socket, threading.Lock]] = {}
     _acc_r_socks: dict[tuple[str, int], tuple[dict[tuple[str, int], socket.socket], threading.Lock]] = {}
@@ -44,6 +44,7 @@ class EndpointSocket:
     _addr_map: dict[tuple[str, int], set[tuple[str, int]]] = {}
     _act_l_counts: dict[tuple[str, int], int] = {}
     _lock = threading.Lock()
+    _cls_logger: logging.Logger = logging.getLogger("EndpointSocket")
 
     _logger: logging.Logger
 
@@ -73,7 +74,8 @@ class EndpointSocket:
         :param send_b_size: Underlying send buffer size of socket.
         :param recv_b_size: Underlying receive buffer size of socket.
         """
-        self._logger = logging.getLogger(name)
+        self._logger = logging.getLogger(name + "-Socket")
+        self._logger.info(f"Initializing endpoint socket {addr, remote_addr}...")
 
         self._addr = addr
         self._remote_addr = remote_addr
@@ -90,15 +92,19 @@ class EndpointSocket:
         self._sock_lock = threading.Lock()
 
         self._opened = False
+        self._logger.info(f"Endpoint socket {addr, remote_addr} initialized.")
 
     def open(self):
+        self._logger.info(f"Opening endpoint socket...")
         self._opened = True
         with self._sock_lock:
             if self._acceptor:
                 self._open_l_socket(self._addr)
             self._connect()
+        self._logger.info(f"Endpoint socket opened.")
 
     def close(self, shutdown: bool = False):
+        self._logger.info(f"Closing endpoint socket...")
         self._opened = False
         with self._sock_lock:
             _close_socket(self._sock)
@@ -107,6 +113,7 @@ class EndpointSocket:
                 if shutdown:
                     self._unreg_remote(self._addr, self._remote_addr)
                 self._close_l_socket(self._addr)
+        self._logger.info(f"Endpoint socket closed.")
 
     def send(self, p_data: bytes):
         """Sends the given bytes of a single object over the connection, performing simple marshalling (size is
@@ -122,7 +129,7 @@ class EndpointSocket:
                     _send_payload(self._sock, p_data)
                 return
             except (OSError, ValueError, RuntimeError) as e:
-                self._logger.info(f"{e.__class__.__name__}({e}) while trying to send data. Retrying...")
+                self._logger.warning(f"{e.__class__.__name__}({e}) while trying to send data. Retrying...")
                 with self._sock_lock:
                     self._connect()
 
@@ -149,7 +156,7 @@ class EndpointSocket:
             except (OSError, ValueError, RuntimeError) as e:
                 if timeout is not None and type(e) is TimeoutError:
                     raise e
-                self._logger.info(f"{e.__class__.__name__}({e}) while trying to receive data. Retrying...")
+                self._logger.warning(f"{e.__class__.__name__}({e}) while trying to receive data. Retrying...")
                 with self._sock_lock:
                     self._connect()
         return None
@@ -161,6 +168,7 @@ class EndpointSocket:
         """
         while self._opened:
             try:
+                self._logger.info(f"Trying to (re-)establish connection {self._addr, self._remote_addr}...")
                 _close_socket(self._sock)
                 if self._acceptor:
                     self._sock = None
@@ -172,10 +180,11 @@ class EndpointSocket:
                     self._sock = self._get_c_socket(self._addr, self._remote_addr)
                 self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, self._send_b_size)
                 self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, self._recv_b_size)
+                self._logger.info(f"Connection {self._addr, self._remote_addr} (re-)established.")
                 break
             except (OSError, ValueError, AttributeError, RuntimeError) as e:
-                self._logger.info(f"{e.__class__.__name__}({e}) while trying to establish connection "
-                                  f"to {self._remote_addr}. Retrying...")
+                self._logger.warning(f"{e.__class__.__name__}({e}) while trying to (re-)establish connection "
+                                     f"{self._addr, self._remote_addr}. Retrying...")
                 sleep(1)
                 continue
 
@@ -192,31 +201,43 @@ class EndpointSocket:
         :param remote_addr: Remote address to register.
         :raises ValueError: If remote address is already registered (possibly by another caller).
         """
+        cls._cls_logger.info(f"Registering remote address ({remote_addr})...")
         addr_mapping = set()
         for _, _, _, _, addr in socket.getaddrinfo(*remote_addr, type=socket.SOCK_STREAM):
             addr = _convert_addr_to_name(addr)
             addr_mapping.add(addr)
 
+        cls._cls_logger.debug(f"Registering aliases of remote address ({remote_addr}): {addr_mapping}...")
         with cls._lock:
             if remote_addr in cls._addr_map:
-                raise ValueError(f"Remote address {remote_addr} is already registered!")
+                raise ValueError(f"Remote address ({remote_addr}) is already registered!")
             for addr in addr_mapping:
                 if addr in cls._reg_r_addrs:
-                    raise ValueError(f"Remote address {addr} (resolved from {remote_addr}) is already registered!")
+                    raise ValueError(f"Remote address ({addr}) (resolved from {remote_addr}) is already registered!")
 
             cls._addr_map[remote_addr] = addr_mapping
             for addr in addr_mapping:
                 cls._reg_r_addrs.add(addr)
+        cls._cls_logger.info(f"Remote address ({remote_addr}) registered.")
 
     @classmethod
     def _fix_rp_acc_socks(cls, addr: tuple[str, int], remote_addr: tuple[str, int]):
         """After a remote address has been registered, cycles the waiting connections of that remote address to the
         registered socket dictionary from the pending socket queue. Necessary, as new endpoint sockets may be created 
         while the listening socket is already opened and connections are already getting accepted.
+
+        Note this method merely helps in speeding up the sorting of connections to the correct endpoint socket and
+        operates in best-effort manner, as the whole method is not considered a critical section, i.e. during the
+        cycling of connections, the registered connection could be accepted by another thread and be put into the
+        pending connection cache, where it will be dequeued by another thread --- which will result in a ValueError
+        since the remote peer is obviously registered. However, no much of an issue, as the error handling is done in
+        the background during the handling of existing connections.
         
         :param addr: Address of endpoint.
         :param remote_addr: Remote address that was registered.
         """
+        cls._cls_logger.info(
+            f"Fixing registered and pending connection caches for address pair {addr, remote_addr}...")
         l_addr, _, _ = cls._get_l_socket(addr)
         with cls._lock:
             addr_mapping = cls._addr_map[remote_addr]
@@ -240,6 +261,8 @@ class EndpointSocket:
                 acc_p_socks.put_nowait((a_sock, a_addr))
             except queue.Full:
                 _close_socket(a_sock)
+        cls._cls_logger.info(
+            f"Registered and pending connection caches for address pair {addr, remote_addr} fixed.")
 
     @classmethod
     def _unreg_remote(cls, addr: tuple[str, int], remote_addr: tuple[str, int]):
@@ -250,6 +273,7 @@ class EndpointSocket:
         
         :param remote_addr: Remote address that was registered.
         """
+        cls._cls_logger.info(f"Unregistering remote address pair {addr, remote_addr}...")
         l_addr, _, _ = cls._get_l_socket(addr)
         with cls._lock:
             addr_mapping = cls._addr_map.pop(remote_addr)
@@ -266,6 +290,7 @@ class EndpointSocket:
                     acc_p_socks.put_nowait((a_sock, a_addr))
                 except queue.Full:
                     _close_socket(a_sock)
+        cls._cls_logger.info(f"Remote address pair {addr, remote_addr} unregistered.")
 
     @classmethod
     def _open_l_socket(cls, addr: tuple[str, int]):
@@ -275,8 +300,6 @@ class EndpointSocket:
         :param addr: Address of listen socket to open.
         """
         cls._get_l_socket(addr, new_endpoint=True)
-        # with cls._lock:
-        #     cls._act_l_counts[l_addr] = cls._act_l_counts.get(l_addr, 0) + 1
 
     @classmethod
     def _get_l_socket(cls, addr: tuple[str, int], new_endpoint: bool = False) \
@@ -288,6 +311,7 @@ class EndpointSocket:
         :raises RuntimeError: If none of the addresses/aliases succeed to create a working socket.
         :return: A tupel consisting of the address, the socket, and a lock to be used for accessing the socket.
         """
+        cls._cls_logger.debug(f"Trying to retrieve listening socket for {addr}...")
         for res in socket.getaddrinfo(*addr, type=socket.SOCK_STREAM):
             s_af, s_t, s_p, _, s_addr = res
             l_addr = _convert_addr_to_name(s_addr)
@@ -308,8 +332,9 @@ class EndpointSocket:
                     cls._acc_p_socks[l_addr] = queue.Queue(maxsize=512)
                 if new_endpoint:
                     cls._act_l_counts[l_addr] = cls._act_l_counts.get(l_addr, 0) + 1
+            cls._cls_logger.debug(f"Listening socket {l_addr, l_sock, l_sock_lock} for {addr} retrieved")
             return l_addr, l_sock, l_sock_lock
-        raise RuntimeError(f"Could not open listen socket with address ({addr})")
+        raise RuntimeError(f"Could not open listen socket for {addr}!")
 
     @classmethod
     def _close_l_socket(cls, addr: tuple[str, int]):
@@ -318,6 +343,7 @@ class EndpointSocket:
         
         :param addr: Address of listen socket to close.
         """
+        cls._cls_logger.debug(f"Performing cleanup for listening socket for {addr}...")
         l_addr, l_sock, l_sock_lock = cls._get_l_socket(addr)
 
         with cls._lock, l_sock_lock:
@@ -329,6 +355,7 @@ class EndpointSocket:
             cls._acc_p_socks.pop(l_addr)
             cls._act_l_counts.pop(l_addr)
             _close_socket(l_sock)
+        cls._cls_logger.debug(f"Listening socket for {addr} closed.")
 
     @classmethod
     def _get_a_socket(cls, addr: tuple[str, int], remote_addr: tuple[str, int] = None) \
@@ -344,6 +371,7 @@ class EndpointSocket:
         :raises RuntimeError: If none of the addresses/aliases of the listen socket succeed to get a working socket.
         :return: Tuple of the connection socket and the address of the remote peer.
         """
+        cls._cls_logger.debug(f"Trying to retrieve accept socket for {addr, remote_addr}...")
         l_addr, _, _ = cls._get_l_socket(addr)
 
         # Check the active connection cache first, as another Endpoint
@@ -386,6 +414,8 @@ class EndpointSocket:
         :param remote_addr: Address of remote endpoint to be connected to.
         :return: Tuple of the registered connection socket and the address of the remote peer.
         """
+        cls._cls_logger.debug(
+            f"Trying to retrieve accept socket for {l_addr, remote_addr} from registered connection cache...")
         with cls._lock:
             acc_r_socks, acc_r_lock = cls._acc_r_socks[l_addr]
         for _, _, _, _, addr in socket.getaddrinfo(*remote_addr, type=socket.SOCK_STREAM):
@@ -404,6 +434,7 @@ class EndpointSocket:
         :param l_addr: Address of listen socket.
         :return: Tuple of a connection socket and the address of the remote peer.
         """
+        cls._cls_logger.debug(f"Trying to retrieve accept socket for {l_addr} from pending connection queue...")
         with cls._lock:
             acc_p_socks = cls._acc_p_socks[l_addr]
         try:
@@ -424,6 +455,7 @@ class EndpointSocket:
         :param remote_addr: Address of remote endpoint to be connected to.
         :return: Tuple of a connection socket and the address of the remote peer.
         """
+        cls._cls_logger.debug(f"Trying to accept socket for {l_addr, remote_addr}...")
         with cls._lock:
             l_sock, l_sock_lock = cls._listen_socks[l_addr]
             acc_r_socks, acc_r_lock = cls._acc_r_socks[l_addr]
@@ -431,7 +463,7 @@ class EndpointSocket:
 
         with l_sock_lock:
             if not select.select([l_sock], [], [], 0)[0]:
-                raise RuntimeError(f"Could not open connection socket ({l_addr}, {remote_addr})")
+                raise RuntimeError(f"Could not open connection socket for {l_addr, remote_addr}!")
             a_sock, a_addr = l_sock.accept()
         a_addr = _convert_addr_to_name(a_addr)
 
@@ -445,6 +477,7 @@ class EndpointSocket:
         # 2. If it is an already registered remote peer, puts it into cache.
         with cls._lock, acc_r_lock:
             if a_addr in cls._reg_r_addrs:
+                cls._cls_logger.debug(f"Storing accept socket {a_sock, a_addr} into registered connection cache...")
                 _close_socket(acc_r_socks.pop(a_addr, None))
                 acc_r_socks[a_addr] = a_sock
                 return None, None
@@ -455,6 +488,7 @@ class EndpointSocket:
 
         # Any other connection is stored in the pending connection queue.
         try:
+            cls._cls_logger.debug(f"Storing accept socket {a_sock, a_addr} into pending connection queue...")
             acc_p_socks.put_nowait((a_sock, a_addr))
         except queue.Full:
             _close_socket(a_sock)
@@ -470,6 +504,7 @@ class EndpointSocket:
         :raises RuntimeError: If none of the addresses succeed to create a working socket.
         :return: The connection socket.
         """
+        cls._cls_logger.debug(f"Trying to open connection socket for {addr, remote_addr}...")
         for res in socket.getaddrinfo(*addr, type=socket.SOCK_STREAM):
             s_af, s_t, s_p, _, s_addr = res
             r_res_list = socket.getaddrinfo(*remote_addr, family=s_af.value, type=s_t.value, proto=s_p)
@@ -485,7 +520,7 @@ class EndpointSocket:
                     _close_socket(sock)
                     continue
                 return sock
-        raise RuntimeError(f"Could not open connection socket ({addr}, {remote_addr})")
+        raise RuntimeError(f"Could not open connection socket for {addr, remote_addr}!")
 
 
 class StreamEndpoint:
@@ -527,7 +562,7 @@ class StreamEndpoint:
         :param buffer_size: Size of shared buffer in multithreading mode.
         """
         self._logger = logging.getLogger(name)
-        self._logger.info(f"Initializing endpoint ({addr}, {remote_addr})...")
+        self._logger.info(f"Initializing endpoint {addr, remote_addr}...")
 
         self._endpoint_socket = EndpointSocket(name, addr, remote_addr, acceptor, send_b_size, recv_b_size)
 
@@ -542,7 +577,7 @@ class StreamEndpoint:
         self._send_buffer = queue.Queue(maxsize=buffer_size)
         self._recv_buffer = queue.Queue(maxsize=buffer_size)
         self._started = False
-        self._logger.info(f"Endpoint ({addr}, {remote_addr}) initialized.")
+        self._logger.info(f"Endpoint {addr, remote_addr} initialized.")
 
     def start(self):
         """Starts the endpoint, either in threaded fashion or as part of the main thread. By doing so, the two endpoints
