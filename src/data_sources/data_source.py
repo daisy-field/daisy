@@ -19,7 +19,6 @@ import numpy as np
 from src.communication import StreamEndpoint
 
 
-# TODO logging: levels, messages, names
 # TODO factory functions
 
 class DataProcessor(ABC):
@@ -203,7 +202,7 @@ class SimpleRemoteSourceHandler(SourceHandler):
         self._logger = logging.getLogger()
         self._logger.info("Initializing remote source handler...")
         if endpoint is None:
-            endpoint = StreamEndpoint("RemoteSourceHandler", addr, remote_addr, acceptor=True,
+            endpoint = StreamEndpoint("RemoteSource", addr, remote_addr, acceptor=True,
                                       multithreading=multithreading, buffer_size=buffer_size)
         self._endpoint = endpoint
         self._logger.info("Remote source handler initialized.")
@@ -253,11 +252,12 @@ class DataSource:
     _buffer: queue.Queue
     _opened: bool
 
-    def __init__(self, source_handler: SourceHandler = None, generator: Iterator[object] = None,
+    def __init__(self, name: str, source_handler: SourceHandler = None, generator: Iterator[object] = None,
                  data_processor: DataProcessor = None, process_fn: Callable[[object], np.ndarray] = lambda o: o,
                  multithreading: bool = False, buffer_size: int = 1024):
         """Creates a new data source.
 
+        :param name: Name of data source relay for logging purposes.
         :param source_handler: Actual source that provisions data points to data source.
         :param generator: Generator object from which data points are retrieved, fallback from source handler.
         :param data_processor: Processor containing the methods on how to process individual data points.
@@ -266,7 +266,7 @@ class DataSource:
         :param multithreading: Enables transparent multithreading for speedup.
         :param buffer_size: Size of shared buffer in multithreading mode.
         """
-        self._logger = logging.getLogger()
+        self._logger = logging.getLogger(name)
         self._logger.info("Initializing data source...")
 
         if source_handler is not None:
@@ -382,7 +382,7 @@ class DataSourceRelay:
     _thread: threading.Thread
     _started: bool
 
-    def __init__(self, data_source: DataSource = None, endpoint: StreamEndpoint = None,
+    def __init__(self, name: str, data_source: DataSource = None, endpoint: StreamEndpoint = None,
                  source_handler: SourceHandler = None, generator: Iterator[object] = None,
                  data_processor: DataProcessor = None, process_fn: Callable[[object], np.ndarray] = lambda o: o,
                  addr: tuple[str, int] = ("127.0.0.1", 12000), remote_addr: tuple[str, int] = None,
@@ -390,6 +390,7 @@ class DataSourceRelay:
         """Creates a new data source relay. If either isn't provided, one can also provide the basic parameters for the
         creation of data source and/or endpoint.
 
+        :param name: Name of data source relay for logging purposes.
         :param data_source: Data source to relay data points from.
         :param endpoint: Streaming endpoint to which data points are relayed to.
         :param source_handler: Actual source that provisions data points to data source. Fallback from data source.
@@ -402,18 +403,21 @@ class DataSourceRelay:
         :param multithreading: Enables multithreading of data source and endpoint for speedup.
         :param buffer_size: Size of shared buffers in multithreading mode.
         """
-        self._logger = logging.getLogger()
+        self._logger = logging.getLogger(name)
+        self._logger.info("Initializing data source relay...")
 
         if data_source is None:
-            data_source = DataSource(source_handler, generator, data_processor, process_fn, multithreading, buffer_size)
+            data_source = DataSource(name, source_handler, generator, data_processor, process_fn,
+                                     multithreading, buffer_size)
         self._data_source = data_source
 
         if endpoint is None:
-            endpoint = StreamEndpoint("DataSourceRelay", addr, remote_addr, acceptor=False,
+            endpoint = StreamEndpoint(name + "Endpoint", addr, remote_addr, acceptor=False,
                                       multithreading=multithreading, buffer_size=buffer_size)
         self._endpoint = endpoint
 
         self._started = False
+        self._logger.info("Data source relay initialized.")
 
     def start(self):
         """Starts the data source relay along any other objects in this union (data source, endpoint). Non-blocking, as
