@@ -26,7 +26,6 @@ from pyshark.packet.packet import Packet
 from src.data_sources.data_source import DataProcessor, SourceHandler
 
 # TODO logging: levels, messages, names
-# TODO factory functions
 # TODO FIXME COVERAGE CHECKS IN PARSING FUNCTIONS
 
 
@@ -144,7 +143,7 @@ class LivePysharkHandler(SourceHandler):
     _capture: LiveCapture
     _generator: Iterator[Packet]
 
-    def __init__(self, interfaces: list = 'any'):
+    def __init__(self, interfaces: list = 'any'):  # FIXME ADD ADDITIONAL FILTERS!
         """Creates a new basic pyshark live capture handler on the given interfaces.
 
         :param interfaces: Network interfaces to capture. If not given, runs on all interfaces.
@@ -172,9 +171,9 @@ class LivePysharkHandler(SourceHandler):
 
 
 class PcapHandler(SourceHandler):
-    """The wrapper implementation to support and handle any amount of pcap files as data sources. Finite: finishes after
+    """The wrapper implementation to support and handle any number of pcap files as data sources. Finite: finishes after
     all files have been processed. Warning: Note entirely compliant with the source handler abstract class: Neither
-    fully thread safe, nor does its __iter__() method shut down after close() has been called. Due to its finite nature,
+    fully thread safe, nor does its __iter__() method shut down after close() has been called. Due to its finite nature
     acceptable however, as this handler is nearly always only closed ones all data points have been retrieved.
     """
     _pcap_files: list[str]

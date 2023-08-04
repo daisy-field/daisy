@@ -3,7 +3,7 @@
     packets that are captured from cohda boxes.
 
     Author: Seraphin Zunzer, Fabian Hofmann
-    Modified: 14.06.23
+    Modified: 04.08.23
 """
 
 from datetime import datetime
@@ -13,8 +13,6 @@ import numpy as np
 from src.data_sources.network_traffic.pyshark_source import PysharkProcessor, default_f
 
 
-# TODO factory functions
-
 class CohdaProcessor(PysharkProcessor):
     """An extension of the pyshark processor to support the labeling of the data stream for evaluation purposes. Labels
     are appended according to the used protocol, timestamps, source and destination ip addresses.
@@ -23,10 +21,10 @@ class CohdaProcessor(PysharkProcessor):
     _events: list[tuple[int, tuple[datetime, datetime], list[str], list[str], str]]
 
     def __init__(self, client_id: int, events: list[tuple[int, tuple[datetime, datetime], list[str], list[str], str]],
-                 f_features: tuple[str, ...] = default_f, ):
+                 f_features: tuple[str, ...] = default_f):
         """Creates a new cohda processor for a specific client.
 
-        :param client_id: ID of client that
+        :param client_id: ID of client.
         :param f_features: Selection of features that every data point will have after processing.
         :param events: List of labeled, self-descriptive, events by which one can label individual data points with.
         """

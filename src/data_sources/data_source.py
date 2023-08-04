@@ -19,8 +19,6 @@ import numpy as np
 from src.communication import StreamEndpoint
 
 
-# TODO factory functions
-
 class DataProcessor(ABC):
     """An abstract data processor that has to process data points as they come in the following three steps:
 
