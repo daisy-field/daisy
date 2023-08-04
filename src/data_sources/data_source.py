@@ -19,8 +19,6 @@ import numpy as np
 from src.communication import StreamEndpoint
 
 
-# TODO RELAY
-# TODO DOC SIMPLE PROCESSOR
 # TODO logging: levels, messages, names
 # TODO factory functions
 
@@ -79,14 +77,16 @@ class DataProcessor(ABC):
 
 
 class SimpleDataProcessor(DataProcessor):
-    """FIXME
+    """The simplest productive data processor --- a wrapper around a callable function which directly transforms a given
+    data point object into a numpy array, skipping all intermediary steps. Can also be used if the given format of map,
+    filter, reduce, does not fit the requirements.
     """
     _process_fn: Callable[[object], np.ndarray]
 
     def __init__(self, process_fn: Callable[[object], np.ndarray]):
-        """TODO
+        """Creates a data processor, simply wrapping it around the given callable.
 
-        :param process_fn:
+        :param process_fn: Callable object with which data points can be processed.
         """
         self._process_fn = process_fn
 
@@ -100,7 +100,10 @@ class SimpleDataProcessor(DataProcessor):
         pass
 
     def process(self, o_point: object) -> np.ndarray:
-        """FIXME
+        """Converts and processes a data point object into a feature vector (numpy array), using the wrapped callable.
+
+        :param o_point: Data point as object.
+        :return: Processed data point as vector.
         """
         return self._process_fn(o_point)
 
@@ -151,7 +154,7 @@ class SourceHandler(ABC):
 
 
 class SimpleSourceHandler(SourceHandler):
-    """The simplest productive source handler - an actual wrapper around a generator that is always open and cannot be
+    """The simplest productive source handler --- an actual wrapper around a generator that is always open and cannot be
     closed, yielding data points as objects as they are yielded. Can be infinite or finite; no matter, no control over
     the generator is natively supported.
     """
@@ -243,7 +246,6 @@ class DataSource:
     _logger: logging.Logger
 
     _source_handler: SourceHandler
-
     _data_processor: DataProcessor
 
     _multithreading: bool
@@ -256,7 +258,7 @@ class DataSource:
                  multithreading: bool = False, buffer_size: int = 1024):
         """Creates a new data source.
 
-        :param source_handler: Actual source that provisions the data points to the data source.
+        :param source_handler: Actual source that provisions data points to data source.
         :param generator: Generator object from which data points are retrieved, fallback from source handler.
         :param data_processor: Processor containing the methods on how to process individual data points.
         :param process_fn: Processor functioning to process individual data points. If neither processor nor function
@@ -295,7 +297,7 @@ class DataSource:
         self._source_handler.open()
 
         if self._multithreading:
-            self._thread = threading.Thread(target=self._loader, name="DataSourceLoader", daemon=True)
+            self._thread = threading.Thread(target=self._loader, daemon=True)
             self._thread.start()
         self._logger.info("Data source started.")
 
@@ -317,19 +319,19 @@ class DataSource:
         """Data loader for multithreading mode, loads data from source handlers and processes it to store it in the
         shared buffer.
         """
-        self._logger.info(f"{self._thread.name}: Starting to process data points in asynchronous mode...")
+        self._logger.info(f"AsyncLoader: Starting to process data points in asynchronous mode...")
         for o_point in self._source_handler:
             while self._opened:
                 try:
                     self._logger.debug(
-                        f"{self._thread.name}: Storing processed data point in buffer "
+                        f"AsyncLoader: Storing processed data point in buffer "
                         f"(length: {self._buffer.qsize()})...")
                     self._buffer.put(self._data_processor.process(o_point), timeout=10)
                 except queue.Full:
-                    self._logger.warning(f"{self._thread.name}: Timeout triggered: Buffer full. Retrying...")
+                    self._logger.warning(f"AsyncLoader: Timeout triggered: Buffer full. Retrying...")
             if not self._opened:
                 break
-        self._logger.info(f"{self._thread.name}: Stopping...")
+        self._logger.info(f"AsyncLoader: Stopping...")
 
     def __iter__(self) -> Iterator[np.ndarray]:
         """Generator that supports multithreading to retrieve processed data points.
@@ -366,29 +368,39 @@ class DataSource:
 
 
 class DataSourceRelay:
-    """FIXME
-
+    """A union of a data source and a stream endpoint to retrieve data points from the former and relay them over the
+    latter. This allows the disaggregation of the actual datasource from the other processing steps. For example, the
+    relay could be deployed with our without an actual processor on another host and the data is forwarded over the
+    network to another host running a data source with a SimpleRemoteSourceHandler to receive and further process the
+    data. This chain could also be continued beyond a single host pair.
     """
     _logger: logging.Logger
 
     _data_source: DataSource
     _endpoint: StreamEndpoint
 
-    _multithreading: bool
     _thread: threading.Thread
+    _started: bool
 
     def __init__(self, data_source: DataSource = None, endpoint: StreamEndpoint = None,
                  source_handler: SourceHandler = None, generator: Iterator[object] = None,
                  data_processor: DataProcessor = None, process_fn: Callable[[object], np.ndarray] = lambda o: o,
                  addr: tuple[str, int] = ("127.0.0.1", 12000), remote_addr: tuple[str, int] = None,
                  multithreading: bool = False, buffer_size: int = 1024):
-        """FIXME Creates a new remote source handler from a given stream endpoint. If no endpoint is provided, creates a new
-        one instead with basic parameters.
+        """Creates a new data source relay. If either isn't provided, one can also provide the basic parameters for the
+        creation of data source and/or endpoint.
 
-        :param endpoint: Streaming endpoint from which data points are retrieved.
-        :param addr: If no endpoint is provided, local address of new endpoint.
-        :param multithreading: Enables transparent multithreading for speedup.
-        :param buffer_size: Size of shared buffer in multithreading mode.
+        :param data_source: Data source to relay data points from.
+        :param endpoint: Streaming endpoint to which data points are relayed to.
+        :param source_handler: Actual source that provisions data points to data source. Fallback from data source.
+        :param generator: Generator object from which data points are retrieved, fallback from source handler.
+        :param data_processor: Processor containing the methods on how to process individual data points.
+        :param process_fn: Processor functioning to process individual data points. If neither processor nor function
+        provided, defaults to NOP.
+        :param addr: Local address of new endpoint. Fallback from endpoint.
+        :param remote_addr: Address of remote endpoint to be connected to. Fallback from endpoint.
+        :param multithreading: Enables multithreading of data source and endpoint for speedup.
+        :param buffer_size: Size of shared buffers in multithreading mode.
         """
         self._logger = logging.getLogger()
 
@@ -401,39 +413,60 @@ class DataSourceRelay:
                                       multithreading=multithreading, buffer_size=buffer_size)
         self._endpoint = endpoint
 
-        self._multithreading = multithreading
+        self._started = False
 
     def start(self):
-        """FIXME Starts and opens/connects the endpoint of the source handler.
+        """Starts the data source relay along any other objects in this union (data source, endpoint). Non-blocking, as
+        the relay is started in the background to allow the stopping of it afterward.
         """
-        self._logger.info("Starting remote data source...")
+        self._logger.info("Starting data source relay...")
+        if self._started:
+            raise RuntimeError(f"Relay has already been started!")
+        self._started = True
         try:
             self._data_source.open()
+        except RuntimeError:
+            pass
+        try:
             self._endpoint.start()
         except RuntimeError:
             pass
-        self._logger.info("Remote data source started.")
+
+        self._thread = threading.Thread(target=self._relay, daemon=True)
+        self._thread.start()
+        self._logger.info("Data source relay started.")
 
     def stop(self):
-        """FIXME Stops and closes the endpoint of the source handler.
+        """Closes and stops the data source and the endpoint and joins the relay thread into the current thread. Can be
+        restarted (and stopped) and arbitrary amount of times.
         """
-        self._logger.info("Stopping remote data source...")
+        self._logger.info("Stopping data source relay...")
+        if not self._started:
+            raise RuntimeError(f"Endpoint has not been started!")
+        self._started = False
         try:
             self._data_source.close()
+        except RuntimeError:
+            pass
+        try:
             self._endpoint.stop()
         except RuntimeError:
             pass
-        self._logger.info("Remote data source stopped.")
+
+        self._thread.join()
+        self._logger.info("Data source relay stopped.")
 
     def _relay(self):
-        """TODO
-
-        :return:
+        """Actual relay, directly forwards data points from its data source to its endpoint (both might be async).
         """
-        self._logger.info("Retrieving data points from data source...")
+        self._logger.info("Starting to relay data points from data source...")
         for d_point in self._data_source:
-            self._endpoint.send(d_point)
-        self._logger.info("Data source exhausted or closed.")
+            try:
+                self._endpoint.send(d_point)
+            except RuntimeError:
+                break
+        self._logger.info("Data source exhausted, or relay closing...")
 
     def __del__(self):
-        self.stop()
+        if self._started:
+            self.stop()
