@@ -24,15 +24,15 @@ from pyshark.packet.layers.xml_layer import XmlLayer
 from pyshark.packet.packet import Packet
 
 from src.data_sources.data_source import DataProcessor, SourceHandler
+from src.data_sources.data_source import DataSource
 
 # TODO logging: levels, messages, names
-# TODO FIXME COVERAGE CHECKS IN PARSING FUNCTIONS
 
-
+# TODO fix feature names
 default_f = (
     'meta.len',
     'meta.time',
-    'meta.protocols',
+    # 'meta.protocols', # TODO: variable length of onehot encoded labels / maybe hash them
     'ip.addr',
     'sll.halen',
     'sll.pkttype',
@@ -125,7 +125,8 @@ class PysharkProcessor(DataProcessor):
         :param d_point: Data point as dictionary.
         :return: Data point as dictionary, ordered.
         """
-        return {f_feature: d_point.pop(f_feature, None) for f_feature in self.f_features}
+        # return {f_feature: d_point.pop(f_feature, np.nan) for f_feature in self.f_features}
+        return d_point
 
     def reduce(self, d_point: dict) -> np.ndarray:
         """Transform the pyshark data point directly into a numpy array without further processing.
@@ -133,7 +134,8 @@ class PysharkProcessor(DataProcessor):
         :param d_point: Data point as dictionary.
         :return: Data point as vector.
         """
-        return np.asarray(list(d_point.values()))
+        # return np.asarray(list(d_point.values()))
+        return d_point
 
 
 class LivePysharkHandler(SourceHandler):
@@ -143,7 +145,7 @@ class LivePysharkHandler(SourceHandler):
     _capture: LiveCapture
     _generator: Iterator[Packet]
 
-    def __init__(self, interfaces: list = 'any'):  # FIXME ADD ADDITIONAL FILTERS!
+    def __init__(self, interfaces: list = 'any'):  # TODO ADD ADDITIONAL FILTERS FOR CAPTURING!
         """Creates a new basic pyshark live capture handler on the given interfaces.
 
         :param interfaces: Network interfaces to capture. If not given, runs on all interfaces.
@@ -279,7 +281,7 @@ def _add_layer_to_dict(layer: (XmlLayer, JsonLayer)) -> (dict, list):
     :param layer: The base layer of the packet.
     :return: A dictionary containing dictionaries for the sub-layers.
     """
-    if isinstance(layer, (XmlLayer, JsonLayer)):  # FIXME TEST DIFFERENT MODI
+    if isinstance(layer, (XmlLayer, JsonLayer)):
         return _add_xml_layer_to_dict(layer)
 
     elif isinstance(layer, LayerFieldsContainer):
@@ -288,7 +290,8 @@ def _add_layer_to_dict(layer: (XmlLayer, JsonLayer)) -> (dict, list):
     elif isinstance(layer, LayerField):
         return {layer.name: layer.show}
 
-    elif isinstance(layer, list):  # FIXME no coverage in XML mode -> check with other PCAPs
+    # Backwards Compatibility for JSON-mode
+    elif isinstance(layer, list):
         d_list = []
         for sub_layer in layer:
             d_list += [_add_layer_to_dict(sub_layer)]
@@ -309,7 +312,8 @@ def _add_xml_layer_to_dict(layer: (XmlLayer, JsonLayer)) -> dict:
     for field_name in layer.field_names:
         result_dictionary = _add_layer_to_dict(layer.get_field(field_name))
 
-        if isinstance(result_dictionary, list):  # FIXME no coverage in XML mode -> check with other PCAPs
+        # Backwards Compatibility for JSON-mode
+        if isinstance(result_dictionary, list):
             dictionary = _add_list_to_dict(layer, field_name, result_dictionary)
 
         else:
@@ -320,7 +324,8 @@ def _add_xml_layer_to_dict(layer: (XmlLayer, JsonLayer)) -> dict:
 
 
 def _add_list_to_dict(layer: (XmlLayer, JsonLayer), field_name: str, value_list: list) -> dict:
-    """Creates a dictionary out of the given parameters. This function is called by _add_xml_layer_to_dict.
+    """Creates a dictionary out of the given parameters. This function is called by _add_xml_layer_to_dict. Only
+    necessary for JSON-mode.
     This is part of a recursive function. For the entrypoint see _add_layer_to_dict.
 
     :param layer: The XML or JSON layer the value_list is part of.
@@ -339,7 +344,8 @@ def _add_list_to_dict(layer: (XmlLayer, JsonLayer), field_name: str, value_list:
 
 
 def _add_layer_field_container_to_dict(layer_field_container: LayerFieldsContainer) -> dict:
-    """Creates a dictionary out of a layerFieldContainer from a pyshark packet.
+    """Creates a dictionary out of a layerFieldContainer from a pyshark packet. A file in JSON-mode always has a length
+    of one, while XML can contain a list of fields.
     This is part of a recursive function. For the entrypoint see _add_layer_to_dict.
 
     :param layer_field_container: The LayerFieldContainer encountered in the pyshark packet.
@@ -348,7 +354,7 @@ def _add_layer_field_container_to_dict(layer_field_container: LayerFieldsContain
     if len(layer_field_container.fields) == 1:
         return _add_layer_to_dict(layer_field_container.fields[0])
 
-    d_list = []  # FIXME only necessary for XML mode (json mode only has == 1)
+    d_list = []
     for field in layer_field_container.fields:
         d_list.append(_add_layer_to_dict(field))
 
@@ -380,10 +386,15 @@ def flatten_dict(dictionary: (dict, list), seperator: str = ".", par_key: str = 
     return items
 
 
-def dict_to_json(dictionary: dict) -> str:  # FIXME CAN THIS BE REMOVED?
+def dict_to_json(dictionary: dict) -> str:
     """Takes a dictionary and returns a json object in form of a string.
 
     :param dictionary: The dictionary to convert to json string.
     :return: A JSON string from the dictionary.
     """
     return json.dumps(dictionary, indent=2)
+
+
+with DataSource("test", source_handler=PcapHandler('test_data'), data_processor=PysharkProcessor()) as d:
+    for p in d:
+        print(p)
