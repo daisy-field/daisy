@@ -11,7 +11,7 @@ import logging
 import os
 from collections import defaultdict
 from collections.abc import MutableMapping
-from typing import Iterator, Optional
+from typing import Callable, Iterator, Optional
 
 import numpy as np
 import pyshark
@@ -28,11 +28,10 @@ from src.data_sources.data_source import DataSource
 
 # TODO logging: levels, messages, names
 
-# TODO fix feature names
 default_f = (
     'meta.len',
     'meta.time',
-    # 'meta.protocols', # TODO: variable length of onehot encoded labels / maybe hash them
+    'meta.protocols',
     'ip.addr',
     'sll.halen',
     'sll.pkttype',
@@ -98,17 +97,27 @@ default_f = (
 )
 
 
+def default_l_aggregator(key: str, value_l: list) -> int:
+    value_l.sort()
+    return hash(str(value_l))
+
+
 class PysharkProcessor(DataProcessor):
     """A simple data processor implementation supporting the processing of pyshark packets.
     """
     f_features: tuple[str, ...]
+    l_aggregator: Callable[[str, list], object]
 
-    def __init__(self, f_features: tuple[str, ...] = default_f):
+    def __init__(self, f_features: tuple[str, ...] = default_f,
+                 l_aggregator: Callable[[str, list], object] = default_l_aggregator):
         """Creates a new pyshark processor.
 
         :param f_features: Selection of features that every data point will have after processing.
+        :param l_aggregator: List aggregator that is able to aggregator dictionary values that are lists into singleton
+        values, depending on the key they are sorted under.
         """
         self.f_features = f_features
+        self.l_aggregator = l_aggregator
 
     def map(self, o_point: (XmlLayer, JsonLayer)) -> dict:
         """Wrapper around the pyshark packet deserialization functions.
@@ -125,17 +134,21 @@ class PysharkProcessor(DataProcessor):
         :param d_point: Data point as dictionary.
         :return: Data point as dictionary, ordered.
         """
-        # return {f_feature: d_point.pop(f_feature, np.nan) for f_feature in self.f_features}
-        return d_point
+        return {f_feature: d_point.pop(f_feature, np.nan) for f_feature in self.f_features}
 
     def reduce(self, d_point: dict) -> np.ndarray:
-        """Transform the pyshark data point directly into a numpy array without further processing.
+        """Transform the pyshark data point directly into a numpy array without further processing, aggregating any
+        value that is list into a singular value.
 
         :param d_point: Data point as dictionary.
         :return: Data point as vector.
         """
-        # return np.asarray(list(d_point.values()))
-        return d_point
+        l_point = []
+        for key, value in d_point.items():
+            if isinstance(value, list):
+                value = self.l_aggregator(key, value)
+            l_point.append(value)
+        return np.asarray(l_point)
 
 
 class LivePysharkHandler(SourceHandler):
@@ -369,19 +382,28 @@ def _add_layer_field_container_to_dict(layer_field_container: LayerFieldsContain
 def flatten_dict(dictionary: (dict, list), seperator: str = ".", par_key: str = "") -> dict:
     """Creates a flat dictionary (a dictionary without sub-dictionaries) from the given dictionary. The keys of
     sub-dictionaries are merged into the parent dictionary by combining the keys and adding a seperator:
-    {a: {b: c, d: e}, f: g} becomes {a.b: c, a.d: e, f: g} assuming the seperator as '.'
+    {a: {b: c, d: e}, f: g} becomes {a.b: c, a.d: e, f: g} assuming the seperator as '.'. However, redundant parent keys
+    are greedily eliminated from the dictionary.
 
     :param dictionary: The dictionary to flatten.
     :param seperator: The seperator to use.
     :param par_key: The key of the parent dictionary.
     :return: A flat dictionary with keys merged and seperated using the seperator.
+    :raises ValueError: If there are key-collisions by greedily flattening the dictionary.
     """
     items = {}
     for key, val in dictionary.items():
-        cur_key = par_key + seperator + key if par_key else key
+        cur_key = par_key + seperator + key if par_key != "" and not key.startswith(par_key + seperator) else key
         if isinstance(val, MutableMapping):
-            items.update(flatten_dict(val, par_key=cur_key, seperator=seperator))
+            sub_items = flatten_dict(val, par_key=cur_key, seperator=seperator)
+            for subkey in sub_items.keys():
+                if subkey in items:
+                    raise ValueError(f"Key collision in dictionary "
+                                     f"({subkey, sub_items[subkey]} vs {subkey, items[subkey]})!")
+            items.update(sub_items)
         else:
+            if cur_key in items:
+                raise ValueError(f"Key collision in dictionary ({cur_key, val} vs {cur_key, items[cur_key]})!")
             items.update({cur_key: val})
     return items
 
