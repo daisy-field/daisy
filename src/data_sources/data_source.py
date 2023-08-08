@@ -31,6 +31,14 @@ class DataProcessor(ABC):
     Any implementation has to funnel all its functionalities through these three methods (besides __init__), as they are
     called through process() by the DataSource.
     """
+    _logger: logging.Logger
+
+    def __init__(self, name: str = ""):
+        """Creates a data processor.
+
+        :param name: Name of processor for logging purposes.
+        """
+        self._logger = logging.getLogger(name)
 
     @abstractmethod
     def map(self, o_point: object) -> dict:
@@ -80,11 +88,14 @@ class SimpleDataProcessor(DataProcessor):
     """
     _process_fn: Callable[[object], np.ndarray]
 
-    def __init__(self, process_fn: Callable[[object], np.ndarray]):
+    def __init__(self, process_fn: Callable[[object], np.ndarray], name: str = ""):
         """Creates a data processor, simply wrapping it around the given callable.
 
         :param process_fn: Callable object with which data points can be processed.
+        :param name: Name of processor for logging purposes.
         """
+        super().__init__(name)
+
         self._process_fn = process_fn
 
     def map(self, o_point: object) -> dict:
@@ -119,13 +130,15 @@ class SourceHandler(ABC):
     called when the source handler has been opened already. At the same time, __iter__() must be exhausted after close()
     has been called.
     """
+    _logger: logging.Logger
 
-    @abstractmethod
-    def __init__(self):
-        """Creates the source handler. Note that this should not enable the immediate generation of data points via
+    def __init__(self, name: str = ""):
+        """Creates a source handler. Note that this should not enable the immediate generation of data points via
         __iter__() --- this behavior is implemented through open() (see the class documentation for more information).
+
+        :param name: Name of handler for logging purposes.
         """
-        raise NotImplementedError
+        self._logger = logging.getLogger(name)
 
     @abstractmethod
     def open(self):
@@ -157,11 +170,14 @@ class SimpleSourceHandler(SourceHandler):
     """
     _generator: Iterator[object]
 
-    def __init__(self, generator: Iterator[object]):
+    def __init__(self, generator: Iterator[object], name: str = ""):
         """Creates a source handler, simply wrapping it around the given generator.
 
         :param generator: Generator object from which data points are retrieved.
+        :param name: Name of handler for logging purposes.
         """
+        super().__init__(name)
+
         self._generator = generator
 
     def open(self):
@@ -183,21 +199,22 @@ class SimpleRemoteSourceHandler(SourceHandler):
     sources. Considered infinite in nature, as it allows the generation of data point objects from a connected
     endpoint, until the client closes the handler.
     """
-    _logger: logging.Logger
     _endpoint: StreamEndpoint
 
-    def __init__(self, endpoint: StreamEndpoint = None,
+    def __init__(self, name: str = "", endpoint: StreamEndpoint = None,
                  addr: tuple[str, int] = ("127.0.0.1", 12000), remote_addr: tuple[str, int] = None,
                  multithreading: bool = False, buffer_size: int = 1024):
         """Creates a new remote source handler from a given stream endpoint. If no endpoint is provided, creates a new
         one instead with basic parameters.
 
+        :param name: Name of handler for logging purposes.
         :param endpoint: Streaming endpoint from which data points are retrieved.
         :param addr: If no endpoint is provided, local address of new endpoint.
         :param multithreading: Enables transparent multithreading for speedup.
         :param buffer_size: Size of shared buffer in multithreading mode.
         """
-        self._logger = logging.getLogger()
+        super().__init__(name)
+
         self._logger.info("Initializing remote source handler...")
         if endpoint is None:
             endpoint = StreamEndpoint("RemoteSource", addr, remote_addr, acceptor=True,
@@ -270,14 +287,14 @@ class DataSource:
         if source_handler is not None:
             self._source_handler = source_handler
         elif generator is not None:
-            self._source_handler = SimpleSourceHandler(generator)
+            self._source_handler = SimpleSourceHandler(generator, name + "Handler")
         else:
             raise ValueError("Data source requires either a data source handler or a generator to load data from!")
 
         if data_processor is not None:
             self._data_processor = data_processor
         else:
-            self._data_processor = SimpleDataProcessor(process_fn)
+            self._data_processor = SimpleDataProcessor(process_fn, name + "Processor")
 
         self._multithreading = multithreading
         self._buffer = queue.Queue(buffer_size)
@@ -405,7 +422,7 @@ class DataSourceRelay:
         self._logger.info("Initializing data source relay...")
 
         if data_source is None:
-            data_source = DataSource(name, source_handler, generator, data_processor, process_fn,
+            data_source = DataSource(name + "Source", source_handler, generator, data_processor, process_fn,
                                      multithreading, buffer_size)
         self._data_source = data_source
 

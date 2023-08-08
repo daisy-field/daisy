@@ -24,9 +24,6 @@ from pyshark.packet.layers.xml_layer import XmlLayer
 from pyshark.packet.packet import Packet
 
 from src.data_sources.data_source import DataProcessor, SourceHandler
-from src.data_sources.data_source import DataSource
-
-# TODO logging: levels, messages, names
 
 default_f = (
     'meta.len',
@@ -108,14 +105,17 @@ class PysharkProcessor(DataProcessor):
     f_features: tuple[str, ...]
     l_aggregator: Callable[[str, list], object]
 
-    def __init__(self, f_features: tuple[str, ...] = default_f,
+    def __init__(self, name: str = "", f_features: tuple[str, ...] = default_f,
                  l_aggregator: Callable[[str, list], object] = default_l_aggregator):
         """Creates a new pyshark processor.
 
+        :param name: Name of processor for logging purposes.
         :param f_features: Selection of features that every data point will have after processing.
         :param l_aggregator: List aggregator that is able to aggregator dictionary values that are lists into singleton
         values, depending on the key they are sorted under.
         """
+        super().__init__(name)
+
         self.f_features = f_features
         self.l_aggregator = l_aggregator
 
@@ -158,16 +158,22 @@ class LivePysharkHandler(SourceHandler):
     _capture: LiveCapture
     _generator: Iterator[Packet]
 
-    def __init__(self, interfaces: list = 'any'):  # TODO ADD ADDITIONAL FILTERS FOR CAPTURING!
+    def __init__(self, name: str = "", interfaces: list = 'any'):  # TODO ADD ADDITIONAL FILTERS FOR CAPTURING!
         """Creates a new basic pyshark live capture handler on the given interfaces.
 
+        :param name: Name of handler for logging purposes.
         :param interfaces: Network interfaces to capture. If not given, runs on all interfaces.
         """
+        super().__init__(name)
+
+        self._logger.info("Initializing live pyshark handler...")
         self._capture = pyshark.LiveCapture(interface=interfaces)
+        self._logger.info("Live pyshark handler initialized.")
 
     def open(self):
         """Starts the pyshark live caption, initializing the wrapped generator.
         """
+        self._logger.info("Beginning live pyshark capture...")
         self._generator = self._capture.sniff_continuously()
 
     def close(self):
@@ -175,6 +181,7 @@ class LivePysharkHandler(SourceHandler):
         tries to retrieve an object from it after that point.
         """
         self._capture.close()
+        self._logger.info("Live pyshark capture stopped.")
 
     def __iter__(self) -> Iterator[Packet]:
         """Returns the wrapped generator. Note this does not catch problems after a close() on the handler is called ---
@@ -197,14 +204,18 @@ class PcapHandler(SourceHandler):
     _cur_file_handle: Optional[FileCapture]
     _try_counter: int
 
-    def __init__(self, *file_names: str, try_counter: int = 3):
+    def __init__(self, *file_names: str, try_counter: int = 3, name: str = ""):
         """Creates a new pcap file handler.
 
         :param file_names: List of paths of single files or directories containing .pcap files. Each string should be a
         name of a file or directory. In case a directory is passed, all files ending in .pcap are used. In case a single
         file is passed, it is used regardless of file ending.
         :param try_counter: Number of attempts to open a specific pcap file until throwing an exception.
+        :param name: Name of handler for logging purposes.
         """
+        super().__init__(name)
+
+        self._logger.info("Initializing pcap file handler...")
         self._pcap_files = []
         for path in file_names:
             if os.path.isdir(path):
@@ -223,23 +234,29 @@ class PcapHandler(SourceHandler):
         self._cur_file_counter = 0
         self._cur_file_handle = None
         self._try_counter = try_counter
+        self._logger.info("Pcap file handler initialized.")
 
     def open(self):
         """Opens and resets the pcap file handler to the very beginning of the file list.
         """
+        self._logger.info("Opening pcap file source...")
         self._cur_file_counter = 0
         self._cur_file_handle = None
+        self._logger.info("Pcap file source opened.")
 
     def close(self):
         """Closes any file of the pcap file handler.
         """
+        self._logger.info("Closing pcap file source...")
         if self._cur_file_handle is not None:
             self._cur_file_handle.close()
+        self._logger.info("Pcap file source closed.")
 
     def _open(self):
         """Opens the next file of the pcap file list, trying to open it several times until succeeding (known bug from
         the pyshark library).
         """
+        self._logger.debug("Opening next pcap file...")
         try_counter = 0
         while try_counter < self._try_counter:
             try:
@@ -251,6 +268,7 @@ class PcapHandler(SourceHandler):
         if try_counter == self._try_counter:
             raise RuntimeError(f"Could not open File '{self._pcap_files[self._cur_file_counter]}'")
         self._cur_file_counter += 1
+        self._logger.info("Next pcap file opened.")
 
     def __iter__(self) -> Iterator[Packet]:
         """Returns a generator that yields pyshark packets from each file after another, opening and closing them when
@@ -415,8 +433,3 @@ def dict_to_json(dictionary: dict) -> str:
     :return: A JSON string from the dictionary.
     """
     return json.dumps(dictionary, indent=2)
-
-
-with DataSource("test", source_handler=PcapHandler('test_data'), data_processor=PysharkProcessor()) as d:
-    for p in d:
-        print(p)
