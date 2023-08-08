@@ -267,7 +267,7 @@ class DataSource:
     _buffer: queue.Queue
     _opened: bool
 
-    def __init__(self, name: str, source_handler: SourceHandler = None, generator: Iterator[object] = None,
+    def __init__(self, name: str = "", source_handler: SourceHandler = None, generator: Iterator[object] = None,
                  data_processor: DataProcessor = None, process_fn: Callable[[object], np.ndarray] = lambda o: o,
                  multithreading: bool = False, buffer_size: int = 1024):
         """Creates a new data source.
@@ -397,7 +397,7 @@ class DataSourceRelay:
     _thread: threading.Thread
     _started: bool
 
-    def __init__(self, name: str, data_source: DataSource = None, endpoint: StreamEndpoint = None,
+    def __init__(self, name: str = "", data_source: DataSource = None, endpoint: StreamEndpoint = None,
                  source_handler: SourceHandler = None, generator: Iterator[object] = None,
                  data_processor: DataProcessor = None, process_fn: Callable[[object], np.ndarray] = lambda o: o,
                  addr: tuple[str, int] = ("127.0.0.1", 12000), remote_addr: tuple[str, int] = None,

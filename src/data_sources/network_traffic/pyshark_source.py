@@ -23,7 +23,7 @@ from pyshark.packet.layers.json_layer import JsonLayer
 from pyshark.packet.layers.xml_layer import XmlLayer
 from pyshark.packet.packet import Packet
 
-from src.data_sources.data_source import DataProcessor, SourceHandler
+from src.data_sources.data_source import DataProcessor, SourceHandler, DataSource
 
 default_f = (
     'meta.len',
@@ -158,16 +158,17 @@ class LivePysharkHandler(SourceHandler):
     _capture: LiveCapture
     _generator: Iterator[Packet]
 
-    def __init__(self, name: str = "", interfaces: list = 'any'):  # TODO ADD ADDITIONAL FILTERS FOR CAPTURING!
+    def __init__(self, name: str = "", interfaces: list = 'any', bpf_filter: str = ""):
         """Creates a new basic pyshark live capture handler on the given interfaces.
 
         :param name: Name of handler for logging purposes.
         :param interfaces: Network interfaces to capture. If not given, runs on all interfaces.
+        :param bpf_filter: Pcap conform filter to filter or ignore certain traffic.
         """
         super().__init__(name)
 
         self._logger.info("Initializing live pyshark handler...")
-        self._capture = pyshark.LiveCapture(interface=interfaces)
+        self._capture = pyshark.LiveCapture(interface=interfaces, bpf_filter=bpf_filter)
         self._logger.info("Live pyshark handler initialized.")
 
     def open(self):
