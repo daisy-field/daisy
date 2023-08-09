@@ -7,7 +7,7 @@
 
 # Optimized server for real-world dataset.
 # Federated learning server which starts the federated learning process on the clients,
-# receives the newly trained client models,
+# receives the newly trained client federated_model,
 # and aggregates them using FedAVG.
 
 
@@ -15,7 +15,7 @@ import logging
 from typing import Tuple
 
 import src.communication.message_stream as ms
-from src.federated_ids import federated_model as fm
+from models import autoencoder as fm
 
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
