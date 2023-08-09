@@ -5,8 +5,24 @@
     Author: Seraphin Zunzer
     Modified: 09.08.23
 """
+from datetime import datetime
 
 
+def process_anomalys(self,  addr: Tuple[str, int],  predictions: [], true_labels: []):
+    """Function to process anomalies, e.g. delete packets, throw alerts etc.
+    In this case write anomaly to file with timestamp.
+
+    :param predictions:
+    :param true_labels:
+    :return:
+    """
+    now = datetime.now()
+    timestamp = now.strftime("%m/%d/%Y, %H:%M:%S")
+
+    with open(f"results_{addr}.txt", "a") as txt_file:
+        for i in range(len(predictions)):
+            if predictions[i] == "anomaly":
+                txt_file.write(f" {timestamp} - {true_labels[i]}  \n")
 
 
 def store_anomalies(self, true_labels: [], z_scores: [], time_needed: [], outliers: []):
