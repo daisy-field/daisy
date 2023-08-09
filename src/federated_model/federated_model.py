@@ -18,7 +18,7 @@ class FederatedModel(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def set_model_weights(weights: []):
+    def set_model_weights(self, weights: []):
         """
         Function to set model weights
         :return: -
@@ -35,6 +35,14 @@ class FederatedModel(ABC):
 
     @abstractmethod
     def compile_model(self):
+        """
+        Function to compile a model for prediction
+        :return: compiled model
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def fit_model(self, **kwargs):
         """
         Function to compile a model for prediction
         :return: compiled model
