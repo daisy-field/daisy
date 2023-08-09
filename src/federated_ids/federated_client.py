@@ -74,7 +74,9 @@ class Client:
         self._model = federated_model
         self._prediction_model = federated_model
         self._agg_endpoint = ms.StreamEndpoint(name="Aggregator", addr=addr, remote_addr=agg_addr)
+        self._agg_endpoint.start()
         self._eval_endpoint = ms.StreamEndpoint(name="Evaluator", addr=addr, remote_addr=eval_addr)
+        self._eval_endpoint.start()
 
     def start_training(self):
         while 1:
@@ -190,5 +192,6 @@ class Client:
 
 if __name__ == "__main__":
     d =  ds.DataSource("test", source_handler=PcapHandler('test_data'), data_processor=PysharkProcessor())
-    client = Client(("127.0.0.1", 54321), ("127.0.0.1", 54322), ("127.0.0.1", 54323), data_source=d, federated_model=FedAutoencoder())
+    fed_auto = FedAutoencoder()
+    client = Client(("127.0.0.1", 54321), ("127.0.0.1", 54322), ("127.0.0.1", 54323), data_source=d, federated_model=fed_auto)
     client.run()

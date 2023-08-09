@@ -25,13 +25,6 @@ class FederatedModel(ABC):
         """
         raise NotImplementedError
 
-    @abstractmethod
-    def build_model(self):
-        """
-        Function to bild federated model
-        :return: built model
-        """
-        raise NotImplementedError
 
     @abstractmethod
     def compile_model(self):

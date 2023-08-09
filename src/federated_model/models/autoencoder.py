@@ -34,7 +34,6 @@ class FedAutoencoder(FederatedModel):
         ])
         input_format = keras.layers.Input(shape=(input_size,))
         self.model = tf.keras.models.Model(inputs=input_format, outputs=decoder(encoder(input_format)))
-        self.model.fit()
 
     def compile_model(self):
         """
@@ -49,7 +48,7 @@ class FedAutoencoder(FederatedModel):
         self.model.set_weights(weights)
 
     def get_model_weights(self):
-        self.model.set_weights()
+        self.model.get_weights()
 
     def fit_model(self, **kwargs):
         self.model.fit(**kwargs)
