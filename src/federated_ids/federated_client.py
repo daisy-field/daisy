@@ -16,8 +16,9 @@ from tensorflow.keras import backend as K
 
 import src.communication.message_stream as ms
 import src.data_sources.data_source as ds
-import src.federated_ids.metrics as metrics
-from src.federated_ids import federated_model as fm
+import utils.metrics as metrics
+from federated_model import federated_model as fm
+from utils.mad_score import calculate_mad_score
 
 logging.basicConfig(format="%(asctime)s %(levelname)-8s %(message)s", datefmt="%Y-%m-%d %H:%M:%S",
                     level=logging.DEBUG)
@@ -74,10 +75,10 @@ class Client:
         data_thread = Data_Receiving_Thread()
         data_thread.open()
 
-        _agg_endpoint = ms.EndpointSocket(addr=self._addr, remote_addr=self._agg_addr)
-        _eval_endpoint = ms.EndpointSocket(addr=self._addr, remote_addr=self._eval_addr)
+        _agg_endpoint = ms.StreamEndpoint(name="Aggregator", addr=self._addr, remote_addr=self._agg_addr)
+        _eval_endpoint = ms.StreamEndpoint(name="Evaluator", addr=self._addr, remote_addr=self._eval_addr)
 
-        t = Thread(target=training, name="Training", daemon=True)
+        t = threading.Thread(target=training, name="Training", daemon=True)
         t.open()
 
         self._data_sorce.open()
@@ -128,7 +129,7 @@ class Client:
             logging.error("Failed prediction")
             return
 
-        z_scores = self.mad_score(mse)
+        z_scores = calculate_mad_score(mse)
 
         outliers = z_scores > threshold_prediction
 
@@ -149,61 +150,8 @@ class Client:
 
         endpoint.send(metrics_obj)
 
-    def mad_score(self, points):
-        """
-        :param points:
-        :return:
-        """
-        m = np.median(points)
-        ad = np.abs(points - m)
-        mad = np.median(ad)
-        return 0.6745 * ad / mad
 
-    def store_anomalies(self, true_labels: [], z_scores: [], time_needed: [], outliers: []):
-        """Store times needed for processing, the result of classification and the calculated score in specific txt file
 
-        :param true_labels:
-        :param z_scores:
-        :param time_needed:
-        :param outliers:
-        :return:
-        """
-        with open(f'results/times/times_[Installation Attack Tool].txt', "a+", newline='') as ia:
-            with open(f'results/times/times_[SSH Brute Force].txt', "a+", newline='') as bf:
-                with open(f'results/times/times_[SSH Privilege Escalation].txt', "a+", newline='') as pe:
-                    with open(f'results/times/times_[SSH Brute Force Response].txt', "a+", newline='') as br:
-                        with open(f'results/times/times_[SSH  Data leakage].txt', "a+", newline='') as dl:
-                            for i in range(0, len(true_labels)):
-                                if true_labels[i][0] == "Installation Attack Tool":
-                                    ia.write(f'{time_needed[i]}, {outliers[i]}, {round(z_scores[i], 7)}\n')
-                                if true_labels[i][0] == "SSH Brute Force":
-                                    bf.write(f'{time_needed[i]}, {outliers[i]}, {round(z_scores[i], 7)}\n')
-                                if true_labels[i][0] == "SSH Privilege Escalation":
-                                    pe.write(f'{time_needed[i]}, {outliers[i]}, {round(z_scores[i], 7)}\n')
-                                if true_labels[i][0] == "SSH Brute Force Response":
-                                    br.write(f'{time_needed[i]}, {outliers[i]}, {round(z_scores[i], 7)}\n')
-                                if true_labels[i][0] == "SSH  Data leakage":
-                                    dl.write(f'{time_needed[i]}, {outliers[i]}, {round(z_scores[i], 7)}\n')
-
-    def analyze_MAD(self, z_scores, labels_true):
-        """Analyze MAD threshold. Set diiferent thresholds and calculate True positive rate
-
-        :param z_scores:
-        :param labels_true:
-        :return:
-        """
-        tpr_i = []
-        i = 0
-        while i < 10:
-            outliers = z_scores > i
-            pred = ["BENIGN" if not l else "ANOMALY" for l in outliers]
-            fp, tp, fn, tn = self.confusion_matrice(pred, labels_true)
-            fpr = fp / (fp + tn)
-            tpr_i.append(fpr)
-            i += 0.1
-        with open('results/mad.txt', 'w') as file:
-            for i, tpr in enumerate(tpr_i):
-                file.write(f'{round(i * 0.1, 2)}	{tpr}\n')
 
     def training(self):
         while 1:
@@ -240,10 +188,10 @@ class Client:
         :param dataset: current dataset for training in this round
         :return: new weights after training
         """
-        model = fm.FederatedModel.create_model()
-        model.set_weights(old_server_weights)
+        model = fm.FederatedModel.build_model()
+        model.set_model_weights(old_server_weights)
         history = model.fit(dataset, dataset, verbose=1, epochs=0, batch_size=32)
-        weights = model.get_weights()  # get new weights
+        weights = model.get_model_weights()  # get new weights
         return weights
 
     def process_anomalys(self, predictions: [], true_labels: []):
