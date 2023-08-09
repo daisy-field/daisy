@@ -1,0 +1,37 @@
+"""
+    Collection of functions to process detected anomalies.
+        store:anomalies: write detected anomalies together with true label to file
+
+    Author: Seraphin Zunzer
+    Modified: 09.08.23
+"""
+
+
+
+
+def store_anomalies(self, true_labels: [], z_scores: [], time_needed: [], outliers: []):
+    """Store times needed for processing, the result of classification and the calculated score in specific txt file
+
+    :param true_labels: True labels list
+    :param z_scores: Z_scores list
+    :param time_needed: Time needed for detection
+    :param outliers: True/False list if datasample is classified as anomaly
+    :return: Write detection time and true label to given file
+    """
+    with open(f'results/times/times_[Installation Attack Tool].txt', "a+", newline='') as ia:
+        with open(f'results/times/times_[SSH Brute Force].txt', "a+", newline='') as bf:
+            with open(f'results/times/times_[SSH Privilege Escalation].txt', "a+", newline='') as pe:
+                with open(f'results/times/times_[SSH Brute Force Response].txt', "a+", newline='') as br:
+                    with open(f'results/times/times_[SSH  Data leakage].txt', "a+", newline='') as dl:
+                        for i in range(0, len(true_labels)):
+                            if true_labels[i][0] == "Installation Attack Tool":
+                                ia.write(f'{time_needed[i]}, {outliers[i]}, {round(z_scores[i], 7)}\n')
+                            if true_labels[i][0] == "SSH Brute Force":
+                                bf.write(f'{time_needed[i]}, {outliers[i]}, {round(z_scores[i], 7)}\n')
+                            if true_labels[i][0] == "SSH Privilege Escalation":
+                                pe.write(f'{time_needed[i]}, {outliers[i]}, {round(z_scores[i], 7)}\n')
+                            if true_labels[i][0] == "SSH Brute Force Response":
+                                br.write(f'{time_needed[i]}, {outliers[i]}, {round(z_scores[i], 7)}\n')
+                            if true_labels[i][0] == "SSH  Data leakage":
+                                dl.write(f'{time_needed[i]}, {outliers[i]}, {round(z_scores[i], 7)}\n')
+
