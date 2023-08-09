@@ -48,3 +48,11 @@ class FederatedModel(ABC):
         :return: compiled model
         """
         raise NotImplementedError
+
+    @abstractmethod
+    def model_predict(self, **kwargs):
+        """
+        Function to compile a model for prediction
+        :return: compiled model
+        """
+        raise NotImplementedError

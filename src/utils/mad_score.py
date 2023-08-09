@@ -6,8 +6,10 @@
 """
 import numpy as np
 
+from utils.metrics import MetricsObject
 
-def calculate_mad_score(self, points:[]):
+
+def calculate_mad_score(points:[]):
     """
     Calculate MAD Score for given list of points
 
@@ -22,7 +24,7 @@ def calculate_mad_score(self, points:[]):
 
 
 
-def analyze_mad_score(self, z_scores:[], labels_true:[]):
+def analyze_mad_score(z_scores:[], labels_true:[]):
     """Analyze MAD threshold. Set different thresholds and calculate True positive rate.
     Based on the convergence of th TPR, you can set the MAD threshold accordingly.
 
@@ -35,7 +37,7 @@ def analyze_mad_score(self, z_scores:[], labels_true:[]):
     while i < 10:
         outliers = z_scores > i
         pred = ["BENIGN" if not l else "ANOMALY" for l in outliers]
-        fp, tp, fn, tn = self.confusion_matrice(pred, labels_true)
+        fp, tp, fn, tn = MetricsObject(pred, labels_true, "Normal", "Anomaly").get_confusion_matrix()
         fpr = fp / (fp + tn)
         tpr_i.append(fpr)
         i += 0.1

@@ -16,7 +16,6 @@ input_size = 70
 class FedAutoencoder(FederatedModel):
     """Class for federated autoencoder"""
 
-    model =
     def __init__(self):
         """
         Build the autoencoder
@@ -54,6 +53,9 @@ class FedAutoencoder(FederatedModel):
 
     def fit_model(self, **kwargs):
         self.model.fit(**kwargs)
+
+    def model_predict(self, **kwargs):
+        self.model.predict(**kwargs)
 
 
 

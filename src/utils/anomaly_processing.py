@@ -6,9 +6,10 @@
     Modified: 09.08.23
 """
 from datetime import datetime
+from typing import Tuple
 
 
-def process_anomalys(self,  addr: Tuple[str, int],  predictions: [], true_labels: []):
+def process_anomalies(addr: Tuple[str, int], predictions: [], true_labels: []):
     """Function to process anomalies, e.g. delete packets, throw alerts etc.
     In this case write anomaly to file with timestamp.
 
@@ -25,7 +26,7 @@ def process_anomalys(self,  addr: Tuple[str, int],  predictions: [], true_labels
                 txt_file.write(f" {timestamp} - {true_labels[i]}  \n")
 
 
-def store_anomalies(self, true_labels: [], z_scores: [], time_needed: [], outliers: []):
+def store_anomalies(true_labels: [], z_scores: [], time_needed: [], outliers: []):
     """Store times needed for processing, the result of classification and the calculated score in specific txt file
 
     :param true_labels: True labels list

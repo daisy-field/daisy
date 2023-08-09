@@ -17,8 +17,11 @@ from tensorflow.keras import backend as K
 
 import src.communication.message_stream as ms
 import src.data_sources.data_source as ds
+import utils.anomaly_processing
 import utils.metrics as metrics
+from data_sources import PcapHandler, PysharkProcessor
 from federated_model import federated_model as fm
+from federated_model.models.autoencoder import FedAutoencoder
 from utils.mad_score import calculate_mad_score
 
 logging.basicConfig(format="%(asctime)s %(levelname)-8s %(message)s", datefmt="%Y-%m-%d %H:%M:%S",
@@ -38,7 +41,7 @@ class Client:
 
     def __init__(self, addr: Tuple[str, int], agg_addr: Tuple[str, int], eval_addr: Tuple[str, int],
                  data_source: ds.DataSource, federated_model: fm.FederatedModel, threshold_prediction: int = 2.2,
-                 train_batchsize: int = 256):
+                 train_batchsize: int = 256, normal_label: str ="Benign", anomaly_label: str ="Anomaly"):
         """
 
         :param addr: Address of this client
@@ -62,9 +65,12 @@ class Client:
         self._data_sorce = data_source
         self._train_count = 0
         self._addr= addr
+        self._global_weights= []
         self.data_batch_queue = []
         self.label_batch_queue = []
 
+        self._anomaly_label = anomaly_label
+        self._normal_label = normal_label
         self._model = federated_model
         self._prediction_model = federated_model
         self._agg_endpoint = ms.StreamEndpoint(name="Aggregator", addr=addr, remote_addr=agg_addr)
@@ -73,7 +79,7 @@ class Client:
     def start_training(self):
         while 1:
             try:
-                global_weights = self._agg_endpoint.receive(300)
+                self._global_weights = self._agg_endpoint.receive(300)
             except socket.timeout:
                 logging.warning("Server not available")
                 continue
@@ -83,7 +89,7 @@ class Client:
                 logging.info(f"Start training on client {self._addr} with {len(train_dataset)} samples")
                 self._model.build_model()
                 self._model.compile_model()
-                self._model.set_model_weights(global_weights)
+                self._model.set_model_weights(self._global_weights)
                 self._model.fit_model(x=train_dataset, y=train_dataset, verbose=1, epochs=0, batch_size=32)
 
                 self.data_batch_queue = []
@@ -109,9 +115,8 @@ class Client:
         """
         logging.info(f"START CLIENT {self._addr}")
 
-
-        t = threading.Thread(target=start_training, name="Training", daemon=True)
-        t.open()
+        training_thread = threading.Thread(target=self.start_training,name="Training", daemon=True)
+        training_thread.start()
 
         #receive data from datasource
         self._data_sorce.open()
@@ -136,25 +141,24 @@ class Client:
             self.make_predictions(np.array(self.data_queue), np.array(self.label_queue),
                                   np.array(self.time_queue))
 
-            self.data_batch_queue.append(pred_dataset)
-            self.label_batch_queue.append(pred_labels)
+            self.data_batch_queue.append(self.data_queue)
+            self.label_batch_queue.append(self.label_queue)
         else:
             self.data_batch_queue.append(self.data_queue)
             self.label_batch_queue.append(self.label_queue)
 
-    def make_predictions(self, endpoint: ms.StreamEndpoint, dataset: np.array, true_labels: np.array,
+    def make_predictions(self, dataset: np.array, true_labels: np.array,
                          pred_time: np.array):
         """Make predictions on the last databatch with latest global model weights.
 
-        :param prediction_weights:
-        :param dataset:
-        :param true_labels:
-        :param pred_time:
+        :param dataset: dataset to make predictions on
+        :param true_labels: true labels belonging to dataset
+        :param pred_time: List of times, the data samples arrived
         :return:
         """
-        self._prediction_model.set_model_weights(self)
+        self._prediction_model.set_model_weights(self._global_weights)
         try:
-            reconstructions = self._prediction_model.predict(dataset)
+            reconstructions = self._prediction_model.model_predict(x=dataset)
             mse = np.mean(np.power(dataset - reconstructions, 2), axis=1)
         except Exception as e:
             logging.error(e)
@@ -163,27 +167,28 @@ class Client:
 
         z_scores = calculate_mad_score(mse)
 
-        outliers = z_scores > threshold_prediction
+        outliers = z_scores > self._threshold_prediction
 
         # get lists of the predicted and the true labels
-        prediction = [self.anomaly if l else self.normal for l in outliers]
-        labels_true = [self.normal if k == self.normal else self.anomaly for k in true_labels]
+        prediction = [self._anomaly_label if l else self._normal_label for l in outliers]
+        labels_true = [self._normal_label if k == self._normal_label else self._anomaly_label for k in true_labels]
 
         time_needed = [(datetime.now() - pred_time[j]).total_seconds() for j in range(len(true_labels))]
 
-        metrics_obj = metrics.MetricsObject(prediction, labels_true, "Benign", "Anomaly")
+        metrics_obj = metrics.MetricsObject(prediction, labels_true, self._anomaly_label, self._normal_label)
 
         logging.info(
-            f'Client {self._addr}: False positives: {evaluation.metrics[0]}, True positives: {evaluation.metrics[1]},'
-            f'False negatives: {evaluation.metrics[2]}, True negatives: {evaluation.metrics[3]}')
+            f'Client {self._addr}: False positives: {metrics_obj.metrics[0]}, True positives: {metrics_obj.metrics[1]},'
+            f'False negatives: {metrics_obj.metrics[2]}, True negatives: {metrics_obj.metrics[3]}')
 
-        # self.store_anomalies(labels_true, z_scores, time_needed, outliers)
-        # self.analyze_MAD(z_scores, labels_true)
+        utils.anomaly_processing.store_anomalies(labels_true, z_scores, time_needed, outliers)
+        utils.mad_score.analyze_mad_score(z_scores, labels_true)
 
-        endpoint.send(metrics_obj)
+        self._eval_endpoint.send(metrics_obj)
 
 
 
 if __name__ == "__main__":
-    client = Client(("127.0.0.1", 54321), ("127.0.0.1", 54322), ("127.0.0.1", 54323))  # TODO fm.FederatedModel())
+    d =  ds.DataSource("test", source_handler=PcapHandler('test_data'), data_processor=PysharkProcessor())
+    client = Client(("127.0.0.1", 54321), ("127.0.0.1", 54322), ("127.0.0.1", 54323), data_source=d, federated_model=FedAutoencoder())
     client.run()
