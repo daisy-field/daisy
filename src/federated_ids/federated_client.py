@@ -1,8 +1,9 @@
-#
-#   Created: 2023
-#   Author: Seraphin Zunzer
-#   License: MIT License
-# ---------------------------------------------------------------
+"""
+    Class for Federated Client
+
+    Author: Seraphin Zunzer
+    Modified: 09.08.23
+"""
 
 
 import logging
@@ -38,30 +39,67 @@ class Client:
     def __init__(self, addr: Tuple[str, int], agg_addr: Tuple[str, int], eval_addr: Tuple[str, int],
                  data_source: ds.DataSource, federated_model: fm.FederatedModel, threshold_prediction: int = 2.2,
                  train_batchsize: int = 256):
+        """
 
+        :param addr: Address of this client
+        :param agg_addr: Address of aggregation server
+        :param eval_addr: Address of evaluation server
+        :param data_source: Datasource
+        :param federated_model: Federated Model
+        :param threshold_prediction: Prediction threshold
+        :param train_batchsize: Batchsize of training
+        """
         self.train_data_batch = []  # container for data that should be trained with
         self.train_data_label = []
 
-        self.data_queue = []
+        self.data_queue = [] # container for incoming data from datasource
         self.label_queue = []
         self.time_queue = []
 
-        self._addr = addr
-        self._agg_addr = agg_addr
-        self._eval_addr = eval_addr
 
         self._data_batchsize = train_batchsize
         self._threshold_prediction = threshold_prediction
         self._data_sorce = data_source
-        self._global_weights = []
         self._train_count = 0
-
+        self._addr= addr
         self.data_batch_queue = []
         self.label_batch_queue = []
 
-        self._prediction_model = federated_model.compile_model()
+        self._model = federated_model
+        self._prediction_model = federated_model
+        self._agg_endpoint = ms.StreamEndpoint(name="Aggregator", addr=addr, remote_addr=agg_addr)
+        self._eval_endpoint = ms.StreamEndpoint(name="Evaluator", addr=addr, remote_addr=eval_addr)
 
-        threading.Thread.__init__(self)
+    def start_training(self):
+        while 1:
+            try:
+                global_weights = self._agg_endpoint.receive(300)
+            except socket.timeout:
+                logging.warning("Server not available")
+                continue
+
+            if len(self.data_batch_queue) >= 1:
+                train_dataset = np.array([item for sublist in self.data_batch_queue for item in sublist])
+                logging.info(f"Start training on client {self._addr} with {len(train_dataset)} samples")
+                self._model.build_model()
+                self._model.compile_model()
+                self._model.set_model_weights(global_weights)
+                self._model.fit_model(x=train_dataset, y=train_dataset, verbose=1, epochs=0, batch_size=32)
+
+                self.data_batch_queue = []
+                self.label_batch_queue = []
+
+                try:
+                    self._agg_endpoint.send(self._model.get_model_weights())
+                except:
+                    logging.error("Error in sending weights to aggregation server")
+
+                logging.info("Finished training, closed session")
+                K.clear_session()  # clear model
+            else:
+                logging.warning("No data available for training")
+                self._agg_endpoint.send("No data")
+
 
     def run(self):
         """Collect samples until the data batch size is reached. Save this batch
@@ -71,37 +109,31 @@ class Client:
         """
         logging.info(f"START CLIENT {self._addr}")
 
-        # create data receiving thread
-        data_thread = Data_Receiving_Thread()
-        data_thread.open()
 
-        _agg_endpoint = ms.StreamEndpoint(name="Aggregator", addr=self._addr, remote_addr=self._agg_addr)
-        _eval_endpoint = ms.StreamEndpoint(name="Evaluator", addr=self._addr, remote_addr=self._eval_addr)
-
-        t = threading.Thread(target=training, name="Training", daemon=True)
+        t = threading.Thread(target=start_training, name="Training", daemon=True)
         t.open()
 
+        #receive data from datasource
         self._data_sorce.open()
         for i in self._data_sorce:
             self.data_queue.append(i)
             self.label_queue.append("Normal")
             self.time_queue.append(datetime.now())
             if len(self.data_queue) > self._data_batchsize:
-                self.start_prediction(_eval_endpoint)
+                self.start_prediction()
 
                 # empty containers
                 self.data_queue = []
                 self.label_queue = []
                 self.time_queue = []
 
-    def start_prediction(self, _eval_endpoint: ms.StreamEndpoint):
+    def start_prediction(self):
         """If Model is trained and data for prediction is available start prediction, otherwise train model
 
         :return: -
         """
-
-        if train_count > 0:
-            self.make_predictions(_eval_endpoint, np.array(self.data_queue), np.array(self.label_queue),
+        if self._train_count > 0:
+            self.make_predictions(np.array(self.data_queue), np.array(self.label_queue),
                                   np.array(self.time_queue))
 
             self.data_batch_queue.append(pred_dataset)
@@ -120,7 +152,7 @@ class Client:
         :param pred_time:
         :return:
         """
-        self._prediction_model.set_weights(GLOBAL_WEIGHTS)
+        self._prediction_model.set_model_weights(self)
         try:
             reconstructions = self._prediction_model.predict(dataset)
             mse = np.mean(np.power(dataset - reconstructions, 2), axis=1)
@@ -150,65 +182,6 @@ class Client:
 
         endpoint.send(metrics_obj)
 
-
-
-
-    def training(self):
-        while 1:
-            try:
-                self._global_weights = _agg_endpoint.recv(300)
-            except socket.timeout:
-                logging.warning("Server not available")
-                continue
-
-            if len(self.data_batch_queue) >= 1:
-                train_dataset = np.array([item for sublist in self.data_batch_queue for item in sublist])
-                logging.info(f"Start training on client {CLIENT_ID} with {len(train_dataset)} samples")
-                self.local_weights = self.client_update(self._global_weights, train_dataset)
-                self.data_batch_queue = []
-                self.label_batch_queue = []
-
-                data_thread.train_data_batch = []
-
-                try:
-                    _agg_endpoint.send(self._local_weights)
-                except:
-                    logging.error("Could not send weights back")
-
-                logging.info("Finished training, closed session")
-                K.clear_session()  # clear model
-            else:
-                logging.warning("No data available for training")
-                _agg_endpoint.send("No data")
-
-    def client_update(self, old_server_weights: [], dataset: []):
-        """
-        Performs training using the received server model weights on the client's dataset
-
-        :param dataset: current dataset for training in this round
-        :return: new weights after training
-        """
-        model = fm.FederatedModel.build_model()
-        model.set_model_weights(old_server_weights)
-        history = model.fit(dataset, dataset, verbose=1, epochs=0, batch_size=32)
-        weights = model.get_model_weights()  # get new weights
-        return weights
-
-    def process_anomalys(self, predictions: [], true_labels: []):
-        """Function to process anomalies, e.g. delete packets, throw alerts etc.
-        In this case write anomaly to file with timestamp.
-
-        :param predictions:
-        :param true_labels:
-        :return:
-        """
-        now = datetime.now()
-        timestamp = now.strftime("%m/%d/%Y, %H:%M:%S")
-
-        with open(f"results_{CLIENT_ID}.txt", "a") as txt_file:
-            for i in range(len(predictions)):
-                if predictions[i] == "anomaly":
-                    txt_file.write(f" {timestamp} - {true_labels[i]}  \n")
 
 
 if __name__ == "__main__":
