@@ -16,7 +16,8 @@ input_size = 70
 class FedAutoencoder(FederatedModel):
     """Class for federated autoencoder"""
 
-    def build_model(self):
+    model =
+    def __init__(self):
         """
         Build the autoencoder
 
@@ -32,7 +33,9 @@ class FedAutoencoder(FederatedModel):
             keras.layers.Dense(input_size),
             keras.layers.Activation("sigmoid"),
         ])
-        return encoder, decoder
+        input_format = keras.layers.Input(shape=(input_size,))
+        self.model = tf.keras.models.Model(inputs=input_format, outputs=decoder(encoder(input_format)))
+        self.model.fit()
 
     def compile_model(self):
         """
@@ -40,17 +43,17 @@ class FedAutoencoder(FederatedModel):
 
         :return: compiled model
         """
-        input_format = keras.layers.Input(shape=(input_size,))
-        enc, dec = self.build_model()
-        model = tf.keras.models.Model(inputs=input_format, outputs=dec(enc(input_format)))
-        model.compile(optimizer=keras.optimizers.Adam(lr=0.0001), loss='mse', metrics=[])
-        return model
+        self.model.compile(optimizer=keras.optimizers.Adam(lr=0.0001), loss='mse', metrics=[])
+        return self.model
 
     def set_model_weights(self, weights):
-        self.set_weights(weights)
+        self.model.set_weights(weights)
 
     def get_model_weights(self):
-        self.set_weights()
+        self.model.set_weights()
+
+    def fit_model(self, **kwargs):
+        self.model.fit(**kwargs)
 
 
 
