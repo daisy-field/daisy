@@ -1,6 +1,7 @@
 """
     Collection of functions to process detected anomalies.
-        store:anomalies: write detected anomalies together with true label to file
+        process_anomalies: write all detected anomalies together with true label in file
+        store_anomalies: write detected anomalies to file based on anomaly type
 
     Author: Seraphin Zunzer
     Modified: 09.08.23

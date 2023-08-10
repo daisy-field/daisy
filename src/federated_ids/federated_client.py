@@ -20,8 +20,8 @@ import src.data_sources.data_source as ds
 import utils.anomaly_processing
 import utils.metrics as metrics
 from data_sources import PcapHandler, PysharkProcessor
-from federated_model import federated_model as fm
-from federated_model.models.autoencoder import FedAutoencoder
+from federated_models import federated_model as fm
+from federated_models.models.autoencoder import FedAutoencoder
 from utils.mad_score import calculate_mad_score
 
 logging.basicConfig(format="%(asctime)s %(levelname)-8s %(message)s", datefmt="%Y-%m-%d %H:%M:%S",
@@ -191,7 +191,9 @@ class Client:
 
 
 if __name__ == "__main__":
+    logging.basicConfig(format="%(asctime)s %(levelname)-8s %(name)-10s %(message)s", datefmt="%Y-%m-%d %H:%M:%S",
+                        level=logging.INFO)
+
     d =  ds.DataSource("test", source_handler=PcapHandler('test_data'), data_processor=PysharkProcessor())
-    fed_auto = FedAutoencoder()
-    client = Client(("127.0.0.1", 54321), ("127.0.0.1", 54322), ("127.0.0.1", 54323), data_source=d, federated_model=fed_auto)
+    client = Client(("127.0.0.1", 54321), ("127.0.0.1", 54322), ("127.0.0.1", 54323), data_source=d, federated_model=FedAutoencoder())
     client.run()
