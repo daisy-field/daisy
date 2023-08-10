@@ -1,5 +1,5 @@
 """
-    Federated autoencoder that implements federated_model interface.
+    Federated autoencoder that implements federated_models interface.
 
     Author: Seraphin Zunzer
     Modified: 09.08.23
@@ -8,7 +8,8 @@
 
 import keras
 import tensorflow as tf
-from federated_model.federated_model import FederatedModel
+
+from federated_models.federated_model import FederatedModel
 
 input_size = 70
 
