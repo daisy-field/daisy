@@ -63,30 +63,35 @@ class AggregationServer():
 
         training_thread = threading.Thread(target=self.recv_registrations, name="Registration", daemon=True)
         training_thread.start()
-
+        sleep(10)
         _round = 0
         while 1:
             logging.info(f"START ROUND {_round} ")
+            logging.info(f'Registered Clients: {self.client_queue}')
 
             for client in self.client_queue:
                 client.send(self._model.model.get_weights())
+                logging.info(f"Started training on client {client}.")
 
+            logging.info("Started training on all available clients.")
 
-            logging.info(f'Registered Clients: {self.client_queue}')
-            logging.info("Started training on all available clients.\n")
-
-            sleep(100)
+            sleep(10)
 
 
             for client in self.client_queue:
-                logging.info(f"Start receiving of local weights of client {client}.\n")
-                #client_weights = client.receive()
-                logging.info(f"Start aggregation of local weights of client {client}.\n")
-                #aggregated_weights = self._aggregation_method.aggregate(self._model.model.get_weights(), client_weights)
-                logging.info(f"Set new global weights.\n")
-                #self._model.model.set_weights(aggregated_weights)
+                logging.info(f"Waiting for weights of client {client}.")
+                try:
+                    client_weights = client.receive(10)
+                    logging.info(f"Received weights from {client}. Start aggregation of weights.")
+                    aggregated_weights = self._aggregation_method.aggregate(self._model.model.get_weights(),
+                                                                            client_weights)
+                    logging.info(f"Set new global weights.")
+                    self._model.model.set_weights(aggregated_weights)
+                except TimeoutError:
+                    logging.warning(f'{client} did not respond.')
 
-            logging.info("Finished training on all available clients.\n")
+            logging.info("Finished training on all available clients.")
+            sleep(10)
             _round += 1
 
 

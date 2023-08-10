@@ -11,7 +11,7 @@ import tensorflow as tf
 
 from federated_models.federated_model import FederatedModel
 
-input_size = 70
+input_size = 65
 
 
 class FedAutoencoder(FederatedModel):
@@ -44,21 +44,11 @@ class FedAutoencoder(FederatedModel):
 
         :return: compiled model
         """
-        self.model.compile(optimizer=keras.optimizers.Adam(lr=0.0001), loss='mse', metrics=[])
+        self.model.compile(optimizer=keras.optimizers.Adam(learning_rate=0.0001), loss='mse', metrics=[])
         logging.info("Compiled Model")
         return self.model
 
-    def set_model_weights(self, weights):
-        self.model.set_weights(weights)
 
-    def get_model_weights(self):
-        self.model.get_weights()
-
-    def fit_model(self, **kwargs):
-        self.model.fit(**kwargs)
-
-    def model_predict(self, **kwargs):
-        self.model.predict(**kwargs)
 
 
 

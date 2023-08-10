@@ -10,6 +10,7 @@ import logging
 import socket
 import threading
 from datetime import datetime
+from time import sleep
 from typing import Tuple
 
 import numpy as np
@@ -41,7 +42,7 @@ class Client:
 
     def __init__(self, addr: Tuple[str, int], agg_addr: Tuple[str, int], eval_addr: Tuple[str, int],
                  data_source: ds.DataSource, federated_model: fm.FederatedModel, threshold_prediction: int = 2.2,
-                 train_batchsize: int = 256, normal_label: str ="Benign", anomaly_label: str ="Anomaly"):
+                 train_batchsize: int = 32, normal_label: str ="Benign", anomaly_label: str ="Anomaly", epochs: int=20):
         """
 
         :param addr: Address of this client
@@ -73,7 +74,7 @@ class Client:
         self._normal_label = normal_label
         self._model = federated_model
         self._prediction_model = federated_model
-
+        self._epochs = epochs
         logging.info(f"Starting Endpoints.")
 
         self._agg_endpoint = ms.StreamEndpoint(name="Agg_connection", acceptor=False, multithreading=False, addr=addr, remote_addr=agg_addr)
@@ -86,26 +87,28 @@ class Client:
         while 1:
             try:
                 logging.info("Waiting for model weights")
-                buffer = self._agg_endpoint.receive()
-                logging.info("Received model weights")
-                logging.info(buffer)
-                self._global_weights = buffer
+                self._global_weights = self._agg_endpoint.receive()
+                logging.info(f"Received new global model weights.")
+
             except socket.timeout:
                 logging.warning("Server not available")
                 continue
 
             if len(self.data_batch_queue) >= 1:
                 train_dataset = np.array([item for sublist in self.data_batch_queue for item in sublist])
-                logging.info(f"Start training on client {self._addr} with {len(train_dataset)} samples")
+                print(train_dataset)
+                logging.info(f"Prepare training on client {self._addr} with {len(train_dataset)} samples")
                 self._model.compile_model()
-                self._model.set_model_weights(self._global_weights)
-                self._model.fit_model(x=train_dataset, y=train_dataset, verbose=1, epochs=0, batch_size=32)
+                self._model.model.set_weights(self._global_weights)
+                logging.info("STARTED TRAINING")
+                self._model.model.fit(x=train_dataset, y=train_dataset, epochs=self._epochs, verbose=1, batch_size=32)
+                logging.info("TRAINING FINISHED")
 
                 self.data_batch_queue = []
                 self.label_batch_queue = []
 
                 try:
-                    self._agg_endpoint.send(self._model.get_model_weights())
+                    self._agg_endpoint.send(self._model.model.get_weights())
                 except:
                     logging.error("Error in sending weights to aggregation server")
 
@@ -113,7 +116,6 @@ class Client:
                 K.clear_session()  # clear model
             else:
                 logging.warning("No data available for training")
-                self._agg_endpoint.send("No data")
 
 
     def run(self):
@@ -127,13 +129,17 @@ class Client:
         training_thread.start()
 
         #receive data from datasource
-        #self._data_sorce.open()
-        for i in []: #self._data_sorce:
+        self._data_sorce.open()
+        for i in self._data_sorce:
             self.data_queue.append(i)
             self.label_queue.append("Normal")
             self.time_queue.append(datetime.now())
+            sleep(0.1)
             if len(self.data_queue) > self._data_batchsize:
-                self.start_prediction()
+                #self.start_prediction()
+                self.data_batch_queue.append(self.data_queue)
+                self.label_batch_queue.append(self.label_queue)
+                logging.info(f"One data batch filled. Currently {len(self.data_batch_queue)} batches for training available")
 
                 # empty containers
                 self.data_queue = []
