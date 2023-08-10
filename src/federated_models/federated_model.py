@@ -8,6 +8,7 @@ from abc import ABC, abstractmethod
 
 
 class FederatedModel(ABC):
+    model = None
 
     @abstractmethod
     def get_model_weights(self):

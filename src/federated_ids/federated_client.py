@@ -73,15 +73,23 @@ class Client:
         self._normal_label = normal_label
         self._model = federated_model
         self._prediction_model = federated_model
-        self._agg_endpoint = ms.StreamEndpoint(name="Aggregator", addr=addr, remote_addr=agg_addr)
+
+        logging.info(f"Starting Endpoints.")
+
+        self._agg_endpoint = ms.StreamEndpoint(name="Agg_connection", acceptor=False, multithreading=False, addr=addr, remote_addr=agg_addr)
         self._agg_endpoint.start()
-        self._eval_endpoint = ms.StreamEndpoint(name="Evaluator", addr=addr, remote_addr=eval_addr)
-        self._eval_endpoint.start()
+        #self._eval_endpoint = ms.StreamEndpoint(name="Eval_connection", acceptor=False, addr=addr, remote_addr=eval_addr)
+        #self._eval_endpoint.start()
+        logging.info(f"Client {addr} started.")
 
     def start_training(self):
         while 1:
             try:
-                self._global_weights = self._agg_endpoint.receive(300)
+                logging.info("Waiting for model weights")
+                buffer = self._agg_endpoint.receive()
+                logging.info("Received model weights")
+                logging.info(buffer)
+                self._global_weights = buffer
             except socket.timeout:
                 logging.warning("Server not available")
                 continue
@@ -89,7 +97,6 @@ class Client:
             if len(self.data_batch_queue) >= 1:
                 train_dataset = np.array([item for sublist in self.data_batch_queue for item in sublist])
                 logging.info(f"Start training on client {self._addr} with {len(train_dataset)} samples")
-                self._model.build_model()
                 self._model.compile_model()
                 self._model.set_model_weights(self._global_weights)
                 self._model.fit_model(x=train_dataset, y=train_dataset, verbose=1, epochs=0, batch_size=32)
@@ -115,14 +122,13 @@ class Client:
         :return: -
 
         """
-        logging.info(f"START CLIENT {self._addr}")
 
         training_thread = threading.Thread(target=self.start_training,name="Training", daemon=True)
         training_thread.start()
 
         #receive data from datasource
-        self._data_sorce.open()
-        for i in self._data_sorce:
+        #self._data_sorce.open()
+        for i in []: #self._data_sorce:
             self.data_queue.append(i)
             self.label_queue.append("Normal")
             self.time_queue.append(datetime.now())

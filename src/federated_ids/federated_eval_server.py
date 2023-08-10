@@ -4,6 +4,7 @@
     Author: Seraphin Zunzer
     Modified: 09.05.22
 """
+
 import logging
 import threading
 
@@ -17,43 +18,26 @@ import plotly.express as px
 import plotly.graph_objs as go
 from dash.dependencies import Output, Input
 
+from communication import StreamEndpoint
+
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
+from typing import Tuple
 
 
-# TODO implement continious evaluation metrics receiving from clients, save the values and adapt callbacks to plot them
 
-
-class evaluation_server():
+class EvaluationServer():
     evaluation_objects = []
 
     def __init__(self, addr: Tuple[str, int]):
         self._addr = addr
-        self._eval_server = ms.StreamEndpoint(self._addr)
+        self._eval_server = StreamEndpoint(name="Evaluator", addr = self._addr)
+        self._eval_server.start()
+        self.evaluation_objects =[]
         while 1:
-            evaluation_objects.append(_eval_server.recv())
+            self.evaluation_objects.append(self._eval_server.receive())
 
-    def overall_performance(self, eval_obj_list: []):
-        """Calculate the average performance of multiple metrics objects
 
-        :return:
-        """
-        all_metrics = [0, 0, 0, 0]
-        for i in eval_obj_list:
-            [sum(x) for x in zip(all_metrics, i.metrics)]
-
-        overall_fp = all_metrics[0]
-        overall_tp = all_metrics[1]
-        overall_fn = all_metrics[2]
-        overall_tn = all_metrics[3]
-
-        overall_fpr = (overall_fp + overall_tn) and overall_fp / (overall_fp + overall_tn)
-        overall_tpr = (overall_tp + overall_fn) and overall_tp / (overall_tp + overall_fn)
-        overall_fnr = (overall_fn + overall_tp) and overall_fn / (overall_fn + overall_tp)
-        overall_ac = (overall_tp + overall_tn + overall_fp + overall_fn) and (overall_tp + overall_tn) / (
-                overall_tp + overall_tn + overall_fp + overall_fn)
-
-        return overall_fpr, overall_tpr, overall_fnr, overall_ac
 
 
 class Dashboard(threading.Thread):
@@ -419,5 +403,7 @@ class Dashboard(threading.Thread):
 
 
 if __name__ == "__main__":
-    dashboard = Dashboard()
-    dashboard.start()
+    eval = EvaluationServer(("127.0.0.1", 54323))
+
+    #dashboard = Dashboard()
+    #dashboard.start()

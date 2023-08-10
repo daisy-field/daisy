@@ -84,3 +84,27 @@ class MetricsObject():
             return (2 * tp) / ((2 * tp) + fp + fn)
         except ZeroDivisionError:
             return 0
+
+
+
+def overall_performance(self, eval_obj_list: []):
+    """Calculate the average performance of multiple metrics objects
+
+    :return:
+    """
+    all_metrics = [0, 0, 0, 0]
+    for i in eval_obj_list:
+        [sum(x) for x in zip(all_metrics, i.metrics)]
+
+    overall_fp = all_metrics[0]
+    overall_tp = all_metrics[1]
+    overall_fn = all_metrics[2]
+    overall_tn = all_metrics[3]
+
+    overall_fpr = (overall_fp + overall_tn) and overall_fp / (overall_fp + overall_tn)
+    overall_tpr = (overall_tp + overall_fn) and overall_tp / (overall_tp + overall_fn)
+    overall_fnr = (overall_fn + overall_tp) and overall_fn / (overall_fn + overall_tp)
+    overall_ac = (overall_tp + overall_tn + overall_fp + overall_fn) and (overall_tp + overall_tn) / (
+            overall_tp + overall_tn + overall_fp + overall_fn)
+
+    return overall_fpr, overall_tpr, overall_fnr, overall_ac

@@ -4,7 +4,7 @@
     Author: Seraphin Zunzer
     Modified: 09.08.23
 """
-
+import logging
 
 import keras
 import tensorflow as tf
@@ -16,6 +16,7 @@ input_size = 70
 
 class FedAutoencoder(FederatedModel):
     """Class for federated autoencoder"""
+    model = None
 
     def __init__(self):
         """
@@ -35,6 +36,7 @@ class FedAutoencoder(FederatedModel):
         ])
         input_format = keras.layers.Input(shape=(input_size,))
         self.model = tf.keras.models.Model(inputs=input_format, outputs=decoder(encoder(input_format)))
+        logging.info("Model created")
 
     def compile_model(self):
         """
@@ -43,6 +45,7 @@ class FedAutoencoder(FederatedModel):
         :return: compiled model
         """
         self.model.compile(optimizer=keras.optimizers.Adam(lr=0.0001), loss='mse', metrics=[])
+        logging.info("Compiled Model")
         return self.model
 
     def set_model_weights(self, weights):
