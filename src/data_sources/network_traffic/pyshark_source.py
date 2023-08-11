@@ -23,8 +23,9 @@ from pyshark.packet.layers.json_layer import JsonLayer
 from pyshark.packet.layers.xml_layer import XmlLayer
 from pyshark.packet.packet import Packet
 
-from src.data_sources.data_source import DataProcessor, SourceHandler, DataSource
+from src.data_sources.data_source import DataProcessor, SourceHandler
 
+# TODO string values must be encoded as well, not just lists!
 default_f = (
     'meta.len',
     'meta.time',

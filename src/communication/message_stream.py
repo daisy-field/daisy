@@ -22,6 +22,7 @@ from lz4.frame import compress, decompress
 
 # FIXME blocked addresses upon closing endpoint socket without ever shutting it down or never starting it at all
 # TODO optional SSL https://docs.python.org/3/library/ssl.html
+# TODO POLL AND SELECT METHODS
 
 class EndpointSocket:
     """A bundle of up to two sockets, that is used to communicate with another endpoint over a persistent TCP

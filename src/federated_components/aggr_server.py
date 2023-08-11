@@ -19,37 +19,35 @@ from typing import Tuple
 import src.communication.message_stream as ms
 from federated_models.federated_model import FederatedModel
 from federated_models.models.autoencoder import FedAutoencoder
-
-from model_aggregation.federated_aggregation import FederatedAggregation
 from model_aggregation.FedAvg.fedavg import FedAvg
+from model_aggregation.federated_aggregation import FederatedAggregation
 
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
 
-
 class AggregationServer():
     client_queue = []
 
-    def __init__(self, addr: Tuple[str, int], federated_model: FederatedModel, aggregation_method: FederatedAggregation):
+    def __init__(self, addr: Tuple[str, int], federated_model: FederatedModel,
+                 aggregation_method: FederatedAggregation):
         self._addr = addr
         self._model = federated_model
         self._aggregation_method = aggregation_method
-        self.client_queue=[]
+        self.client_queue = []
 
     def recv_registrations(self):
-            """
-            Receive registration thread function.
-            Wait for clients to connect and add client StreamEndpoints to client_queue
+        """
+        Receive registration thread function.
+        Wait for clients to connect and add client StreamEndpoints to client_queue
 
-            :return: -
-            """
-            while 1:
-                new_client = ms.StreamEndpoint(name="Registration", addr=self._addr, acceptor=True, multithreading=False)
-                new_client.start()
-                logging.info("Client registered")
-                self.client_queue.append(new_client)
-
+        :return: -
+        """
+        while 1:
+            new_client = ms.StreamEndpoint(name="Registration", addr=self._addr, acceptor=True, multithreading=False)
+            new_client.start()
+            logging.info("Client registered")
+            self.client_queue.append(new_client)
 
     def run(self):
         """Run federated training process:
@@ -70,23 +68,22 @@ class AggregationServer():
             logging.info(f'Registered Clients: {self.client_queue}')
 
             for client in self.client_queue:
-                client.send(self._model.model.get_weights())
+                client.send(self._model._model.get_weights())
                 logging.info(f"Started training on client {client}.")
 
             logging.info("Started training on all available clients.")
 
             sleep(10)
 
-
             for client in self.client_queue:
                 logging.info(f"Waiting for weights of client {client}.")
                 try:
                     client_weights = client.receive(10)
                     logging.info(f"Received weights from {client}. Start aggregation of weights.")
-                    aggregated_weights = self._aggregation_method.aggregate(self._model.model.get_weights(),
+                    aggregated_weights = self._aggregation_method.aggregate(self._model._model.get_weights(),
                                                                             client_weights)
                     logging.info(f"Set new global weights.")
-                    self._model.model.set_weights(aggregated_weights)
+                    self._model._model.set_weights(aggregated_weights)
                 except TimeoutError:
                     logging.warning(f'{client} did not respond.')
 
@@ -95,10 +92,10 @@ class AggregationServer():
             _round += 1
 
 
+# TODO MUST BE OUTSOURCED INTO A PROPER STARTSCRIPT FOR DEMO PURPOSES
 if __name__ == "__main__":
     logging.basicConfig(format="%(asctime)s %(levelname)-8s %(name)-10s %(message)s", datefmt="%Y-%m-%d %H:%M:%S",
                         level=logging.INFO)
 
-    agg = AggregationServer(("127.0.0.1", 54322), federated_model=FedAutoencoder(), aggregation_method = FedAvg())
+    agg = AggregationServer(("127.0.0.1", 54322), federated_model=FedAutoencoder(), aggregation_method=FedAvg())
     agg.run()
-

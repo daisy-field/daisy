@@ -5,7 +5,6 @@
     Modified: 09.08.23
 """
 
-
 import logging
 import socket
 import threading
@@ -18,12 +17,12 @@ from tensorflow.keras import backend as K
 
 import src.communication.message_stream as ms
 import src.data_sources.data_source as ds
-import utils.anomaly_processing
-import utils.metrics as metrics
+import evaluation.anomaly_processing
+import evaluation.metrics as metrics
 from data_sources import PcapHandler, PysharkProcessor
 from federated_models import federated_model as fm
 from federated_models.models.autoencoder import FedAutoencoder
-from utils.mad_score import calculate_mad_score
+from evaluation.mad_score import calculate_mad_score
 
 logging.basicConfig(format="%(asctime)s %(levelname)-8s %(message)s", datefmt="%Y-%m-%d %H:%M:%S",
                     level=logging.DEBUG)
@@ -42,7 +41,8 @@ class Client:
 
     def __init__(self, addr: Tuple[str, int], agg_addr: Tuple[str, int], eval_addr: Tuple[str, int],
                  data_source: ds.DataSource, federated_model: fm.FederatedModel, threshold_prediction: int = 2.2,
-                 train_batchsize: int = 32, normal_label: str ="Benign", anomaly_label: str ="Anomaly", epochs: int=20):
+                 train_batchsize: int = 32, normal_label: str = "Benign", anomaly_label: str = "Anomaly",
+                 epochs: int = 20):
         """
 
         :param addr: Address of this client
@@ -56,17 +56,16 @@ class Client:
         self.train_data_batch = []  # container for data that should be trained with
         self.train_data_label = []
 
-        self.data_queue = [] # container for incoming data from datasource
+        self.data_queue = []  # container for incoming data from datasource
         self.label_queue = []
         self.time_queue = []
-
 
         self._data_batchsize = train_batchsize
         self._threshold_prediction = threshold_prediction
         self._data_sorce = data_source
         self._train_count = 0
-        self._addr= addr
-        self._global_weights= []
+        self._addr = addr
+        self._global_weights = []
         self.data_batch_queue = []
         self.label_batch_queue = []
 
@@ -77,10 +76,11 @@ class Client:
         self._epochs = epochs
         logging.info(f"Starting Endpoints.")
 
-        self._agg_endpoint = ms.StreamEndpoint(name="Agg_connection", acceptor=False, multithreading=False, addr=addr, remote_addr=agg_addr)
+        self._agg_endpoint = ms.StreamEndpoint(name="Agg_connection", acceptor=False, multithreading=False, addr=addr,
+                                               remote_addr=agg_addr)
         self._agg_endpoint.start()
-        #self._eval_endpoint = ms.StreamEndpoint(name="Eval_connection", acceptor=False, addr=addr, remote_addr=eval_addr)
-        #self._eval_endpoint.start()
+        # self._eval_endpoint = ms.StreamEndpoint(name="Eval_connection", acceptor=False, addr=addr, remote_addr=eval_addr)
+        # self._eval_endpoint.start()
         logging.info(f"Client {addr} started.")
 
     def start_training(self):
@@ -98,17 +98,17 @@ class Client:
                 train_dataset = np.array([item for sublist in self.data_batch_queue for item in sublist])
                 print(train_dataset)
                 logging.info(f"Prepare training on client {self._addr} with {len(train_dataset)} samples")
-                self._model.compile_model()
-                self._model.model.set_weights(self._global_weights)
+                self._model.init_model() # TODO WHY INIT EVERY ITERATION? ONLY FOR OPTIMIZERS, ETC NOT WEIGTHS
+                self._model._model.set_weights(self._global_weights)
                 logging.info("STARTED TRAINING")
-                self._model.model.fit(x=train_dataset, y=train_dataset, epochs=self._epochs, verbose=1, batch_size=32)
+                self._model._model.fit(x=train_dataset, y=train_dataset, epochs=self._epochs, verbose=1, batch_size=32)
                 logging.info("TRAINING FINISHED")
 
                 self.data_batch_queue = []
                 self.label_batch_queue = []
 
                 try:
-                    self._agg_endpoint.send(self._model.model.get_weights())
+                    self._agg_endpoint.send(self._model._model.get_weights())
                 except:
                     logging.error("Error in sending weights to aggregation server")
 
@@ -117,7 +117,6 @@ class Client:
             else:
                 logging.warning("No data available for training")
 
-
     def run(self):
         """Collect samples until the data batch size is reached. Save this batch
 
@@ -125,10 +124,11 @@ class Client:
 
         """
 
-        training_thread = threading.Thread(target=self.start_training,name="Training", daemon=True)
+        # TODO DOES THIS NOT CREATE ONE BIG RACE CONDITION DURING PREDICTION MAKING?
+        training_thread = threading.Thread(target=self.start_training, name="Training", daemon=True)
         training_thread.start()
 
-        #receive data from datasource
+        # receive data from datasource
         self._data_sorce.open()
         for i in self._data_sorce:
             self.data_queue.append(i)
@@ -136,10 +136,11 @@ class Client:
             self.time_queue.append(datetime.now())
             sleep(0.1)
             if len(self.data_queue) > self._data_batchsize:
-                #self.start_prediction()
+                # self.start_prediction()
                 self.data_batch_queue.append(self.data_queue)
                 self.label_batch_queue.append(self.label_queue)
-                logging.info(f"One data batch filled. Currently {len(self.data_batch_queue)} batches for training available")
+                logging.info(
+                    f"One data batch filled. Currently {len(self.data_batch_queue)} batches for training available")
 
                 # empty containers
                 self.data_queue = []
@@ -195,17 +196,19 @@ class Client:
             f'Client {self._addr}: False positives: {metrics_obj.metrics[0]}, True positives: {metrics_obj.metrics[1]},'
             f'False negatives: {metrics_obj.metrics[2]}, True negatives: {metrics_obj.metrics[3]}')
 
-        utils.anomaly_processing.store_anomalies(labels_true, z_scores, time_needed, outliers)
-        utils.mad_score.analyze_mad_score(z_scores, labels_true)
+        evaluation.anomaly_processing.store_anomalies(labels_true, z_scores, time_needed, outliers)
+        evaluation.mad_score.analyze_mad_score(z_scores, labels_true)
 
         self._eval_endpoint.send(metrics_obj)
 
 
+# TODO MUST BE OUTSOURCED INTO A PROPER STARTSCRIPT FOR DEMO PURPOSES
 
 if __name__ == "__main__":
     logging.basicConfig(format="%(asctime)s %(levelname)-8s %(name)-10s %(message)s", datefmt="%Y-%m-%d %H:%M:%S",
                         level=logging.INFO)
 
-    d =  ds.DataSource("test", source_handler=PcapHandler('test_data'), data_processor=PysharkProcessor())
-    client = Client(("127.0.0.1", 54321), ("127.0.0.1", 54322), ("127.0.0.1", 54323), data_source=d, federated_model=FedAutoencoder())
+    d = ds.DataSource("test", source_handler=PcapHandler('test_data'), data_processor=PysharkProcessor())
+    client = Client(("127.0.0.1", 54321), ("127.0.0.1", 54322), ("127.0.0.1", 54323), data_source=d,
+                    federated_model=FedAutoencoder())
     client.run()

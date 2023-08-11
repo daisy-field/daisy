@@ -9,12 +9,15 @@
 import logging
 
 
-class MetricsObject():
+# TODO LOGGING SHOULD BE GENERALIZED
+# TODO WHY ARE THE METRICS STORED IN AN ARRAY, ALTHOUGH THERE ARE STILL 4 ADDITIONAL ATTRIBUTES TO THE OBJECT
+
+class MetricsObject:
     """ Object of evaluation metrics"""
 
     metrics = []
 
-    def __init__(self, prediction: [], true_labels: [], anomaly: str, normal: str):
+    def __init__(self, prediction: [], true_labels: [], anomaly: str, normal: str):  # TODO WHAT IS ANOMALY AND NORMAL
         """Calculate confusion matrix
 
         :return: False positives, True positives, False negatives, True negatives
@@ -84,7 +87,6 @@ class MetricsObject():
             return (2 * tp) / ((2 * tp) + fp + fn)
         except ZeroDivisionError:
             return 0
-
 
 
 def overall_performance(self, eval_obj_list: []):

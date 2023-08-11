@@ -25,19 +25,16 @@ log.setLevel(logging.ERROR)
 from typing import Tuple
 
 
-
 class EvaluationServer():
     evaluation_objects = []
 
     def __init__(self, addr: Tuple[str, int]):
         self._addr = addr
-        self._eval_server = StreamEndpoint(name="Evaluator", addr = self._addr)
+        self._eval_server = StreamEndpoint(name="Evaluator", addr=self._addr)
         self._eval_server.start()
-        self.evaluation_objects =[]
+        self.evaluation_objects = []
         while 1:
             self.evaluation_objects.append(self._eval_server.receive())
-
-
 
 
 class Dashboard(threading.Thread):
@@ -402,8 +399,10 @@ class Dashboard(threading.Thread):
         self._app.run_server(port=8050)
 
 
+# TODO MUST BE OUTSOURCED INTO A PROPER STARTSCRIPT FOR DEMO PURPOSES
+
 if __name__ == "__main__":
     eval = EvaluationServer(("127.0.0.1", 54323))
 
-    #dashboard = Dashboard()
-    #dashboard.start()
+    # dashboard = Dashboard()
+    # dashboard.start()

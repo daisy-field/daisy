@@ -6,10 +6,12 @@
 """
 import numpy as np
 
-from utils.metrics import MetricsObject
+from evaluation.metrics import MetricsObject
 
 
-def calculate_mad_score(points:[]):
+# TODO what is this used for? why are these two functions in a separate file?
+# TODO WHY is the use of them hardcoded into the client? isnt it just used for threshold definition?
+def calculate_mad_score(points: []):
     """
     Calculate MAD Score for given list of points
 
@@ -22,9 +24,7 @@ def calculate_mad_score(points:[]):
     return 0.6745 * ad / mad
 
 
-
-
-def analyze_mad_score(z_scores:[], labels_true:[]):
+def analyze_mad_score(z_scores: [], labels_true: []):
     """Analyze MAD threshold. Set different thresholds and calculate True positive rate.
     Based on the convergence of th TPR, you can set the MAD threshold accordingly.
 

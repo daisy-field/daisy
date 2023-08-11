@@ -16,7 +16,7 @@ input_size = 65
 
 class FedAutoencoder(FederatedModel):
     """Class for federated autoencoder"""
-    model = None
+    _model = None
 
     def __init__(self):
         """
@@ -38,7 +38,7 @@ class FedAutoencoder(FederatedModel):
         self.model = tf.keras.models.Model(inputs=input_format, outputs=decoder(encoder(input_format)))
         logging.info("Model created")
 
-    def compile_model(self):
+    def init_model(self):
         """
         Compile the model for prediction
 
@@ -47,9 +47,3 @@ class FedAutoencoder(FederatedModel):
         self.model.compile(optimizer=keras.optimizers.Adam(learning_rate=0.0001), loss='mse', metrics=[])
         logging.info("Compiled Model")
         return self.model
-
-
-
-
-
-

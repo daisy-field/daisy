@@ -10,6 +10,8 @@ from datetime import datetime
 from typing import Tuple
 
 
+# TODO must be streamlined, made more generic for arbitrary labels and attacks
+
 def process_anomalies(addr: Tuple[str, int], predictions: [], true_labels: []):
     """Function to process anomalies, e.g. delete packets, throw alerts etc.
     In this case write anomaly to file with timestamp.
@@ -52,4 +54,3 @@ def store_anomalies(true_labels: [], z_scores: [], time_needed: [], outliers: []
                                 br.write(f'{time_needed[i]}, {outliers[i]}, {round(z_scores[i], 7)}\n')
                             if true_labels[i][0] == "SSH  Data leakage":
                                 dl.write(f'{time_needed[i]}, {outliers[i]}, {round(z_scores[i], 7)}\n')
-
