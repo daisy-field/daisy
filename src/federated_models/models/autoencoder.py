@@ -1,4 +1,4 @@
-"""
+""" FIXME MUST BE MADE COMPLIANT WITH FED MODEL ABSTRACT CLASS
     Federated autoencoder that implements federated_models interface.
 
     Author: Seraphin Zunzer
