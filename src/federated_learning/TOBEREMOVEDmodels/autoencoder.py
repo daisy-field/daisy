@@ -1,4 +1,5 @@
 """ FIXME MUST BE MADE COMPLIANT WITH FED MODEL ABSTRACT CLASS
+    TODO CAN BE MOVED DIRECTLY INTO FEDERATED MODEL. PYTON IS NOT JAVA!
     Federated autoencoder that implements federated_models interface.
 
     Author: Seraphin Zunzer
@@ -9,7 +10,7 @@ import logging
 import keras
 import tensorflow as tf
 
-from federated_models.federated_model import FederatedModel
+from federated_learning.federated_model import FederatedModel
 
 input_size = 65
 

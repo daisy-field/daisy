@@ -20,8 +20,8 @@ import src.data_sources.data_source as ds
 import evaluation.anomaly_processing
 import evaluation.metrics as metrics
 from data_sources import PcapHandler, PysharkProcessor
-from federated_models import federated_model as fm
-from federated_models.models.autoencoder import FedAutoencoder
+from federated_learning import federated_model as fm
+from federated_learning.TOBEREMOVEDmodels.autoencoder import FedAutoencoder
 from evaluation.mad_score import calculate_mad_score
 
 logging.basicConfig(format="%(asctime)s %(levelname)-8s %(message)s", datefmt="%Y-%m-%d %H:%M:%S",

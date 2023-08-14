@@ -17,8 +17,8 @@ from time import sleep
 from typing import Tuple
 
 import src.communication.message_stream as ms
-from federated_models.federated_model import FederatedModel
-from federated_models.models.autoencoder import FedAutoencoder
+from federated_learning.federated_model import FederatedModel
+from federated_learning.TOBEREMOVEDmodels.autoencoder import FedAutoencoder
 from model_aggregation.FedAvg.fedavg import FedAvg
 from model_aggregation.federated_aggregation import FederatedAggregation
 
