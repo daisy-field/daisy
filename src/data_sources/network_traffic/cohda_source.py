@@ -45,6 +45,7 @@ class CohdaProcessor(PysharkProcessor):
         :param d_point: Data point as dictionary.
         :return: Labeled data point as vector.
         """
+        d_point['label'] = "Normal"
         for event in self._events:
             client, (start_time, end_time), protocols, addresses, label = event
             if client == self._client_id and start_time <= d_point['meta.time'].to_datetime() <= end_time and \
@@ -52,8 +53,6 @@ class CohdaProcessor(PysharkProcessor):
                     all([x in d_point['ip.addr'] for x in addresses]):
                 d_point['label'] = label
                 break
-        if "label" in d_point:
-            d_point['label'] = "Normal"
 
         return super().reduce(d_point)
 

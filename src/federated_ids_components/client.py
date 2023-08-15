@@ -18,7 +18,7 @@ from tensorflow.keras import backend as K
 import src.communication.message_stream as ms
 import src.data_sources.data_source as ds
 import evaluation.anomaly_processing
-import evaluation.metrics as metrics
+import evaluation.old2 as metrics
 from data_sources import PcapHandler, PysharkProcessor
 from federated_learning import federated_model as fm
 from federated_learning.TOBEREMOVEDmodels.autoencoder import FedAutoencoder
@@ -27,6 +27,7 @@ from evaluation.mad_score import calculate_mad_score
 logging.basicConfig(format="%(asctime)s %(levelname)-8s %(message)s", datefmt="%Y-%m-%d %H:%M:%S",
                     level=logging.DEBUG)
 
+# FIXME (everything)
 
 class Client:
     """

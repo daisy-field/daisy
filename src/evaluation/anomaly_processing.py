@@ -9,7 +9,7 @@
 from datetime import datetime
 from typing import Tuple
 
-
+# TODO Why is this even needed?
 # TODO must be streamlined, made more generic for arbitrary labels and attacks
 
 def process_anomalies(addr: Tuple[str, int], predictions: [], true_labels: []):

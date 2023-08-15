@@ -6,8 +6,10 @@
 """
 import numpy as np
 
-from evaluation.metrics import MetricsObject
+from evaluation.old2 import MetricsObject
 
+
+# TODO should be moved
 
 # TODO what is this used for? why are these two functions in a separate file?
 # TODO WHY is the use of them hardcoded into the client? isnt it just used for threshold definition?
