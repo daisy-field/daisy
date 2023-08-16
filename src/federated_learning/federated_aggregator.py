@@ -5,12 +5,13 @@
 
     Author: Fabian Hofmann, Seraphin Zunzer
     Modified: 14.08.23
+
+    TODO should be merged with federated model module and potentially be made more compatible with Keras APIs
 """
 
 from abc import ABC, abstractmethod
 
 import numpy as np
-
 
 class Aggregator(ABC):
     """Abstract aggregator class. Must always be implemented if a new aggregation strategy is used in the federated

@@ -4,6 +4,11 @@
 
     Author: Fabian Hofmann
     Modified: 26.07.23
+
+    TODO Future Work: SSL https://docs.python.org/3/library/ssl.html
+    TODO Future Work: Poll & Select
+    TODO Future Work: Blocked remote addresses (and leaving l_sockets open)
+    TODO - when socket is not shut down but only closed OR when never opened to begin with
 """
 
 import ctypes
@@ -19,10 +24,6 @@ from typing import Callable, Optional
 
 from lz4.frame import compress, decompress
 
-
-# FIXME blocked addresses upon closing endpoint socket without ever shutting it down or never starting it at all
-# TODO optional SSL https://docs.python.org/3/library/ssl.html
-# TODO POLL AND SELECT METHODS
 
 class EndpointSocket:
     """A bundle of up to two sockets, that is used to communicate with another endpoint over a persistent TCP
@@ -712,7 +713,7 @@ class StreamEndpoint:
                     f"(length: {self._recv_buffer.qsize()})...")
                 self._recv_buffer.put(p_obj, timeout=10)
             except queue.Full:
-                self._logger.debug(f"AsyncReceiver: Timeout triggered: Buffer full. Discarding object...")
+                self._logger.warning(f"AsyncReceiver: Timeout triggered: Buffer full. Discarding object...")
         self._logger.info(f"AsyncReceiver: Stopping...")
 
     def __iter__(self):

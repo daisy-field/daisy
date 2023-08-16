@@ -4,6 +4,9 @@
 
     Author: Jonathan Ackerschewski, Fabian Hofmann
     Modified: 08.06.23
+
+    # TODO Future Work: Encoding/mapping of string values into numerical features
+    # TODO Future Work: ALT.: Flattening of Lists instead of encoding them into singular numerical features
 """
 
 import json
@@ -25,7 +28,6 @@ from pyshark.packet.packet import Packet
 
 from src.data_sources.data_source import DataProcessor, SourceHandler
 
-# TODO string values must be encoded as well, not just lists!
 default_f = (
     'meta.len',
     'meta.time',

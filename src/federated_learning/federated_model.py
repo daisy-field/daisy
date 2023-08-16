@@ -4,6 +4,8 @@
 
     Author: Fabian Hofmann, Seraphin Zunzer
     Modified: 14.08.23
+
+    TODO Future Work should be the implementation of Open Source Interfaces (e.g. Keras Model API)
 """
 from abc import ABC, abstractmethod
 from typing import Callable
@@ -11,6 +13,8 @@ from typing import Callable
 import numpy as np
 from tensorflow import keras
 
+
+# TODO WRAP TM AS EXTENDED TF MODEL CLASS
 
 class FederatedModel(ABC):
     """An abstract model wrapper that offers the same methods, no matter the type of underlying model. Must always be
