@@ -7,49 +7,58 @@
     Author: Fabian Hofmann, Seraphin Zunzer
     Modified: 15.08.23
 
-    TODO Future Work should be the implementation of Open Source Interfaces (e.g. Keras Metric API)
 """
 import queue
 from abc import ABC, abstractmethod
 from typing import Optional, Self
 
+from collections import deque
 import numpy as np
+import tensorflow as tf
 from tensorflow import keras
 
 
-# TODO queue replaced with lists?
-
-class ADOnlineEvaluation(ABC):
+class ADOnlineEvaluation(keras.metrics.Metric, ABC):
     """TODO
 
     """
-    _predictions: queue.Queue[tuple[float, float]]
+    true_labels: deque
+    pred_labels: deque
+    _window_size: int
 
-    def __init__(self, window_size: int = 0):
+    def __init__(self, name='ad_online_evaluation', window_size: int = 0, **kwargs):
         """TODO
 
+        :param name:
         :param window_size:
+        :param kwargs:
         """
-        self._predictions = queue.Queue(window_size)
+        super().__init__(name=name, **kwargs)
 
-    def __call__(self, *predictions: tuple[float, float], get_eval: bool = False) -> Optional[dict[str, float]]:
+        self.true_labels = deque()
+        self.pred_labels = deque()
+        self._window_size = window_size
+
+    def update_state(self, y_true, y_pred, *args, **kwargs):
         """TODO
 
-        :param predictions:
-        :param get_eval:
+        :param y_true:
+        :param y_pred:
+        :param args:
+        :param kwargs:
         :return:
         """
-        for new_prediction in predictions:
-            if self._predictions.full():
-                self._update(*self._predictions.get(), remove=True)
-            self._predictions.put(new_prediction)
-            self._update(*new_prediction)
-
-        if get_eval:
-            return self.get_eval()
+        for t_label, p_label in zip(y_true, y_pred):
+            if len(self.true_labels) == self._window_size:
+                old_t_label = self.true_labels.popleft()
+                old_p_label = self.pred_labels.popleft()
+                self._update(old_t_label, old_p_label, remove=True)
+            self.true_labels.append(t_label)
+            self.pred_labels.append(p_label)
+            self._update(t_label, p_label, remove=True)
 
     @abstractmethod
-    def _update(self, t_label: float, p_label: float, remove: bool = False):
+    def _update(self, t_label, p_label, remove: bool = False):
         """TODO
 
         :param t_label:
@@ -58,20 +67,27 @@ class ADOnlineEvaluation(ABC):
         """
         raise NotImplementedError
 
-    @abstractmethod
-    def get_eval(self) -> dict[str, float]:
+    def merge_state(self, metrics: Self):
+        """TODO
+
+        :param metrics:
+        :return:
+        """
+        for m in metrics:
+            self.update_state(m.true_labels, m.pred_labels)
+
+    def reset_state(self):
         """TODO
 
         :return:
         """
-        raise NotImplementedError
+        self.true_labels = deque()
+        self.pred_labels = deque()
 
-    @classmethod
     @abstractmethod
-    def merge_eval_results(cls, *eval_results: Self) -> dict[str, float]:
+    def result(self):
         """TODO
 
-        :param eval_results:
         :return:
         """
         raise NotImplementedError
@@ -88,7 +104,7 @@ class ConfMatrixOnlineEvaluation(ADOnlineEvaluation):
     _fn: int
     _tn: int
 
-    def __init__(self, window_size: int = 0):
+    def __init__(self, name='conf_matrix_online_evaluation', window_size: int = 0, **kwargs):
         """TODO Create a new anomaly detection evaluator that is loaded with the true labels of the dataset.
 
         :param window_size:
@@ -97,14 +113,27 @@ class ConfMatrixOnlineEvaluation(ADOnlineEvaluation):
         #
         # :return: False positives, True positives, False negatives, True negatives
         # """
-        super().__init__(window_size)
+        super().__init__(name=name, window_size=window_size, **kwargs)
 
         self._fp = 0
         self._tp = 0
         self._fn = 0
         self._tn = 0
 
-    def _update(self, t_label: float, p_label: float, remove: bool = False):
+    def update_state(self, y_true, y_pred, *args, **kwargs):
+        """
+
+        :param y_true:
+        :param y_pred:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        y_true = tf.cast(y_true, tf.bool).numpy()
+        y_pred = tf.cast(y_pred, tf.bool).numpy()
+        super().update_state(y_true, y_pred, *args, **kwargs)
+
+    def _update(self, t_label: bool, p_label: bool, remove: bool = False):
         """TODO
 
         :param t_label:
@@ -123,65 +152,42 @@ class ConfMatrixOnlineEvaluation(ADOnlineEvaluation):
             else:
                 self._fp += mod
 
-    def get_eval(self) -> dict[str, float]:
+    def reset_state(self):
         """TODO
 
         :return:
         """
-        return compute_conf_metrics(self._predictions.qsize(), self._tp, self._tn, self._fp, self._fn)
+        self._fp = 0
+        self._tp = 0
+        self._fn = 0
+        self._tn = 0
 
-    @classmethod
-    def merge_eval_results(cls, *eval_results: Self) -> dict[str, float]:
+    def result(self) -> dict[str, float]:
         """TODO
 
-        :param eval_results:
         :return:
         """
-        count = 0
-        tp = 0
-        tn = 0
-        fp = 0
-        fn = 0
-        for eval_result in eval_results:
-            count += eval_result._predictions.qsize()
-            tp += eval_result._tp
-            tn += eval_result._tn
-            fp += eval_result._fp
-            fn += eval_result._fn
-        return compute_conf_metrics(count, tp, tn, fp, fn)
+        accuracy = (self.tp + self.tn) / len(self.true_labels)
+        recall = self.tp / (self.tp + self.fn)
+        tnr = self.tn / (self.tn + self.fp)
+        precision = self.tp / (self.tp + self.fp)
+        npv = self.tn / (self.tn + self.fn)
+        fnr = self.fn / (self.fn + self.tp)
+        fpr = self.fp / (self.fp + self.tn)
+        f1 = 2 * self.tp / (2 * self.tp + self.fp + self.fn)
+
+        return {"accuracy": accuracy, "recall": recall, "true negative rate": tnr,
+                "precision": precision, "negative predictive value": npv,
+                "false negative rate": fnr, "false positive rate": fpr, "f1 measure": f1}
 
 
-def compute_conf_metrics(count, tp, tn, fp, fn) -> dict[str, float]:
-    """TODO
-
-    :param count:
-    :param tp:
-    :param tn:
-    :param fp:
-    :param fn:
-    :return:
-    """
-    accuracy = (tp + tn) / count
-    recall = tp / (tp + fn)
-    tnr = tn / (tn + fp)
-    precision = tp / (tp + fp)
-    npv = tn / (tn + fn)
-    fnr = fn / (fn + tp)
-    fpr = fp / (fp + tn)
-    f1 = 2 * tp / (2 * tp + fp + fn)
-
-    return {"accuracy": accuracy, "recall": recall, "true negative rate": tnr,
-            "precision": precision, "negative predictive value": npv,
-            "false negative rate": fnr, "false positive rate": fpr, "f1 measure": f1}
-
-
-class AUCOnlineEvaluation(ADOnlineEvaluation):
+class TFMetricOnlineEvaluation(ADOnlineEvaluation):
     """TODO
 
     """
-    _num_thresholds: int
+    _tf_metric: keras.metrics.Metric
 
-    def __init__(self, num_thresholds: int = 10, window_size: int = 0):
+    def __init__(self, tf_metric: keras.metrics.Metric, window_size: int = 0, **kwargs):
         """TODO Create a new anomaly detection evaluator that is loaded with the true labels of the dataset.
 
         :param window_size:
@@ -190,11 +196,11 @@ class AUCOnlineEvaluation(ADOnlineEvaluation):
         #
         # :return: False positives, True positives, False negatives, True negatives
         # """
-        super().__init__(window_size)
+        super().__init__(name=tf_metric.name + '_online_evaluation', window_size=window_size, **kwargs)
 
-        self._num_thresholds = num_thresholds
+        self._tf_metric = tf_metric
 
-    def _update(self, t_label: float, p_label: float, remove: bool = False):
+    def _update(self, t_label, p_label, remove: bool = False):
         """TODO
 
         :param t_label:
@@ -204,26 +210,11 @@ class AUCOnlineEvaluation(ADOnlineEvaluation):
         """
         pass
 
-    def get_eval(self) -> dict[str, float]:
-        """
+    def result(self):
+        """TODO
 
+        :return:
         """
-        predictions = []
-        while not self._predictions.empty():
-            predictions.append(self._predictions.get())
-        predictions = np.array(predictions).T
-        y_true, y_pred = predictions[0], predictions[0]
-        return {"area under curve": keras.metrics.AUC(num_thresholds=self._num_thresholds)(y_true, y_pred)}
-
-    @classmethod
-    def merge_eval_results(cls, *eval_results: Self, num_thresholds: int = 10) -> dict[str, float]:
-        """
-
-        """
-        predictions = []
-        for eval_result in eval_results:
-            while not eval_result.empty():
-                predictions.append(eval_result.get())
-        predictions = np.array(predictions).T
-        y_true, y_pred = predictions[0], predictions[1]
-        return {"area under curve": keras.metrics.AUC(num_thresholds=num_thresholds)(y_true, y_pred)}
+        result = self._tf_metric.__call__(self.true_labels, self.pred_labels)
+        self._tf_metric.reset_state()
+        return result
