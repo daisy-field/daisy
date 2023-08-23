@@ -39,7 +39,7 @@ class FedAvgAggregator(Aggregator):
         """Calculates the average for the given models' parameters and returns it, using Welford's algorithm.
         Note this could be further optimized using Kahan–Babuška summation for reduction of floating point errors.
 
-        :param models: Weights of global model
+        :param models: Weights of local models
         :return: New weights for global model
         """
         avg_parameters = models[0]
@@ -50,3 +50,28 @@ class FedAvgAggregator(Aggregator):
                 delta = model[i] - avg_parameters[i]
                 avg_parameters[i] += delta / count
         return avg_parameters
+
+
+class EMAggregator(Aggregator):
+    """Exponantial Moving Average
+    """
+
+    last_ema = None
+    alpha = 1
+
+    def aggregate(self, *models: list[np.ndarray]) -> list[np.ndarray]:
+        """Calculates the exponential moving average for the given models' parameters and returns it
+
+        :param models: Weights of global model
+        :return: New weights for global model
+        """
+        if self.last_ema == None:
+            for i in range(len(models)):
+                self.last_ema = FedAvgAggregator.aggregate(models[i])
+                return self.last_ema
+        else:
+            new_ema = []
+            for i in range(len(models)):
+                new_ema.append(self.alpha * models + (1 - self.alpha) * self.last_ema[i])
+            self.last_ema = new_ema
+            return new_ema
