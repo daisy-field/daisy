@@ -52,6 +52,32 @@ class FedAvgAggregator(Aggregator):
         return avg_parameters
 
 
+
+class SMAggregator(Aggregator):
+    """Simple Moving Average
+    """
+
+    last_sma = None
+    k = 0
+    def aggregate(self, *models: list[np.ndarray]) -> list[np.ndarray]:
+        """Calculates the exponential moving average for the given models' parameters and returns it
+
+        :param models: Weights of global model
+        :return: New weights for global model
+        """
+        if self.last_sma == None:
+            self.last_sma = []
+            for i in range(len(models)):
+                self.last_sma.append(models[i])
+            return self.last_sma
+        else:
+            self.k=+1
+            new_sma = []
+            for i in range(len(models)):
+                new_sma.append(models[i] + self.last_sma[i])
+            self.last_sma = new_sma
+            return [value / self.k for value in self.last_sma]
+
 class EMAggregator(Aggregator):
     """Exponantial Moving Average
     """
@@ -68,7 +94,7 @@ class EMAggregator(Aggregator):
         if self.last_ema == None:
             for i in range(len(models)):
                 self.last_ema = FedAvgAggregator.aggregate(models[i])
-                return self.last_ema
+            return self.last_ema
         else:
             new_ema = []
             for i in range(len(models)):
