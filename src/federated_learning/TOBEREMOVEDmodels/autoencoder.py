@@ -9,11 +9,14 @@ import logging
 
 import keras
 import tensorflow as tf
-
 from federated_learning.federated_model import FederatedModel
 
 input_size = 65
 
+
+# FIXME EVERYTHING
+
+# TODO MOVE TO FEDERATED MODEL
 
 class FedAutoencoder(FederatedModel):
     """Class for federated autoencoder"""

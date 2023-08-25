@@ -9,6 +9,7 @@
 # Federated learning server which starts the federated learning process on the clients,
 # receives the newly trained client federated_models,
 # and aggregates them using FedAVG.
+# FIXME (everything)
 
 
 import logging
@@ -16,11 +17,12 @@ import threading
 from time import sleep
 from typing import Tuple
 
-import src.communication.message_stream as ms
-from federated_learning.federated_model import FederatedModel
 from federated_learning.TOBEREMOVEDmodels.autoencoder import FedAutoencoder
+from federated_learning.federated_model import FederatedModel
 from model_aggregation.FedAvg.fedavg import FedAvg
 from model_aggregation.federated_aggregation import FederatedAggregation
+
+import src.communication.message_stream as ms
 
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
@@ -80,8 +82,7 @@ class AggregationServer():
                 try:
                     client_weights = client.receive(10)
                     logging.info(f"Received weights from {client}. Start aggregation of weights.")
-                    aggregated_weights = self._aggregation_method.aggregate(self._model._model.get_weights(),
-                                                                            client_weights)
+                    aggregated_weights = self._aggregation_method.aggregate(self._model._model.get_weights())
                     logging.info(f"Set new global weights.")
                     self._model._model.set_weights(aggregated_weights)
                 except TimeoutError:

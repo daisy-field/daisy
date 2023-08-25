@@ -8,6 +8,7 @@ import numpy as np
 
 from evaluation.old2 import MetricsObject
 
+# FIXME (everything)
 
 # TODO should be moved
 

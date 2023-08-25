@@ -4,7 +4,7 @@
     Author: Seraphin Zunzer
     Modified: 09.05.22
 """
-
+# FIXME (everything)
 import logging
 import threading
 
@@ -16,9 +16,8 @@ import pandas as pd
 import plotly
 import plotly.express as px
 import plotly.graph_objs as go
-from dash.dependencies import Output, Input
-
 from communication import StreamEndpoint
+from dash.dependencies import Output, Input
 
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)

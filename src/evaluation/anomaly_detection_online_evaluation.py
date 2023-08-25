@@ -7,9 +7,9 @@
     Modified: 17.08.23
 """
 from abc import ABC, abstractmethod
+from collections import deque
 from typing import Self
 
-from collections import deque
 import tensorflow as tf
 from tensorflow import keras
 

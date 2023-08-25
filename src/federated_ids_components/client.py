@@ -12,20 +12,21 @@ from datetime import datetime
 from time import sleep
 from typing import Tuple
 
+import evaluation.anomaly_processing
+import evaluation.old2 as metrics
 import numpy as np
+from data_sources import PcapHandler, PysharkProcessor
+from evaluation.mad_score import calculate_mad_score
+from federated_learning import federated_model as fm
+from federated_learning.TOBEREMOVEDmodels.autoencoder import FedAutoencoder
 from tensorflow.keras import backend as K
 
 import src.communication.message_stream as ms
 import src.data_sources.data_source as ds
-import evaluation.anomaly_processing
-import evaluation.old2 as metrics
-from data_sources import PcapHandler, PysharkProcessor
-from federated_learning import federated_model as fm
-from federated_learning.TOBEREMOVEDmodels.autoencoder import FedAutoencoder
-from evaluation.mad_score import calculate_mad_score
 
 logging.basicConfig(format="%(asctime)s %(levelname)-8s %(message)s", datefmt="%Y-%m-%d %H:%M:%S",
                     level=logging.DEBUG)
+
 
 # FIXME (everything)
 
@@ -99,7 +100,7 @@ class Client:
                 train_dataset = np.array([item for sublist in self.data_batch_queue for item in sublist])
                 print(train_dataset)
                 logging.info(f"Prepare training on client {self._addr} with {len(train_dataset)} samples")
-                self._model.init_model() # TODO WHY INIT EVERY ITERATION? ONLY FOR OPTIMIZERS, ETC NOT WEIGTHS
+                self._model.init_model()  # TODO WHY INIT EVERY ITERATION? ONLY FOR OPTIMIZERS, ETC NOT WEIGTHS
                 self._model._model.set_weights(self._global_weights)
                 logging.info("STARTED TRAINING")
                 self._model._model.fit(x=train_dataset, y=train_dataset, epochs=self._epochs, verbose=1, batch_size=32)

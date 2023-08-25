@@ -1,7 +1,0 @@
-pyshark==0.6
-numpy==1.24.3
-lz4~=4.3.2
-tensorflow~=2.13.0
-plotly==5.14.1
-dash==2.9.2
-pandas==2.0.2
