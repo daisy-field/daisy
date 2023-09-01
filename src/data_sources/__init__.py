@@ -5,7 +5,7 @@
 
         * DataSource - Core class of the data source framework, union of DataProcessor, SourceHandler.
         * SourceHandler - Interface class. Implementations must provide data point objects in generator-like fashion.
-        * DataProcessor - Interface class. Implementations must Process data point objects into vectors (numpy arrays).
+        * DataProcessor - Interface class. Implementations must process data point objects into vectors (numpy arrays).
         * DataSourceRelay - Second core class that allows the processing and forwarding of data points to another host.
 
     Currently, the following sub-packages are offering implementations of the two interfaces:
