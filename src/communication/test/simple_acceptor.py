@@ -6,7 +6,7 @@ from time import sleep
 from src.communication import StreamEndpoint
 
 
-def threaded_initiator(t_id: int):
+def threaded_acceptor(t_id: int):
     endpoint = StreamEndpoint(name=f"Acceptor-{t_id}", addr=("127.0.0.1", 32000 + t_id),
                               remote_addr=("127.0.0.1", 13000 + t_id),
                               acceptor=True, multithreading=True, buffer_size=10000)
@@ -39,7 +39,7 @@ def threaded_initiator(t_id: int):
 
 def multithreaded_acceptor(num_threads: int):
     for i in range(num_threads):
-        threading.Thread(target=threaded_initiator, args=(i,)).start()
+        threading.Thread(target=threaded_acceptor, args=(i,)).start()
         sleep(random.randrange(2))
 
 
