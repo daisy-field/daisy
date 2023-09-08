@@ -127,6 +127,8 @@ class TFFederatedModel(FederatedModel):
         """Factory class method to create a simple federated autoencoder model of a fixed depth but with variable input
         size.
 
+        Note this setup could also be created with an unsupervised federated model (see TODO
+
         Should only serve as a quick and basic setup for a model.
 
         :param input_size: Dimensionality of input (and therefore output) of autoencoder.
@@ -150,6 +152,12 @@ class TFFederatedModel(FederatedModel):
         ae = keras.models.Model(inputs=enc_inputs, outputs=decoder(encoder))
         return TFFederatedModel(ae, optimizer, loss, metrics, batch_size, epochs)
 
+class UnsupervisedFederatedModel(FederatedModel):
+    """TODO
+
+    """
+    pass
+
 
 class IFTMFederatedModel(FederatedModel):
     """Double union of two federated models, following the IFTM hybdrid  model approach --- identify function threshold
@@ -169,7 +177,7 @@ class IFTMFederatedModel(FederatedModel):
     _param_split: int
 
     def __init__(self, identify_fn: FederatedModel, threshold_m: FederatedModel,
-                 error_fn: Callable[[Tensor, Tensor], Tensor], param_split: int):
+                 error_fn: Callable[[Tensor, Tensor], Tensor], param_split: int, pred_mode: bool = False):
         """Creates a new federated IFTM anomaly detection model.
 
         :param identify_fn: Federated identity function model.

@@ -7,7 +7,7 @@
     Modified: 14.08.23
 
     TODO future work: weighted moving average based on significance of data point
-    TODO - in that case requires serious considerates whether a list of model parameters can even work
+    TODO - in that case requires serious consideration whether a list of model parameters can even work
     TODO - should be done with a custom weighting interface that computes the importance of model to the set (0-1)
 """
 
