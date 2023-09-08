@@ -672,6 +672,7 @@ class StreamEndpoint:
                         p_obj = self._recv_buffer.get(timeout=timeout)
                     else:
                         p_obj = self._recv_buffer.get(timeout=10)
+                    break
                 except queue.Empty:
                     if timeout is not None:
                         raise TimeoutError
