@@ -8,12 +8,10 @@ import numpy as np
 
 from evaluation.old2 import MetricsObject
 
-# FIXME (everything)
+# FIXME MARKED FOR DELETION
 
-# TODO should be moved
 
-# TODO what is this used for? why are these two functions in a separate file?
-# TODO WHY is the use of them hardcoded into the client? isnt it just used for threshold definition?
+# TODO REFACTOR THIS INTO TM
 def calculate_mad_score(points: []):
     """
     Calculate MAD Score for given list of points
@@ -27,6 +25,7 @@ def calculate_mad_score(points: []):
     return 0.6745 * ad / mad
 
 
+# elbow method is not possible for our scenario, should be done elsewhere (during eval)
 def analyze_mad_score(z_scores: [], labels_true: []):
     """Analyze MAD threshold. Set different thresholds and calculate True positive rate.
     Based on the convergence of th TPR, you can set the MAD threshold accordingly.
