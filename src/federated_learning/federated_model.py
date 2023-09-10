@@ -231,24 +231,19 @@ class IFTMFederatedModel(FederatedModel):
         :param x_data: Input data.
         :param y_data: Expected output, optional since default IFTM is fully unsupervised.
         """
-        if not self._pf_mode:
-            # Train TM
-            y_pred = self._if.predict(x_data)
-            pred_errs = self._ef(x_data, y_pred)
-            self._tm.fit(pred_errs, y_data)
-            # Train IF
-            self._if.fit(x_data, x_data)
-
-        else:
+        # Adjust input data depending on mode
+        if self._pf_mode:
             x_data, y_true = self._shift_batch_window(x_data, fit=True)
             if x_data is None:
                 return
-            # Train TM
-            y_pred = self._if.predict(x_data)
-            pred_errs = self._ef(y_true, y_pred)
-            self._tm.fit(pred_errs, y_data)
-            # Train IF
-            self._if.fit(x_data, y_true)
+        else:
+            y_true = x_data
+        # Train TM
+        y_pred = self._if.predict(x_data)
+        pred_errs = self._ef(y_true, y_pred)
+        self._tm.fit(pred_errs, y_data)
+        # Train IF
+        self._if.fit(x_data, y_true)
 
     def predict(self, x_data) -> Optional[Tensor]:
         """Makes a prediction on the given data and returns it bby calling the wrapped models; first the IF to make a
@@ -256,37 +251,31 @@ class IFTMFederatedModel(FederatedModel):
 
         Note that in case of an underlying prediction function (instead of a regular IF), the window is shifted by one
         step into the past, i.e. the final sample is only used to compute a prediction error, but not make a prediction,
-        and it is stored for the next fitting step.
+        and it is stored for the next prediction step.
 
         Note this kind of model *absolutely requires* a time series in most cases and therefore data passed to it, must
-        be in order! Also for the first step in a time series, it is impossible to compute a prediction error, since
-        there is no previous sample to compare it to.
+        be in order! Also for the first step in a time series, there is no previous sample to compare it to, therefore
+        the sample is automatically classified as the default class (0, i.e. normal)
 
         :param x_data: Input data.
         :return: Predicted output tensor.
         """
-        if not self._pf_mode:
-            y_pred = self._if.predict(x_data)
-            pred_errs = self._ef(x_data, y_pred)
-            return self._tm.predict(pred_errs)
-
-        else:
+        # Adjust input data depending on mode
+        if self._pf_mode:
             x_data, y_true = self._shift_batch_window(x_data, fit=False)
             if x_data is None:
-                return
-            # Make predictions
-            y_pred = self._if.predict(x_data)
-            pred_errs = self._ef(y_true, y_pred)
-
+                return tf.zeros(1)
+        else:
+            y_true = x_data
+        # Make predictions
+        y_pred = self._if.predict(x_data)
+        pred_errs = self._ef(y_true, y_pred)
         return self._tm.predict(pred_errs)
 
     def _shift_batch_window(self, x_data, fit: bool) -> tuple[Optional[Tensor], Optional[Tensor]]:
         """Shifts a given input batch one step in the past, discarding the last sample from the batch and storing it for
         later user, but adding the last sample from the previous batch to the beginning of the batch. This is necessary
         for fitting and prediction of prediction-based IFs (see fit and predict function).
-
-        Note that for the first step in a time series, it is impossible to compute a prediction error, since there is
-        no previous sample to compare it to.
 
         :param x_data: Input data.
         :param fit: Whether the window is shifted for fitting or prediction purposes.
@@ -302,7 +291,7 @@ class IFTMFederatedModel(FederatedModel):
         if prev_sample is None:
             # first step of time series
             if len(x_data) == 1:
-                # nothing to be done
+                # sample will be used later
                 return None, None
             else:
                 # decrease window to allow computation of errors
