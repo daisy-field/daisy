@@ -3,7 +3,7 @@
     enabling their inter-compatibility for different aggregation strategies and federated system components.
 
     Author: Fabian Hofmann, Seraphin Zunzer
-    Modified: 14.08.23
+    Modified: 09.09.23
 
     TODO Future Work should be the implementation of Open Source Interfaces (e.g. Keras Model API)
 """
@@ -152,7 +152,7 @@ class TFFederatedModel(FederatedModel):
         return TFFederatedModel(ae, optimizer, loss, metrics, batch_size, epochs)
 
 
-class IFTMFederatedModel(FederatedModel):
+class FederatedIFTM(FederatedModel):
     """Double union of two federated models, following the IFTM hybdrid  model approach --- identify function threshold
     model principle by Florian et al. (https://ieeexplore.ieee.org/document/8456348): One for the computation of the
     identity of a given sample (alternatively prediction of the next sample), while the other maps the error/loss using
@@ -245,7 +245,7 @@ class IFTMFederatedModel(FederatedModel):
         # Train IF
         self._if.fit(x_data, y_true)
 
-    def predict(self, x_data) -> Optional[Tensor]:
+    def predict(self, x_data) -> Optional[Tensor[bool]]:
         """Makes a prediction on the given data and returns it bby calling the wrapped models; first the IF to make a
         prediction, after which the error can be computed for the final prediction step using the TM.
 
@@ -258,7 +258,7 @@ class IFTMFederatedModel(FederatedModel):
         the sample is automatically classified as the default class (0, i.e. normal)
 
         :param x_data: Input data.
-        :return: Predicted output tensor.
+        :return: Predicted output tensor consisting of bools (0: normal, 1: abnormal).
         """
         # Adjust input data depending on mode
         if self._pf_mode:
