@@ -6,7 +6,8 @@
     Modified: 11.09.23
 """
 from abc import ABC, abstractmethod
-from typing import Callable
+from collections import deque
+from typing import Callable, cast
 
 import numpy as np
 import tensorflow as tf
@@ -40,7 +41,7 @@ class FederatedTM(FederatedModel, ABC):
 
         :param parameters: Parameters to update the threshold model with.
         """
-        self._threshold = self.update_threshold()
+        self.update_threshold()
 
     @abstractmethod
     def get_parameters(self) -> list[np.ndarray]:
@@ -60,7 +61,7 @@ class FederatedTM(FederatedModel, ABC):
         :param y_data: Expected output, optional since most (simple) threshold models are unsupervised.
         """
         reduced_data = self._reduce_fn(x_data)
-        self._threshold = self.update_threshold(reduced_data)
+        self.update_threshold(reduced_data)
 
     def predict(self, x_data) -> Tensor[bool]:
         """Makes a prediction on the given data and returns it, which must be compatible with the tensorflow API
@@ -77,41 +78,178 @@ class FederatedTM(FederatedModel, ABC):
         threshold value.
 
         :param x_data: Batch of input data. Optional.
-        :return: New threshold value.
         """
         raise NotImplementedError
 
-class AvgTM(FederatedTM):
+
+class AvgTM(FederatedTM, ABC):
     """TODO
-    avg based threshold model that bbuilds the threshold by aggr
+    avg based threshold model that builds the threshold by aggr
+
+    basically federated aggregator
 
     """
     _mean: float
     _var: float
+    _var_weight: float
 
-    def __init__(self):
-        pass
+    def __init__(self, mean: float = None, var: float = None, var_weight: float = None,
+                 reduce_fn: Callable[[Tensor], Tensor] = lambda o: o):
+        """TODO
+
+        must be extended.
+
+        :param mean:
+        :param var:
+        :param var_weight:
+        :param reduce_fn:
+        """
+        super().__init__(threshold=0, reduce_fn=reduce_fn)
+
+        self._mean = mean
+        self._var = var
+        self._var_weight = var_weight
+        self.update_threshold()
 
     def set_parameters(self, parameters: list[np.ndarray]):
-        pass
+        """TODO
+
+        could be extended by implementation for more parms
+
+        :param parameters:
+        """
+        self._mean = cast(float, parameters[0][0])
+        self._var = cast(float, parameters[0][1])
+        super().set_parameters(parameters)
 
     def get_parameters(self) -> list[np.ndarray]:
-        pass
+        """TODO
 
-    def update_threshold(self, x_data=None) -> float:
-        pass
+        could be extended by implementation for more parms
+
+        :return:
+        """
+        return [np.array([self._mean, self._var], dtype=np.float32)]
+
+    def update_threshold(self, x_data=None):
+        """TODO
+
+        no need to extend
+
+        :param x_data:
+        """
+        if x_data is not None:
+            for sample in x_data:
+                d_1 = sample - self._mean
+                self._mean = self.update_mean(sample)
+                d_2 = sample - self._mean
+                self._var += d_1 * d_2
+        self._threshold = self._mean + self._var * self._var_weight if self._mean is not None else 0
+
+    @abstractmethod
+    def update_mean(self, new_sample: float):
+        """TODO
+
+        :param new_sample:
+        """
+        raise NotImplementedError
 
 
+class CumAvgTM(AvgTM):
+    """TODO
+
+    """
+    _n: int
+
+    def __init__(self, mean: float = None, var: float = None, var_weight: float = None,
+                 reduce_fn: Callable[[Tensor], Tensor] = lambda o: o):
+        """TODO
+
+        :param mean:
+        :param var:
+        :param var_weight:
+        :param reduce_fn:
+        """
+        super().__init__(mean=mean, var=var, var_weight=var_weight, reduce_fn=reduce_fn)
+
+        self._n = 0
+
+    def update_mean(self, new_sample: float):
+        """TODO
+
+        :param new_sample:
+        """
+        self._n += 1
+        if self._n == 1:
+            self._mean = new_sample
+        else:
+            delta = new_sample - self._mean
+            self._mean += delta / self._n
 
 
+class SMAvgTM(AvgTM):
+    """TODO
+
+    """
+    _window: deque
+    _window_size: int
+
+    def __init__(self, window_size: int = 5, mean: float = None, var: float = None, var_weight: float = None,
+                 reduce_fn: Callable[[Tensor], Tensor] = lambda o: o):
+        """TODO
+
+        :param mean:
+        :param var:
+        :param var_weight:
+        :param reduce_fn:
+        """
+        self._window = deque()
+        self._window_size = window_size
+        super().__init__(mean=mean, var=var, var_weight=var_weight, reduce_fn=reduce_fn)
+
+    def update_mean(self, new_sample: float):
+        """TODO
+
+        :param new_sample:
+        """
+        if len(self._window) == 0:
+            self._mean = new_sample
+            return
+
+        rm_sample = 0
+        if len(self._window) == self._window_size:
+            rm_sample = self._window.popleft()
+        self._window.append(new_sample)
+
+        delta = new_sample - rm_sample
+        self._mean += delta / len(self._window)
 
 
+class EMAvgTM(AvgTM):
+    """TODO
 
-# def update(existing_aggregate, new_value):
-#     (count, mean, M2) = existing_aggregate
-#     count += 1
-#     delta = new_value - mean
-#     mean += delta / count
-#     delta2 = new_value - mean
-#     M2 += delta * delta2
-#     return (count, mean, M2)
+    """
+    _alpha = float
+
+    def __init__(self, alpha: float = 0.05, mean: float = None, var: float = None, var_weight: float = None,
+                 reduce_fn: Callable[[Tensor], Tensor] = lambda o: o):
+        """TODO
+
+        :param alpha: Smoothing/weight factor for new incoming values.
+        :param mean:
+        :param var:
+        :param var_weight:
+        :param reduce_fn:
+        """
+        self._alpha = alpha
+        super().__init__(mean=mean, var=var, var_weight=var_weight, reduce_fn=reduce_fn)
+
+    def update_mean(self, new_sample: float):
+        """TODO
+
+        :param new_sample:
+        """
+        if self._mean is None:
+            self._mean = new_sample
+
+        self._mean = self._alpha * new_sample + (1 - self._alpha) * self._mean
