@@ -32,6 +32,7 @@ class FederatedTM(FederatedModel, ABC):
         """
         self._threshold = threshold
         self._reduce_fn = reduce_fn
+        self.update_threshold()
 
     def set_parameters(self, parameters: list[np.ndarray]):
         """Updates the internal parameters of the threshold model, before re-computing the actual threshold value based
@@ -73,9 +74,9 @@ class FederatedTM(FederatedModel, ABC):
         return tf.math.greater(x_data, self._threshold)
 
     @abstractmethod
-    def update_threshold(self, x_data=None) -> float:
+    def update_threshold(self, x_data=None):
         """Updates the internal parameters of the threshold model using a batch of new samples to compute the new
-        threshold value.
+        threshold value. If none provided, simply re-compute the threshold.
 
         :param x_data: Batch of input data. Optional.
         """
@@ -104,12 +105,10 @@ class AvgTM(FederatedTM, ABC):
         :param var_weight:
         :param reduce_fn:
         """
-        super().__init__(threshold=0, reduce_fn=reduce_fn)
-
         self._mean = mean
         self._var = var
         self._var_weight = var_weight
-        self.update_threshold()
+        super().__init__(threshold=0, reduce_fn=reduce_fn)
 
     def set_parameters(self, parameters: list[np.ndarray]):
         """TODO
@@ -170,9 +169,8 @@ class CumAvgTM(AvgTM):
         :param var_weight:
         :param reduce_fn:
         """
-        super().__init__(mean=mean, var=var, var_weight=var_weight, reduce_fn=reduce_fn)
-
         self._n = 0
+        super().__init__(mean=mean, var=var, var_weight=var_weight, reduce_fn=reduce_fn)
 
     def update_mean(self, new_sample: float):
         """TODO
@@ -251,5 +249,64 @@ class EMAvgTM(AvgTM):
         """
         if self._mean is None:
             self._mean = new_sample
-
         self._mean = self._alpha * new_sample + (1 - self._alpha) * self._mean
+
+
+class MadTM(FederatedTM):
+    """
+
+    """
+    _median: float
+    _window: deque
+    _window_size: int
+
+    def __init__(self, window_size: int = 5, reduce_fn: Callable[[Tensor], Tensor] = lambda o: o):
+        """
+
+        :param window_size:
+        :param reduce_fn:
+        """
+        self._window = deque()
+        self._window_size = window_size
+        super().__init__(threshold=0, reduce_fn=reduce_fn)
+
+    def set_parameters(self, parameters: list[np.ndarray]):
+        """TODO
+
+        could be extended by implementation for more parms
+
+        :param parameters:
+        """
+        self._median = cast(float, parameters[0][0])
+        super().set_parameters(parameters)
+
+    def get_parameters(self) -> list[np.ndarray]:
+        """TODO
+
+        could be extended by implementation for more parms
+
+        :return:
+        """
+        return [np.array([self._median], dtype=np.float32)]
+
+    def update_threshold(self, x_data=None):
+        """TODO
+
+        :param x_data:
+        :return:
+        """
+        if x_data is not None:
+            for sample in x_data:
+                if len(self._window) == 0:
+                    self._median = sample
+                    continue
+                if len(self._window) == self._window_size:
+                    self._window.popleft()
+                self._window.append(sample)
+
+        if len(self._window) > 0:
+            samples = np.array(self._window)
+            m = np.median(samples)
+            ad = np.abs(samples - m)
+            mad = np.median(ad)
+            self._threshold = 0.6745 * ad / mad
