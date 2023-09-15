@@ -11,7 +11,12 @@
 
     For the IFTM model classes, there are also a set of base-case threshold models (TMs) provided:
 
-        * FederatedTM - TODO
+        * FederatedTM - Interface class for threshold models used in IFTM and for other hybrid detection approaches.
+        * AvgTM - Extended interface class for average(+std.)-based threshold models.
+        * CumAvgTM - Cumulative (online) averaging for threshold model computation.
+        * SMAvgTM - Simple moving averaging for threshold model computation.
+        * EMAvgTM - Exponential moving averaging for threshold model computation.
+        * MadTM - Median absolute deviation-based threshold models.
 
     For the aggregators, the following structure of interfaces and classes is provided:
 
@@ -23,12 +28,14 @@
         * EMAggregator - Exponential moving average for model parameter aggregation.
 
     Author: Fabian Hofmann, Seraphin Zunzer
-    Modified: 31.08.23
+    Modified: 15.09.23
 """
 
 from .federated_aggregator import Aggregator, ModelAggregator
 from .federated_aggregator import CumAggregator, SMAggregator, EMAggregator
 from .federated_aggregator import FedAvgAggregator
 from .federated_model import FederatedIFTM
-from .federated_model import FederatedModel
-from .federated_model import TFFederatedModel
+from .federated_model import FederatedModel, TFFederatedModel
+from .threshold_models import FederatedTM
+from .threshold_models import AvgTM, CumAvgTM, SMAvgTM, EMAvgTM
+from .threshold_models import MadTM

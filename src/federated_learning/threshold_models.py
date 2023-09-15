@@ -309,10 +309,10 @@ class EMAvgTM(AvgTM):
 
 
 class MadTM(FederatedTM):
-    """Median deviation (MAD)-based threshold models, similar to AAD-based models, again assume a symmetric distribution
-    of the time serie's samples, of which a certain percentage are considered anomalous. However, unlike average-based
-    approaches, the median can only computed using a subset of the population when computed online (it cannot be
-    computed online in fact, as this is a property of the median).
+    """Median absolute deviation (MAD)-based threshold models, similar to AAD-based models, again assume a symmetric
+    distribution of the time serie's samples, of which a certain percentage are considered anomalous. However, unlike
+    average-based approaches, the median can only computed using a subset of the population when computed online (it
+    cannot be computed online in fact, as this is a property of the median).
     """
     _window: deque
     _window_size: int
