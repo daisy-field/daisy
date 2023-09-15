@@ -29,6 +29,6 @@
 from .federated_aggregator import Aggregator, ModelAggregator
 from .federated_aggregator import CumAggregator, SMAggregator, EMAggregator
 from .federated_aggregator import FedAvgAggregator
+from .federated_model import FederatedIFTM
 from .federated_model import FederatedModel
 from .federated_model import TFFederatedModel
-from .federated_model import FederatedIFTM
