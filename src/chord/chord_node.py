@@ -5,18 +5,18 @@
     Modified: 15.09.23
 """
 import logging
-import random
-import threading
-from time import sleep
 from typing import Optional, Self
 # Bootstrap-problem :c
-from enum import Enum
 
 from src.communication.message_stream import StreamEndpoint
 
 
+# TODO implement receive message handler
+# TODO implement receiving find succ request in receive message handler
+
 class Chordnode:
-    """Class for creating nodes for the Chord DHT
+    """
+    Class for creating nodes for the Chord DHT
     """
 
     _id: int
@@ -25,91 +25,115 @@ class Chordnode:
     _addr: tuple[str, int]
     _remote_addr: tuple[str, int]
 
-    _finger_table: [{int, StreamEndpoint}]
-    # int could be index relative to owning node object -> id+2^
+    _finger_table: {int: StreamEndpoint}  # dict?
+    # int is id of node
     # Save endpoints for lookup in ft instead of address tuples
     _successor: tuple[int, StreamEndpoint]
-    _predecessor: tuple[int, StreamEndpoint] # int is id of succ/pred
+    _predecessor: tuple[int, StreamEndpoint]  # int is id of succ/pred
 
-    def __init__(self, id: int, name: str, addr: tuple[str, int], remote_addr: tuple[str, int] = None,
-                 finger_table: [{int, tuple[str, int]}] = None, successor: tuple[int, StreamEndpoint] = Self,
-                 predecessor: tuple[int, StreamEndpoint] = None):
-        """Creates a new Chord Peer.
+    def __init__(self, node_id: int = 0, name: str = "unnamed", addr: tuple[str, int] = ("127.0.0.1", 8080),
+                 remote_addr: tuple[str, int] = None, finger_table: {int: StreamEndpoint} = None,
+                 successor: tuple[int, StreamEndpoint] = Self, predecessor: tuple[int, StreamEndpoint] = None):
+        """
+        Creates a new Chord Peer.
 
-        :param id: Name of endpoint for logging purposes.
+        :param node_id: Name of endpoint for logging purposes.
         :param name: Name of Peer.
         :param addr: Address of Peer.
-        :param remote_addr: Address of chord-external peer endpoint to be connected to in order to join an existing chord-ring (initiator) or allow another peer to join (acceptor). Mandatory in initiator mode (acceptor set to
-        false), for acceptor mode this fixes the remote endpoint that is allowed to be connected to this endpoint.
         :param finger_table:
         :param successor: Successor of node on Chord Ring, initialized as self
         :param predecessor: Predecessor of node on Chord Ring, intialized as None
         """
 
-        self._id = id
+        self._id = node_id
         self._name = name
         self._addr = addr
-        self._remote_addr = remote_addr
         self._finger_table = finger_table  # starts at 1
         self._successor = successor  # init to None, set at join to chord ring
         self._predecessor = predecessor
 
     def open_chord(self):
         # open accepting endpoint for joining nodes
-        endpoint = StreamEndpoint(name=f"Acceptor-Public-{Chordnode._name}", addr=self._addr,
-                                  remote_addr=self._remote_addr,
-                                  acceptor=True, multithreading=True, buffer_size=10000)
+        endpoint = StreamEndpoint(name=f"Acceptor-Public-{Chordnode._name}", addr=self._addr, acceptor=True,
+                                  multithreading=True, buffer_size=10000)
         endpoint.start()
         while True:
             try:
                 print(f"{self._name}-{endpoint.receive(5)}")
             except TimeoutError:
-                print(f"{self._name}-Public Endpoint opened, waiting for you!")
+                print(f"{self._name}-Public Endpoint opened, pls join!")
 
     def join_chord(self, remote_addr: tuple[str, int]):
         # send join request
         endpoint = StreamEndpoint(name=f"Acceptor-Public-{Chordnode._name}", addr=self._addr,
-                                  remote_addr=self._remote_addr,
-                                  acceptor=True, multithreading=True, buffer_size=10000)
+                                  remote_addr=self._remote_addr, acceptor=True, multithreading=True, buffer_size=10000)
         endpoint.start()
-        endpoint.send(Chordmessage("join", self._id, self._addr))  # FixMe gelbe kringelchen
-    def fix_fingertable(self):
-        for i in range(self._finger_table.len()):
-            self.find_successor(self._id + 2 ** i)
+        endpoint.send(Chordmessage(message_type="join", sender_id=self._id, sender_addr=self._addr))
+        # TODO implement join protocol
 
-    def find_successor(self, sender_addr:tuple[str, int], find_succ_id: int):  # i ask recv if they know succ of sender
-        # TODO implement receiving find succ request in receive message handler
-        # TODO implement receive message handler
-        #recv id should be in fingretable
-        if self._id < find_succ_id <= self._successor[0]:
-            endpoint = StreamEndpoint(name=f"Acceptor-Public-{Chordnode._name}", addr=self._addr,
-                                      remote_addr=sender_addr,
-                                      acceptor=False, multithreading=True, buffer_size=10000)
-            endpoint.start()
-            endpoint.send(Chordmessage("join", self._id, self._remote_addr))
-            # send kann vllt nicht funktionieren, der andere muss irgendwie ja auch recv können,
-            # einfach remote addr in Antwort mitsenden? Nochmal fabian fragen
-        else:
-            self._predecessor[1].send(Chordmessage("find_successor", find_id=find_succ_id))  # send find succ of sender request
-        pass
+    def fix_fingertable(self):
+        """
+        Function to keep fingertables current with nodes joining and leaving the chordring. Should be called
+        periodically by each node.
+        """
+        for i in range(self._finger_table.len()):
+            self.find_successor(self._remote_addr, self._id + 2 ** i)
+
+    def find_successor(self, sender_addr: tuple[str, int], find_succ_id: int):
+        """
+        Function to find successor(find_succ_id). If current node does no know successor(find_succ_id) it
+        will ask its successor. If successor(find_succ_id) is found, its id and addr will be sent back directly to the
+        node who initially send the request.
+        :param sender_addr:
+        :param find_succ_id:
+        """
+        # sender addr should be remote address of node who initially asked for succ of id
+        if self._id < find_succ_id <= self._successor[0]:  # if i know succ of id -> send succ back to asking node
+            # add successor info to chordmessage
+            succ_found_msg = Chordmessage(message_type="find_successor_success", sender_id=self._id,
+                                          sender_addr=self._addr, payload=self._successor)
+            # check whether find_succ_id is in fingertable or open new endpoint
+            if self._finger_table.get(find_succ_id):
+                self._finger_table.get(find_succ_id).send(succ_found_msg)
+            else:
+                endpoint = StreamEndpoint(name=f"Sender-find_successor-id:{find_succ_id}", addr=self._addr,
+                                          remote_addr=sender_addr, acceptor=False, multithreading=True,
+                                          buffer_size=10000)
+                endpoint.start()
+                endpoint.send(succ_found_msg)
+                endpoint.stop(shutdown=True)  # ?
+        else:  # if IDK -> ask node that closest preceedes find_succ_id
+            for finger in self._finger_table.keys():
+                if self._id < self._finger_table.get(finger) < find_succ_id:
+                    self._finger_table.get(finger).send(
+                        Chordmessage(message_type="find_successor", reply_addr=sender_addr, find_id=find_succ_id))
+                    break
 
 
 class Chordmessage:
-    """Class to specify which type of messages and what content can be sent between peers to fullfill the chord protocol
     """
-
+    Class for Chord messages
+    """
+    # TODO unfinished
+    # FIXME address situation
     _message_type: str
     _sender_id: int
+    _sender_addr: tuple[str, int]
+    _reply_addr: tuple[str, int]
     _find_id: int
-    _find_addr: tuple[str, int]
     _find_remote_addr: tuple[str, int]
+    _payload: object
 
-    def __init__(self, message_type: str, sender_id: int, find_id: int, find_addr: tuple[str, int], find_remote_addr: tuple[str, int]):
-        self._message_type = message_type  # how do I say "should be one of ...", maybe not necessary
+    def __init__(self, message_type: str = "unspecified", sender_id: int = -1, sender_addr: tuple[str, int] = None,
+                 reply_addr: tuple[str, int] = None, find_id: int = -1, find_remote_addr: tuple[str, int] = None,
+                 payload: object = None):
+        self._message_type = message_type
         self._sender_id = sender_id
+        self._sender_addr = sender_addr
+        self._reply_addr = reply_addr
         self._find_id = find_id
-        self._find_addr = find_addr
         self._find_remote_addr = find_remote_addr
+        self._payload = payload
 
 
 if __name__ == "__main__":
