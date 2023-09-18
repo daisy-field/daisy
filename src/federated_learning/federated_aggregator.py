@@ -7,7 +7,7 @@
     Modified: 14.08.23
 
     TODO future work: weighted moving average based on significance of data point
-    TODO - in that case requires serious considerates whether a list of model parameters can even work
+    TODO - in that case requires serious consideration whether a list of model parameters can even work
     TODO - should be done with a custom weighting interface that computes the importance of model to the set (0-1)
 """
 
@@ -173,8 +173,9 @@ class SMAggregator(ModelAggregator):
 
 
 class EMAggregator(ModelAggregator):
-    """Simple Moving Averaging, also called sliding window averaging (FedSMA) is the simplest version of online moving
-    averaging for models, as it uses only the past k elements of the stream to compute the average. As with other online
+    """Exponential moving averaging (FedEMA) unlike FedSMA takes note of the entire model stream to compute the average,
+    but over multiple time steps starts to forget past elements; this process is also called exponential smoothing, as
+    the past is exponentially less relevant to the current time step the further one goes back. As with other online
     model averaging aggregators, the regular FedAvg is first computed over the batch of modes provided in a single step,
     before using that average to update the moving average (i.e., all models in a batch are treated equally).
 
