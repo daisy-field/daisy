@@ -1,9 +1,134 @@
 """
-    Class for Federated Client
+    Class for Federated Client TODO
 
-    Author: Seraphin Zunzer
-    Modified: 09.08.23
+    Author: Fabian Hofmann, Seraphin Zunzer
+    Modified: 20.09.23
 """
+
+import threading
+from abc import ABC, abstractmethod
+
+import tensorflow as tf
+
+from src.communication import StreamEndpoint
+from src.data_sources import DataSource
+from src.federated_learning import FederatedModel
+from src.federated_learning import ModelAggregator
+
+
+class FederatedNode(ABC):
+    """TODO
+
+    """
+    _data_source: DataSource
+    _batch_size: int
+    _minibatch: list
+
+    _model: FederatedModel
+    _m_lock: threading.Lock
+
+    _sync_mode: bool
+    _update_interval_s: int
+    _update_interval_t: int
+
+    _supervised: bool
+    _metrics: list[tf.metrics]
+
+    _eval_serv: StreamEndpoint
+    _aggr_serv: StreamEndpoint
+
+    def __init__(self, data_source: DataSource, batch_size: int, model: FederatedModel,
+                 eval_server: StreamEndpoint = False, aggr_server: StreamEndpoint = False,
+                 supervised: bool = False, metrics: list[tf.metrics] = None,
+                 sync_mode: bool = True, update_interval_s: int = -1, update_interval_t: int = -1):
+        """
+
+        :param data_source:
+        :param batch_size:
+        :param model:
+        :param eval_server:
+        :param aggr_server:
+        :param supervised:
+        :param metrics:
+        :param sync_mode:
+        :param update_interval_s:
+        :param update_interval_t:
+        """
+        self._data_source = data_source
+        self._batch_size = batch_size
+        self._minibatch = []
+
+        self._model = model
+        self._m_lock = threading.Lock()
+
+        self._eval_serv = eval_server
+        self._aggr_serv = aggr_server
+
+        self._supervised = supervised
+        self._metrics = metrics
+
+        self._sync_mode = sync_mode
+        self._update_interval_s = update_interval_s
+        self._update_interval_t = update_interval_t
+
+    def run(self):
+        """TODO
+
+        """
+        self._data_source.open()
+        self._eval_serv.start()
+        self._aggr_serv.start()
+
+        threading.Thread(target=self.create_local_learner, daemon=True).start()
+        if not self._sync_mode:
+            threading.Thread(target=self.create_async_fed_learner, daemon=True).start()
+
+    def create_local_learner(self):
+        """TODO
+        """
+        for sample in self._data_source:  # FIXME SAMPLE SHOULD BE A TUPLE FOR SUPERVISED LEARNING?
+            predictions = self._model.predict(sample)
+            # eval_res = self._metrics[0].
+
+            self._aggr_serv.send(predictions)  # FIXME MAYBE CHANGE FORMATTING?
+
+            self._model.fit(sample, sample)  # FIXME
+
+    @abstractmethod
+    def sync_fed_update(self):
+        """TODO
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def create_async_fed_learner(self):
+        """TODO
+        """
+        raise NotImplementedError
+
+
+class FederatedClient(FederatedNode):
+    """
+
+    """
+    _m_aggr_server: StreamEndpoint
+
+    def __init__(self, is_sync: bool,
+                 update_interval: int = -1):  # TODO THIS WONT WORK FOR SAMPLE VS TIME BASED SYNCHRONIZATION
+
+        super().__init__()
+        pass
+
+
+class FederatedPeer(FederatedNode):
+    _peers: list[StreamEndpoint]  # TODO TBD by @Lotta
+    _topology: object  # TODO TBD by @Lotta
+    _aggr: ModelAggregator
+
+    def __init__(self, ):
+        super().__init__()
+        pass
+
 
 import logging
 import socket
@@ -214,3 +339,40 @@ if __name__ == "__main__":
     client = Client(("127.0.0.1", 54321), ("127.0.0.1", 54322), ("127.0.0.1", 54323), data_source=d,
                     federated_model=FedAutoencoder())
     client.run()
+
+# if __name__ == "__main__":
+#     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+#     parser.add_argument("--debug", type=bool, default=False, help="Show debug outputs")
+#     parser.add_argument("--RXip", default="0.0.0.0",
+#                         help="IP of traffic light service")
+#     parser.add_argument("--RXport", type=int, default=8800,
+#                         help="UDP port of traffic light service")
+#     parser.add_argument("--mappingPath", type=pathlib.Path, default="mapping.json",
+#                         help="Path to mapping file (HD-Map TL-ID -> DSRC TL-ID)")
+#     parser.add_argument("--demo", type=bool, default=False, help="If enabled, use sample SPATEMs instead")
+#     parser.add_argument("--demoPath", type=pathlib.Path,
+#                         default="trafficlight_receiver/its/sample_spatems",
+#                         help="If demo set, path to directory with sample SPATEMs as jsons")
+#     parser.add_argument("--dsrcRXip", default="0.0.0.0",
+#                         help="IP to which the Cohda unit sends its messages")
+#     parser.add_argument("--dsrcRXport", type=int, default=4400,
+#                         help="UDP port to which the Cohda unit sends its messages")
+#     args = parser.parse_args()
+#
+#     if args.debug:
+#         logging.basicConfig(level=logging.DEBUG)
+#
+#     # either sample messages or cohda communication as traffic light state source
+#     if args.demo:
+#         logging.info("Demo detected. Processing a few collected DSRC packets for testing purposes...")
+#         tl.start_demo(args.demoPath)
+#     else:
+#         logging.info("Starting DSRC listening server...")
+#         Thread(target=tl.listen_to_dsrc_messages, args=(args.dsrcRXip, args.dsrcRXport)).start()
+#
+#     # retrieval of the (current) mapping from hd-map TL ids to the DSRC TL ids used in this backend's datastructure
+#     with open(args.mappingPath) as f:
+#         tl_mapping = json.load(f)
+#
+#     logging.info("Starting TL-service listening server...")
+#     listen_to_tl_requests(args.RXip, args.RXport)
