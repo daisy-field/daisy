@@ -7,6 +7,7 @@
 
     TODO Future Work: SSL https://docs.python.org/3/library/ssl.html
     TODO Future Work: Poll & Select
+    TODO Future Work: Generating new Endpoints through Generic Endpoints upon new connection
     TODO Future Work: Blocked remote addresses (and leaving l_sockets open)
     TODO - when socket is not shut down but only closed OR when never opened to begin with
 """
