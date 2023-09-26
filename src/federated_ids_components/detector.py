@@ -1,14 +1,16 @@
 """
     Class for Federated Client TODO
 
-    Author: Fabian Hofmann, Seraphin Zunzer
-    Modified: 20.09.23
+    Author: Fabian Hofmann
+    Modified: 22.09.23
 """
 
 import threading
 from abc import ABC, abstractmethod
-
+from time import sleep, time
+import numpy as np
 import tensorflow as tf
+from typing import Callable
 
 from src.communication import StreamEndpoint
 from src.data_sources import DataSource
@@ -17,98 +19,192 @@ from src.federated_learning import ModelAggregator
 
 
 class FederatedNode(ABC):
-    """TODO
+    """TODO CHECKING
 
     """
     _data_source: DataSource
     _batch_size: int
-    _minibatch: list
+    _minibatch_inputs: list
+    _minibatch_labels: list
 
     _model: FederatedModel
     _m_lock: threading.Lock
 
-    _sync_mode: bool
-    _update_interval_s: int
-    _update_interval_t: int
-
+    _label_split: int
     _supervised: bool
     _metrics: list[tf.metrics]
 
     _eval_serv: StreamEndpoint
     _aggr_serv: StreamEndpoint
 
+    _sync_mode: bool
+    _update_interval_s: int
+    _update_interval_t: int
+
+    _s_since_update: int
+    _t_last_update: float
+
+    _learner_thread: threading.Thread
+    _fed_thread: threading.Thread
+    _started: bool
+
     def __init__(self, data_source: DataSource, batch_size: int, model: FederatedModel,
+                 label_split: int = 2 ** 32, supervised: bool = False, metrics: list[tf.metrics] = None,
                  eval_server: StreamEndpoint = False, aggr_server: StreamEndpoint = False,
-                 supervised: bool = False, metrics: list[tf.metrics] = None,
-                 sync_mode: bool = True, update_interval_s: int = -1, update_interval_t: int = -1):
-        """
+                 sync_mode: bool = True, update_interval_s: int = None, update_interval_t: int = None):
+        """TODO commenting, checking, logging
 
         :param data_source:
         :param batch_size:
         :param model:
-        :param eval_server:
-        :param aggr_server:
+        :param label_split:
         :param supervised:
         :param metrics:
+        :param eval_server:
+        :param aggr_server:
         :param sync_mode:
         :param update_interval_s:
         :param update_interval_t:
         """
         self._data_source = data_source
         self._batch_size = batch_size
-        self._minibatch = []
+        self._minibatch_inputs = []
+        self._minibatch_labels = []
 
         self._model = model
         self._m_lock = threading.Lock()
 
-        self._eval_serv = eval_server
-        self._aggr_serv = aggr_server
-
+        if label_split == 2 ** 32 and (supervised or len(metrics) == 0):
+            raise ValueError("Supervised and/or evaluation mode requires labels!")
+        self._label_split = label_split
         self._supervised = supervised
         self._metrics = metrics
+
+        self._eval_serv = eval_server
+        self._aggr_serv = aggr_server
 
         self._sync_mode = sync_mode
         self._update_interval_s = update_interval_s
         self._update_interval_t = update_interval_t
 
-    def run(self):
-        """TODO
+        self._s_since_update = 0
+        self._t_last_update = time()
+
+        self._started = False
+
+    def start(self):
+        """TODO commenting, checking, logging
 
         """
-        self._data_source.open()
-        self._eval_serv.start()
-        self._aggr_serv.start()
+        if self._started:
+            raise RuntimeError(f"Federated node has already been started!")
+        self._started = True
+        _try_ops(
+            self._data_source.open,
+            self._eval_serv.start,
+            self._aggr_serv.start
+        )
+        self.setup()
 
-        threading.Thread(target=self.create_local_learner, daemon=True).start()
+        self._learner_thread = threading.Thread(target=self.create_local_learner, daemon=True)
+        self._learner_thread.start()
         if not self._sync_mode:
-            threading.Thread(target=self.create_async_fed_learner, daemon=True).start()
+            self._fed_thread  = threading.Thread(target=self.create_async_fed_learner, daemon=True)
+            self._fed_thread.start()
+
+    @abstractmethod
+    def setup(self, *operations):
+        """TODO commenting, checking, logging
+
+        """
+        raise NotImplementedError
+
+    def stop(self):
+        """TODO commenting, checking, logging
+
+        """
+        if not self._started:
+            raise RuntimeError(f"Federated node has not been started!")
+
+        self._started = False
+        _try_ops(
+            self._data_source.close,
+            lambda: self._eval_serv.stop(shutdown=True),
+            lambda: self._aggr_serv.stop(shutdown=True)
+        )
+        self.cleanup()
+
+        self._learner_thread.join()
+        if not self._sync_mode:
+            self._fed_thread.join()
+
+    @abstractmethod
+    def cleanup(self):
+        """TODO commenting, checking, logging
+
+        :param operations:
+        """
+        raise NotImplementedError
 
     def create_local_learner(self):
-        """TODO
+        """TODO commenting, checking, logging
         """
         for sample in self._data_source:  # FIXME SAMPLE SHOULD BE A TUPLE FOR SUPERVISED LEARNING?
-            predictions = self._model.predict(sample)
-            # eval_res = self._metrics[0].
+            self._minibatch_inputs.append(sample[:self._label_split])
+            self._minibatch_labels.append(sample[self._label_split:])
 
-            self._aggr_serv.send(predictions)  # FIXME MAYBE CHANGE FORMATTING?
+            if len(self._minibatch_inputs) > self._batch_size:
+                x_data = np.array(self._minibatch_inputs)
+                y_true = np.array(self._minibatch_labels)
+                with self._m_lock:
+                    self._process_batch(x_data, y_true)
+                self._minibatch_inputs = []
+                self._minibatch_labels = []
 
-            self._model.fit(sample, sample)  # FIXME
+                if self._sync_mode:
+                    self._s_since_update += self._batch_size
+                    if (self._update_interval_s is not None and self._s_since_update > self._update_interval_s
+                            or self._update_interval_t is not None
+                            and time() - self._t_last_update > self._update_interval_t):
+                        self.sync_fed_update()
+                        self._s_since_update = 0
+                        self._t_last_update = time()
+        threading.Thread(target=self.stop()).start()
+
+    def _process_batch(self, x_data, y_true):
+        """TODO commenting, checking, logging
+
+        :return:
+        """
+        y_pred = self._model.predict(x_data)
+        if self._aggr_serv is not None:
+            self._aggr_serv.send((x_data, y_pred))
+
+        if len(self._metrics) > 0:
+            eval_res = [metric(y_true, y_pred) for metric in self._metrics]
+            if self._eval_serv is not None:
+                self._eval_serv.send(eval_res)
+
+        self._model.fit(x_data, y_true)
 
     @abstractmethod
     def sync_fed_update(self):
-        """TODO
+        """TODO commenting
         """
         raise NotImplementedError
 
     @abstractmethod
     def create_async_fed_learner(self):
-        """TODO
+        """TODO commenting
         """
         raise NotImplementedError
 
+    def __del__(self):
+        if self._started:
+            self.stop()
 
 class FederatedClient(FederatedNode):
-    """
+    """TODO
 
     """
     _m_aggr_server: StreamEndpoint
@@ -119,8 +215,10 @@ class FederatedClient(FederatedNode):
         super().__init__()
         pass
 
-
 class FederatedPeer(FederatedNode):
+    """TODO
+
+    """
     _peers: list[StreamEndpoint]  # TODO TBD by @Lotta
     _topology: object  # TODO TBD by @Lotta
     _aggr: ModelAggregator
@@ -129,250 +227,12 @@ class FederatedPeer(FederatedNode):
         super().__init__()
         pass
 
+def _try_ops(*operations):
+    """TODO commenting, checking, logging
 
-import logging
-import socket
-import threading
-from datetime import datetime
-from time import sleep
-from typing import Tuple
-
-import evaluation.anomaly_processing
-import evaluation.old2 as metrics
-import numpy as np
-from data_sources import PcapHandler, PysharkProcessor
-from evaluation.mad_score import calculate_mad_score
-from federated_learning import federated_model as fm
-from federated_learning.TOBEREMOVEDmodels.autoencoder import FedAutoencoder
-from tensorflow.keras import backend as K
-
-import src.communication.message_stream as ms
-import src.data_sources.data_source as ds
-
-logging.basicConfig(format="%(asctime)s %(levelname)-8s %(message)s", datefmt="%Y-%m-%d %H:%M:%S",
-                    level=logging.DEBUG)
-
-
-# FIXME (everything)
-
-class Client:
     """
-        Class to create a single federated client. Parameters ID, Port and Receiving Port are received from arguments
-        Optimized client for real-world dataset.
-        Federated learning client that receives the global model weights, detects attacks in the arriving real-world
-        datastreams from the data simulator, and trains the local model afterward.
-        This model is transmitted to the Server for weight aggregation using FedAVG
-
-        :args: ClientID ClientPort DataReceivingPort
-        """
-
-    def __init__(self, addr: Tuple[str, int], agg_addr: Tuple[str, int], eval_addr: Tuple[str, int],
-                 data_source: ds.DataSource, federated_model: fm.FederatedModel, threshold_prediction: int = 2.2,
-                 train_batchsize: int = 32, normal_label: str = "Benign", anomaly_label: str = "Anomaly",
-                 epochs: int = 20):
-        """
-
-        :param addr: Address of this client
-        :param agg_addr: Address of aggregation server
-        :param eval_addr: Address of evaluation server
-        :param data_source: Datasource
-        :param federated_model: Federated Model
-        :param threshold_prediction: Prediction threshold
-        :param train_batchsize: Batchsize of training
-        """
-        self.train_data_batch = []  # container for data that should be trained with
-        self.train_data_label = []
-
-        self.data_queue = []  # container for incoming data from datasource
-        self.label_queue = []
-        self.time_queue = []
-
-        self._data_batchsize = train_batchsize
-        self._threshold_prediction = threshold_prediction
-        self._data_sorce = data_source
-        self._train_count = 0
-        self._addr = addr
-        self._global_weights = []
-        self.data_batch_queue = []
-        self.label_batch_queue = []
-
-        self._anomaly_label = anomaly_label
-        self._normal_label = normal_label
-        self._model = federated_model
-        self._prediction_model = federated_model
-        self._epochs = epochs
-        logging.info(f"Starting Endpoints.")
-
-        self._agg_endpoint = ms.StreamEndpoint(name="Agg_connection", acceptor=False, multithreading=False, addr=addr,
-                                               remote_addr=agg_addr)
-        self._agg_endpoint.start()
-        # self._eval_endpoint = ms.StreamEndpoint(name="Eval_connection", acceptor=False, addr=addr, remote_addr=eval_addr)
-        # self._eval_endpoint.start()
-        logging.info(f"Client {addr} started.")
-
-    def start_training(self):
-        while 1:
-            try:
-                logging.info("Waiting for model weights")
-                self._global_weights = self._agg_endpoint.receive()
-                logging.info(f"Received new global model weights.")
-
-            except socket.timeout:
-                logging.warning("Server not available")
-                continue
-
-            if len(self.data_batch_queue) >= 1:
-                train_dataset = np.array([item for sublist in self.data_batch_queue for item in sublist])
-                print(train_dataset)
-                logging.info(f"Prepare training on client {self._addr} with {len(train_dataset)} samples")
-                self._model.init_model()  # TODO WHY INIT EVERY ITERATION? ONLY FOR OPTIMIZERS, ETC NOT WEIGTHS
-                self._model._model.set_weights(self._global_weights)
-                logging.info("STARTED TRAINING")
-                self._model._model.fit(x=train_dataset, y=train_dataset, epochs=self._epochs, verbose=1, batch_size=32)
-                logging.info("TRAINING FINISHED")
-
-                self.data_batch_queue = []
-                self.label_batch_queue = []
-
-                try:
-                    self._agg_endpoint.send(self._model._model.get_weights())
-                except:
-                    logging.error("Error in sending weights to aggregation server")
-
-                logging.info("Finished training, closed session")
-                K.clear_session()  # clear model
-            else:
-                logging.warning("No data available for training")
-
-    def run(self):
-        """Collect samples until the data batch size is reached. Save this batch
-
-        :return: -
-
-        """
-
-        # TODO DOES THIS NOT CREATE ONE BIG RACE CONDITION DURING PREDICTION MAKING?
-        training_thread = threading.Thread(target=self.start_training, name="Training", daemon=True)
-        training_thread.start()
-
-        # receive data from datasource
-        self._data_sorce.open()
-        for i in self._data_sorce:
-            self.data_queue.append(i)
-            self.label_queue.append("Normal")
-            self.time_queue.append(datetime.now())
-            sleep(0.1)
-            if len(self.data_queue) > self._data_batchsize:
-                # self.start_prediction()
-                self.data_batch_queue.append(self.data_queue)
-                self.label_batch_queue.append(self.label_queue)
-                logging.info(
-                    f"One data batch filled. Currently {len(self.data_batch_queue)} batches for training available")
-
-                # empty containers
-                self.data_queue = []
-                self.label_queue = []
-                self.time_queue = []
-
-    def start_prediction(self):
-        """If Model is trained and data for prediction is available start prediction, otherwise train model
-
-        :return: -
-        """
-        if self._train_count > 0:
-            self.make_predictions(np.array(self.data_queue), np.array(self.label_queue),
-                                  np.array(self.time_queue))
-
-            self.data_batch_queue.append(self.data_queue)
-            self.label_batch_queue.append(self.label_queue)
-        else:
-            self.data_batch_queue.append(self.data_queue)
-            self.label_batch_queue.append(self.label_queue)
-
-    def make_predictions(self, dataset: np.array, true_labels: np.array,
-                         pred_time: np.array):
-        """Make predictions on the last databatch with latest global model weights.
-
-        :param dataset: dataset to make predictions on
-        :param true_labels: true labels belonging to dataset
-        :param pred_time: List of times, the data samples arrived
-        :return:
-        """
-        self._prediction_model.set_model_weights(self._global_weights)
+    for op in operations:
         try:
-            reconstructions = self._prediction_model.model_predict(x=dataset)
-            mse = np.mean(np.power(dataset - reconstructions, 2), axis=1)
-        except Exception as e:
-            logging.error(e)
-            logging.error("Failed prediction")
-            return
-
-        z_scores = calculate_mad_score(mse)
-
-        outliers = z_scores > self._threshold_prediction
-
-        # get lists of the predicted and the true labels
-        prediction = [self._anomaly_label if l else self._normal_label for l in outliers]
-        labels_true = [self._normal_label if k == self._normal_label else self._anomaly_label for k in true_labels]
-
-        time_needed = [(datetime.now() - pred_time[j]).total_seconds() for j in range(len(true_labels))]
-
-        metrics_obj = metrics.MetricsObject(prediction, labels_true, self._anomaly_label, self._normal_label)
-
-        logging.info(
-            f'Client {self._addr}: False positives: {metrics_obj.metrics[0]}, True positives: {metrics_obj.metrics[1]},'
-            f'False negatives: {metrics_obj.metrics[2]}, True negatives: {metrics_obj.metrics[3]}')
-
-        evaluation.anomaly_processing.store_anomalies(labels_true, z_scores, time_needed, outliers)
-        evaluation.mad_score.analyze_mad_score(z_scores, labels_true)
-
-        self._eval_endpoint.send(metrics_obj)
-
-
-# TODO MUST BE OUTSOURCED INTO A PROPER STARTSCRIPT FOR DEMO PURPOSES
-
-if __name__ == "__main__":
-    logging.basicConfig(format="%(asctime)s %(levelname)-8s %(name)-10s %(message)s", datefmt="%Y-%m-%d %H:%M:%S",
-                        level=logging.INFO)
-
-    d = ds.DataSource("test", source_handler=PcapHandler('test_data'), data_processor=PysharkProcessor())
-    client = Client(("127.0.0.1", 54321), ("127.0.0.1", 54322), ("127.0.0.1", 54323), data_source=d,
-                    federated_model=FedAutoencoder())
-    client.run()
-
-# if __name__ == "__main__":
-#     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-#     parser.add_argument("--debug", type=bool, default=False, help="Show debug outputs")
-#     parser.add_argument("--RXip", default="0.0.0.0",
-#                         help="IP of traffic light service")
-#     parser.add_argument("--RXport", type=int, default=8800,
-#                         help="UDP port of traffic light service")
-#     parser.add_argument("--mappingPath", type=pathlib.Path, default="mapping.json",
-#                         help="Path to mapping file (HD-Map TL-ID -> DSRC TL-ID)")
-#     parser.add_argument("--demo", type=bool, default=False, help="If enabled, use sample SPATEMs instead")
-#     parser.add_argument("--demoPath", type=pathlib.Path,
-#                         default="trafficlight_receiver/its/sample_spatems",
-#                         help="If demo set, path to directory with sample SPATEMs as jsons")
-#     parser.add_argument("--dsrcRXip", default="0.0.0.0",
-#                         help="IP to which the Cohda unit sends its messages")
-#     parser.add_argument("--dsrcRXport", type=int, default=4400,
-#                         help="UDP port to which the Cohda unit sends its messages")
-#     args = parser.parse_args()
-#
-#     if args.debug:
-#         logging.basicConfig(level=logging.DEBUG)
-#
-#     # either sample messages or cohda communication as traffic light state source
-#     if args.demo:
-#         logging.info("Demo detected. Processing a few collected DSRC packets for testing purposes...")
-#         tl.start_demo(args.demoPath)
-#     else:
-#         logging.info("Starting DSRC listening server...")
-#         Thread(target=tl.listen_to_dsrc_messages, args=(args.dsrcRXip, args.dsrcRXport)).start()
-#
-#     # retrieval of the (current) mapping from hd-map TL ids to the DSRC TL ids used in this backend's datastructure
-#     with open(args.mappingPath) as f:
-#         tl_mapping = json.load(f)
-#
-#     logging.info("Starting TL-service listening server...")
-#     listen_to_tl_requests(args.RXip, args.RXport)
+            op()
+        except RuntimeError:
+            pass

@@ -2,7 +2,7 @@
     A collection of various types of model wrappers, implementing the same interface for each federated model type, thus
     enabling their inter-compatibility for different aggregation strategies and federated system components.
 
-    Author: Fabian Hofmann, Seraphin Zunzer
+    Author: Fabian Hofmann
     Modified: 09.09.23
 
     TODO Future Work should be the implementation of Open Source Interfaces (e.g. Keras Model API)
