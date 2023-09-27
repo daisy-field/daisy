@@ -2,7 +2,7 @@
     Class for Federated Client TODO
 
     Author: Fabian Hofmann
-    Modified: 22.09.23
+    Modified: 27.09.23
 """
 
 import threading
@@ -109,7 +109,7 @@ class FederatedNode(ABC):
         self._learner_thread = threading.Thread(target=self.create_local_learner, daemon=True)
         self._learner_thread.start()
         if not self._sync_mode:
-            self._fed_thread  = threading.Thread(target=self.create_async_fed_learner, daemon=True)
+            self._fed_thread = threading.Thread(target=self.create_async_fed_learner, daemon=True)
             self._fed_thread.start()
 
     @abstractmethod
@@ -125,7 +125,6 @@ class FederatedNode(ABC):
         """
         if not self._started:
             raise RuntimeError(f"Federated node has not been started!")
-
         self._started = False
         _try_ops(
             self._data_source.close,
@@ -157,7 +156,11 @@ class FederatedNode(ABC):
                 x_data = np.array(self._minibatch_inputs)
                 y_true = np.array(self._minibatch_labels)
                 with self._m_lock:
-                    self._process_batch(x_data, y_true)
+                    try:
+                        self._process_batch(x_data, y_true)
+                    except RuntimeError:
+                        # stop() was called
+                        break
                 self._minibatch_inputs = []
                 self._minibatch_labels = []
 
@@ -166,10 +169,16 @@ class FederatedNode(ABC):
                     if (self._update_interval_s is not None and self._s_since_update > self._update_interval_s
                             or self._update_interval_t is not None
                             and time() - self._t_last_update > self._update_interval_t):
-                        self.sync_fed_update()
+                        try:
+                            self.sync_fed_update()
+                        except RuntimeError:
+                            # stop() was called
+                            break
                         self._s_since_update = 0
                         self._t_last_update = time()
-        threading.Thread(target=self.stop()).start()
+
+        if self._started:
+            threading.Thread(target=self.stop).start()
 
     def _process_batch(self, x_data, y_true):
         """TODO commenting, checking, logging
@@ -227,7 +236,7 @@ class FederatedPeer(FederatedNode):
         super().__init__()
         pass
 
-def _try_ops(*operations):
+def _try_ops(*operations: Callable):
     """TODO commenting, checking, logging
 
     """
