@@ -2,7 +2,7 @@
     Class for Federated Client TODO
 
     Author: Fabian Hofmann
-    Modified: 27.09.23
+    Modified: 06.10.23
 """
 
 import threading
@@ -19,8 +19,20 @@ from src.federated_learning import ModelAggregator
 
 
 class FederatedNode(ABC):
-    """TODO CHECKING
+    """Abstract class for generic federated nodes, that learn cooperatively on generic streaming data using a generic
+    model, while also running predictions on the samples of that data stream at every step. This class in its core wraps
+    itself around various other classes of this framework to perform the following tasks:
 
+        * DataSource: Source to draw data point samples from. Is done a number of times (batch size) before each step.
+        * FederatedModel: Actual model to be fitted and run predictions alternatingly at each step at runtime.
+        * StreamEndpoint: The generic servers for result reporting and evaluation, to be extended depending on topology.
+            - Aggregator: Used to report prediction results to a centralized aggregation server (see aggregator.py).
+            - Evaluator: Used to report prediction results to a centralized evaluation server (see evaluator.py).
+
+    All of this is done in multithreaded manner, allowing to either implement synchronized or asynchronous federated
+    approaches, with a centralized master node or any other topology for the nodes that learn together.
+
+    TODO METHODS
     """
     _data_source: DataSource
     _batch_size: int
@@ -113,7 +125,7 @@ class FederatedNode(ABC):
             self._fed_thread.start()
 
     @abstractmethod
-    def setup(self, *operations):
+    def setup(self):
         """TODO commenting, checking, logging
 
         """
@@ -141,7 +153,6 @@ class FederatedNode(ABC):
     def cleanup(self):
         """TODO commenting, checking, logging
 
-        :param operations:
         """
         raise NotImplementedError
 
@@ -164,8 +175,8 @@ class FederatedNode(ABC):
                 self._minibatch_inputs = []
                 self._minibatch_labels = []
 
+                self._s_since_update += self._batch_size
                 if self._sync_mode:
-                    self._s_since_update += self._batch_size
                     if (self._update_interval_s is not None and self._s_since_update > self._update_interval_s
                             or self._update_interval_t is not None
                             and time() - self._t_last_update > self._update_interval_t):
@@ -176,9 +187,6 @@ class FederatedNode(ABC):
                             break
                         self._s_since_update = 0
                         self._t_last_update = time()
-
-        if self._started:
-            threading.Thread(target=self.stop).start()
 
     def _process_batch(self, x_data, y_true):
         """TODO commenting, checking, logging
