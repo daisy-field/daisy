@@ -5,12 +5,14 @@
     Modified: 06.10.23
 """
 
+import logging
 import threading
 from abc import ABC, abstractmethod
-from time import sleep, time
+from time import time
+from typing import Callable
+
 import numpy as np
 import tensorflow as tf
-from typing import Callable
 
 from src.communication import StreamEndpoint
 from src.data_sources import DataSource
@@ -18,22 +20,33 @@ from src.federated_learning import FederatedModel
 from src.federated_learning import ModelAggregator
 
 
-class FederatedNode(ABC):
+class FederatedOnlineNode(ABC):
     """Abstract class for generic federated nodes, that learn cooperatively on generic streaming data using a generic
     model, while also running predictions on the samples of that data stream at every step. This class in its core wraps
     itself around various other classes of this framework to perform the following tasks:
 
         * DataSource: Source to draw data point samples from. Is done a number of times (batch size) before each step.
+
         * FederatedModel: Actual model to be fitted and run predictions alternatingly at each step at runtime.
+
         * StreamEndpoint: The generic servers for result reporting and evaluation, to be extended depending on topology.
-            - Aggregator: Used to report prediction results to a centralized aggregation server (see aggregator.py).
             - Evaluator: Used to report prediction results to a centralized evaluation server (see evaluator.py).
+            - Aggregator: Used to report prediction results to a centralized aggregation server (see aggregator.py).
 
-    All of this is done in multithreaded manner, allowing to either implement synchronized or asynchronous federated
-    approaches, with a centralized master node or any other topology for the nodes that learn together.
+    All of this is done in multithreaded manner, allowing any implementation to be synchronously or asynchronously
+    federated, with a centralized master node or any other topology for the nodes that learn together. To accomplish
+    this, the following methods must be implemented:
 
-    TODO METHODS
+        * setup(): Setup function for any state variables called during the starting of the starting of the node.
+
+        * cleanup(): Cleanup function for any stat variables called during the starting of the starting of the node.
+
+        * sync_fed_update(): Singular, synchronous federated update step.
+
+        * create_async_fed_learner(): Continuous, asynchronous federated update loop.
     """
+    _logger: logging.Logger
+
     _data_source: DataSource
     _batch_size: int
     _minibatch_inputs: list
@@ -60,24 +73,28 @@ class FederatedNode(ABC):
     _fed_thread: threading.Thread
     _started: bool
 
-    def __init__(self, data_source: DataSource, batch_size: int, model: FederatedModel,
+    def __init__(self, data_source: DataSource, batch_size: int, model: FederatedModel, name: str = "",
                  label_split: int = 2 ** 32, supervised: bool = False, metrics: list[tf.metrics] = None,
                  eval_server: StreamEndpoint = False, aggr_server: StreamEndpoint = False,
                  sync_mode: bool = True, update_interval_s: int = None, update_interval_t: int = None):
-        """TODO commenting, checking, logging
+        """Creates a new federated online node.
 
-        :param data_source:
-        :param batch_size:
-        :param model:
-        :param label_split:
-        :param supervised:
-        :param metrics:
-        :param eval_server:
-        :param aggr_server:
-        :param sync_mode:
-        :param update_interval_s:
-        :param update_interval_t:
+        :param data_source: Data source of data stream to draw data points (in order) from.
+        :param batch_size: Minibatch size for each prediction-fitting step.
+        :param model: Actual model to be fitted and run predictions alternatingly in online manner.
+        :param name: Name of federated online node for logging purposes.
+        :param label_split: Split index within data point vector between input and true label(s). Default is no labels.
+        :param supervised: Learning mode for model (supervised/unsupervised). Default is unsupervised.
+        :param metrics: Evaluation metrics to update at each step/minibatch. Default has no evaluation at all.
+        :param eval_server: Streaming endpoint for centralized evaluation server (see evaluator.py).
+        :param aggr_server: Streaming endpoint for centralized aggregation server (see aggregator.py).
+        :param sync_mode: Federated updating mode for node (sync/async). Default is synchronized.
+        :param update_interval_s: Federated updating interval, defined by samples; every X samples, do a sync update.
+        :param update_interval_t: Federated updating interval, defined by time; every X seconds, do a sync update.
         """
+        self._logger = logging.getLogger(name)
+        self._logger.info("Initializing federated online node...")
+
         self._data_source = data_source
         self._batch_size = batch_size
         self._minibatch_inputs = []
@@ -103,63 +120,90 @@ class FederatedNode(ABC):
         self._t_last_update = time()
 
         self._started = False
+        self._logger.info("Federated online node initialized.")
 
     def start(self):
-        """TODO commenting, checking, logging
+        """Starts the federated online node, along with any underlying endpoints, data sources, and any other object by
+        an extension of this class (see setup()). This method blocks until all
 
+
+        FIXME THIS IS A PROBLEM!!! ENDPOINTS REQUIRE OTHER SIDE TO BE ONLINE! ALSO NOT NULL???
+        ASYNC ENDPOINTS CAN HANDLE IT, SYNC ONES? NOT SO MUCH
+
+
+        TODO commenting
+
+
+
+        :raises RuntimeError: If federated online node has already been started.
         """
+        self._logger.info("Starting federated online node...")
         if self._started:
-            raise RuntimeError(f"Federated node has already been started!")
+            raise RuntimeError(f"Federated online node has already been started!")
         self._started = True
         _try_ops(
             self._data_source.open,
             self._eval_serv.start,
             self._aggr_serv.start
         )
+        self._logger.info("Performing further setup...")
         self.setup()
 
         self._learner_thread = threading.Thread(target=self.create_local_learner, daemon=True)
         self._learner_thread.start()
         if not self._sync_mode:
+            self._logger.info("Async learning detected, starting fed learner thread...")
             self._fed_thread = threading.Thread(target=self.create_async_fed_learner, daemon=True)
             self._fed_thread.start()
+        self._logger.info("Federated online node started.")
 
     @abstractmethod
     def setup(self):
-        """TODO commenting, checking, logging
+        """Setup function that must be implemented, called during start(); sets any new internal state variables and
+        objects up used during the federated updating process, both for synchronous and asynchronous learning.
 
+        Note that any such instance attribute should be initialized within an extension of the __init_() method.
         """
         raise NotImplementedError
 
     def stop(self):
-        """TODO commenting, checking, logging
-
         """
+
+        FIXME THIS IS A PROBLEM!!! ENDPOINTS REQUIRE OTHER SIDE TO BE ONLINE! ALSO NOT NULL???
+
+
+        TODO commenting
+        :raises RuntimeError: If federated online node has not been started.
+        """
+        self._logger.info("Stopping federated online node...")
         if not self._started:
-            raise RuntimeError(f"Federated node has not been started!")
+            raise RuntimeError(f"Federated online node has not been started!")
         self._started = False
         _try_ops(
             self._data_source.close,
             lambda: self._eval_serv.stop(shutdown=True),
             lambda: self._aggr_serv.stop(shutdown=True)
         )
+        self._logger.info("Performing further cleanup...")
         self.cleanup()
 
         self._learner_thread.join()
         if not self._sync_mode:
+            self._logger.info("Async learning detected, waiting for fed learner thread to stop...")
             self._fed_thread.join()
+        self._logger.info("Federated online node stopped.")
 
     @abstractmethod
     def cleanup(self):
-        """TODO commenting, checking, logging
-
+        """Cleanup function that must be implemented, called during stop(); resets any new internal state variables and
+        objects up used during the federated updating process, both for synchronous and asynchronous learning.
         """
         raise NotImplementedError
 
     def create_local_learner(self):
         """TODO commenting, checking, logging
         """
-        for sample in self._data_source:  # FIXME SAMPLE SHOULD BE A TUPLE FOR SUPERVISED LEARNING?
+        for sample in self._data_source:
             self._minibatch_inputs.append(sample[:self._label_split])
             self._minibatch_labels.append(sample[self._label_split:])
 
@@ -189,9 +233,12 @@ class FederatedNode(ABC):
                         self._t_last_update = time()
 
     def _process_batch(self, x_data, y_true):
-        """TODO commenting, checking, logging
+        """Processes a singular batch for both training
+        TODO commenting, checking, logging
+        FIXME WHAT IF ENDPOINTS NOT READY YET?
 
-        :return:
+        :param x_data:
+        :param y_true:
         """
         y_pred = self._model.predict(x_data)
         if self._aggr_serv is not None:
@@ -206,13 +253,25 @@ class FederatedNode(ABC):
 
     @abstractmethod
     def sync_fed_update(self):
-        """TODO commenting
+        """Singular, synchronous federated update step for the underlying model of the federated online node.
+        Encapsulates all necessary, from communication to other nodes, to transferring of one's own model (if necessary)
+        to the model update itself.
         """
         raise NotImplementedError
 
     @abstractmethod
     def create_async_fed_learner(self):
-        """TODO commenting
+        """Continuous, asynchronous federated update loop, that runs concurrently to the thread of
+        create_local_learner(), to update the underlying model of the federated online node.
+
+        Note that any update of federated models while fitting or prediction is done will result in race conditions and
+        unsafe states! It is therefore crucial to use the _m_lock instance variable to synchronize access to the model.
+        Using this lock object, one can also manage when and how the other thread is able to use the model during any
+        update step (if updating is done in semi-synchronous manner)
+
+        For coordination/planning when to perform an update, any implementation can also use existing state variables
+        also used in the synchronous create_local_learner(), see: _update_interval_s, _update_interval_t,
+        _s_since_update, _t_last_update, for sample- or time-based updating periods.
         """
         raise NotImplementedError
 
@@ -220,7 +279,8 @@ class FederatedNode(ABC):
         if self._started:
             self.stop()
 
-class FederatedClient(FederatedNode):
+
+class FederatedOnlineClient(FederatedOnlineNode):
     """TODO
 
     """
@@ -232,7 +292,8 @@ class FederatedClient(FederatedNode):
         super().__init__()
         pass
 
-class FederatedPeer(FederatedNode):
+
+class FederatedOnlinePeer(FederatedOnlineNode):
     """TODO
 
     """
@@ -244,9 +305,11 @@ class FederatedPeer(FederatedNode):
         super().__init__()
         pass
 
-def _try_ops(*operations: Callable):
-    """TODO commenting, checking, logging
 
+def _try_ops(*operations: Callable):
+    """Takes a number of callable objects and executes them sequentially, each time ignoring any arising runtime errors.
+
+    :param operations: One or multiple callables that are to be executed.
     """
     for op in operations:
         try:
