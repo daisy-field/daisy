@@ -9,7 +9,7 @@ import logging
 import threading
 from abc import ABC, abstractmethod
 from time import time
-from typing import Callable
+from typing import Callable, Optional
 
 import numpy as np
 import tensorflow as tf
@@ -59,8 +59,8 @@ class FederatedOnlineNode(ABC):
     _supervised: bool
     _metrics: list[tf.metrics]
 
-    _eval_serv: StreamEndpoint
-    _aggr_serv: StreamEndpoint
+    _eval_serv: Optional[StreamEndpoint]
+    _aggr_serv: Optional[StreamEndpoint]
 
     _sync_mode: bool
     _update_interval_s: int
@@ -75,7 +75,7 @@ class FederatedOnlineNode(ABC):
 
     def __init__(self, data_source: DataSource, batch_size: int, model: FederatedModel, name: str = "",
                  label_split: int = 2 ** 32, supervised: bool = False, metrics: list[tf.metrics] = None,
-                 eval_server: StreamEndpoint = False, aggr_server: StreamEndpoint = False,
+                 eval_server: tuple[str, int] = None, aggr_server: tuple[str, int] = None,
                  sync_mode: bool = True, update_interval_s: int = None, update_interval_t: int = None):
         """Creates a new federated online node.
 
@@ -86,8 +86,8 @@ class FederatedOnlineNode(ABC):
         :param label_split: Split index within data point vector between input and true label(s). Default is no labels.
         :param supervised: Learning mode for model (supervised/unsupervised). Default is unsupervised.
         :param metrics: Evaluation metrics to update at each step/minibatch. Default has no evaluation at all.
-        :param eval_server: Streaming endpoint for centralized evaluation server (see evaluator.py).
-        :param aggr_server: Streaming endpoint for centralized aggregation server (see aggregator.py).
+        :param eval_server: Address of centralized evaluation server (see evaluator.py).
+        :param aggr_server: Address of centralized aggregation server (see aggregator.py).
         :param sync_mode: Federated updating mode for node (sync/async). Default is synchronized.
         :param update_interval_s: Federated updating interval, defined by samples; every X samples, do a sync update.
         :param update_interval_t: Federated updating interval, defined by time; every X seconds, do a sync update.
@@ -109,8 +109,14 @@ class FederatedOnlineNode(ABC):
         self._supervised = supervised
         self._metrics = metrics
 
-        self._eval_serv = eval_server
-        self._aggr_serv = aggr_server
+        self._eval_serv = None
+        if eval_server is not None:
+            self._eval_serv = StreamEndpoint(name="EvalServer", addr=("127.0.0.1", 20000), remote_addr=eval_server,
+                                             acceptor=False, multithreading=True)
+        self._aggr_serv = None
+        if aggr_server is not None:
+            self._aggr_serv = StreamEndpoint(name="AggrServer", addr=("127.0.0.1", 20001), remote_addr=aggr_server,
+                                             acceptor=False, multithreading=True)
 
         self._sync_mode = sync_mode
         self._update_interval_s = update_interval_s
@@ -124,7 +130,7 @@ class FederatedOnlineNode(ABC):
 
     def start(self):
         """Starts the federated online node, along with any underlying endpoints, data sources, and any other object by
-        an extension of this class (see setup()). This method blocks until all
+        an extension of this class (see setup()).
 
 
         FIXME THIS IS A PROBLEM!!! ENDPOINTS REQUIRE OTHER SIDE TO BE ONLINE! ALSO NOT NULL???
@@ -144,7 +150,8 @@ class FederatedOnlineNode(ABC):
         _try_ops(
             self._data_source.open,
             self._eval_serv.start,
-            self._aggr_serv.start
+            self._aggr_serv.start,
+            logger=self._logger
         )
         self._logger.info("Performing further setup...")
         self.setup()
@@ -182,7 +189,8 @@ class FederatedOnlineNode(ABC):
         _try_ops(
             self._data_source.close,
             lambda: self._eval_serv.stop(shutdown=True),
-            lambda: self._aggr_serv.stop(shutdown=True)
+            lambda: self._aggr_serv.stop(shutdown=True),
+            logger=self._logger
         )
         self._logger.info("Performing further cleanup...")
         self.cleanup()
@@ -306,13 +314,16 @@ class FederatedOnlinePeer(FederatedOnlineNode):
         pass
 
 
-def _try_ops(*operations: Callable):
-    """Takes a number of callable objects and executes them sequentially, each time ignoring any arising runtime errors.
+def _try_ops(*operations: Callable, logger: logging.Logger):
+    """Takes a number of callable objects and executes them sequentially, each time logging any arising attribute and
+    runtime errors. Caution is advised when using this function, especially if the potential erroneous behavior is not
+    expected!
 
     :param operations: One or multiple callables that are to be executed.
+    :param logger: Logger to log any error in full detail.
     """
     for op in operations:
         try:
             op()
-        except RuntimeError:
-            pass
+        except (AttributeError, RuntimeError) as e:
+            logger.warning(f"{e.__class__.__name__}({e}) while trying to execute {op}: {e}")

@@ -545,6 +545,7 @@ class StreamEndpoint:
     _send_buffer: queue.Queue
     _recv_buffer: queue.Queue
     _started: bool
+    _ready: bool
 
     def __init__(self, name: str, addr: tuple[str, int], remote_addr: tuple[str, int] = None,
                  acceptor: bool = True, send_b_size: int = 65536, recv_b_size: int = 65536,
@@ -581,11 +582,13 @@ class StreamEndpoint:
         self._send_buffer = queue.Queue(maxsize=buffer_size)
         self._recv_buffer = queue.Queue(maxsize=buffer_size)
         self._started = False
+        self._ready = False
         self._logger.info(f"Endpoint {addr, remote_addr} initialized.")
 
     def start(self):
         """Starts the endpoint, either in threaded fashion or as part of the main thread. By doing so, the two endpoints
-        are connected and the datastream is opened. This method is blocking (until a connection is established).
+        are connected and the datastream is opened. This method is blocking until a connection is established, but only
+        in single-threaded mode.
 
         :raises RuntimeError: If endpoint has already been started.
         """
@@ -593,10 +596,14 @@ class StreamEndpoint:
         if self._started:
             raise RuntimeError(f"Endpoint has already been started!")
         self._started = True
-        self._endpoint_socket.open()
+        if not self._multithreading:
+            self._endpoint_socket.open()
 
         if self._multithreading:
-            self._logger.info("Multithreading detected, starting endpoint sender/receiver threads...")
+            self._logger.info("Multithreading detected...")
+            self._logger.info("\t\tstarting endpoint socket starter thread...")
+            threading.Thread(target=self._create_socket_starter, daemon=True).start()
+            self._logger.info("\t\tstarting endpoint sender/receiver threads...")
             self._send_thread = threading.Thread(target=self._create_sender, daemon=True)
             self._recv_thread = threading.Thread(target=self._create_receiver, daemon=True)
             self._send_thread.start()
@@ -622,6 +629,7 @@ class StreamEndpoint:
             while not self._send_buffer.empty() and time() - start > timeout:
                 sleep(1)
         self._started = False
+        self._ready = False
         self._endpoint_socket.close(shutdown)
 
         if self._multithreading:
@@ -686,10 +694,21 @@ class StreamEndpoint:
         self._logger.debug(f"Pickled data received of size {len(p_obj)}.")
         return self._unmarshal_f(p_obj)
 
+    def _create_socket_starter(self):
+        """Starts and connects the endpoint socket to the remote endpoint, before setting the semaphore to allow async
+        sender and receiver threads to fully start.
+        """
+        self._endpoint_socket.open()
+        self._ready = True
+
     def _create_sender(self):
         """Starts the loop to send objects over the socket retrieved from the sending buffer.
         """
+        self._logger.info(f"AsyncSender: Starting...")
+        while not self._ready:
+            sleep(1)
         self._logger.info(f"AsyncSender: Starting to send objects in asynchronous mode...")
+
         while self._started:
             try:
                 p_obj = self._send_buffer.get(timeout=10)
@@ -704,7 +723,11 @@ class StreamEndpoint:
     def _create_receiver(self):
         """Starts the loop to receive objects over the socket and store them in the receiving buffer.
         """
+        self._logger.info(f"AsyncReceiver: Starting...")
+        while not self._ready:
+            sleep(1)
         self._logger.info(f"AsyncReceiver: Starting to receive objects in asynchronous mode...")
+
         while self._started:
             try:
                 p_obj = self._endpoint_socket.recv()
