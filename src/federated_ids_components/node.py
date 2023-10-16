@@ -130,16 +130,7 @@ class FederatedOnlineNode(ABC):
 
     def start(self):
         """Starts the federated online node, along with any underlying endpoints, data sources, and any other object by
-        an extension of this class (see setup()).
-
-
-        FIXME THIS IS A PROBLEM!!! ENDPOINTS REQUIRE OTHER SIDE TO BE ONLINE! ALSO NOT NULL???
-        ASYNC ENDPOINTS CAN HANDLE IT, SYNC ONES? NOT SO MUCH
-
-
-        TODO commenting
-
-
+        an extension of this class (see setup()). Non-blocking.
 
         :raises RuntimeError: If federated online node has already been started.
         """
@@ -156,7 +147,7 @@ class FederatedOnlineNode(ABC):
         self._logger.info("Performing further setup...")
         self.setup()
 
-        self._learner_thread = threading.Thread(target=self.create_local_learner, daemon=True)
+        self._learner_thread = threading.Thread(target=self._create_local_learner, daemon=True)
         self._learner_thread.start()
         if not self._sync_mode:
             self._logger.info("Async learning detected, starting fed learner thread...")
@@ -174,12 +165,9 @@ class FederatedOnlineNode(ABC):
         raise NotImplementedError
 
     def stop(self):
-        """
+        """Stops the federated online node, along with any underlying endpoints, data sources, and any other object by
+        an extension of this class (see cleanup()).
 
-        FIXME THIS IS A PROBLEM!!! ENDPOINTS REQUIRE OTHER SIDE TO BE ONLINE! ALSO NOT NULL???
-
-
-        TODO commenting
         :raises RuntimeError: If federated online node has not been started.
         """
         self._logger.info("Stopping federated online node...")
@@ -208,14 +196,19 @@ class FederatedOnlineNode(ABC):
         """
         raise NotImplementedError
 
-    def create_local_learner(self):
-        """TODO commenting, checking, logging
+    def _create_local_learner(self):
+        """Starts the loop to retrieve samples from the data source, arranging them into minibatches and running
+        predictions and fittings on them and the federated model. If set, also initiates synchronous federated update
+        steps if sample/time intervals are satisfied.
         """
+        self._logger.info(f"AsyncLearner: Starting...")
         for sample in self._data_source:
+            self._logger.debug(f"AsyncLearner: Appending sample to current minibatch...")
             self._minibatch_inputs.append(sample[:self._label_split])
             self._minibatch_labels.append(sample[self._label_split:])
 
             if len(self._minibatch_inputs) > self._batch_size:
+                self._logger.debug(f"AsyncLearner: Arranging full minibatch for processing...")
                 x_data = np.array(self._minibatch_inputs)
                 y_true = np.array(self._minibatch_labels)
                 with self._m_lock:
@@ -224,6 +217,7 @@ class FederatedOnlineNode(ABC):
                     except RuntimeError:
                         # stop() was called
                         break
+                self._logger.debug(f"AsyncLearner: Cleaning minibatch window...")
                 self._minibatch_inputs = []
                 self._minibatch_labels = []
 
@@ -232,6 +226,7 @@ class FederatedOnlineNode(ABC):
                     if (self._update_interval_s is not None and self._s_since_update > self._update_interval_s
                             or self._update_interval_t is not None
                             and time() - self._t_last_update > self._update_interval_t):
+                        self._logger.debug(f"AsyncLearner: Initiating synchronous federated update step...")
                         try:
                             self.sync_fed_update()
                         except RuntimeError:
@@ -239,31 +234,35 @@ class FederatedOnlineNode(ABC):
                             break
                         self._s_since_update = 0
                         self._t_last_update = time()
+        self._logger.info(f"AsyncLearner: Stopping...")
 
     def _process_batch(self, x_data, y_true):
-        """Processes a singular batch for both training
-        TODO commenting, checking, logging
-        FIXME WHAT IF ENDPOINTS NOT READY YET?
+        """Processes a singular batch for both running a prediction and fitting the federated model around it. Also
+        sends results to both the aggregation and the evaluation server, if available and provided in the beginning.
 
-        :param x_data:
-        :param y_true:
+        :param x_data: Input data.
+        :param y_true: Expected output, for supervised mode and/or evaluation purposes.
         """
+        self._logger.debug(f"AsyncLearner: Processing minibatch...")
         y_pred = self._model.predict(x_data)
+        self._logger.debug(f"AsyncLearner: Prediction results for minibatch: {y_pred}")
         if self._aggr_serv is not None:
             self._aggr_serv.send((x_data, y_pred))
 
         if len(self._metrics) > 0:
             eval_res = [metric(y_true, y_pred) for metric in self._metrics]
+            self._logger.debug(f"AsyncLearner: Evaluation results for minibatch: {eval_res}")
             if self._eval_serv is not None:
                 self._eval_serv.send(eval_res)
 
         self._model.fit(x_data, y_true)
+        self._logger.debug(f"AsyncLearner: Minibatch processed...")
 
     @abstractmethod
     def sync_fed_update(self):
         """Singular, synchronous federated update step for the underlying model of the federated online node.
-        Encapsulates all necessary, from communication to other nodes, to transferring of one's own model (if necessary)
-        to the model update itself.
+        Encapsulates all that is necessary, from communication to other nodes, to transferring of one's own model (if
+        necessary) to the model update itself.
         """
         raise NotImplementedError
 
