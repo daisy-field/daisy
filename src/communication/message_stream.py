@@ -192,6 +192,12 @@ class EndpointSocket:
                 sleep(1)
                 continue
 
+    def is_connected_acceptor(self) -> bool:
+        """Checks whether an endpoint socket is acceptor and has a remote address bound to it.
+        :return: True if socket is acceptor and has remote addr, else False
+        """
+        return self._acceptor and (self._remote_addr is not None)
+
     def __del__(self):
         if self._opened:
             self.close(shutdown=True)
@@ -700,6 +706,12 @@ class StreamEndpoint:
         """
         self._endpoint_socket.open()
         self._ready = True
+
+    def is_connected_acceptor(self) -> bool:
+        """Checks whether an endpoint socket is acceptor and has a remote address bound to it.
+        :return: True if socket is acceptor and has remote addr, else False
+        """
+        return self._endpoint_socket.is_connected_acceptor()
 
     def _create_sender(self):
         """Starts the loop to send objects over the socket retrieved from the sending buffer.
