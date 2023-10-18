@@ -8,8 +8,8 @@
 import logging
 import threading
 from abc import ABC, abstractmethod
-from time import time
-from typing import Callable, Optional
+from time import sleep, time
+from typing import Callable, cast, Optional
 
 import numpy as np
 import tensorflow as tf
@@ -65,6 +65,7 @@ class FederatedOnlineNode(ABC):
     _sync_mode: bool
     _update_interval_s: int
     _update_interval_t: int
+    _u_lock: threading.Lock # FIXME
 
     _s_since_update: int
     _t_last_update: float
@@ -73,7 +74,8 @@ class FederatedOnlineNode(ABC):
     _fed_thread: threading.Thread
     _started: bool
 
-    def __init__(self, data_source: DataSource, batch_size: int, model: FederatedModel, name: str = "",
+    def __init__(self, data_source: DataSource, batch_size: int, model: FederatedModel,
+                 name: str = "",
                  label_split: int = 2 ** 32, supervised: bool = False, metrics: list[tf.metrics] = None,
                  eval_server: tuple[str, int] = None, aggr_server: tuple[str, int] = None,
                  sync_mode: bool = True, update_interval_s: int = None, update_interval_t: int = None):
@@ -121,6 +123,7 @@ class FederatedOnlineNode(ABC):
         self._sync_mode = sync_mode
         self._update_interval_s = update_interval_s
         self._update_interval_t = update_interval_t
+        self._u_lock = threading.Lock() # FIXME
 
         self._s_since_update = 0
         self._t_last_update = time()
@@ -221,7 +224,8 @@ class FederatedOnlineNode(ABC):
                 self._minibatch_inputs = []
                 self._minibatch_labels = []
 
-                self._s_since_update += self._batch_size
+                with self._u_lock: # FIXME
+                    self._s_since_update += self._batch_size
                 if self._sync_mode:
                     if (self._update_interval_s is not None and self._s_since_update > self._update_interval_s
                             or self._update_interval_t is not None
@@ -278,7 +282,8 @@ class FederatedOnlineNode(ABC):
 
         For coordination/planning when to perform an update, any implementation can also use existing state variables
         also used in the synchronous create_local_learner(), see: _update_interval_s, _update_interval_t,
-        _s_since_update, _t_last_update, for sample- or time-based updating periods.
+        _s_since_update, _t_last_update, for sample- or time-based updating periods. Access to these variables must also
+        be synchronized, using the _u_lock instance variable.
         """
         raise NotImplementedError
 
@@ -289,15 +294,85 @@ class FederatedOnlineNode(ABC):
 
 class FederatedOnlineClient(FederatedOnlineNode):
     """TODO
+    MWE
 
     """
     _m_aggr_server: StreamEndpoint
 
-    def __init__(self, is_sync: bool,
-                 update_interval: int = -1):  # TODO THIS WONT WORK FOR SAMPLE VS TIME BASED SYNCHRONIZATION
+    def __init__(self, data_source: DataSource, batch_size: int, model: FederatedModel, m_aggr_server: tuple[str, int],
+                 name: str = "",
+                 label_split: int = 2 ** 32, supervised: bool = False, metrics: list[tf.metrics] = None,
+                 eval_server: tuple[str, int] = None, aggr_server: tuple[str, int] = None,
+                 sync_mode: bool = True, update_interval_s: int = None, update_interval_t: int = None):
+        """Creates a new federated online node. TODO
 
-        super().__init__()
-        pass
+        :param data_source: Data source of data stream to draw data points (in order) from.
+        :param batch_size: Minibatch size for each prediction-fitting step.
+        :param model: Actual model to be fitted and run predictions alternatingly in online manner.
+        :param m_aggr_server: TODO
+        :param name: Name of federated online node for logging purposes.
+        :param label_split: Split index within data point vector between input and true label(s). Default is no labels.
+        :param supervised: Learning mode for model (supervised/unsupervised). Default is unsupervised.
+        :param metrics: Evaluation metrics to update at each step/minibatch. Default has no evaluation at all.
+        :param eval_server: Address of centralized evaluation server (see evaluator.py).
+        :param aggr_server: Address of centralized aggregation server (see aggregator.py).
+        :param sync_mode: Federated updating mode for node (sync/async). Default is synchronized.
+        :param update_interval_s: Federated updating interval, defined by samples; every X samples, do a sync update.
+        :param update_interval_t: Federated updating interval, defined by time; every X seconds, do a sync update.
+        """
+        super().__init__(data_source=data_source, batch_size=batch_size, model=model, name=name,
+                         label_split=label_split, supervised=supervised, metrics=metrics,
+                         eval_server=eval_server, aggr_server=aggr_server,
+                         sync_mode=sync_mode, update_interval_s=update_interval_s, update_interval_t=update_interval_t)
+
+        self._m_aggr_server = StreamEndpoint(name="MAggrServer", addr=("127.0.0.1", 20002), remote_addr=m_aggr_server,
+                                             acceptor=False, multithreading=True)
+
+    def setup(self):
+        """TODO
+        """
+        _try_ops(
+            lambda: self._m_aggr_server.start,
+            logger=self._logger
+        )
+
+    def cleanup(self):
+        """TODO
+        """
+        _try_ops(
+            lambda: self._m_aggr_server.stop(shutdown=True),
+            logger=self._logger
+        )
+
+    def sync_fed_update(self):
+        """TODO
+        """
+        with self._m_lock:
+            current_params = self._model.get_parameters()
+            self._m_aggr_server.send(current_params)
+            new_params = cast(np.array, self._m_aggr_server.receive())
+            self._model.set_parameters(new_params)
+
+    def create_async_fed_learner(self):
+        """TODO
+
+        Note not exact, only an approximate (due to switching) only model update is actually stopping the other thread
+        from working with model, there can still be delays. minimum time when sync should happen!
+        """
+        while self._started:
+            with self._u_lock: # FIXME
+                if (self._update_interval_s is not None and self._s_since_update > self._update_interval_s
+                        or self._update_interval_t is not None
+                        and time() - self._t_last_update > self._update_interval_t):
+                    self._logger.debug(f"AsyncLearner: Initiating synchronous federated update step...")
+                    try:
+                        self.sync_fed_update()
+                    except RuntimeError:
+                        # stop() was called
+                        break
+                    self._s_since_update = 0
+                    self._t_last_update = time()
+            sleep(1)
 
 
 class FederatedOnlinePeer(FederatedOnlineNode):
@@ -309,7 +384,29 @@ class FederatedOnlinePeer(FederatedOnlineNode):
     _aggr: ModelAggregator
 
     def __init__(self, ):
+        """TODO
+        """
         super().__init__()
+        pass
+
+    def setup(self):
+        """TODO
+        """
+        pass
+
+    def cleanup(self):
+        """TODO
+        """
+        pass
+
+    def sync_fed_update(self):
+        """TODO
+        """
+        pass
+
+    def create_async_fed_learner(self):
+        """TODO
+        """
         pass
 
 
