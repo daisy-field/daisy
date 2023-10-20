@@ -263,7 +263,7 @@ class DataSource:
     _data_processor: DataProcessor
 
     _multithreading: bool
-    _thread: threading.Thread
+    _loader_t: threading.Thread
     _buffer: queue.Queue
     _opened: bool
 
@@ -312,8 +312,8 @@ class DataSource:
         self._source_handler.open()
 
         if self._multithreading:
-            self._thread = threading.Thread(target=self._loader, daemon=True)
-            self._thread.start()
+            self._loader_t = threading.Thread(target=self._loader, daemon=True)
+            self._loader_t.start()
         self._logger.info("Data source started.")
 
     def close(self):
@@ -327,7 +327,7 @@ class DataSource:
         self._source_handler.close()
 
         if self._multithreading:
-            self._thread.join()
+            self._loader_t.join()
         self._logger.info("Data source stopped.")
 
     def _loader(self):
@@ -394,7 +394,7 @@ class DataSourceRelay:
     _data_source: DataSource
     _endpoint: StreamEndpoint
 
-    _thread: threading.Thread
+    _relay_t: threading.Thread
     _started: bool
 
     def __init__(self, name: str = "", data_source: DataSource = None, endpoint: StreamEndpoint = None,
@@ -451,8 +451,8 @@ class DataSourceRelay:
         except RuntimeError:
             pass
 
-        self._thread = threading.Thread(target=self._relay, daemon=True)
-        self._thread.start()
+        self._relay_t = threading.Thread(target=self._relay, daemon=True)
+        self._relay_t.start()
         self._logger.info("Data source relay started.")
 
     def stop(self):
@@ -472,7 +472,7 @@ class DataSourceRelay:
         except RuntimeError:
             pass
 
-        self._thread.join()
+        self._relay_t.join()
         self._logger.info("Data source relay stopped.")
 
     def _relay(self):

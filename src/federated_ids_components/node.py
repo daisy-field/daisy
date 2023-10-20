@@ -70,8 +70,8 @@ class FederatedOnlineNode(ABC):
     _s_since_update: int
     _t_last_update: float
 
-    _learner_thread: threading.Thread
-    _fed_thread: threading.Thread
+    _learner_t: threading.Thread
+    _fed_updater: threading.Thread
     _started: bool
 
     def __init__(self, data_source: DataSource, batch_size: int, model: FederatedModel,
@@ -150,12 +150,12 @@ class FederatedOnlineNode(ABC):
         self._logger.info("Performing further setup...")
         self.setup()
 
-        self._learner_thread = threading.Thread(target=self._create_local_learner, daemon=True)
-        self._learner_thread.start()
+        self._learner_t = threading.Thread(target=self._create_local_learner, daemon=True)
+        self._learner_t.start()
         if not self._sync_mode:
             self._logger.info("Async learning detected, starting fed learner thread...")
-            self._fed_thread = threading.Thread(target=self.create_async_fed_learner, daemon=True)
-            self._fed_thread.start()
+            self._fed_updater = threading.Thread(target=self.create_async_fed_learner, daemon=True)
+            self._fed_updater.start()
         self._logger.info("Federated online node started.")
 
     @abstractmethod
@@ -186,10 +186,10 @@ class FederatedOnlineNode(ABC):
         self._logger.info("Performing further cleanup...")
         self.cleanup()
 
-        self._learner_thread.join()
+        self._learner_t.join()
         if not self._sync_mode:
             self._logger.info("Async learning detected, waiting for fed learner thread to stop...")
-            self._fed_thread.join()
+            self._fed_updater.join()
         self._logger.info("Federated online node stopped.")
 
     @abstractmethod

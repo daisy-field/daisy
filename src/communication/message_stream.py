@@ -558,8 +558,8 @@ class StreamEndpoint:
     _multithreading: bool
     _send_thread: threading.Thread
     _recv_thread: threading.Thread
-    _send_buffer: queue.Queue
-    _recv_buffer: queue.Queue
+    _send_buffer: queue.Queue[bytes]
+    _recv_buffer: queue.Queue[bytes]
     _started: bool
     _ready: threading.Event
 
@@ -807,12 +807,11 @@ class EndpointServer:
     """
     _logger: logging.Logger
 
-    _p_connection: StreamEndpoint
     _connections: dict[tuple[str, int], StreamEndpoint]
     _c_lock: threading.Lock
 
-    _r_ready: dict[tuple[str, int], StreamEndpoint]
-    _w_ready: dict[tuple[str, int], StreamEndpoint]
+    _send_thread: threading.Thread
+    _p_endpoints: queue.Queue[StreamEndpoint]
 
     _addr: tuple[str, int]
     _send_b_size: int
@@ -847,12 +846,10 @@ class EndpointServer:
         self._logger = logging.getLogger(name)
         self._logger.info(f"Initializing endpoint server {addr}...")
 
-        self._p_connection: StreamEndpoint
         self._connections = {}
         self._c_lock = threading.Lock()
 
-        self._r_ready = {}
-        self._w_ready = {}
+        self._p_endpoints = queue.Queue()
 
         self._addr = addr
         self._send_b_size = send_b_size
@@ -864,6 +861,41 @@ class EndpointServer:
         self._buffer_size = buffer_size
 
         self._logger.info(f"Endpoint server {addr} initialized.")
+
+    def start(self): # TODO
+        pass
+
+    def stop(self): # TODO
+        pass
+
+    def poll_connections(self): # TODO
+        pass
+
+    def poll_new_connections(self): # TODO
+        pass
+
+    def _connection_handler(self): # TODO
+        pass
+
+    def __iter__(self): # FIXME
+        while self._started:
+            try:
+                yield self.receive()
+            except RuntimeError:
+                break
+
+    def __enter__(self): # FIXME
+        self.start()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb): # FIXME
+        self.stop()
+
+    def __del__(self): # FIXME
+        if self._started:
+            self.stop()
+
+
 
 
 def ep_select(endpoints: list[StreamEndpoint]) -> tuple[list[StreamEndpoint], list[StreamEndpoint]]:
