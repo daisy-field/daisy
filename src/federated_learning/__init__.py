@@ -36,6 +36,6 @@ from .federated_aggregator import CumAggregator, SMAggregator, EMAggregator
 from .federated_aggregator import FedAvgAggregator
 from .federated_model import FederatedIFTM
 from .federated_model import FederatedModel, TFFederatedModel
-from .threshold_models import FederatedTM
 from .threshold_models import AvgTM, CumAvgTM, SMAvgTM, EMAvgTM
+from .threshold_models import FederatedTM
 from .threshold_models import MadTM

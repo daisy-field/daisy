@@ -561,7 +561,7 @@ class StreamEndpoint:
     _send_buffer: queue.Queue
     _recv_buffer: queue.Queue
     _started: bool
-    _ready: bool
+    _ready: threading.Event
 
     def __init__(self, name: str, addr: tuple[str, int], remote_addr: tuple[str, int] = None,
                  acceptor: bool = True, send_b_size: int = 65536, recv_b_size: int = 65536,
@@ -598,14 +598,18 @@ class StreamEndpoint:
         self._send_buffer = queue.Queue(maxsize=buffer_size)
         self._recv_buffer = queue.Queue(maxsize=buffer_size)
         self._started = False
-        self._ready = False
+        self._ready = threading.Event()
         self._logger.info(f"Endpoint {addr, remote_addr} initialized.")
 
-    def start(self):
+    def start(self) -> threading.Event:
         """Starts the endpoint, either in threaded fashion or as part of the main thread. By doing so, the two endpoints
         are connected and the datastream is opened. This method is blocking until a connection is established, but only
-        in single-threaded mode.
+        in single-threaded mode. Also returns an event object to check in multithreading (i.e., async) mode whether the
+        endpoint is actually connected and ready to be read from/written to. Note that in multithreading mode, objects
+        can already be sent/received, however they will only be stored in internal buffers until the connection is
+        established!
 
+        :return: Event object to check whether the endpoint is connected and ready to send/receive.
         :raises RuntimeError: If endpoint has already been started.
         """
         self._logger.info("Starting endpoint...")
@@ -613,7 +617,7 @@ class StreamEndpoint:
             raise RuntimeError(f"Endpoint has already been started!")
         self._started = True
         if not self._multithreading:
-            self._endpoint_socket.open()
+            self._create_socket_starter()
 
         if self._multithreading:
             self._logger.info("Multithreading detected...")
@@ -625,6 +629,7 @@ class StreamEndpoint:
             self._send_thread.start()
             self._recv_thread.start()
         self._logger.info("Endpoint started.")
+        return self._ready
 
     def stop(self, shutdown=False, timeout=10):
         """Stops the endpoint and closes the stream, cleaning up underlying structures. If multithreading is enabled,
@@ -645,7 +650,7 @@ class StreamEndpoint:
             while not self._send_buffer.empty() and time() - start > timeout:
                 sleep(1)
         self._started = False
-        self._ready = False
+        self._ready.clear()
         self._endpoint_socket.close(shutdown)
 
         if self._multithreading:
@@ -730,15 +735,13 @@ class StreamEndpoint:
         sender and receiver threads to fully start.
         """
         self._endpoint_socket.open()
-        # TODO SET EVENT OBJECT HERE!
-        self._ready = True # TODO BARRIER OBJECT
+        self._ready.set()
 
     def _create_sender(self):
         """Starts the loop to send objects over the socket retrieved from the sending buffer.
         """
         self._logger.info(f"AsyncSender: Starting...")
-        while not self._ready:
-            sleep(1)
+        self._ready.wait()
         self._logger.info(f"AsyncSender: Starting to send objects in asynchronous mode...")
 
         while self._started:
@@ -756,8 +759,7 @@ class StreamEndpoint:
         """Starts the loop to receive objects over the socket and store them in the receiving buffer.
         """
         self._logger.info(f"AsyncReceiver: Starting...")
-        while not self._ready:
-            sleep(1)
+        self._ready.wait()
         self._logger.info(f"AsyncReceiver: Starting to receive objects in asynchronous mode...")
 
         while self._started:
@@ -805,7 +807,7 @@ class EndpointServer:
     """
     _logger: logging.Logger
 
-    _p_connection: StreamEndpoint # TODO EVENT OBJECT FOR ENDPOINT https://docs.python.org/3/library/threading.html#:~:text=will%20go%20undetected.-,Event%20Objects,with%20the%20clear()%20method.
+    _p_connection: StreamEndpoint
     _connections: dict[tuple[str, int], StreamEndpoint]
     _c_lock: threading.Lock
 
@@ -862,188 +864,6 @@ class EndpointServer:
         self._buffer_size = buffer_size
 
         self._logger.info(f"Endpoint server {addr} initialized.")
-
-    def start(self):
-        """Starts the endpoint, either in threaded fashion or as part of the main thread. By doing so, the two endpoints
-        are connected and the datastream is opened. This method is blocking until a connection is established, but only
-        in single-threaded mode.
-
-        :raises RuntimeError: If endpoint has already been started.
-        """
-        self._logger.info("Starting endpoint server...")
-        if self._started:
-            raise RuntimeError(f"Endpoint server has already been started!")
-        self._started = True
-        if not self._multithreading:
-            self._endpoint_socket.open()
-
-        if self._multithreading:
-            self._logger.info("Multithreading detected...")
-            self._logger.info("\t\tstarting endpoint socket starter thread...")
-            threading.Thread(target=self._create_socket_starter, daemon=True).start()
-            self._logger.info("\t\tstarting endpoint sender/receiver threads...")
-            self._send_thread = threading.Thread(target=self._create_sender, daemon=True)
-            self._recv_thread = threading.Thread(target=self._create_receiver, daemon=True)
-            self._send_thread.start()
-            self._recv_thread.start()
-        self._logger.info("Endpoint started.")
-
-    def stop(self, shutdown=False, timeout=10):
-        """Stops the endpoint and closes the stream, cleaning up underlying structures. If multithreading is enabled,
-        waits for both endpoint threads to stop before finishing. Note this does not guarantee the sending and
-        receiving of all objects still pending --- they may still be in internal buffers and will be processed if the
-        endpoint is opened again, or get discarded by the underlying socket.
-
-        :param shutdown: If set, also cleans up underlying datastructures of the socket communication.
-        :param timeout: If shutdown not set, allows the sender thread to process remaining messages until timeout.
-        :raises RuntimeError: If endpoint has not been started.
-        """
-        self._logger.info("Stopping endpoint...")
-        if not self._started:
-            raise RuntimeError(f"Endpoint has not been started!")
-
-        if not shutdown and self._multithreading:
-            start = time()
-            while not self._send_buffer.empty() and time() - start > timeout:
-                sleep(1)
-        self._started = False
-        self._ready = False
-        self._endpoint_socket.close(shutdown)
-
-        if self._multithreading:
-            self._logger.info("Multithreading detected, waiting for endpoint sender/receiver threads to stop...")
-            self._send_thread.join()
-            self._recv_thread.join()
-        self._logger.info("Endpoint stopped.")
-
-    def poll(self) -> list[bool]:
-        """Polls the state of various stats of the endpoint.
-            * 0: Existence of remote address of initiator endpoint socket (true if predefined or connected in past).
-            * 1: Existence of socket (true if connected).
-            * 2: Whether there is something to read on the internal buffer or underlying socket.
-            * 3: Whether one is able to write on the internal buffer or underlying socket.
-
-        :return: Boolean State Array: Remote Initiator, Connectivity, Readability, Writability.
-        """
-        states = self._endpoint_socket.poll()
-        if self._multithreading:
-            states[2] = states[2] or not self._recv_buffer.empty()
-            states[3] = states[2] or not self._recv_buffer.empty()
-        return states
-
-    def send(self, obj: object):
-        """Generic send function that sends any object as a pickle over the persistent datastream. If multithreading is
-        enabled, this function is asynchronous, otherwise it is blocking.
-
-        :param obj: Object to send.
-        :raises RuntimeError: If endpoint has not been started.
-        """
-        self._logger.debug("Sending object...")
-        if not self._started:
-            raise RuntimeError("Endpoint has not been started!")
-
-        p_obj = self._marshal_f(obj)
-        if self._multithreading:
-            self._logger.debug(
-                f"Multithreading detected, putting object into buffer (size={self._send_buffer.qsize()})...")
-            self._send_buffer.put(p_obj)
-        else:
-            self._endpoint_socket.send(p_obj)
-        self._logger.debug(f"Pickled object sent of size {len(p_obj)}.")
-
-    def receive(self, timeout: int = None) -> object:
-        """Generic receive function that receives data as a pickle over the persistent datastream, unpickles it into the
-         respective object and returns it. Blocking in default-mode if timeout not set.
-
-        :param timeout: Timeout (seconds) to receive an object to return.
-        :return: Received object.
-        :raises RuntimeError: If endpoint has not been started or has been stopped.
-        :raises TimeoutError: If timeout set and triggered.
-        """
-        self._logger.debug("Receiving object...")
-        if not self._started:
-            raise RuntimeError("Endpoint has not been started!")
-
-        p_obj = None
-        if self._multithreading:
-            self._logger.debug(
-                f"Multithreading detected, retrieving object from buffer (size={self._recv_buffer.qsize()})...")
-            while self._started:
-                try:
-                    if timeout is not None:
-                        p_obj = self._recv_buffer.get(timeout=timeout)
-                    else:
-                        p_obj = self._recv_buffer.get(timeout=10)
-                    break
-                except queue.Empty:
-                    if timeout is not None:
-                        raise TimeoutError
-                    continue
-        else:
-            p_obj = self._endpoint_socket.recv(timeout)
-
-        if p_obj is None:
-            raise RuntimeError("Endpoint has not been started!")
-        self._logger.debug(f"Pickled data received of size {len(p_obj)}.")
-        return self._unmarshal_f(p_obj)
-
-    def _create_socket_starter(self):
-        """Starts and connects the endpoint socket to the remote endpoint, before setting the semaphore to allow async
-        sender and receiver threads to fully start.
-        """
-        self._endpoint_socket.open()
-        self._ready = True
-
-    def _create_sender(self):
-        """Starts the loop to send objects over the socket retrieved from the sending buffer.
-        """
-        self._logger.info(f"AsyncSender: Starting...")
-        while not self._ready:
-            sleep(1)
-        self._logger.info(f"AsyncSender: Starting to send objects in asynchronous mode...")
-
-        while self._started:
-            try:
-                p_obj = self._send_buffer.get(timeout=10)
-                self._logger.debug(
-                    f"AsyncSender: Retrieved and sending object (size: {len(p_obj)}) from buffer "
-                    f"(length: {self._send_buffer.qsize()})")
-                self._endpoint_socket.send(p_obj)
-            except queue.Empty:
-                self._logger.debug(f"AsyncSender: Timeout triggered: Buffer empty. Retrying...")
-        self._logger.info(f"AsyncSender: Stopping...")
-
-    def _create_receiver(self):
-        """Starts the loop to receive objects over the socket and store them in the receiving buffer.
-        """
-        self._logger.info(f"AsyncReceiver: Starting...")
-        while not self._ready:
-            sleep(1)
-        self._logger.info(f"AsyncReceiver: Starting to receive objects in asynchronous mode...")
-
-        while self._started:
-            try:
-                p_obj = self._endpoint_socket.recv()
-                if p_obj is None:
-                    continue
-                self._logger.debug(
-                    f"AsyncReceiver: Storing received object (size: {len(p_obj)}) in buffer "
-                    f"(length: {self._recv_buffer.qsize()})...")
-                self._recv_buffer.put(p_obj, timeout=10)
-            except queue.Full:
-                self._logger.warning(f"AsyncReceiver: Timeout triggered: Buffer full. Discarding object...")
-        self._logger.info(f"AsyncReceiver: Stopping...")
-
-    def __enter__(self):
-        self.start()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.stop(shutdown=True)
-
-    def __del__(self):
-        if self._started:
-            self.stop(shutdown=True)
 
 
 def ep_select(endpoints: list[StreamEndpoint]) -> tuple[list[StreamEndpoint], list[StreamEndpoint]]:

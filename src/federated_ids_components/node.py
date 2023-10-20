@@ -65,7 +65,7 @@ class FederatedOnlineNode(ABC):
     _sync_mode: bool
     _update_interval_s: int
     _update_interval_t: int
-    _u_lock: threading.Lock # FIXME
+    _u_lock: threading.Lock
 
     _s_since_update: int
     _t_last_update: float
@@ -123,7 +123,7 @@ class FederatedOnlineNode(ABC):
         self._sync_mode = sync_mode
         self._update_interval_s = update_interval_s
         self._update_interval_t = update_interval_t
-        self._u_lock = threading.Lock() # FIXME
+        self._u_lock = threading.Lock()
 
         self._s_since_update = 0
         self._t_last_update = time()
@@ -224,7 +224,7 @@ class FederatedOnlineNode(ABC):
                 self._minibatch_inputs = []
                 self._minibatch_labels = []
 
-                with self._u_lock: # FIXME
+                with self._u_lock:
                     self._s_since_update += self._batch_size
                 if self._sync_mode:
                     if (self._update_interval_s is not None and self._s_since_update > self._update_interval_s
@@ -356,23 +356,26 @@ class FederatedOnlineClient(FederatedOnlineNode):
     def create_async_fed_learner(self):
         """TODO
 
+
         Note not exact, only an approximate (due to switching) only model update is actually stopping the other thread
         from working with model, there can still be delays. minimum time when sync should happen!
         """
         while self._started:
-            with self._u_lock: # FIXME
-                if (self._update_interval_s is not None and self._s_since_update > self._update_interval_s
-                        or self._update_interval_t is not None
-                        and time() - self._t_last_update > self._update_interval_t):
+            try:
+                if self._update_interval_t is not None:
                     self._logger.debug(f"AsyncLearner: Initiating synchronous federated update step...")
-                    try:
-                        self.sync_fed_update()
-                    except RuntimeError:
-                        # stop() was called
-                        break
-                    self._s_since_update = 0
-                    self._t_last_update = time()
-            sleep(1)
+                    self.sync_fed_update()
+                    sleep(self._update_interval_t)
+                elif self._update_interval_s is not None:
+                    with self._u_lock:
+                        if self._s_since_update > self._update_interval_s:
+                            self._logger.debug(f"AsyncLearner: Initiating synchronous federated update step...")
+                            self.sync_fed_update()
+                            self._s_since_update = 0
+                    sleep(1)
+            except RuntimeError:
+                # stop() was called
+                break
 
 
 class FederatedOnlinePeer(FederatedOnlineNode):
