@@ -3,11 +3,9 @@
     and LZ4 compression.
 
     Author: Fabian Hofmann
-    Modified: 26.07.23
+    Modified: 18.10.23
 
     TODO Future Work: SSL https://docs.python.org/3/library/ssl.html
-    TODO Future Work: Poll & Select
-    TODO Future Work: Generating new Endpoints through Generic Endpoints upon new connection
     TODO Future Work: Blocked remote addresses (and leaving l_sockets open)
     TODO - when socket is not shut down but only closed OR when never opened to begin with
 """
@@ -119,6 +117,24 @@ class EndpointSocket:
                 self._close_l_socket(self._addr)
         self._logger.info(f"Endpoint socket closed.")
 
+    def poll(self) -> list[bool]:
+        """Polls the state of various stats of the endpoint socket.
+            * 0: Existence of remote address of initiator endpoint socket (true if predefined or connected in past).
+            * 1: Existence of socket (true if connected).
+            * 2: Whether there is something to read on the underlying socket.
+            * 3: Whether one is able to write on the underlying socket.
+
+        :return: Boolean State Array: Remote Initiator, Connectivity, Readability, Writability.
+        """
+        states = [False] * 5
+        with self._sock_lock:
+            states[0] = self._acceptor and self._remote_addr is not None
+            if self._sock is not None:
+                states[1] = True
+                states[2] = len(select.select([self._sock], [], [], 0)[0]) != 0
+                states[3] = len(select.select([], [self._sock], [], 0)[1]) != 0
+        return states
+
     def send(self, p_data: bytes):
         """Sends the given bytes of a single object over the connection, performing simple marshalling (size is
         sent first, then the bytes of the object). Fault-tolerant for breakdowns and resets in the connection. Blocking.
@@ -191,12 +207,6 @@ class EndpointSocket:
                                      f"{self._addr, self._remote_addr}. Retrying...")
                 sleep(1)
                 continue
-
-    def is_connected_acceptor(self) -> bool:
-        """Checks whether an endpoint socket is acceptor and has a remote address bound to it.
-        :return: True if socket is acceptor and has remote addr, else False
-        """
-        return self._acceptor and (self._remote_addr is not None)
 
     def __del__(self):
         if self._opened:
@@ -548,9 +558,10 @@ class StreamEndpoint:
     _multithreading: bool
     _send_thread: threading.Thread
     _recv_thread: threading.Thread
-    _send_buffer: queue.Queue
-    _recv_buffer: queue.Queue
+    _send_buffer: queue.Queue[bytes]
+    _recv_buffer: queue.Queue[bytes]
     _started: bool
+    _ready: threading.Event
 
     def __init__(self, name: str, addr: tuple[str, int], remote_addr: tuple[str, int] = None,
                  acceptor: bool = True, send_b_size: int = 65536, recv_b_size: int = 65536,
@@ -587,27 +598,38 @@ class StreamEndpoint:
         self._send_buffer = queue.Queue(maxsize=buffer_size)
         self._recv_buffer = queue.Queue(maxsize=buffer_size)
         self._started = False
+        self._ready = threading.Event()
         self._logger.info(f"Endpoint {addr, remote_addr} initialized.")
 
-    def start(self):
+    def start(self) -> threading.Event:
         """Starts the endpoint, either in threaded fashion or as part of the main thread. By doing so, the two endpoints
-        are connected and the datastream is opened. This method is blocking (until a connection is established).
+        are connected and the datastream is opened. This method is blocking until a connection is established, but only
+        in single-threaded mode. Also returns an event object to check in multithreading (i.e., async) mode whether the
+        endpoint is actually connected and ready to be read from/written to. Note that in multithreading mode, objects
+        can already be sent/received, however they will only be stored in internal buffers until the connection is
+        established!
 
+        :return: Event object to check whether the endpoint is connected and ready to send/receive.
         :raises RuntimeError: If endpoint has already been started.
         """
         self._logger.info("Starting endpoint...")
         if self._started:
             raise RuntimeError(f"Endpoint has already been started!")
         self._started = True
-        self._endpoint_socket.open()
+        if not self._multithreading:
+            self._create_socket_starter()
 
         if self._multithreading:
-            self._logger.info("Multithreading detected, starting endpoint sender/receiver threads...")
+            self._logger.info("Multithreading detected...")
+            self._logger.info("\t\tstarting endpoint socket starter thread...")
+            threading.Thread(target=self._create_socket_starter, daemon=True).start()
+            self._logger.info("\t\tstarting endpoint sender/receiver threads...")
             self._send_thread = threading.Thread(target=self._create_sender, daemon=True)
             self._recv_thread = threading.Thread(target=self._create_receiver, daemon=True)
             self._send_thread.start()
             self._recv_thread.start()
         self._logger.info("Endpoint started.")
+        return self._ready
 
     def stop(self, shutdown=False, timeout=10):
         """Stops the endpoint and closes the stream, cleaning up underlying structures. If multithreading is enabled,
@@ -628,6 +650,7 @@ class StreamEndpoint:
             while not self._send_buffer.empty() and time() - start > timeout:
                 sleep(1)
         self._started = False
+        self._ready.clear()
         self._endpoint_socket.close(shutdown)
 
         if self._multithreading:
@@ -635,6 +658,21 @@ class StreamEndpoint:
             self._send_thread.join()
             self._recv_thread.join()
         self._logger.info("Endpoint stopped.")
+
+    def poll(self) -> list[bool]:
+        """Polls the state of various stats of the endpoint.
+            * 0: Existence of remote address of initiator endpoint socket (true if predefined or connected in past).
+            * 1: Existence of socket (true if connected).
+            * 2: Whether there is something to read on the internal buffer or underlying socket.
+            * 3: Whether one is able to write on the internal buffer or underlying socket.
+
+        :return: Boolean State Array: Remote Initiator, Connectivity, Readability, Writability.
+        """
+        states = self._endpoint_socket.poll()
+        if self._multithreading:
+            states[2] = states[2] or not self._recv_buffer.empty()
+            states[3] = states[2] or not self._recv_buffer.empty()
+        return states
 
     def send(self, obj: object):
         """Generic send function that sends any object as a pickle over the persistent datastream. If multithreading is
@@ -692,16 +730,20 @@ class StreamEndpoint:
         self._logger.debug(f"Pickled data received of size {len(p_obj)}.")
         return self._unmarshal_f(p_obj)
 
-    def is_connected_acceptor(self) -> bool:
-        """Checks whether an endpoint socket is acceptor and has a remote address bound to it.
-        :return: True if socket is acceptor and has remote addr, else False
+    def _create_socket_starter(self):
+        """Starts and connects the endpoint socket to the remote endpoint, before setting the semaphore to allow async
+        sender and receiver threads to fully start.
         """
-        return self._endpoint_socket.is_connected_acceptor()
+        self._endpoint_socket.open()
+        self._ready.set()
 
     def _create_sender(self):
         """Starts the loop to send objects over the socket retrieved from the sending buffer.
         """
+        self._logger.info(f"AsyncSender: Starting...")
+        self._ready.wait()
         self._logger.info(f"AsyncSender: Starting to send objects in asynchronous mode...")
+
         while self._started:
             try:
                 p_obj = self._send_buffer.get(timeout=10)
@@ -716,7 +758,10 @@ class StreamEndpoint:
     def _create_receiver(self):
         """Starts the loop to receive objects over the socket and store them in the receiving buffer.
         """
+        self._logger.info(f"AsyncReceiver: Starting...")
+        self._ready.wait()
         self._logger.info(f"AsyncReceiver: Starting to receive objects in asynchronous mode...")
+
         while self._started:
             try:
                 p_obj = self._endpoint_socket.recv()
@@ -747,6 +792,123 @@ class StreamEndpoint:
     def __del__(self):
         if self._started:
             self.stop(shutdown=True)
+
+
+class EndpointServer:
+    """TODO
+
+        One of a pair of endpoints that is able to communicate with one another over a persistent stateless stream over
+    BSD sockets. Allows the transmission of generic objects in both synchronous and asynchronous fashion. Supports SSL
+    and LZ4 compression for the stream. Thread-safe for both access to the same endpoint and using multiple threads
+    using endpoints set to the same address.
+
+    NOT THREAD SAFE DEAR GOD DONT
+
+    """
+    _logger: logging.Logger
+
+    _connections: dict[tuple[str, int], StreamEndpoint]
+    _c_lock: threading.Lock
+
+    _send_thread: threading.Thread
+    _p_endpoints: queue.Queue[StreamEndpoint]
+
+    _addr: tuple[str, int]
+    _send_b_size: int
+    _recv_b_size: int
+    _compression: bool
+    _marshal_f: Callable[[object], bytes]
+    _unmarshal_f: Callable[[bytes], object]
+    _multithreading: bool
+    _buffer_size: int
+
+    _started: bool
+
+    def __init__(self, name: str, addr: tuple[str, int],
+                 send_b_size: int = 65536, recv_b_size: int = 65536,
+                 compression: bool = False, marshal_f: Callable[[object], bytes] = pickle.dumps,
+                 unmarshal_f: Callable[[bytes], object] = pickle.loads,
+                 multithreading: bool = False, buffer_size: int = 1024):
+        """
+
+        TODO Creates a new endpoint server.
+
+        :param name: Name of endpoint for logging purposes.
+        :param addr: Address of endpoint.
+        :param send_b_size: Underlying send buffer size of socket.
+        :param recv_b_size: Underlying receive buffer size of socket.
+        :param compression: Enables lz4 stream compression for bandwidth optimization.
+        :param marshal_f: Marshal function to serialize objects to send into bytes.
+        :param unmarshal_f: Unmarshal function to deserialize received bytes into objects.
+        :param multithreading: Enables transparent multithreading for speedup.
+        :param buffer_size: Size of shared buffer in multithreading mode.
+        """
+        self._logger = logging.getLogger(name)
+        self._logger.info(f"Initializing endpoint server {addr}...")
+
+        self._connections = {}
+        self._c_lock = threading.Lock()
+
+        self._p_endpoints = queue.Queue()
+
+        self._addr = addr
+        self._send_b_size = send_b_size
+        self._recv_b_size = recv_b_size
+        self._compression = compression
+        self._marshal_f = marshal_f
+        self._unmarshal_f = unmarshal_f
+        self._multithreading = multithreading
+        self._buffer_size = buffer_size
+
+        self._logger.info(f"Endpoint server {addr} initialized.")
+
+    def start(self): # TODO
+        pass
+
+    def stop(self): # TODO
+        pass
+
+    def poll_connections(self): # TODO
+        pass
+
+    def poll_new_connections(self): # TODO
+        pass
+
+    def _connection_handler(self): # TODO
+        pass
+
+    def __iter__(self): # FIXME
+        while self._started:
+            try:
+                yield self.receive()
+            except RuntimeError:
+                break
+
+    def __enter__(self): # FIXME
+        self.start()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb): # FIXME
+        self.stop()
+
+    def __del__(self): # FIXME
+        if self._started:
+            self.stop()
+
+
+
+
+def ep_select(endpoints: list[StreamEndpoint]) -> tuple[list[StreamEndpoint], list[StreamEndpoint]]:
+    """General select function to check a number of endpoints whether objects can be read from or written to them. For
+    simplicity's sake, does not mirror the actual UNIX select function (supporting separate lists).
+
+    :param endpoints: List of endpoints to check for readiness.
+    :return: Tuple of lists of endpoints that are read/write ready:
+    """
+    ep_states = [(endpoint, endpoint.poll()) for endpoint in endpoints]
+    r_ready = list(map(lambda t: t[0], filter(lambda t: t[1][2], ep_states)))
+    w_ready = list(map(lambda t: t[0], filter(lambda t: t[1][3], ep_states)))
+    return r_ready, w_ready
 
 
 def _convert_addr_to_name(addr: tuple) -> tuple[str, int]:
