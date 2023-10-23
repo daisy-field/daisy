@@ -70,7 +70,7 @@ class FederatedOnlineNode(ABC):
     _s_since_update: int
     _t_last_update: float
 
-    _learner_t: threading.Thread
+    _loc_learner: threading.Thread
     _fed_updater: threading.Thread
     _started: bool
 
@@ -150,8 +150,8 @@ class FederatedOnlineNode(ABC):
         self._logger.info("Performing further setup...")
         self.setup()
 
-        self._learner_t = threading.Thread(target=self._create_local_learner, daemon=True)
-        self._learner_t.start()
+        self._loc_learner = threading.Thread(target=self._create_loc_learner, daemon=True)
+        self._loc_learner.start()
         if not self._sync_mode:
             self._logger.info("Async learning detected, starting fed learner thread...")
             self._fed_updater = threading.Thread(target=self.create_async_fed_learner, daemon=True)
@@ -186,7 +186,7 @@ class FederatedOnlineNode(ABC):
         self._logger.info("Performing further cleanup...")
         self.cleanup()
 
-        self._learner_t.join()
+        self._loc_learner.join()
         if not self._sync_mode:
             self._logger.info("Async learning detected, waiting for fed learner thread to stop...")
             self._fed_updater.join()
@@ -199,7 +199,7 @@ class FederatedOnlineNode(ABC):
         """
         raise NotImplementedError
 
-    def _create_local_learner(self):
+    def _create_loc_learner(self):
         """Starts the loop to retrieve samples from the data source, arranging them into minibatches and running
         predictions and fittings on them and the federated model. If set, also initiates synchronous federated update
         steps if sample/time intervals are satisfied.
