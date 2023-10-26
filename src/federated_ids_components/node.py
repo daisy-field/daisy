@@ -364,7 +364,11 @@ class FederatedOnlineClient(FederatedOnlineNode):
             try:
                 if self._update_interval_t is not None:
                     self._logger.debug(f"AsyncLearner: Initiating synchronous federated update step...")
-                    self.sync_fed_update()
+                    try:
+                        self.sync_fed_update()
+                    except RuntimeError:
+                        # stop() was called
+                        break
                     sleep(self._update_interval_t)
                 elif self._update_interval_s is not None:
                     with self._u_lock:

@@ -82,7 +82,7 @@ if __name__ == "__main__":
     logging.basicConfig(format="%(asctime)s %(levelname)-8s %(name)-10s %(message)s", datefmt="%Y-%m-%d %H:%M:%S",
                         level=logging.DEBUG)
 
-    # simple_acceptor()
+    simple_acceptor()
     # single_message_acceptor()
-    multithreaded_acceptor(100)
+    # multithreaded_acceptor(100)
     # clashing_acceptor()
