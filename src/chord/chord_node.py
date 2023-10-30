@@ -3,6 +3,12 @@
 
     Author: Lotta Fejzula
     Modified: 15.09.23
+
+TODO
+endpoint pro unique finger (max=maxfinger)
+endpoint für beantworten von find succ (an ursprungsknoten)
+ggf endpoints for stabl/notify/join
+message id in payload
 """
 
 import logging
@@ -240,7 +246,7 @@ class Chordnode:
         # todo implement
         pass
 
-    def _run(self, bootstrap_addr: tuple[str, int]) -> None:
+    def run(self, bootstrap_addr: tuple[str, int]) -> None:
         # todo implement multiple endpoints
         self._endpoint_server.start()
         self.send_join(bootstrap_addr)
