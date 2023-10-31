@@ -3,9 +3,11 @@
     and LZ4 compression.
 
         * StreamEndpoint - Core class of the communications framework.
+        * EndpointServer -
 
     Author: Fabian Hofmann
-    Modified: 04.08.23
+    Modified: 30.10.23
 """
 
 from .message_stream import StreamEndpoint
+from .message_stream import EndpointServer

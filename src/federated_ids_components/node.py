@@ -65,10 +65,9 @@ class FederatedOnlineNode(ABC):
     _sync_mode: bool
     _update_interval_s: int
     _update_interval_t: int
-    _u_lock: threading.Lock
-
     _s_since_update: int
     _t_last_update: float
+    _u_lock: threading.Lock
 
     _loc_learner: threading.Thread
     _fed_updater: threading.Thread
@@ -123,10 +122,9 @@ class FederatedOnlineNode(ABC):
         self._sync_mode = sync_mode
         self._update_interval_s = update_interval_s
         self._update_interval_t = update_interval_t
-        self._u_lock = threading.Lock()
-
         self._s_since_update = 0
         self._t_last_update = time()
+        self._u_lock = threading.Lock()
 
         self._started = False
         self._logger.info("Federated online node initialized.")
