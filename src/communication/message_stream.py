@@ -83,7 +83,7 @@ class EndpointSocket:
         self._logger = logging.getLogger(name + "-Socket")
         self._logger.info(f"Initializing endpoint socket {addr, remote_addr}...")
 
-        self._addr = addr
+        self._addr = addr if addr is not None else ('0.0.0.0', 0)
         self._remote_addr = remote_addr
         self._static_addr = addr is not None
         self._acceptor = acceptor
@@ -215,7 +215,7 @@ class EndpointSocket:
                         self._sock, remote_addr = self._get_a_socket(self._addr, self._remote_addr)
                     self._remote_addr = remote_addr
                 else:
-                    self._addr = self._addr if self._static_addr else ('', 0)
+                    self._addr = self._addr if self._static_addr else ('0.0.0.0', 0)
                     self._sock, self._addr = self._get_c_socket(self._addr, self._remote_addr)
                 self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, self._send_b_size)
                 self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, self._recv_b_size)
@@ -534,7 +534,7 @@ class EndpointSocket:
     def _get_c_socket(cls, addr: tuple[str, int], remote_addr: tuple[str, int]) \
             -> tuple[Optional[socket.socket], Optional[tuple[str, int]]]:
         """Creates and returns a connection socket to a given remote address, that might be bound to a specific address,
-        if given.
+        if given. Non-Blocking (with timeout) during connection attempts.
         
         :param addr: Local address to bind endpoint to. If none provided, OS chooses an address.
         :param remote_addr: Address of remote endpoint to be connected to.
@@ -542,29 +542,25 @@ class EndpointSocket:
         :raises Error: A lot of potential errors during create_connection(), when no connection can be established.
         """
         cls._cls_logger.debug(f"Trying to open connection socket for {addr, remote_addr}...")
-        sock = socket.create_connection(address=remote_addr, timeout=10, source_address=addr)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.settimeout(None)
-        addr = _convert_addr_to_name(sock.getsockname())
-        return sock, addr
-        # OLD CONNECT CODE. TO BE DELETED AFTER EXTENDED TESTS OF NEW CODE
-        # for res in socket.getaddrinfo(*addr, type=socket.SOCK_STREAM):
-        #     s_af, s_t, s_p, _, s_addr = res
-        #     r_res_list = socket.getaddrinfo(*remote_addr, family=s_af.value, type=s_t.value, proto=s_p)
-        #     for r_res in r_res_list:
-        #         r_af, r_t, r_p, _, r_addr = r_res
-        #         sock = None
-        #         try:
-        #             sock = socket.socket(r_af, r_t, r_p)
-        #             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        #             sock.bind(s_addr)
-        #             sock.connect(r_addr)
-        #         except OSError:
-        #             _close_socket(sock)
-        #             continue
-        #         return sock
-        # raise RuntimeError(f"Could not open connection socket for {addr, remote_addr}!")
-
+        for res in socket.getaddrinfo(*addr, type=socket.SOCK_STREAM):
+            s_af, s_t, s_p, _, s_addr = res
+            r_res_list = socket.getaddrinfo(*remote_addr, family=s_af.value, type=s_t.value, proto=s_p)
+            for r_res in r_res_list:
+                r_af, r_t, r_p, _, r_addr = r_res
+                sock = None
+                try:
+                    sock = socket.socket(r_af, r_t, r_p)
+                    sock.settimeout(10)
+                    if s_addr != ('0.0.0.0', 0):
+                        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                    sock.bind(s_addr)
+                    sock.connect(r_addr)
+                    sock.settimeout(None)
+                except OSError:
+                    _close_socket(sock)
+                    continue
+                return sock, _convert_addr_to_name(sock.getsockname())
+        raise RuntimeError(f"Could not open connection socket for {addr, remote_addr}!")
 
 class StreamEndpoint:
     """One of a pair of endpoints that is able to communicate with one another over a persistent stateless stream over
