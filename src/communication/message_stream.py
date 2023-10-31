@@ -83,12 +83,12 @@ class EndpointSocket:
         self._logger = logging.getLogger(name + "-Socket")
         self._logger.info(f"Initializing endpoint socket {addr, remote_addr}...")
 
-        self._addr = addr if addr is not None else ('0.0.0.0', 0)
+        self._addr = addr
         self._remote_addr = remote_addr
         self._static_addr = addr is not None
         self._acceptor = acceptor
         if acceptor:
-            if self._static_addr:
+            if not self._static_addr:
                 raise ValueError("Accepting endpoint socket requires an address!")
             elif remote_addr is not None:
                 self._reg_remote(remote_addr)
