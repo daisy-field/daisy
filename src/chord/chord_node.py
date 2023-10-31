@@ -9,9 +9,10 @@
 """
 
 import logging
+from time import time
 from uuid import uuid4
 from enum import Enum
-from typing import Self
+from typing import Self, Optional
 import numpy as np
 import typing
 
@@ -26,7 +27,7 @@ class MessageType(Enum):
     NOTIFY = 5
 
 
-class FindSuccOrigins(Enum):
+class MessageOrigin(Enum):
     PROCESS_JOIN = 1
     FIX_FINGERS = 2
 
@@ -39,13 +40,10 @@ class Chordmessage:
     """
     message_id: uuid4
     message_type: MessageType
-    sender_id: int
-    sender_addr: tuple[str, int]
-    payload: dict
+    payload: tuple[int, tuple[str, int]]
 
-    def __init__(self, message_type: MessageType, sender_id: int = -1,
-                 sender_addr: tuple[str, int] = None,
-                 payload: dict = None):
+    def __init__(self, message_id: uuid4, message_type: MessageType,
+                 payload: tuple[int, tuple[str, int]] = None):
         """
         Creates a new Chordmessage Object.
 
@@ -54,10 +52,8 @@ class Chordmessage:
         :param sender_addr: chord address of sending node, used for replying
         :param payload: key-value pairs with the contents of the message
         """
-        self.message_id = uuid4()
+        self.message_id = message_id
         self.message_type = message_type
-        self.sender_id = sender_id
-        self.sender_addr = sender_addr
         self.payload = payload
 
 
@@ -74,7 +70,7 @@ class Chordnode:
     _id: int
     _name: str  # for debugging and fun
     _addr: tuple[str, int]
-    _finger_table: dict[int: [tuple[str, int], StreamEndpoint]]
+    _finger_table: dict[int, tuple[int, tuple[str, int], StreamEndpoint]]
     _successor: tuple[int, tuple[str, int]]
     _successor_endpoint: StreamEndpoint
     _predecessor: tuple[int, tuple[str, int]]
@@ -82,8 +78,9 @@ class Chordnode:
     _node_endpoints: list[StreamEndpoint]
     _endpoint_server: EndpointServer
     _max_fingers: int  # let m be the number of bits in the key/node identifiers. (copied from paper)
+    _sent_messages: dict[uuid4, tuple[MessageOrigin, time, Optional[int]]]
 
-    def __init__(self, name: str, addr: tuple[str, int], finger_table: dict[int: [tuple[str, int], StreamEndpoint]],
+    def __init__(self, name: str, addr: tuple[str, int],
                  successor: tuple[int, tuple[str, int]] = Self,
                  predecessor: tuple[int, tuple[str, int]] = None,
                  node_endpoints: list[StreamEndpoint] = None,
@@ -99,10 +96,10 @@ class Chordnode:
         :param max_fingers: Max size of fingertable, also used for calculating peer ids on chord
         """
 
-        self._id = hash(addr) % (2 ^ max_fingers)
+        self._id = hash(addr) % (2 ** max_fingers)
         self._name = name
         self._addr = addr
-        self._finger_table = finger_table
+        self._finger_table = {}
         self._successor = successor  # init to None, set at join to chord ring
         self._predecessor = predecessor
         self._node_endpoints = node_endpoints
@@ -114,9 +111,11 @@ class Chordnode:
         Sends join request to a node in an existing Chordring, or starts new.
         :param remote_addr: Address of bootstrap node
         """
+        message_id = uuid4()
+        self._sent_messages[message_id] = (MessageOrigin.PROCESS_JOIN, time(), None)
 
-        join_chord_message = Chordmessage(message_type=MessageType.JOIN, sender_id=self._id,
-                                          sender_addr=self._addr, payload={"node": (self._id, self._addr)})
+        join_chord_message = Chordmessage(message_id=message_id, message_type=MessageType.JOIN,
+                                          payload=(self._id, self._addr))
         endpoint = StreamEndpoint(name=f"Join-Endpoint-{self._id}", addr=self._addr,
                                   remote_addr=remote_addr, acceptor=False, multithreading=True,
                                   buffer_size=10000)
@@ -125,125 +124,127 @@ class Chordnode:
         endpoint.stop(shutdown=True)
 
     def send_notify(self, remote_id: int, remote_addr: tuple[str, int]) -> None:
-        notify_message = Chordmessage(message_type=MessageType.NOTIFY, sender_id=self._id, sender_addr=self._addr,
-                                      payload={"predecessor": self._predecessor})
-        node_in_ft = self._finger_table.get(remote_id)
-        if node_in_ft is not None:
-            node_in_ft.send(notify_message)
-        else:
-            endpoint = StreamEndpoint(name=f"Join-Endpoint-{self._id}", addr=self._addr,
-                                      remote_addr=remote_addr, acceptor=False, multithreading=True,
-                                      buffer_size=10000)
-            endpoint.start()
-            endpoint.send(notify_message)
+        notify_message = Chordmessage(message_id=uuid4(), message_type=MessageType.NOTIFY,
+                                      payload=self._predecessor)
+        ep = self._check_for_endpoint(remote_id, remote_addr)
+        self.send_message(ep, remote_addr, notify_message)
 
     def send_stabilize(self, remote_id: int, remote_addr: tuple[str, int]) -> None:
         if self._successor is None:
             raise RuntimeError(f"Stabilize on Successor Null on node {self._name}")
-
-        stabilize_message = Chordmessage(message_type=MessageType.STABILIZE, sender_id=self._id, sender_addr=self._addr,
-                                         payload={"node": (self._id, self._addr)})
-
-        node_in_ft = self._finger_table.get(remote_id)
-        if node_in_ft is not None:
-            node_in_ft.send(stabilize_message)
-        else:
-            endpoint = StreamEndpoint(name=f"Stabilize-Endpoint-{self._id}", addr=self._addr,
-                                      remote_addr=remote_addr, acceptor=False, multithreading=True,
-                                      buffer_size=10000)
-            endpoint.start()
-            endpoint.send(stabilize_message)
+        stabilize_message = Chordmessage(message_id=uuid4(), message_type=MessageType.STABILIZE,
+                                         payload=(self._id, self._addr))
+        ep = self._check_for_endpoint(remote_id, remote_addr)
+        self.send_message(ep, remote_addr, stabilize_message)
 
     def _fix_fingertable(self) -> None:
         """Function to keep fingertables current with nodes joining and leaving the chordring. Should be called
         periodically by each node.
         """
-        if self._finger_table is not None and len(self._finger_table) == 0:
-            pass
         for i in range(self._max_fingers):
-            # todo wont work like this
-            self._find_succ(self._id + 2 ** i % self._max_fingers, self._addr)
+            finger = self._id + 2 ** i % (2 ** self._max_fingers)
+            if self._is_pred(finger):
+                self._finger_table[i] = (self._successor[0], self._successor[1], self._successor_endpoint)
+            else:
+                message_id = uuid4()
+                self._sent_messages[message_id] = (MessageOrigin.FIX_FINGERS, time(), i)
+                self._find_succ(finger, self._addr, message_id)
 
-    def _find_succ(self, node_id: int, remote_addr: tuple[str, int]) -> None:
-        # this should work, stop thinking about it!
+    def _is_succ(self, node_id: int):
+        return (self._id < self._predecessor[0]) & (node_id not in range(self._id + 1, self._predecessor[0] + 1)) \
+            or (node_id in range(self._predecessor[0] + 1, self._id + 1))
+
+    def _is_pred(self, node_id: int):
+        return (self._id > self._successor[0]) & (node_id not in range(self._successor[0] + 1, self._id + 1)) \
+            or (node_id in range(self._id + 1, self._successor[0] + 1))
+
+    def _find_succ(self, node_id: int, remote_addr: tuple[str, int], message_id: uuid4) -> None:
         """Function to find successor of node with chord id find_succ_id. Message will be relayed along the cordring
         until the successor is found. In the end, the chord id and chord address of the found node will be sent back
         directly to the node who initially send the request.
+
         :param remote_addr: chord address of node who initially sent the find_successor request
         :param node_id: chord id of node whose successor should be found
+        :message_id:
         """
-        # me is pred of node
-        if (self._id > self._successor[0]) & (node_id not in range(self._successor[0] + 1, self._id + 1)) \
-                or (node_id in range(self._id + 1, self._successor[0] + 1)):
-            # add successor info to chordmessage
-            succ_found_msg = Chordmessage(message_type=MessageType.FIND_SUCC_RES, sender_id=self._id,
-                                          sender_addr=self._addr, payload={"succ": self._successor})
-            node_in_ft = self._finger_table.get(node_id)
-            if node_in_ft is not None:
-                node_in_ft.send(succ_found_msg)
-            else:
-                endpoint = StreamEndpoint(name=f"{self._name}-{self._id}-send-succ", addr=self._addr,
-                                          remote_addr=remote_addr, acceptor=False, multithreading=True,
-                                          buffer_size=10000)
-                endpoint.start()
-                endpoint.send(succ_found_msg)
-                endpoint.stop(shutdown=True)
-            return
-        # node is pred of me
-        if (self._id < self._predecessor[0]) & (node_id not in range(self._id + 1, self._predecessor[0]+1)) \
-                or (node_id in range(self._predecessor[0] + 1, self._id + 1)):
-            succ_found_msg = Chordmessage(message_type=MessageType.FIND_SUCC_RES, sender_id=self._id,
-                                          sender_addr=self._addr, payload={"succ": (self._id, self._addr)})
-            # here
-            node_in_ft = self._finger_table.get(node_id)
-            if node_in_ft is not None:
-                node_in_ft.send(succ_found_msg)
+        if self._is_pred(node_id):
+            succ_found_msg = Chordmessage(message_id=message_id, message_type=MessageType.FIND_SUCC_RES,
+                                          payload=self._successor)
+            ep = self._check_for_endpoint(node_id, remote_addr)
+            self.send_message(ep, remote_addr, succ_found_msg)
 
-            else:
-                endpoint = StreamEndpoint(name=f"{self._name}-{self._id}-send-succ", addr=self._addr,
-                                          remote_addr=remote_addr, acceptor=False, multithreading=True,
-                                          buffer_size=10000)
-                endpoint.start()
-                endpoint.send(succ_found_msg)
-                endpoint.stop(shutdown=True)
-            return
-        # idk, ask closest pred of node
-        for finger in self._finger_table.keys():
-            if self._id < self._finger_table.get(finger) < node_id:
-                self._finger_table.get(finger).send(
-                    Chordmessage(message_type=MessageType.FIND_SUCC_REQ, sender_id=self._id, sender_addr=self._addr,
-                                 payload={"find_id": node_id, "reply_addr": remote_addr}))
-                break
+        elif self._is_succ(node_id):
+            succ_found_msg = Chordmessage(message_id=message_id, message_type=MessageType.FIND_SUCC_RES,
+                                          payload=(self._id, self._addr))
+            ep = self._check_for_endpoint(node_id, remote_addr)
+            self.send_message(ep, remote_addr, succ_found_msg)
+        else:
+            # idk, ask closest pred of node
+            for finger in reversed(range(self._max_fingers)):
+                if finger not in self._finger_table:
+                    continue
+                finger_node_id, finger_node_addr, finger_node_ep = self._finger_table[finger]
+                if finger_node_id < node_id:  # TODO fix if with is_pred or is_succ logic
+                    finger_node_ep.send(
+                        Chordmessage(message_id=message_id, message_type=MessageType.FIND_SUCC_REQ,
+                                     payload=(node_id, remote_addr)))
+                    break
 
+    def _check_for_endpoint(self, node_id, remote_addr) -> Optional[StreamEndpoint]:
+        ep = {finger_ep for finger_id, finger_addr, finger_ep in self._finger_table.values()
+              if node_id == finger_id}
+        if len(ep) == 0:
+            ep = self._endpoint_server.get_connections([remote_addr]).get(remote_addr)
+        else:
+            ep = ep.pop()
+
+        return ep
+
+    def send_message(self, ep, remote_addr, message):
+        if ep is not None:
+            ep.send(message)
+        else:
+            endpoint = StreamEndpoint(name=f"one-time-ep-{np.random.randint(0, 100)}",
+                                      remote_addr=remote_addr, acceptor=False, multithreading=True,
+                                      buffer_size=10000)
+            endpoint.start()
+            endpoint.send(message)
+            endpoint.stop(shutdown=True)
 
     def _process_join(self, message: Chordmessage) -> None:
-        self._find_succ(message.payload.get("node")[0], message.payload.get("node")[1])
+        self._find_succ(*message.payload, message.message_id)
 
     def _process_notify(self, message: Chordmessage) -> None:
-        if message.payload.get("predecessor")[0] != self._id:
-            self.send_stabilize(message.payload.get("predecessor")[0], message.payload.get("predecessor")[1])
+        if message.payload[0] != self._id:
+            self.send_stabilize(*message.payload)
 
     def _process_stabilize(self, message: Chordmessage) -> None:
         # if (node id is my pred or between me and my pred) update my pred
         # send notify with my pred
-        if message.payload.get("node") == self._predecessor or message.payload.get("node")[0]:
-            self.send_notify(message.payload.get("node")[0], message.payload.get("node")[1])
+        if message.payload == self._predecessor or message.payload[0]:
+            self.send_notify(*message.payload)
 
     def _process_find_succ_res(self, message: Chordmessage) -> None:
+
+        if message.message_id not in self._sent_messages:
+            return
+        msg_origin, _, msg_finger = self._sent_messages[message.message_id]
         # succ from join
-        self.send_stabilize(message.payload.get("node")[0], message.payload.get("node")[1])
-        # succ from fix fingers
-        # todo implement
+        if msg_origin == MessageOrigin.PROCESS_JOIN:
+            self.send_stabilize(*message.payload)
+        else:
+            ep = self._check_for_endpoint(*message.payload)
+            if ep is None:
+                ep = StreamEndpoint(name=f"finger-ep-{np.random.randint(0, 100)}",
+                                    remote_addr=message.payload[1], acceptor=False, multithreading=True,
+                                    buffer_size=10000)
+                ep.start()
+            # TODO check if endpoint already exists in ft or is in useage or can be closed
+            self._finger_table[msg_finger] = (message.payload[0], message.payload[1], ep)
 
     def _process_find_succ_req(self, message: Chordmessage) -> None:
         # call find succ with node from message as target
-        self._find_succ(message.payload.get("id"), message.payload.get("addr"))
-
-    def _open_endpoints(self, count: int = 1) -> None:
-        for i in range(count):
-            self._node_endpoints.append(
-                StreamEndpoint(name=f"{self._name}-{self._id}-recv-{i}-{np.random.randint(0, 100)}", addr=self._addr,
-                               acceptor=True, multithreading=True, buffer_size=10000))
+        self._find_succ(*message.payload, message.message_id)
 
     def run(self, bootstrap_addr: tuple[str, int] = None) -> None:
         self._endpoint_server.start()
