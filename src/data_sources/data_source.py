@@ -263,7 +263,7 @@ class DataSource:
     _data_processor: DataProcessor
 
     _multithreading: bool
-    _thread: threading.Thread
+    _loader: threading.Thread
     _buffer: queue.Queue
     _opened: bool
 
@@ -312,8 +312,8 @@ class DataSource:
         self._source_handler.open()
 
         if self._multithreading:
-            self._thread = threading.Thread(target=self._loader, daemon=True)
-            self._thread.start()
+            self._loader = threading.Thread(target=self._create_loader, daemon=True)
+            self._loader.start()
         self._logger.info("Data source started.")
 
     def close(self):
@@ -327,10 +327,10 @@ class DataSource:
         self._source_handler.close()
 
         if self._multithreading:
-            self._thread.join()
+            self._loader.join()
         self._logger.info("Data source stopped.")
 
-    def _loader(self):
+    def _create_loader(self):
         """Data loader for multithreading mode, loads data from source handlers and processes it to store it in the
         shared buffer.
         """
@@ -394,7 +394,7 @@ class DataSourceRelay:
     _data_source: DataSource
     _endpoint: StreamEndpoint
 
-    _thread: threading.Thread
+    _relay: threading.Thread
     _started: bool
 
     def __init__(self, name: str = "", data_source: DataSource = None, endpoint: StreamEndpoint = None,
@@ -451,8 +451,8 @@ class DataSourceRelay:
         except RuntimeError:
             pass
 
-        self._thread = threading.Thread(target=self._relay, daemon=True)
-        self._thread.start()
+        self._relay = threading.Thread(target=self._create_relay, daemon=True)
+        self._relay.start()
         self._logger.info("Data source relay started.")
 
     def stop(self):
@@ -472,10 +472,10 @@ class DataSourceRelay:
         except RuntimeError:
             pass
 
-        self._thread.join()
+        self._relay.join()
         self._logger.info("Data source relay stopped.")
 
-    def _relay(self):
+    def _create_relay(self):
         """Actual relay, directly forwards data points from its data source to its endpoint (both might be async).
         """
         self._logger.info("Starting to relay data points from data source...")
@@ -483,6 +483,7 @@ class DataSourceRelay:
             try:
                 self._endpoint.send(d_point)
             except RuntimeError:
+                # stop() was called
                 break
         self._logger.info("Data source exhausted, or relay closing...")
 

@@ -3,13 +3,11 @@
     and LZ4 compression.
 
     Author: Fabian Hofmann
-    Modified: 26.07.23
+    Modified: 18.10.23
 
     TODO Future Work: SSL https://docs.python.org/3/library/ssl.html
-    TODO Future Work: Poll & Select
-    TODO Future Work: Generating new Endpoints through Generic Endpoints upon new connection
-    TODO Future Work: Blocked remote addresses (and leaving l_sockets open)
-    TODO - when socket is not shut down but only closed OR when never opened to begin with
+    TODO Future Work: Potential race conditions during rapid start/stop | open/close of endpoints/endpoint sockets
+    TODO Future Work: https://docs.python.org/3/library/socket.html#socket.create_server for simplicity's sake
 """
 
 import ctypes
@@ -55,6 +53,7 @@ class EndpointSocket:
     _addr: tuple[str, int]
     _remote_addr: Optional[tuple[str, int]]
     _acceptor: bool
+    _static_addr: bool
 
     _send_b_size: int
     _recv_b_size: int
@@ -63,31 +62,38 @@ class EndpointSocket:
 
     _opened: bool
 
-    def __init__(self, name: str, addr: tuple[str, int], remote_addr: tuple[str, int] = None, acceptor: bool = True,
-                 send_b_size: int = 65536, recv_b_size: int = 65536):
+    def __init__(self, name: str, addr: tuple[str, int] = None, remote_addr: tuple[str, int] = None,
+                 acceptor: bool = True, send_b_size: int = 65536, recv_b_size: int = 65536):
         """Creates a new endpoint socket. Implementation note: A pre-defined remote address is not a guarantee that this
         endpoint will successfully be allowed to initialize for this remote address --- for example if another endpoint
         sock with the same remote address (be it generic or pre-defined) has already been registered, then the current
         one will throw an error.
 
         :param name: Name of endpoint for logging purposes.
-        :param addr: Address of endpoint.
+        :param addr: Address of endpoint. Mandatory in acceptor mode (acceptor set to True), for initiators this fixes
+        the address the endpoint is bound to.
         :param remote_addr: Address of remote endpoint to be connected to. Mandatory in initiator mode (acceptor set to
-        false), for acceptor mode this fixes the remote endpoint that is allowed to be connected to this endpoint.
+        false), for acceptors this fixes the remote endpoint that is allowed to be connected to this endpoint.
         :param acceptor: Determines whether the endpoint accepts or initiates connections to/from other endpoints.
         :param send_b_size: Underlying send buffer size of socket.
         :param recv_b_size: Underlying receive buffer size of socket.
+        :raises ValueError: If the remote address is already taken for the acceptor, or if the address/remote address is
+        not provided for acceptor/initiator, respectively.
         """
         self._logger = logging.getLogger(name + "-Socket")
         self._logger.info(f"Initializing endpoint socket {addr, remote_addr}...")
 
         self._addr = addr
         self._remote_addr = remote_addr
+        self._static_addr = addr is not None
         self._acceptor = acceptor
-        if acceptor and remote_addr is not None:
-            self._reg_remote(remote_addr)
-            self._fix_rp_acc_socks(addr, remote_addr)
-        elif not acceptor and remote_addr is None:
+        if acceptor:
+            if not self._static_addr:
+                raise ValueError("Accepting endpoint socket requires an address!")
+            elif remote_addr is not None:
+                self._reg_remote(remote_addr)
+                self._fix_rp_acc_socks(addr, remote_addr)
+        elif remote_addr is None:
             raise ValueError("Initiating endpoint socket requires a remote address!")
 
         self._send_b_size = send_b_size
@@ -99,25 +105,35 @@ class EndpointSocket:
         self._logger.info(f"Endpoint socket {addr, remote_addr} initialized.")
 
     def open(self):
-        self._logger.info(f"Opening endpoint socket...")
+        """Opens the endpoint socket along with its underlying socket(s) and its connection to a/the remote endpoint
+        socket. Blocking until the connection is established.
+        """
+        self._logger.info("Opening endpoint socket...")
         self._opened = True
         with self._sock_lock:
             if self._acceptor:
                 self._open_l_socket(self._addr)
             self._connect()
-        self._logger.info(f"Endpoint socket opened.")
+        self._logger.info("Endpoint socket opened.")
 
     def close(self, shutdown: bool = False):
-        self._logger.info(f"Closing endpoint socket...")
+        """Closes the endpoint socket, cleaning up any underlying datastructures if acceptor. If already closed, allows
+        the cleanup of just the datastructures incase a shutdown is requested.
+        """
+        if not self._opened and shutdown and self._remote_addr is not None:
+            self._unreg_remote(self._addr, self._remote_addr)
+            return
+
+        self._logger.info("Closing endpoint socket...")
         self._opened = False
         with self._sock_lock:
             _close_socket(self._sock)
             self._sock = None
             if self._acceptor:
-                if shutdown:
+                if shutdown and self._remote_addr is not None:
                     self._unreg_remote(self._addr, self._remote_addr)
                 self._close_l_socket(self._addr)
-        self._logger.info(f"Endpoint socket closed.")
+        self._logger.info("Endpoint socket closed.")
 
     def send(self, p_data: bytes):
         """Sends the given bytes of a single object over the connection, performing simple marshalling (size is
@@ -165,6 +181,24 @@ class EndpointSocket:
                     self._connect()
         return None
 
+    def poll(self) -> tuple[list[bool], tuple[tuple[str, int], tuple[str, int]]]:
+        """Polls the state of various stats of the endpoint socket (see below) and addresses of endpoint socket.
+            * 0,0: Existence of socket (true if connected).
+            * 0,1: Whether there is something to read on the underlying socket.
+            * 0,2: Whether one is able to write on the underlying socket.
+            + 1,0: Address of endpoint socket, else None
+            + 1,1: Address of remote endpoint socket, else None.
+
+        :return: Tuple of boolean states (connectivity, readability, writability) and address-pair of endpoint socket.
+        """
+        states = [False] * 3
+        with self._sock_lock:
+            if self._sock is not None:
+                states[0] = True
+                states[1] = len(select.select([self._sock], [], [], 0)[0]) != 0
+                states[2] = len(select.select([], [self._sock], [], 0)[1]) != 0
+        return states, (self._addr, self._remote_addr)
+
     def _connect(self):
         """(Re-)Establishes a connection to a/the remote endpoint socket, first performing any necessary cleanup of the
         underlying socket, before opening it again and trying to connect/accept a remote endpoint socket. Fault-tolerant
@@ -174,14 +208,15 @@ class EndpointSocket:
             try:
                 self._logger.info(f"Trying to (re-)establish connection {self._addr, self._remote_addr}...")
                 _close_socket(self._sock)
+                self._sock = None
                 if self._acceptor:
-                    self._sock = None
                     remote_addr = self._remote_addr
                     while self._opened and self._sock is None:
                         self._sock, remote_addr = self._get_a_socket(self._addr, self._remote_addr)
                     self._remote_addr = remote_addr
                 else:
-                    self._sock = self._get_c_socket(self._addr, self._remote_addr)
+                    self._addr = self._addr if self._static_addr else ('0.0.0.0', 0)
+                    self._sock, self._addr = self._get_c_socket(self._addr, self._remote_addr)
                 self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, self._send_b_size)
                 self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, self._recv_b_size)
                 self._logger.info(f"Connection {self._addr, self._remote_addr} (re-)established.")
@@ -191,10 +226,6 @@ class EndpointSocket:
                                      f"{self._addr, self._remote_addr}. Retrying...")
                 sleep(1)
                 continue
-
-    def __del__(self):
-        if self._opened:
-            self.close(shutdown=True)
 
     @classmethod
     def _reg_remote(cls, remote_addr: tuple[str, int]):
@@ -312,8 +343,8 @@ class EndpointSocket:
         all accompanying datastructures. Supports address resolution.
 
         :param addr: Address of listen socket.
-        :raises RuntimeError: If none of the addresses/aliases succeed to create a working socket.
         :return: A tupel consisting of the address, the socket, and a lock to be used for accessing the socket.
+        :raises RuntimeError: If none of the addresses/aliases succeed to create a working socket.
         """
         cls._cls_logger.debug(f"Trying to retrieve listening socket for {addr}...")
         for res in socket.getaddrinfo(*addr, type=socket.SOCK_STREAM):
@@ -372,8 +403,8 @@ class EndpointSocket:
 
         :param addr: Address of listen socket.
         :param remote_addr: Address of remote endpoint to be connected to.
-        :raises RuntimeError: If none of the addresses/aliases of the listen socket succeed to get a working socket.
         :return: Tuple of the connection socket and the address of the remote peer.
+        :raises RuntimeError: If none of the addresses/aliases of the listen socket succeed to get a working socket.
         """
         cls._cls_logger.debug(f"Trying to retrieve accept socket for {addr, remote_addr}...")
         l_addr, _, _ = cls._get_l_socket(addr)
@@ -458,6 +489,7 @@ class EndpointSocket:
         :param l_addr: Address of listen socket.
         :param remote_addr: Address of remote endpoint to be connected to.
         :return: Tuple of a connection socket and the address of the remote peer.
+        :raises RuntimeError: If there are no new connections are in the OS connection backlog.
         """
         cls._cls_logger.debug(f"Trying to accept socket for {l_addr, remote_addr}...")
         with cls._lock:
@@ -499,14 +531,15 @@ class EndpointSocket:
         return None, None
 
     @classmethod
-    def _get_c_socket(cls, addr: tuple[str, int], remote_addr: tuple[str, int]) -> socket.socket:
-        """Creates and returns a connection socket to a given remote address, that is also bound to a specific address,
-        if given.
+    def _get_c_socket(cls, addr: tuple[str, int], remote_addr: tuple[str, int]) \
+            -> tuple[Optional[socket.socket], Optional[tuple[str, int]]]:
+        """Creates and returns a connection socket to a given remote address, that might be bound to a specific address,
+        if given. Non-Blocking (with timeout) during connection attempts.
         
-        :param addr: Local address to bind endpoint to.
+        :param addr: Local address to bind endpoint to. If none provided, OS chooses an address.
         :param remote_addr: Address of remote endpoint to be connected to.
-        :raises RuntimeError: If none of the addresses succeed to create a working socket.
-        :return: The connection socket.
+        :return: Tuple of the connection socket and the address of the socket.
+        :raises Error: A lot of potential errors during create_connection(), when no connection can be established.
         """
         cls._cls_logger.debug(f"Trying to open connection socket for {addr, remote_addr}...")
         for res in socket.getaddrinfo(*addr, type=socket.SOCK_STREAM):
@@ -517,13 +550,16 @@ class EndpointSocket:
                 sock = None
                 try:
                     sock = socket.socket(r_af, r_t, r_p)
-                    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                    sock.settimeout(10)
+                    if s_addr != ('0.0.0.0', 0):
+                        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                     sock.bind(s_addr)
                     sock.connect(r_addr)
+                    sock.settimeout(None)
                 except OSError:
                     _close_socket(sock)
                     continue
-                return sock
+                return sock, _convert_addr_to_name(sock.getsockname())
         raise RuntimeError(f"Could not open connection socket for {addr, remote_addr}!")
 
 
@@ -540,13 +576,16 @@ class StreamEndpoint:
     _unmarshal_f: Callable[[bytes], object]
 
     _multithreading: bool
-    _send_thread: threading.Thread
-    _recv_thread: threading.Thread
-    _send_buffer: queue.Queue
-    _recv_buffer: queue.Queue
-    _started: bool
+    _sender: threading.Thread
+    _receiver: threading.Thread
+    _send_buffer: queue.Queue[bytes]
+    _recv_buffer: queue.Queue[bytes]
 
-    def __init__(self, name: str, addr: tuple[str, int], remote_addr: tuple[str, int] = None,
+    _started: bool
+    _ready: threading.Event
+    _shutdown: bool
+
+    def __init__(self, name: str, addr: tuple[str, int] = None, remote_addr: tuple[str, int] = None,
                  acceptor: bool = True, send_b_size: int = 65536, recv_b_size: int = 65536,
                  compression: bool = False, marshal_f: Callable[[object], bytes] = pickle.dumps,
                  unmarshal_f: Callable[[bytes], object] = pickle.loads,
@@ -562,13 +601,14 @@ class StreamEndpoint:
         :param compression: Enables lz4 stream compression for bandwidth optimization.
         :param marshal_f: Marshal function to serialize objects to send into bytes.
         :param unmarshal_f: Unmarshal function to deserialize received bytes into objects.
-        :param multithreading: Enables transparent multithreading for speedup.
+        :param multithreading: Enables transparent multithreading (i.e. asynchronous object processing) for speedup.
         :param buffer_size: Size of shared buffer in multithreading mode.
         """
         self._logger = logging.getLogger(name)
         self._logger.info(f"Initializing endpoint {addr, remote_addr}...")
 
-        self._endpoint_socket = EndpointSocket(name, addr, remote_addr, acceptor, send_b_size, recv_b_size)
+        self._endpoint_socket = EndpointSocket(name=name, addr=addr, remote_addr=remote_addr, acceptor=acceptor,
+                                               send_b_size=send_b_size, recv_b_size=recv_b_size)
 
         if compression:
             self._marshal_f = lambda d: compress(marshal_f(d))
@@ -580,59 +620,86 @@ class StreamEndpoint:
         self._multithreading = multithreading
         self._send_buffer = queue.Queue(maxsize=buffer_size)
         self._recv_buffer = queue.Queue(maxsize=buffer_size)
+
         self._started = False
+        self._ready = threading.Event()
+        self._shutdown = False
         self._logger.info(f"Endpoint {addr, remote_addr} initialized.")
 
-    def start(self):
+    def start(self, blocking=True) -> threading.Event:
         """Starts the endpoint, either in threaded fashion or as part of the main thread. By doing so, the two endpoints
-        are connected and the datastream is opened. This method is blocking (until a connection is established).
+        are connected and the datastream is opened. This method is blocking until a connection is established by default
+        if multithreading is not enabled or the respective flag is not set. If either is the case, the caller can check
+        the readiness of the connection via the returned event object. Note that in multithreading mode, objects can
+        already be sent/received, however they will only be stored in internal buffers until the connection is
+        established!
 
-        :raises RuntimeError: If endpoint has already been started.
+        :param blocking: Whether to wait for a connection to be established in non-multithreading (sync) mode.
+        :return: Event object to check endpoint's readiness to send/receive. Always true if start() was called blocking.
+        :raises RuntimeError: If endpoint has already been started or shut down.
         """
         self._logger.info("Starting endpoint...")
+        if self._shutdown:
+            raise RuntimeError("Endpoint has already been shut down!")
         if self._started:
-            raise RuntimeError(f"Endpoint has already been started!")
+            raise RuntimeError("Endpoint has already been started!")
         self._started = True
-        self._endpoint_socket.open()
+
+        if not blocking or self._multithreading:
+            self._logger.info("Starting endpoint socket starter thread...")
+            threading.Thread(target=self._create_socket_starter, daemon=True).start()
+        else:
+            self._create_socket_starter()
 
         if self._multithreading:
             self._logger.info("Multithreading detected, starting endpoint sender/receiver threads...")
-            self._send_thread = threading.Thread(target=self._create_sender, daemon=True)
-            self._recv_thread = threading.Thread(target=self._create_receiver, daemon=True)
-            self._send_thread.start()
-            self._recv_thread.start()
+            self._sender = threading.Thread(target=self._create_sender, daemon=True)
+            self._receiver = threading.Thread(target=self._create_receiver, daemon=True)
+            self._sender.start()
+            self._receiver.start()
         self._logger.info("Endpoint started.")
+        return self._ready
 
     def stop(self, shutdown=False, timeout=10):
-        """Stops the endpoint and closes the stream, cleaning up underlying structures. If multithreading is enabled,
-        waits for both endpoint threads to stop before finishing. Note this does not guarantee the sending and
+        """Stops the endpoint and closes the stream, cleaning up underlying datastructures. If multithreading is
+        enabled, waits for both endpoint threads to stop before finishing. Note this does not guarantee the sending and
         receiving of all objects still pending --- they may still be in internal buffers and will be processed if the
         endpoint is opened again, or get discarded by the underlying socket.
 
+        Also note if the endpoint has not been started or has already been closed, a set shutdown flag still results in
+        the full cleanup of the underlying datastructures.
+
         :param shutdown: If set, also cleans up underlying datastructures of the socket communication.
-        :param timeout: If shutdown not set, allows the sender thread to process remaining messages until timeout.
-        :raises RuntimeError: If endpoint has not been started.
+        :param timeout: Allows the sender thread to process remaining messages until timeout.
+        :raises RuntimeError: If endpoint has not been started or already shut down.
         """
         self._logger.info("Stopping endpoint...")
         if not self._started:
-            raise RuntimeError(f"Endpoint has not been started!")
+            if not self._shutdown and shutdown:
+                self._logger.warning("Shutdown on closed endpoint detected, cleaning up endpoint...")
+                self._endpoint_socket.close(shutdown)
+                self._shutdown = True
+                return
+            else:
+                raise RuntimeError("Endpoint has not been started or already shut down!")
 
-        if not shutdown and self._multithreading:
+        if self._multithreading:
             start = time()
-            while not self._send_buffer.empty() and time() - start > timeout:
+            while not self._send_buffer.empty() and time() - start < timeout:
                 sleep(1)
         self._started = False
+        self._ready.clear()
         self._endpoint_socket.close(shutdown)
 
         if self._multithreading:
             self._logger.info("Multithreading detected, waiting for endpoint sender/receiver threads to stop...")
-            self._send_thread.join()
-            self._recv_thread.join()
+            self._sender.join()
+            self._receiver.join()
         self._logger.info("Endpoint stopped.")
 
     def send(self, obj: object):
         """Generic send function that sends any object as a pickle over the persistent datastream. If multithreading is
-        enabled, this function is asynchronous, otherwise it is blocking.
+        enabled, this function is non-blocking.
 
         :param obj: Object to send.
         :raises RuntimeError: If endpoint has not been started.
@@ -686,10 +753,36 @@ class StreamEndpoint:
         self._logger.debug(f"Pickled data received of size {len(p_obj)}.")
         return self._unmarshal_f(p_obj)
 
+    def poll(self) -> tuple[list[bool], tuple[tuple[str, int], tuple[str, int]]]:
+        """Polls the state of various stats of the endpoint (see below) and addresses of endpoint.
+            * 0,0: Existence of underlying socket (true if connected).
+            * 0,1: Whether there is something to read on the internal buffer or underlying socket.
+            * 0,2: Whether one is able to write on the internal buffer or underlying socket.
+            + 1,0: Address of endpoint, else None
+            + 1,1: Address of remote endpoint, else None.
+
+        :return: Tuple of boolean states (connectivity, readability, writability) and address-pair of endpoint.
+        """
+        states, addrs = self._endpoint_socket.poll()
+        if self._multithreading:
+            states[1] = states[1] or not self._recv_buffer.empty()
+            states[2] = states[2] or not self._send_buffer.full()
+        return states, addrs
+
+    def _create_socket_starter(self):
+        """Starts and connects the endpoint socket to the remote endpoint, before setting the semaphore to allow async
+        sender and receiver threads to fully start.
+        """
+        self._endpoint_socket.open()
+        self._ready.set()
+
     def _create_sender(self):
         """Starts the loop to send objects over the socket retrieved from the sending buffer.
         """
-        self._logger.info(f"AsyncSender: Starting to send objects in asynchronous mode...")
+        self._logger.info("AsyncSender: Starting...")
+        self._ready.wait()
+        self._logger.info("AsyncSender: Starting to send objects in asynchronous mode...")
+
         while self._started:
             try:
                 p_obj = self._send_buffer.get(timeout=10)
@@ -698,13 +791,16 @@ class StreamEndpoint:
                     f"(length: {self._send_buffer.qsize()})")
                 self._endpoint_socket.send(p_obj)
             except queue.Empty:
-                self._logger.debug(f"AsyncSender: Timeout triggered: Buffer empty. Retrying...")
-        self._logger.info(f"AsyncSender: Stopping...")
+                self._logger.debug("AsyncSender: Timeout triggered: Buffer empty. Retrying...")
+        self._logger.info("AsyncSender: Stopping...")
 
     def _create_receiver(self):
         """Starts the loop to receive objects over the socket and store them in the receiving buffer.
         """
-        self._logger.info(f"AsyncReceiver: Starting to receive objects in asynchronous mode...")
+        self._logger.info("AsyncReceiver: Starting...")
+        self._ready.wait()
+        self._logger.info("AsyncReceiver: Starting to receive objects in asynchronous mode...")
+
         while self._started:
             try:
                 p_obj = self._endpoint_socket.recv()
@@ -715,8 +811,8 @@ class StreamEndpoint:
                     f"(length: {self._recv_buffer.qsize()})...")
                 self._recv_buffer.put(p_obj, timeout=10)
             except queue.Full:
-                self._logger.warning(f"AsyncReceiver: Timeout triggered: Buffer full. Discarding object...")
-        self._logger.info(f"AsyncReceiver: Stopping...")
+                self._logger.warning("AsyncReceiver: Timeout triggered: Buffer full. Discarding object...")
+        self._logger.info("AsyncReceiver: Stopping...")
 
     def __iter__(self):
         while self._started:
@@ -733,8 +829,287 @@ class StreamEndpoint:
         self.stop(shutdown=True)
 
     def __del__(self):
+        self.stop(shutdown=True)
+
+
+class EndpointServer:
+    """Helper class to manage a group of (acceptor) connection endpoints listening to the same address. Supports all
+    features of the existing endpoint class, besides also supporting thread-safe access, polling, and management of them
+    as a group.
+    """
+    _logger: logging.Logger
+
+    _connection_handler: threading.Thread
+    _connection_cleaner: threading.Thread
+
+    _connections: dict[tuple[str, int], StreamEndpoint]
+    _p_connections: queue.Queue[tuple[tuple[str, int], StreamEndpoint]]
+    _n_connections: int
+    _c_timeout: int
+    _c_lock: threading.RLock
+
+    _name: str
+    _addr: tuple[str, int]
+    _send_b_size: int
+    _recv_b_size: int
+    _compression: bool
+    _marshal_f: Callable[[object], bytes]
+    _unmarshal_f: Callable[[bytes], object]
+    _multithreading: bool
+    _buffer_size: int
+
+    _started: bool
+
+    def __init__(self, name: str, addr: tuple[str, int],
+                 c_timeout: int = None, send_b_size: int = 65536, recv_b_size: int = 65536,
+                 compression: bool = False, marshal_f: Callable[[object], bytes] = pickle.dumps,
+                 unmarshal_f: Callable[[bytes], object] = pickle.loads,
+                 multithreading: bool = False, buffer_size: int = 1024):
+        """Creates a new endpoint server.
+
+        :param name: Name of endpoint server for logging purposes.
+        :param addr: Address of endpoint server.
+        :param c_timeout: Timeout (secs) for disconnected connection endpoints when performing periodic cleanup.
+        :param send_b_size: Underlying send buffer size of all connection sockets.
+        :param recv_b_size: Underlying receive buffer size of all connection sockets.
+        :param compression: Enables lz4 stream compression for bandwidth optimization.
+        :param marshal_f: Marshal function to serialize objects to send into bytes.
+        :param unmarshal_f: Unmarshal function to deserialize received bytes into objects.
+        :param multithreading: Enables transparent multithreading (for individual endpoints) for speedup.
+        :param buffer_size: Size of shared buffers, both for server and for connection endpoints in multithreading mode.
+        """
+        self._logger = logging.getLogger(name)
+        self._logger.info(f"Initializing endpoint server {addr}...")
+
+        self._connections = {}
+        self._p_connections = queue.Queue(maxsize=buffer_size)
+        self._n_connections = 0
+        self._c_timeout = c_timeout
+        self._c_lock = threading.RLock()
+
+        self._name = name
+        self._addr = addr
+        self._send_b_size = send_b_size
+        self._recv_b_size = recv_b_size
+        self._compression = compression
+        self._marshal_f = marshal_f
+        self._unmarshal_f = unmarshal_f
+        self._multithreading = multithreading
+        self._buffer_size = buffer_size
+
+        self._started = False
+        self._logger.info(f"Endpoint server {addr} initialized.")
+
+    def start(self):
+        """Starts the endpoint server, launching the connection handlers in the background.
+
+        :raises RuntimeError: If endpoint server has already been started.
+        """
+        self._logger.info("Starting endpoint server...")
         if self._started:
-            self.stop(shutdown=True)
+            raise RuntimeError("Endpoint server has already been started!")
+        self._started = True
+
+        self._connection_handler = threading.Thread(target=self._create_connection_handler, daemon=True)
+        self._connection_handler.start()
+        if self._c_timeout is not None:
+            self._logger.info("Connection timeout detected, starting periodic cleanup thread...")
+            self._connection_cleaner = threading.Thread(target=self._cleanup_connections, daemon=True)
+            self._connection_cleaner.start()
+        self._logger.info("Endpoint server started.")
+
+    def stop(self, timeout=10):
+        """Stops the endpoint server along all its connection endpoints, cleaning up underlying datastructures. This
+        always shuts down all connection endpoints with a given timeout (see stop() of the Endpoint class for more
+        information on this behavior).
+
+        :param timeout: Allows each connection endpoint to process remaining messages until timeout.
+        :raises RuntimeError: If endpoint server has not been started.
+        """
+        self._logger.info("Stopping endpoint server...")
+        if not self._started:
+            raise RuntimeError("Endpoint server has not been started!")
+        self._started = False
+        self._connection_handler.join()
+        self._connection_cleaner.join()
+
+        self._logger.info("Closing connections...")
+        with self._c_lock:
+            start = time()
+            for endpoint in self._connections.values():
+                threading.Thread(target=lambda: endpoint.stop(shutdown=True, timeout=timeout), daemon=True).start()
+            sleep(max(0.0, timeout - time() - start))
+            self._connections = {}
+        self._logger.info("Endpoint server stopped.")
+
+    def poll_connections(self) -> tuple[dict[tuple[str, int], StreamEndpoint], dict[tuple[str, int], StreamEndpoint]]:
+        """Polls the state of all current available connection endpoints, filtering them for readability and
+        writability.
+
+        Note that while this method is thread-safe in itself, it is not guaranteed that any returned endpoint will be
+        still connected (and available) at the point of using it, since the underlying cleanup thread (if enabled) might
+        have closed any potential dead endpoint if general timeout set (see __init__()).
+
+        :return: Tuple of dictionary of addresses and endpoints from which can be read from / written to.
+        """
+        with self._c_lock:
+            self._logger.debug(f"Polling {len(self._connections)} connections for readability and writability...")
+            c_states = {addr: (ep, ep.poll) for addr, ep in self._connections.items()}
+        r_ready = {addr: t[0] for addr, t in c_states if t[1][0][1]}
+        w_ready = {addr: t[0] for addr, t in c_states if t[1][0][2]}
+        self._logger.debug(f"{len(r_ready)} connections for readability and "
+                           f"{len(w_ready)} connections for writability found.")
+        return r_ready, w_ready
+
+    def get_connections(self, addrs: list[tuple[str, int]]) -> dict[tuple[str, int], Optional[StreamEndpoint]]:
+        """Checks a list of given client addresses whether there is an available connection endpoint for each of them
+        and retrieves them.
+
+        Note that while this method is thread-safe in itself, it is not guaranteed that any returned endpoint will be
+        still connected (and available) at the point of using it, since the underlying cleanup thread (if enabled) might
+        have closed any potential dead endpoint if general timeout set (see __init__()).
+
+        :param addrs: Client addresses to check and retrieve endpoints for.
+        :return: Dictionary of addresses and endpoints (None if not existing).
+        """
+        self._logger.debug(f"Trying to retrieve {len(addrs)} connections...")
+        with self._c_lock:
+            return {addr: self._connections.get(addr) for addr in addrs}
+
+    def get_new_connections(self, n: int = 1, timeout: int = 10) -> dict[tuple[str, int], StreamEndpoint]:
+        """Checks and retrieves the first n new connections in the underlying queue filled by the connection handler.
+
+        Note that while this method is thread-safe in itself, it is not guaranteed that any returned endpoint will be
+        still connected (and available) at the point of using it, since the underlying cleanup thread (if enabled) might
+        have closed any potential dead endpoint if general timeout set (see __init__()).
+
+        :param n: Maximum numbers of new connections to retrieve.
+        :param timeout: Maximum time when polling for new connections.
+        :return: Dictionary of new addresses and endpoints of new connections.
+        """
+        self._logger.debug(f"Trying to retrieve {n} new connections...")
+        new_connections = {}
+        start = time()
+        while self._started and len(new_connections) < n:
+            try:
+                remaining_timeout = max(0.0, timeout - time() - start)
+                addr, ep = self._p_connections.get(timeout=remaining_timeout)
+                new_connections[addr] = ep
+            except queue.Empty:
+                break
+        self._logger.debug(f"{len(new_connections)} out of {n} new connections retrieved.")
+        return new_connections
+
+    def close_connections(self, addrs: list[tuple[str, int]], timeout: int = 10):
+        """Checks a list of given client addresses whether there is an available connection endpoint for each of them
+        and closes them, shutting them also down.
+
+        :param addrs: Client addresses to check and close endpoints for.
+        :param timeout: Collective timeout for shutting down connection endpoints.
+        """
+        self._logger.debug(f"Trying to close {len(addrs)} connections...")
+        n = 0
+        start = time()
+        for addr in addrs:
+            with self._c_lock:
+                endpoint = self._connections.pop(addr, None)
+            if endpoint is not None:
+                self._logger.debug(f"Shutting down connection endpoint {addr}...")
+                n += 1
+                threading.Thread(target=lambda: endpoint.stop(shutdown=True, timeout=timeout), daemon=True).start()
+        sleep(max(0.0, timeout - time() - start))
+        self._logger.debug(f"{n} out of {len(addrs)} requested connections closed.")
+
+    def _create_connection_handler(self):
+        """Starts the loop to create new endpoints, connect them to their remote counterparts, and store them into the
+        underlying datastructures of the server.
+        """
+        self._logger.info("AsyncHandler: Starting connection handler...")
+        while self._started:
+            self._n_connections += 1
+            logging_prefix = f"AsyncHandler: [{self._n_connections}] "
+            self._logger.debug(logging_prefix + "Preparing endpoint for connection...")
+            new_connection = StreamEndpoint(name=f"{self._name}-{self._n_connections}",
+                                            addr=self._addr, remote_addr=None, acceptor=True,
+                                            send_b_size=self._send_b_size, recv_b_size=self._recv_b_size,
+                                            compression=self._compression,
+                                            marshal_f=self._marshal_f, unmarshal_f=self._unmarshal_f,
+                                            multithreading=self._multithreading, buffer_size=self._buffer_size)
+            n_connection_rdy = new_connection.start()
+            while self._started and not n_connection_rdy.wait(10):
+                self._logger.debug(logging_prefix + "Waiting for endpoint to establish a connection...")
+            if not self._started:
+                break
+
+            remote_addr = new_connection.poll()[1][1]
+            while self._started:
+                try:
+                    self._logger.debug(logging_prefix + "Storing connection endpoint in pending queue...")
+                    self._p_connections.put((remote_addr, new_connection), timeout=10)
+                    with self._c_lock:
+                        old_connection = self._connections.pop(remote_addr, None)
+                    if old_connection is not None:
+                        self._logger.debug(logging_prefix + "Shutting down existing connection endpoint...")
+                        old_connection.stop(shutdown=True, timeout=10)
+                    with self._c_lock:
+                        self._connections[remote_addr] = new_connection
+                    self._logger.debug(logging_prefix + "New connection endpoint handled.")
+                    break
+                except queue.Full:
+                    self._logger.debug(logging_prefix + "Timeout triggered: Queue full. Discarding oldest endpoint...")
+                    try:
+                        self._p_connections.get(block=False)
+                    except queue.Empty:
+                        continue
+        self._logger.info("AsyncHandler: Stopping...")
+
+    def _cleanup_connections(self):
+        """Starts the loop to periodically check all connection endpoints of the server for dead connections and clean
+        up those that remain dead after a set timeout (see __init__()).
+        """
+        self._logger.info("AsyncCleaner: Starting periodic connection cleanup...")
+        c_pending: dict[tuple[str, int], StreamEndpoint] = {}
+        while self._started:
+            with self._c_lock:
+                c_dead = [addr for addr, ep in c_pending.items() if not ep.poll()[0][0]]
+                self._logger.debug(f"AsyncCleaner: Closing {len(c_dead)} out of {len(c_pending)} "
+                                   f"inactive and marked connection endpoints...")
+                self.close_connections(c_dead, timeout=0)
+                c_pending = {addr: ep for addr, ep in self._connections.items() if not ep.poll()[0][0]}
+                self._logger.debug(f"AsyncCleaner: {len(c_pending)} inactive connection endpoints found and marked.")
+            sleep(self._c_timeout)
+        self._logger.info("AsyncCleaner: Stopping...")
+
+    def __iter__(self):
+        while self._started:
+            try:
+                yield self._p_connections.get(timeout=10)
+            except queue.Empty:
+                continue
+
+    def __enter__(self):
+        self.start()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.stop()
+
+    def __del__(self):
+        if self._started:
+            self.stop()
+
+
+def ep_select(endpoints: list[StreamEndpoint]) -> tuple[list[StreamEndpoint], list[StreamEndpoint]]:
+    """General select function to check a number of endpoints whether objects can be read from or written to them. For
+    simplicity's sake, does not mirror the actual UNIX select function (supporting separate lists).
+
+    :param endpoints: List of endpoints to check for readiness.
+    :return: Tuple of lists of endpoints that are read/write ready:
+    """
+    ep_states = [(endpoint, endpoint.poll()) for endpoint in endpoints]
+    r_ready = list(map(lambda t: t[0], filter(lambda t: t[1][0][1], ep_states)))
+    w_ready = list(map(lambda t: t[0], filter(lambda t: t[1][0][2], ep_states)))
+    return r_ready, w_ready
 
 
 def _convert_addr_to_name(addr: tuple) -> tuple[str, int]:
