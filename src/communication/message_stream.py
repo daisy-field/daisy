@@ -1056,7 +1056,11 @@ class EndpointServer:
                     self._logger.debug(logging_prefix + "New connection endpoint handled.")
                     break
                 except queue.Full:
-                    self._logger.debug(logging_prefix + "Timeout triggered: Queue full. Retrying...")
+                    self._logger.debug(logging_prefix + "Timeout triggered: Queue full. Discarding oldest endpoint...")
+                    try:
+                        self._p_connections.get(block=False)
+                    except queue.Empty:
+                        continue
         self._logger.info("AsyncHandler: Stopping...")
 
     def _cleanup_connections(self):

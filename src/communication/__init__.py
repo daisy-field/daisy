@@ -9,6 +9,6 @@
     Modified: 30.10.23
 """
 
-from .message_stream import StreamEndpoint
 from .message_stream import EndpointServer
+from .message_stream import StreamEndpoint
 from .message_stream import ep_select
