@@ -83,12 +83,12 @@ class EndpointSocket:
         self._logger = logging.getLogger(name + "-Socket")
         self._logger.info(f"Initializing endpoint socket {addr, remote_addr}...")
 
-        self._addr = addr if addr is not None else ('0.0.0.0', 0)
+        self._addr = addr
         self._remote_addr = remote_addr
         self._static_addr = addr is not None
         self._acceptor = acceptor
         if acceptor:
-            if self._static_addr:
+            if not self._static_addr:
                 raise ValueError("Accepting endpoint socket requires an address!")
             elif remote_addr is not None:
                 self._reg_remote(remote_addr)
@@ -562,6 +562,7 @@ class EndpointSocket:
                 return sock, _convert_addr_to_name(sock.getsockname())
         raise RuntimeError(f"Could not open connection socket for {addr, remote_addr}!")
 
+
 class StreamEndpoint:
     """One of a pair of endpoints that is able to communicate with one another over a persistent stateless stream over
     BSD sockets. Allows the transmission of generic objects in both synchronous and asynchronous fashion. Supports SSL
@@ -900,7 +901,7 @@ class EndpointServer:
         self._logger.info(f"Endpoint server {addr} initialized.")
 
     def start(self):
-        """Starts the endpoint server, launching the connection handler in the background.
+        """Starts the endpoint server, launching the connection handlers in the background.
 
         :raises RuntimeError: If endpoint server has already been started.
         """
@@ -943,11 +944,13 @@ class EndpointServer:
 
     def poll_connections(self) -> tuple[dict[tuple[str, int], StreamEndpoint], dict[tuple[str, int], StreamEndpoint]]:
         """Polls the state of all current available connection endpoints, filtering them for readability and
-        writability. Note that while this method is thread-safe in itself, it is not guaranteed that any returned
-        endpoint will be still connected (and available) at the point of using it, since the underlying cleanup thread
-        (if enabled) might have closed any potential dead endpoint.
+        writability.
 
-        :return: Tuple of dictionary of endpoints from which can be read from / written to.
+        Note that while this method is thread-safe in itself, it is not guaranteed that any returned endpoint will be
+        still connected (and available) at the point of using it, since the underlying cleanup thread (if enabled) might
+        have closed any potential dead endpoint if general timeout set (see __init__()).
+
+        :return: Tuple of dictionary of addresses and endpoints from which can be read from / written to.
         """
         with self._c_lock:
             self._logger.debug(f"Polling {len(self._connections)} connections for readability and writability...")
@@ -958,29 +961,33 @@ class EndpointServer:
                            f"{len(w_ready)} connections for writability found.")
         return r_ready, w_ready
 
-    def get_connections(self, addrs: list[tuple[str, int]]) -> dict[tuple[str, int], StreamEndpoint]:
-        """TODO CHECK, COMMENTS, LOGGING
+    def get_connections(self, addrs: list[tuple[str, int]]) -> dict[tuple[str, int], Optional[StreamEndpoint]]:
+        """Checks a list of given client addresses whether there is an available connection endpoint for each of them
+        and retrieves them.
 
-        Note that while this method is thread-safe in itself, it is not guaranteed that any returned
-        endpoint will be still connected (and available) at the point of using it, since the underlying cleanup thread
-        (if enabled) might have closed any potential dead endpoint.
-        :param addrs:
-        :return:
+        Note that while this method is thread-safe in itself, it is not guaranteed that any returned endpoint will be
+        still connected (and available) at the point of using it, since the underlying cleanup thread (if enabled) might
+        have closed any potential dead endpoint if general timeout set (see __init__()).
+
+        :param addrs: Client addresses to check and retrieve endpoints for.
+        :return: Dictionary of addresses and endpoints (None if not existing).
         """
+        self._logger.debug(f"Trying to retrieve {len(addrs)} connections...")
         with self._c_lock:
             return {addr: self._connections.get(addr) for addr in addrs}
 
     def get_new_connections(self, n: int = 1, timeout: int = 10) -> dict[tuple[str, int], StreamEndpoint]:
-        """TODO CHECK, COMMENTS, LOGGING
+        """Checks and retrieves the first n new connections in the underlying queue filled by the connection handler.
 
-        Note that while this method is thread-safe in itself, it is not guaranteed that any returned
-        endpoint will be still connected (and available) at the point of using it, since the underlying cleanup thread
-        (if enabled) might have closed any potential dead endpoint.
+        Note that while this method is thread-safe in itself, it is not guaranteed that any returned endpoint will be
+        still connected (and available) at the point of using it, since the underlying cleanup thread (if enabled) might
+        have closed any potential dead endpoint if general timeout set (see __init__()).
 
-        :param n: Numbers of new connections to retrieve.
-        :param timeout:
-        :return:
+        :param n: Maximum numbers of new connections to retrieve.
+        :param timeout: Maximum time when polling for new connections.
+        :return: Dictionary of new addresses and endpoints of new connections.
         """
+        self._logger.debug(f"Trying to retrieve {n} new connections...")
         new_connections = {}
         start = time()
         while self._started and len(new_connections) < n:
@@ -990,32 +997,38 @@ class EndpointServer:
                 new_connections[addr] = ep
             except queue.Empty:
                 break
+        self._logger.debug(f"{len(new_connections)} out of {n} new connections retrieved.")
         return new_connections
 
     def close_connections(self, addrs: list[tuple[str, int]], timeout: int = 10):
-        """TODO CHECK, COMMENTS, LOGGING
+        """Checks a list of given client addresses whether there is an available connection endpoint for each of them
+        and closes them, shutting them also down.
 
-        :param addrs:
-        :param timeout:
-        :return:
+        :param addrs: Client addresses to check and close endpoints for.
+        :param timeout: Collective timeout for shutting down connection endpoints.
         """
-        self._logger.debug()# TODO
+        self._logger.debug(f"Trying to close {len(addrs)} connections...")
+        n = 0
         start = time()
         for addr in addrs:
             with self._c_lock:
                 endpoint = self._connections.pop(addr, None)
             if endpoint is not None:
-                self._logger.debug(f"Shutting down connection endpoint {addr}...")# TODO
+                self._logger.debug(f"Shutting down connection endpoint {addr}...")
+                n += 1
                 threading.Thread(target=lambda: endpoint.stop(shutdown=True, timeout=timeout), daemon=True).start()
         sleep(max(0.0, timeout - time() - start))
-        self._logger.debug()# TODO
+        self._logger.debug(f"{n} out of {len(addrs)} requested connections closed.")
 
     def _create_connection_handler(self):
-        """TODO CHECK, COMMENTS, LOGGING
-
+        """Starts the loop to create new endpoints, connect them to their remote counterparts, and store them into the
+        underlying datastructures of the server.
         """
+        self._logger.info("AsyncHandler: Starting connection handler...")
         while self._started:
-            self._n_connections = self._n_connections + 1
+            self._n_connections += 1
+            logging_prefix = f"AsyncHandler: [{self._n_connections}] "
+            self._logger.debug(logging_prefix + "Preparing endpoint for connection...")
             new_connection = StreamEndpoint(name=f"{self._name}-{self._n_connections}",
                                             addr=self._addr, remote_addr=None, acceptor=True,
                                             send_b_size=self._send_b_size, recv_b_size=self._recv_b_size,
@@ -1024,30 +1037,37 @@ class EndpointServer:
                                             multithreading=self._multithreading, buffer_size=self._buffer_size)
             n_connection_rdy = new_connection.start()
             while self._started and not n_connection_rdy.wait(10):
-                self._logger.debug("")  # TODO
+                self._logger.debug(logging_prefix + "Waiting for endpoint to establish a connection...")
             if not self._started:
                 break
 
             remote_addr = new_connection.poll()[1][1]
             while self._started:
                 try:
+                    self._logger.debug(logging_prefix + "Storing connection endpoint in pending queue...")
                     self._p_connections.put((remote_addr, new_connection), timeout=10)
                     with self._c_lock:
                         old_connection = self._connections.pop(remote_addr, None)
                     if old_connection is not None:
+                        self._logger.debug(logging_prefix + "Shutting down existing connection endpoint...")
                         old_connection.stop(shutdown=True, timeout=10)
                     with self._c_lock:
                         self._connections[remote_addr] = new_connection
+                    self._logger.debug(logging_prefix + "New connection endpoint handled.")
                     break
                 except queue.Full:
-                    continue
+                    self._logger.debug(logging_prefix + "Timeout triggered: Queue full. Discarding oldest endpoint...")
+                    try:
+                        self._p_connections.get(block=False)
+                    except queue.Empty:
+                        continue
+        self._logger.info("AsyncHandler: Stopping...")
 
     def _cleanup_connections(self):
-        """TODO CHECK, COMMENTS, LOGGING
-
-        :return:
+        """Starts the loop to periodically check all connection endpoints of the server for dead connections and clean
+        up those that remain dead after a set timeout (see __init__()).
         """
-        self._logger.info("AsyncCleaner: Starting periodic cleanup...")
+        self._logger.info("AsyncCleaner: Starting periodic connection cleanup...")
         c_pending: dict[tuple[str, int], StreamEndpoint] = {}
         while self._started:
             with self._c_lock:

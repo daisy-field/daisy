@@ -7,13 +7,11 @@
 import logging
 import threading
 from abc import ABC, abstractmethod
-from time import sleep, time
-from typing import Callable, cast, Optional
+from time import time
 
 import numpy as np
-import tensorflow as tf
 
-from src.communication import StreamEndpoint, EndpointServer
+from src.communication import EndpointServer
 from src.federated_learning import FederatedModel
 
 
@@ -216,35 +214,12 @@ class FederatedOnlineAggregator(ABC):
         if self._started:
             self.stop()
 
+
 class FederatedModelAggregator(FederatedOnlineAggregator):
     """TODO
 
     """
     pass
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 #

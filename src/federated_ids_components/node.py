@@ -112,11 +112,11 @@ class FederatedOnlineNode(ABC):
 
         self._eval_serv = None
         if eval_server is not None:
-            self._eval_serv = StreamEndpoint(name="EvalServer", addr=("127.0.0.1", 20000), remote_addr=eval_server,
+            self._eval_serv = StreamEndpoint(name="EvalServer", remote_addr=eval_server,
                                              acceptor=False, multithreading=True)
         self._aggr_serv = None
         if aggr_server is not None:
-            self._aggr_serv = StreamEndpoint(name="AggrServer", addr=("127.0.0.1", 20001), remote_addr=aggr_server,
+            self._aggr_serv = StreamEndpoint(name="AggrServer", remote_addr=aggr_server,
                                              acceptor=False, multithreading=True)
 
         self._sync_mode = sync_mode
@@ -291,23 +291,152 @@ class FederatedOnlineNode(ABC):
 
 
 class FederatedOnlineClient(FederatedOnlineNode):
-    """TODO
-    MWE
+    """Centralized federated learning is the simplest federated approach, since any client in the topology, while
+    learning by itself, always reports to the same centralized server that aggregate the models in their stead. This
+    implementation follows the FedAvg approach, i.e. the client reports its model's parameters to the server in fixed
+    intervals, either time-based or sample-based (like the extended base class), before receiving the new global model
+    that replaces the local one. The model aggregation server decides how the different models get aggregated, whether
+    it happens in synchronized fashion or for each reporting client individually (see aggregator.py)
 
+    TODO
+    Note that this means that in this case clients always initiate the local model retrieval and thus update.
+    Server-based requesting of clients to send their models' parameters (often done during sampled FedAvg approaches) is
+    not supported.
     """
     _m_aggr_server: StreamEndpoint
+    _sampled_update: bool
 
     def __init__(self, data_source: DataSource, batch_size: int, model: FederatedModel, m_aggr_server: tuple[str, int],
                  name: str = "",
                  label_split: int = 2 ** 32, supervised: bool = False, metrics: list[tf.metrics] = None,
                  eval_server: tuple[str, int] = None, aggr_server: tuple[str, int] = None,
-                 sync_mode: bool = True, update_interval_s: int = None, update_interval_t: int = None):
-        """Creates a new federated online node. TODO
+                 sync_mode: bool = True,
+                 sampled_update: bool = False, update_interval_s: int = None, update_interval_t: int = None):
+        """Creates a new federated online client.
 
         :param data_source: Data source of data stream to draw data points (in order) from.
         :param batch_size: Minibatch size for each prediction-fitting step.
         :param model: Actual model to be fitted and run predictions alternatingly in online manner.
-        :param m_aggr_server: TODO
+        :param m_aggr_server: Address of centralized model aggregation server (see aggregator.py).
+        :param name: Name of federated online node for logging purposes.
+        :param label_split: Split index within data point vector between input and true label(s). Default is no labels.
+        :param supervised: Learning mode for model (supervised/unsupervised). Default is unsupervised.
+        :param metrics: Evaluation metrics to update at each step/minibatch. Default has no evaluation at all.
+        :param eval_server: Address of centralized evaluation server (see evaluator.py).
+        :param aggr_server: Address of centralized aggregation server (see aggregator.py).
+        :param sync_mode: Federated updating mode for node (sync/async). Default is synchronized.
+        :param sampled_update: If async, allows the aggregation server to trigger a sync update (instead of intervals).
+        :param update_interval_s: Federated updating interval, defined by samples; every X samples, do a sync update.
+        :param update_interval_t: Federated updating interval, defined by time; every X seconds, do a sync update.
+        """
+        super().__init__(data_source=data_source, batch_size=batch_size, model=model, name=name,
+                         label_split=label_split, supervised=supervised, metrics=metrics,
+                         eval_server=eval_server, aggr_server=aggr_server,
+                         sync_mode=sync_mode, update_interval_s=update_interval_s, update_interval_t=update_interval_t)
+
+        self._m_aggr_server = StreamEndpoint(name="MAggrServer", remote_addr=m_aggr_server,
+                                             acceptor=False, multithreading=True)
+        self._sampled_update = sampled_update
+
+    def setup(self):
+        _try_ops(
+            lambda: self._m_aggr_server.start,
+            logger=self._logger
+        )
+
+    def cleanup(self):
+        _try_ops(
+            lambda: self._m_aggr_server.stop(shutdown=True),
+            logger=self._logger
+        )
+
+    def sync_fed_update(self):
+        """Sends the client's local model's parameters to the model aggregation server, before receiving the global
+        model, and updating the local one with it. Note this indeed blocks the local learner thread from processing
+        further even when async is enabled, since the model cannot be used during update periods.
+        """
+        with self._m_lock:
+            current_params = self._model.get_parameters()
+            self._logger.debug(f"Sending local model parameters to model aggregation server...")
+            self._m_aggr_server.send(current_params)
+            self._logger.debug(f"Receiving global model parameters from model aggregation server...")
+            new_params = cast(np.array, self._m_aggr_server.receive())
+            self._logger.debug(f"Updating local model with global parameters...")
+            self._model.set_parameters(new_params)
+
+    def create_async_fed_learner(self):
+        """TODO
+        Continuous, asynchronous federated update loop, that runs concurrently to the thread of
+        create_local_learner(), to update the underlying model of the federated online node.
+
+        Note that any update of federated models while fitting or prediction is done will result in race conditions and
+        unsafe states! It is therefore crucial to use the _m_lock instance variable to synchronize access to the model.
+        Using this lock object, one can also manage when and how the other thread is able to use the model during any
+        update step (if updating is done in semi-synchronous manner)
+
+        For coordination/planning when to perform an update, any implementation can also use existing state variables
+        also used in the synchronous create_local_learner(), see: _update_interval_s, _update_interval_t,
+        _s_since_update, _t_last_update, for sample- or time-based updating periods. Access to these variables must also
+        be synchronized, using the _u_lock instance variable.
+
+
+        Note not exact, only an approximate (due to switching) only model update is actually stopping the other thread
+        from working with model, there can still be delays. minimum time when sync should happen!
+        """
+        self._logger.info(f"AsyncUpdater: Starting...")
+        while self._started:
+            try:
+                if self._update_interval_t is not None:
+                    self._logger.debug(f"AsyncUpdater: Initiating synchronous federated update step...")
+                    try:
+                        self.sync_fed_update()
+                    except RuntimeError:
+                        # stop() was called
+                        break
+                    sleep(self._update_interval_t)
+                elif self._update_interval_s is not None:
+                    with self._u_lock:
+                        if self._s_since_update > self._update_interval_s:
+                            self._logger.debug(f"AsyncUpdater: Initiating synchronous federated update step...")
+                            self.sync_fed_update()
+                            self._s_since_update = 0
+                    sleep(1)
+                elif self._sampled_update: # TODO
+                    m_aggr_msg = self._m_aggr_server.receive()
+                    if isinstance(m_aggr_msg, list):
+                        with self._m_lock: # TODO
+                            new_params = cast(np.array, m_aggr_msg)
+                            self._logger.debug(f"Updating local model with global parameters...")
+                            self._model.set_parameters(new_params)
+                    else: # TODO
+                        self._logger.debug(f"AsyncUpdater: Initiating synchronous federated update step...")
+                        self.sync_fed_update()
+                else:
+                    break
+            except RuntimeError:
+                # stop() was called
+                break
+        self._logger.info(f"AsyncUpdater: Stopping...")
+
+
+class FederatedOnlinePeer(FederatedOnlineNode):
+    """TODO by @Lotta
+    """
+    _peers: list[StreamEndpoint]  # TBD
+    _topology: object  # TBD
+    _m_aggr: ModelAggregator
+
+    def __init__(self, data_source: DataSource, batch_size: int, model: FederatedModel, m_aggr: ModelAggregator,
+                 name: str = "",
+                 label_split: int = 2 ** 32, supervised: bool = False, metrics: list[tf.metrics] = None,
+                 eval_server: tuple[str, int] = None, aggr_server: tuple[str, int] = None,
+                 sync_mode: bool = True, update_interval_s: int = None, update_interval_t: int = None):
+        """Creates a new federated online peer.
+
+        :param data_source: Data source of data stream to draw data points (in order) from.
+        :param batch_size: Minibatch size for each prediction-fitting step.
+        :param model: Actual model to be fitted and run predictions alternatingly in online manner.
+        :param m_aggr: Model aggregator for local model aggregation.
         :param name: Name of federated online node for logging purposes.
         :param label_split: Split index within data point vector between input and true label(s). Default is no labels.
         :param supervised: Learning mode for model (supervised/unsupervised). Default is unsupervised.
@@ -323,96 +452,45 @@ class FederatedOnlineClient(FederatedOnlineNode):
                          eval_server=eval_server, aggr_server=aggr_server,
                          sync_mode=sync_mode, update_interval_s=update_interval_s, update_interval_t=update_interval_t)
 
-        self._m_aggr_server = StreamEndpoint(name="MAggrServer", addr=("127.0.0.1", 20002), remote_addr=m_aggr_server,
-                                             acceptor=False, multithreading=True)
+        # TODO more internal param init
+        self._m_aggr = m_aggr
 
     def setup(self):
         """TODO
         """
-        _try_ops(
-            lambda: self._m_aggr_server.start,
-            logger=self._logger
-        )
+        raise NotImplementedError
 
     def cleanup(self):
         """TODO
         """
-        _try_ops(
-            lambda: self._m_aggr_server.stop(shutdown=True),
-            logger=self._logger
-        )
+        raise NotImplementedError
 
     def sync_fed_update(self):
         """TODO
+
+        Singular, synchronous federated update step for the underlying model of the federated online node.
+        Encapsulates all that is necessary, from communication to other nodes, to transferring of one's own model (if
+        necessary) to the model update itself.
         """
-        with self._m_lock:
-            current_params = self._model.get_parameters()
-            self._m_aggr_server.send(current_params)
-            new_params = cast(np.array, self._m_aggr_server.receive())
-            self._model.set_parameters(new_params)
+        raise NotImplementedError
 
     def create_async_fed_learner(self):
         """TODO
 
+        Continuous, asynchronous federated update loop, that runs concurrently to the thread of
+        create_local_learner(), to update the underlying model of the federated online node.
 
-        Note not exact, only an approximate (due to switching) only model update is actually stopping the other thread
-        from working with model, there can still be delays. minimum time when sync should happen!
+        Note that any update of federated models while fitting or prediction is done will result in race conditions and
+        unsafe states! It is therefore crucial to use the _m_lock instance variable to synchronize access to the model.
+        Using this lock object, one can also manage when and how the other thread is able to use the model during any
+        update step (if updating is done in semi-synchronous manner)
+
+        For coordination/planning when to perform an update, any implementation can also use existing state variables
+        also used in the synchronous create_local_learner(), see: _update_interval_s, _update_interval_t,
+        _s_since_update, _t_last_update, for sample- or time-based updating periods. Access to these variables must also
+        be synchronized, using the _u_lock instance variable.
         """
-        while self._started:
-            try:
-                if self._update_interval_t is not None:
-                    self._logger.debug(f"AsyncLearner: Initiating synchronous federated update step...")
-                    try:
-                        self.sync_fed_update()
-                    except RuntimeError:
-                        # stop() was called
-                        break
-                    sleep(self._update_interval_t)
-                elif self._update_interval_s is not None:
-                    with self._u_lock:
-                        if self._s_since_update > self._update_interval_s:
-                            self._logger.debug(f"AsyncLearner: Initiating synchronous federated update step...")
-                            self.sync_fed_update()
-                            self._s_since_update = 0
-                    sleep(1)
-            except RuntimeError:
-                # stop() was called
-                break
-
-
-class FederatedOnlinePeer(FederatedOnlineNode):
-    """TODO
-
-    """
-    _peers: list[StreamEndpoint]  # TODO TBD by @Lotta
-    _topology: object  # TODO TBD by @Lotta
-    _aggr: ModelAggregator
-
-    def __init__(self, ):
-        """TODO
-        """
-        super().__init__()
-        pass
-
-    def setup(self):
-        """TODO
-        """
-        pass
-
-    def cleanup(self):
-        """TODO
-        """
-        pass
-
-    def sync_fed_update(self):
-        """TODO
-        """
-        pass
-
-    def create_async_fed_learner(self):
-        """TODO
-        """
-        pass
+        raise NotImplementedError
 
 
 def _try_ops(*operations: Callable, logger: logging.Logger):
