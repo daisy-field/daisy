@@ -203,54 +203,39 @@ class FederatedOnlineNode(ABC):
         steps if sample/time intervals are satisfied.
         """
         self._logger.info(f"AsyncLearner: Starting...")
-        for sample in self._data_source:
-            self._logger.debug(f"AsyncLearner: Appending sample to current minibatch...")
-            self._minibatch_inputs.append(sample[:self._label_split])
-            self._minibatch_labels.append(sample[self._label_split:])
+        try:
+            for sample in self._data_source:
+                self._logger.debug(f"AsyncLearner: Appending sample to current minibatch...")
+                self._minibatch_inputs.append(sample[:self._label_split])
+                self._minibatch_labels.append(sample[self._label_split:])
 
-            if len(self._minibatch_inputs) > self._batch_size:
-                # Perform local federated learning step
-                self._logger.debug(f"AsyncLearner: Arranging full minibatch for processing...")
-                x_data, y_true = np.array(self._minibatch_inputs), np.array(self._minibatch_labels)
-                with self._m_lock:
-                    try:
-                        self._process_batch(x_data, y_true)
-                    except RuntimeError:
-                        # stop() was called
-                        break
-                self._logger.debug(f"AsyncLearner: Cleaning minibatch window...")
-                self._minibatch_inputs, self._minibatch_labels = [], []
+                if len(self._minibatch_inputs) > self._batch_size:
+                    self._logger.debug(f"AsyncLearner: Processing full minibatch...")
+                    with self._m_lock:
+                        self._process_batch()
+                    with self._u_lock:
+                        self._s_since_update += self._batch_size
 
-                # Perform synchronized federated updating step
-                with self._u_lock:
-                    self._s_since_update += self._batch_size
                 if self._sync_mode:
-                    if (self._update_interval_s is not None and self._s_since_update > self._update_interval_s
-                            or self._update_interval_t is not None
-                            and time() - self._t_last_update > self._update_interval_t):
-                        self._logger.debug(f"AsyncLearner: Initiating synchronous federated update step...")
-                        try:
-                            self.sync_fed_update()
-                        except RuntimeError:
-                            # stop() was called
-                            break
-                        self._s_since_update = 0
-                        self._t_last_update = time()
+                    self.sync_fed_update_check()
+        except RuntimeError:
+            # stop() was called
+            pass
         self._logger.info(f"AsyncLearner: Stopping...")
 
-    def _process_batch(self, x_data, y_true):
-        """Processes a singular batch for both running a prediction and fitting the federated model around it. Also
-        sends results to both the aggregation and the evaluation server, if available and provided in the beginning.
-
-        :param x_data: Input data.
-        :param y_true: Expected output, for supervised mode and/or evaluation purposes.
+    def _process_batch(self):
+        """Processes the current batch for both running a prediction and fitting the federated model around it. Also
+        sends results to both the aggregation and the evaluation server, if available and provided in the beginning,
+        before flushing the minibatch window.
         """
+        self._logger.debug(f"AsyncLearner: Arranging full minibatch for processing...")
+        x_data, y_true = np.array(self._minibatch_inputs), np.array(self._minibatch_labels)
+
         self._logger.debug(f"AsyncLearner: Processing minibatch...")
         y_pred = self._model.predict(x_data)
         self._logger.debug(f"AsyncLearner: Prediction results for minibatch: {y_pred}")
         if self._aggr_serv is not None:
             self._aggr_serv.send((x_data, y_pred))
-
         if len(self._metrics) > 0:
             eval_res = [metric(y_true, y_pred) for metric in self._metrics]
             self._logger.debug(f"AsyncLearner: Evaluation results for minibatch: {eval_res}")
@@ -258,13 +243,34 @@ class FederatedOnlineNode(ABC):
                 self._eval_serv.send(eval_res)
 
         self._model.fit(x_data, y_true)
-        self._logger.debug(f"AsyncLearner: Minibatch processed...")
+        self._logger.debug(f"AsyncLearner: Minibatch processed, cleaning window ...")
+        self._minibatch_inputs, self._minibatch_labels = [], []
+
+    def sync_fed_update_check(self):
+        """Checks whether the conditions for a synchronous federated update step are met and performs it.
+        """
+        if (self._update_interval_s is not None and self._s_since_update > self._update_interval_s
+                or self._update_interval_t is not None
+                and time() - self._t_last_update > self._update_interval_t):
+            self._logger.debug(f"AsyncLearner: Initiating synchronous federated update step...")
+            self.fed_update()
+            self._s_since_update = 0
+            self._t_last_update = time()
 
     @abstractmethod
-    def sync_fed_update(self):
+    def fed_update(self):
         """Singular, synchronous federated update step for the underlying model of the federated online node.
         Encapsulates all that is necessary, from communication to other nodes, to transferring of one's own model (if
         necessary) to the model update itself.
+
+        Note that any update of federated models while fitting or prediction is done will result in race conditions and
+        unsafe states! It is therefore crucial to use the _m_lock instance variable to synchronize access to the model.
+        Using this lock object, one can also manage when and how the other thread is able to use the model during any
+        update step (if updating is done in semi-synchronous manner).
+
+        Note this could also be used for semi-async federated update steps, where the updating happens asynchronously,
+        however the update step within a single federated node is synchronous. If this is desired,
+        create_async_fed_learner() could use this method for the actual update procedure.
         """
         raise NotImplementedError
 
@@ -276,7 +282,7 @@ class FederatedOnlineNode(ABC):
         Note that any update of federated models while fitting or prediction is done will result in race conditions and
         unsafe states! It is therefore crucial to use the _m_lock instance variable to synchronize access to the model.
         Using this lock object, one can also manage when and how the other thread is able to use the model during any
-        update step (if updating is done in semi-synchronous manner)
+        update step (if updating is done in semi-synchronous manner).
 
         For coordination/planning when to perform an update, any implementation can also use existing state variables
         also used in the synchronous create_local_learner(), see: _update_interval_s, _update_interval_t,
@@ -350,7 +356,7 @@ class FederatedOnlineClient(FederatedOnlineNode):
             logger=self._logger
         )
 
-    def sync_fed_update(self):
+    def fed_update(self):
         """Sends the client's local model's parameters to the model aggregation server, before receiving the global
         model, and updating the local one with it. Note this indeed blocks the local learner thread from processing
         further even when async is enabled, since the model cannot be used during update periods.
@@ -362,20 +368,20 @@ class FederatedOnlineClient(FederatedOnlineNode):
         """
         with self._m_lock:
             current_params = self._model.get_parameters()
-            self._logger.debug(f"Sending local model parameters to model aggregation server...")
+            self._logger.debug("Sending local model parameters to model aggregation server...")
             self._m_aggr_server.send(current_params)
 
-            self._logger.debug(f"Receiving global model parameters from model aggregation server...")
+            self._logger.debug("Receiving global model parameters from model aggregation server...")
             try:
                 m_aggr_msg = self._m_aggr_server.receive(timeout=self._timeout)
                 if not isinstance(m_aggr_msg, list):
-                    self._logger.warning(f"Received message from model aggregation server does not contain parameters!")
+                    self._logger.warning("Received message from model aggregation server does not contain parameters!")
                     return
             except TimeoutError:
-                self._logger.warning(f"Timeout triggered. No message received from model aggregation server!")
+                self._logger.warning("Timeout triggered. No message received from model aggregation server!")
                 return
 
-            self._logger.debug(f"Updating local model with global parameters...")
+            self._logger.debug("Updating local model with global parameters...")
             new_params = cast(np.array, m_aggr_msg)
             self._model.set_parameters(new_params)
 
@@ -386,42 +392,51 @@ class FederatedOnlineClient(FederatedOnlineNode):
         """
         self._logger.info(f"AsyncUpdater: Starting...")
         while self._started:
-            self._logger.debug(f"AsyncUpdater: Initiating synchronous federated update step...")
+            self._logger.debug("AsyncUpdater: Performing federated update step checks...")
             try:
-                # Perform interval-based federated updating checks
                 if self._update_interval_t is not None:
-                    try:
-                        self.sync_fed_update()
-                    except RuntimeError:
-                        # stop() was called
-                        break
+                    self._logger.debug("AsyncUpdater: Time-based federated updating initiated...")
+                    self.fed_update()
                     sleep(self._update_interval_t)
                 elif self._update_interval_s is not None:
                     with self._u_lock:
                         if self._s_since_update > self._update_interval_s:
-                            self.sync_fed_update()
+                            self._logger.debug("AsyncUpdater: Sample-based federated updating initiated...")
+                            self.fed_update()
                             self._s_since_update = 0
                     sleep(1)
 
-                # Perform selection-based federated updating checks
                 elif self._sampled_update:
-                    self._logger.debug(f"Receiving message from model aggregation server...")
-                    m_aggr_msg = self._m_aggr_server.receive()
-                    if isinstance(m_aggr_msg, list):
-                        with self._m_lock:
-                            new_params = cast(np.array, m_aggr_msg)
-                            self._logger.debug(f"Updating local model with global parameters...")
-                            self._model.set_parameters(new_params)
-                    else:
-                        self.sync_fed_update()
+                    self._logger.debug("AsyncUpdater: Sampled federated updating initiated...")
+                    self.async_sampled_fed_update()
 
-                # Federated updating disabled
                 else:
+                    # Federated updating disabled
                     break
             except RuntimeError:
                 # stop() was called
                 break
         self._logger.info(f"AsyncUpdater: Stopping...")
+
+    def async_sampled_fed_update(self):
+        """Performs a sampled federated update step, waiting for the model aggregation server to call upon the federated
+        (client) node, before either updating the model with the parameters received directly or initiating the updating
+        step.
+        """
+        self._logger.debug("AsyncUpdater: Receiving message from model aggregation server...")
+        try:
+            m_aggr_msg = self._m_aggr_server.receive(timeout=self._timeout)
+        except TimeoutError:
+            self._logger.warning("AsyncUpdater: Timeout triggered. No message received from model aggregation server!")
+            return
+        if isinstance(m_aggr_msg, list):
+            with self._m_lock:
+                self._logger.debug("AsyncUpdater: Updating local model with received global parameters...")
+                new_params = cast(np.array, m_aggr_msg)
+                self._model.set_parameters(new_params)
+        else:
+            self._logger.debug("AsyncUpdater: Request for sampled federated update received...")
+            self.fed_update()
 
 
 class FederatedOnlinePeer(FederatedOnlineNode):
@@ -473,7 +488,7 @@ class FederatedOnlinePeer(FederatedOnlineNode):
         """
         raise NotImplementedError
 
-    def sync_fed_update(self):
+    def fed_update(self):
         """TODO by @Lotta
 
         Singular, synchronous federated update step for the underlying model of the federated online node.
