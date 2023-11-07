@@ -1,8 +1,10 @@
 """
-    Class for Federated Client TODO
+    A collection of various types of federated worker nodes, implementing the same interface for each federated node
+    type. Each of them is able to learn cooperatively on generic streaming data using a generic model, while also
+    running predictions on the samples of that data stream at every step.
 
     Author: Fabian Hofmann
-    Modified: 03.11.23
+    Modified: 07.11.23
 """
 
 import logging
@@ -16,8 +18,7 @@ import tensorflow as tf
 
 from src.communication import StreamEndpoint
 from src.data_sources import DataSource
-from src.federated_learning import FederatedModel
-from src.federated_learning import ModelAggregator
+from src.federated_learning import FederatedModel, ModelAggregator
 
 
 class FederatedOnlineNode(ABC):
@@ -57,7 +58,7 @@ class FederatedOnlineNode(ABC):
 
     _label_split: int
     _supervised: bool
-    _metrics: list[tf.metrics]
+    _metrics: list[tf.metrics.Metric]
 
     _eval_serv: Optional[StreamEndpoint]
     _aggr_serv: Optional[StreamEndpoint]
@@ -237,7 +238,7 @@ class FederatedOnlineNode(ABC):
         if self._aggr_serv is not None:
             self._aggr_serv.send((x_data, y_pred))
         if len(self._metrics) > 0:
-            eval_res = [metric(y_true, y_pred) for metric in self._metrics]
+            eval_res = {metric.name: metric(y_true, y_pred) for metric in self._metrics}
             self._logger.debug(f"AsyncLearner: Evaluation results for minibatch: {eval_res}")
             if self._eval_serv is not None:
                 self._eval_serv.send(eval_res)
