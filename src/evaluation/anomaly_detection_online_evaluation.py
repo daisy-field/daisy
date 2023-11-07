@@ -162,7 +162,7 @@ class ConfMatrSlidingWindowEvaluation(SlidingWindowEvaluation):
     def result(self) -> dict[str, float]:
         """Based on the accumulated confusion matrix, computes its derived scalar metrics and returns them.
 
-        :return: Dictionary of all derived scalar confusion matrix metrics.
+        :return: Dictionary of all derived scalar (tensor) confusion matrix metrics.
         """
         accuracy = (self.tp + self.tn) / len(self.true_labels)
         recall = self.tp / (self.tp + self.fn)
@@ -173,9 +173,11 @@ class ConfMatrSlidingWindowEvaluation(SlidingWindowEvaluation):
         fpr = self.fp / (self.fp + self.tn)
         f1 = 2 * self.tp / (2 * self.tp + self.fp + self.fn)
 
-        return {"accuracy": accuracy, "recall": recall, "true negative rate": tnr,
-                "precision": precision, "negative predictive value": npv,
-                "false negative rate": fnr, "false positive rate": fpr, "f1 measure": f1}
+        metrics = {"accuracy": accuracy, "recall": recall, "true negative rate": tnr,
+                   "precision": precision, "negative predictive value": npv,
+                   "false negative rate": fnr, "false positive rate": fpr, "f1 measure": f1}
+        metrics = {m_name: tf.constant(m_value) for m_name, m_value in metrics.items()}
+        return metrics
 
 
 class TFMetricSlidingWindowEvaluation(SlidingWindowEvaluation):
