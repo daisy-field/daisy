@@ -7,7 +7,7 @@
 # FIXME (everything)
 import logging
 
-#from communication import StreamEndpoint
+from src.communication import EndpointServer
 from src.federated_ids_components.dashboard import Dashboard
 from src.federated_ids_components.dashboard import testDashboard
 from typing import Tuple
@@ -32,15 +32,30 @@ class FederatedOnlineEvaluator():
         self._logger.info("Initializing federated evaluator node...")
 
         self._addr = addr
-        self._eval_server = StreamEndpoint(name="Evaluator", addr=self._addr)
+        self._eval_server = EndpointServer(name="Evaluator", addr=self._addr)
         self._eval_server.start()
         self.evaluation_objects = []
         while 1:
-            self.evaluation_objects.append(self._eval_server.receive())
+            r_ready,_ = self._eval_server.poll_connections()
+            for i in r_ready.items():
+                addr, ep = i
+                try:
+                   ep.receive()
+                except RuntimeError:
+                    continue
+                while True:
+                    try:
+                       ep.receive(timeout=0)
+                    except (TimeoutError, RuntimeError):
+                       break
+
+
+
+
 
 
 if __name__ == "__main__":
     #eval = FederatedOnlineEvaluator(("127.0.0.1", 54323))
 
-    dashboard = testDashboard()
+    dashboard = Dashboard()
     dashboard.start()
