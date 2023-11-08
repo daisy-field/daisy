@@ -138,7 +138,7 @@ class FederatedOnlineNode(ABC):
         """
         self._logger.info("Starting federated online node...")
         if self._started:
-            raise RuntimeError(f"Federated online node has already been started!")
+            raise RuntimeError("Federated online node has already been started!")
         self._started = True
         _try_ops(
             self._data_source.open,
@@ -174,7 +174,7 @@ class FederatedOnlineNode(ABC):
         """
         self._logger.info("Stopping federated online node...")
         if not self._started:
-            raise RuntimeError(f"Federated online node has not been started!")
+            raise RuntimeError("Federated online node has not been started!")
         self._started = False
         _try_ops(
             self._data_source.close,
@@ -203,15 +203,15 @@ class FederatedOnlineNode(ABC):
         predictions and fittings on them and the federated model. If set, also initiates synchronous federated update
         steps if sample/time intervals are satisfied.
         """
-        self._logger.info(f"AsyncLearner: Starting...")
+        self._logger.info("AsyncLearner: Starting...")
         try:
             for sample in self._data_source:
-                self._logger.debug(f"AsyncLearner: Appending sample to current minibatch...")
+                self._logger.debug("AsyncLearner: Appending sample to current minibatch...")
                 self._minibatch_inputs.append(sample[:self._label_split])
                 self._minibatch_labels.append(sample[self._label_split:])
 
                 if len(self._minibatch_inputs) > self._batch_size:
-                    self._logger.debug(f"AsyncLearner: Processing full minibatch...")
+                    self._logger.debug("AsyncLearner: Processing full minibatch...")
                     with self._m_lock:
                         self._process_batch()
                     with self._u_lock:
@@ -222,17 +222,17 @@ class FederatedOnlineNode(ABC):
         except RuntimeError:
             # stop() was called
             pass
-        self._logger.info(f"AsyncLearner: Stopping...")
+        self._logger.info("AsyncLearner: Stopping...")
 
     def _process_batch(self):
         """Processes the current batch for both running a prediction and fitting the federated model around it. Also
         sends results to both the aggregation and the evaluation server, if available and provided in the beginning,
         before flushing the minibatch window.
         """
-        self._logger.debug(f"AsyncLearner: Arranging full minibatch for processing...")
+        self._logger.debug("AsyncLearner: Arranging full minibatch for processing...")
         x_data, y_true = np.array(self._minibatch_inputs), np.array(self._minibatch_labels)
 
-        self._logger.debug(f"AsyncLearner: Processing minibatch...")
+        self._logger.debug("AsyncLearner: Processing minibatch...")
         y_pred = self._model.predict(x_data)
         self._logger.debug(f"AsyncLearner: Prediction results for minibatch: {y_pred}")
         if self._aggr_serv is not None:
@@ -244,7 +244,7 @@ class FederatedOnlineNode(ABC):
                 self._eval_serv.send(eval_res)
 
         self._model.fit(x_data, y_true)
-        self._logger.debug(f"AsyncLearner: Minibatch processed, cleaning window ...")
+        self._logger.debug("AsyncLearner: Minibatch processed, cleaning window ...")
         self._minibatch_inputs, self._minibatch_labels = [], []
 
     def sync_fed_update_check(self):
@@ -253,7 +253,7 @@ class FederatedOnlineNode(ABC):
         if (self._update_interval_s is not None and self._s_since_update > self._update_interval_s
                 or self._update_interval_t is not None
                 and time() - self._t_last_update > self._update_interval_t):
-            self._logger.debug(f"AsyncLearner: Initiating synchronous federated update step...")
+            self._logger.debug("AsyncLearner: Initiating synchronous federated update step...")
             self.fed_update()
             self._s_since_update = 0
             self._t_last_update = time()
@@ -391,7 +391,7 @@ class FederatedOnlineClient(FederatedOnlineNode):
         initiating the update. This is either done based on set sample/time intervals or when called upon by the
         aggregation server.
         """
-        self._logger.info(f"AsyncUpdater: Starting...")
+        self._logger.info("AsyncUpdater: Starting...")
         while self._started:
             self._logger.debug("AsyncUpdater: Performing federated update step checks...")
             try:
@@ -417,7 +417,7 @@ class FederatedOnlineClient(FederatedOnlineNode):
             except RuntimeError:
                 # stop() was called
                 break
-        self._logger.info(f"AsyncUpdater: Stopping...")
+        self._logger.info("AsyncUpdater: Stopping...")
 
     def async_sampled_fed_update(self):
         """Performs a sampled federated update step, waiting for the model aggregation server to call upon the federated
