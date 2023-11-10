@@ -7,7 +7,7 @@
 
     TODO Future Work: SSL https://docs.python.org/3/library/ssl.html
     TODO Future Work: Potential race conditions during rapid start/stop | open/close of endpoints/endpoint sockets
-    TODO Future Work: https://docs.python.org/3/library/socket.html#socket.create_server for simplicity's sake
+    TODO FIXME: Generic Initiator Endpoint Sockets are unable to reestablish connection to same remote endpoint
 """
 
 import ctypes
