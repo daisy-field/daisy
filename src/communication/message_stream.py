@@ -19,7 +19,7 @@ import socket
 import sys
 import threading
 from time import sleep, time
-from typing import Callable, Optional
+from typing import Callable, Iterable, Optional
 
 from lz4.frame import compress, decompress
 
@@ -1099,11 +1099,11 @@ class EndpointServer:
             self.stop()
 
 
-def ep_select(endpoints: list[StreamEndpoint]) -> tuple[list[StreamEndpoint], list[StreamEndpoint]]:
+def ep_select(endpoints: Iterable[StreamEndpoint]) -> tuple[list[StreamEndpoint], list[StreamEndpoint]]:
     """General select function to check a number of endpoints whether objects can be read from or written to them. For
     simplicity's sake, does not mirror the actual UNIX select function (supporting separate lists).
 
-    :param endpoints: List of endpoints to check for readiness.
+    :param endpoints: Iterable of endpoints to check for readiness.
     :return: Tuple of lists of endpoints that are read/write ready:
     """
     ep_states = [(endpoint, endpoint.poll()) for endpoint in endpoints]
