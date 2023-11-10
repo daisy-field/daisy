@@ -35,9 +35,15 @@ class Dashboard():
     _dark_template = "plotly_dark"
     _light_template = "ggplot2"
 
-    def __init__(self, evaluator):
-        print("Starting Dashboard")
-        self.evaluator = evaluator
+    def __init__(self, evaluator, window_size):
+        """ Initialize Dashboard
+
+        :param evaluator: Evaluator object receiving the metrics
+        :param window_size: Number of values to plot for each client, None if all
+        """
+
+        self._evaluator = evaluator
+        self._window_size = window_size
         self._app.layout = html.Div(
             [
                 html.Br(),
@@ -52,6 +58,7 @@ class Dashboard():
                 html.Br(),
                 dbc.Card(
                     dbc.CardBody([
+                        dcc.RadioItems([' Window: None', ' Window: 10', ' Window: 50'], ' Window: None'),
                         dbc.Row([
                             dbc.Col([
                                 dcc.Graph(id="chart_acc", style={'display': 'inline-block', 'width':'100%'}),
@@ -95,10 +102,11 @@ class Dashboard():
             :return:
             """
             fig = go.Figure()
-            for i in self.evaluator._logged_metrics['accuracy']:
-                fig.add_trace(go.Scatter(y=self.evaluator._logged_metrics['accuracy'][i],
-                                     mode='lines',
-                                     name=i))
+            for i in self._evaluator._logged_metrics['accuracy']:
+                fig.add_trace(go.Scatter(y=self._evaluator._logged_metrics['accuracy'][i] if self._window_size == None else
+                                         self._evaluator._logged_metrics['accuracy'][i][-self._window_size:],
+                                         mode='lines',
+                                         name=i))
             fig.update_layout(
                     title='Accuracy',
                     template= self._light_template if toggle else self._dark_template,
@@ -121,8 +129,9 @@ class Dashboard():
             :return:
             """
             fig = go.Figure()
-            for i in self.evaluator._logged_metrics['recall']:
-                fig.add_trace(go.Scatter(y=self.evaluator._logged_metrics['recall'][i],
+            for i in self._evaluator._logged_metrics['recall']:
+                fig.add_trace(go.Scatter(y=self._evaluator._logged_metrics['recall'][i] if self._window_size == None else
+                                         self._evaluator._logged_metrics['recall'][i][-self._window_size:],
                                          mode='lines',
                                          name=i))
             fig.update_layout(
@@ -147,8 +156,9 @@ class Dashboard():
             :return:
             """
             fig = go.Figure()
-            for i in self.evaluator._logged_metrics['precision']:
-                fig.add_trace(go.Scatter(y=self.evaluator._logged_metrics['precision'][i],
+            for i in self._evaluator._logged_metrics['precision']:
+                fig.add_trace(go.Scatter(y=self._evaluator._logged_metrics['precision'][i] if self._window_size == None else
+                                         self._evaluator._logged_metrics['precision'][i][-self._window_size:],
                                          mode='lines',
                                          name=i))
             fig.update_layout(
@@ -172,8 +182,9 @@ class Dashboard():
             :return:
             """
             fig = go.Figure()
-            for i in self.evaluator._logged_metrics['f1']:
-                fig.add_trace(go.Scatter(y=self.evaluator._logged_metrics['f1'][i],
+            for i in self._evaluator._logged_metrics['f1']:
+                fig.add_trace(go.Scatter(y=self._evaluator._logged_metrics['f1'][i] if self._window_size == None else
+                                         self._evaluator._logged_metrics['f1'][i][-self._window_size:],
                                          mode='lines',
                                          name=i))
             fig.update_layout(
