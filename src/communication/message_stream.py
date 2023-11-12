@@ -767,7 +767,7 @@ class StreamEndpoint:
         states, addrs = self._endpoint_socket.poll()
         if self._multithreading:
             states[1] = states[1] or not self._recv_buffer.empty()
-            states[2] = states[2] or not self._send_buffer.full()
+            states[2] = states[2] or (states[0] and not self._send_buffer.full())
         return states, addrs
 
     def _create_socket_starter(self):
