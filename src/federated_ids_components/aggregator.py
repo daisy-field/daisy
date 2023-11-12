@@ -268,8 +268,8 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
                         client_model = client_msg
                     else:
                         pass  # FIXME logging
-            except TimeoutError:
-                pass
+            except (RuntimeError, TimeoutError):
+                pass # FIXME logging
             if client_model is not None:
                 client_models.append(client_model)
         return client_models
