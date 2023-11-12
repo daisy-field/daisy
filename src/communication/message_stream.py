@@ -3,7 +3,7 @@
     and LZ4 compression.
 
     Author: Fabian Hofmann
-    Modified: 18.10.23
+    Modified: 12.11.23
 
     TODO Future Work: SSL https://docs.python.org/3/library/ssl.html
     TODO Future Work: Potential race conditions during rapid start/stop | open/close of endpoints/endpoint sockets
@@ -688,13 +688,14 @@ class StreamEndpoint:
             while not self._send_buffer.empty() and time() - start < timeout:
                 sleep(1)
         self._started = False
-        self._ready.clear()
+        self._ready.set()
         self._endpoint_socket.close(shutdown)
 
         if self._multithreading:
             self._logger.info("Multithreading detected, waiting for endpoint sender/receiver threads to stop...")
             self._sender.join()
             self._receiver.join()
+        self._ready.clear()
         self._logger.info("Endpoint stopped.")
 
     def send(self, obj: object):
