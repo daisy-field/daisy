@@ -9,15 +9,27 @@ import threading
 from abc import ABC, abstractmethod
 from random import sample
 from time import sleep
-from typing import cast, Sequence
+from typing import cast, Iterable, Sequence
 
-from src.communication import EndpointServer, ep_select
+from src.communication import EndpointServer, StreamEndpoint, ep_select
 from src.federated_learning import ModelAggregator
 
 
 class FederatedOnlineAggregator(ABC):
-    """TODO
+    """Abstract class for generic federated online aggregators, that receive and aggregates data from federated nodes at
+    runtime in a client-server-based exchange, continuously. To accomplish this, the abstract class in its core is
+    merely a wrapper around the EndpointServer class to process new incoming clients, leaving the actual functionality
+    to its implementations, which run in multithreaded manner.
 
+    To realize this, the following methods must be implemented:
+
+        * setup(): Setup function for any state variables called during the starting of the starting of the node.
+
+        * cleanup(): Cleanup function for any stat variables called during the stopping of the node.
+
+        * sync_fed_update(): Singular, synchronous federated update step.
+
+        * create_async_fed_learner(): Continuous, asynchronous federated update loop.
     """
     _logger: logging.Logger
 
@@ -28,11 +40,11 @@ class FederatedOnlineAggregator(ABC):
     _started: bool
 
     def __init__(self, addr: tuple[str, int], name: str = "", timeout: int = 10):
-        """TODO CHECKING, LOGGING, COMMENTS
+        """Creates a new federated online aggregator.
 
-        :param addr: TODO
-        :param name: Name of federated online node for logging purposes.
-        :param timeout: Timeout for waiting to receive global model updates from model aggregation server.
+        :param addr: Address of aggregation server for federated nodes to report to.
+        :param name: Name of federated online aggregator for logging purposes.
+        :param timeout: Timeout for waiting to receive message from federated nodes.
         """
         self._logger = logging.getLogger(name)
         self._logger.info("Initializing federated online aggregator...")
@@ -44,12 +56,10 @@ class FederatedOnlineAggregator(ABC):
         self._logger.info("Federated online aggregator initialized.")
 
     def start(self):
-        """TODO CHECKING, LOGGING, COMMENTS
+        """Starts the federated online aggregator, along with its underlying server, and any other object by an
+        extension of this class (see setup()). Non-blocking.
 
-        Starts the federated online node, along with any underlying endpoints, data sources, and any other object by
-        an extension of this class (see setup()). Non-blocking.
-
-        :raises RuntimeError: If federated online node has already been started.
+        :raises RuntimeError: If federated online aggregator has already been started.
         """
         self._logger.info("Starting federated online aggregator...")
         if self._started:
@@ -68,22 +78,18 @@ class FederatedOnlineAggregator(ABC):
 
     @abstractmethod
     def setup(self):
-        """TODO CHECKING, LOGGING, COMMENTS
-
-        Setup function that must be implemented, called during start(); sets any new internal state variables and
-        objects up used during the federated updating process, both for synchronous and asynchronous learning.
+        """Setup function that must be implemented, called during start(); sets any new internal state variables and
+        objects up used during the aggregation process.
 
         Note that any such instance attribute should be initialized within an extension of the __init_() method.
         """
         raise NotImplementedError
 
     def stop(self):
-        """TODO CHECKING, LOGGING, COMMENTS
+        """Stops the federated online aggregator, along with its underlying server, and any other object by an extension
+        of this class (see cleanup()).
 
-        Stops the federated online node, along with any underlying endpoints, data sources, and any other object by
-        an extension of this class (see cleanup()).
-
-        :raises RuntimeError: If federated online node has not been started.
+        :raises RuntimeError: If federated online aggregator has not been started.
         """
         self._logger.info("Stopping federated online aggregator...")
         if not self._started:
@@ -101,9 +107,7 @@ class FederatedOnlineAggregator(ABC):
 
     @abstractmethod
     def cleanup(self):
-        """TODO CHECKING, LOGGING, COMMENTS
-
-        Cleanup function that must be implemented, called during stop(); resets any new internal state variables and
+        """Cleanup function that must be implemented, called during stop(); resets any new internal state variables and
         objects up used during the federated updating process, both for synchronous and asynchronous learning.
         """
         raise NotImplementedError
@@ -251,7 +255,7 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
         for client in clients:
             client.send(global_model)
 
-    def get_client_models(self, clients):
+    def get_client_models(self, clients: Iterable[StreamEndpoint]):
         """TODO CHECKING, LOGGING, COMMENTS
         """
         client_models = []
