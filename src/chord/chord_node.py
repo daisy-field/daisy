@@ -239,18 +239,18 @@ class Chordnode:
     def _get_closest_known_pred(self, node_id: int) -> StreamEndpoint | None:
         closest_pred = None
         for finger in range(self._max_fingers):
-            f_curr = self._fingertable.get(finger, None)  # id, addr, ep
-            f_next = self._fingertable.get(finger + 1, None)
+            f_curr = self._fingertable.get(finger, (None, None, None))  # id, addr, ep
+            f_next = self._fingertable.get(finger + 1, (None, None, None))
 
             i = finger + 1
             while (f_curr is None or f_next is None) and i < self._max_fingers:
                 if f_curr is None:
-                    f_curr = self._fingertable.get(i, None)
+                    f_curr = self._fingertable.get(i, (None, None, None))
                 if f_next is None:
-                    f_next = self._fingertable.get(i + 1, None)
+                    f_next = self._fingertable.get(i + 1, (None, None, None))
                 i += 1
                 if f_curr[0] == f_next[0] and f_curr is not None:
-                    f_next = self._fingertable.get(i, None)
+                    f_next = self._fingertable.get(i, (None, None, None))
 
             if (f_curr[0] < f_next[0]) & (node_id in range(f_curr[0], f_next[0] + 1)):
                 return f_curr[2]  # FIXME
