@@ -40,7 +40,7 @@ class FederatedOnlineNode(ABC):
 
         * setup(): Setup function for any state variables called during the starting of the starting of the node.
 
-        * cleanup(): Cleanup function for any stat variables called during the starting of the starting of the node.
+        * cleanup(): Cleanup function for any stat variables called during the stopping of the node.
 
         * sync_fed_update(): Singular, synchronous federated update step.
 
@@ -303,8 +303,8 @@ class FederatedOnlineClient(FederatedOnlineNode):
 
     This implementation follows the FedAvg approach, i.e. the client reports its model's parameters to the server either
     in fixed intervals, either time-based or sample-based (like the extended base class), or when called upon (selected
-    FedAvg), before receiving the new global model that replaces the local one. However, it is not fixed, how the model
-    aggregation server decides how the different models get aggregated, whether it happens in synchronized fashion or
+    FedAvg), before receiving the new global model that replaces the local one. However, it is not fixed how the model
+    aggregation server decides how the different models get aggregated; whether it happens in synchronized fashion or
     for each reporting client individually (see aggregator.py)
     """
     _m_aggr_server: StreamEndpoint

@@ -7,15 +7,29 @@
 import logging
 import threading
 from abc import ABC, abstractmethod
-from time import sleep, time
+from random import sample
+from time import sleep
+from typing import cast, Iterable, Sequence
 
-from src.communication import EndpointServer
-from src.federated_learning import FederatedModel, ModelAggregator
+from src.communication import EndpointServer, StreamEndpoint, ep_select
+from src.federated_learning import ModelAggregator
 
 
 class FederatedOnlineAggregator(ABC):
-    """TODO
+    """Abstract class for generic federated online aggregators, that receive and aggregates data from federated nodes at
+    runtime in a client-server-based exchange, continuously. To accomplish this, the abstract class in its core is
+    merely a wrapper around the EndpointServer class to process new incoming clients, leaving the actual functionality
+    to its implementations, which run in multithreaded manner.
 
+    To realize this, the following methods must be implemented:
+
+        * setup(): Setup function for any state variables called during the starting of the starting of the node.
+
+        * cleanup(): Cleanup function for any stat variables called during the stopping of the node.
+
+        * sync_fed_update(): Singular, synchronous federated update step.
+
+        * create_async_fed_learner(): Continuous, asynchronous federated update loop.
     """
     _logger: logging.Logger
 
@@ -26,11 +40,11 @@ class FederatedOnlineAggregator(ABC):
     _started: bool
 
     def __init__(self, addr: tuple[str, int], name: str = "", timeout: int = 10):
-        """TODO CHECKING, LOGGING, COMMENTS
+        """Creates a new federated online aggregator.
 
-        :param addr: TODO
-        :param name: Name of federated online node for logging purposes.
-        :param timeout: Timeout for waiting to receive global model updates from model aggregation server.
+        :param addr: Address of aggregation server for federated nodes to report to.
+        :param name: Name of federated online aggregator for logging purposes.
+        :param timeout: Timeout for waiting to receive message from federated nodes.
         """
         self._logger = logging.getLogger(name)
         self._logger.info("Initializing federated online aggregator...")
@@ -42,12 +56,10 @@ class FederatedOnlineAggregator(ABC):
         self._logger.info("Federated online aggregator initialized.")
 
     def start(self):
-        """TODO CHECKING, LOGGING, COMMENTS
+        """Starts the federated online aggregator, along with its underlying server, and any other object by an
+        extension of this class (see setup()). Non-blocking.
 
-        Starts the federated online node, along with any underlying endpoints, data sources, and any other object by
-        an extension of this class (see setup()). Non-blocking.
-
-        :raises RuntimeError: If federated online node has already been started.
+        :raises RuntimeError: If federated online aggregator has already been started.
         """
         self._logger.info("Starting federated online aggregator...")
         if self._started:
@@ -66,22 +78,18 @@ class FederatedOnlineAggregator(ABC):
 
     @abstractmethod
     def setup(self):
-        """TODO CHECKING, LOGGING, COMMENTS
-
-        Setup function that must be implemented, called during start(); sets any new internal state variables and
-        objects up used during the federated updating process, both for synchronous and asynchronous learning.
+        """Setup function that must be implemented, called during start(); sets any new internal state variables and
+        objects up used during the aggregation process.
 
         Note that any such instance attribute should be initialized within an extension of the __init_() method.
         """
         raise NotImplementedError
 
     def stop(self):
-        """TODO CHECKING, LOGGING, COMMENTS
+        """Stops the federated online aggregator, along with its underlying server, and any other object by an extension
+        of this class (see cleanup()).
 
-        Stops the federated online node, along with any underlying endpoints, data sources, and any other object by
-        an extension of this class (see cleanup()).
-
-        :raises RuntimeError: If federated online node has not been started.
+        :raises RuntimeError: If federated online aggregator has not been started.
         """
         self._logger.info("Stopping federated online aggregator...")
         if not self._started:
@@ -99,9 +107,7 @@ class FederatedOnlineAggregator(ABC):
 
     @abstractmethod
     def cleanup(self):
-        """TODO CHECKING, LOGGING, COMMENTS
-
-        Cleanup function that must be implemented, called during stop(); resets any new internal state variables and
+        """Cleanup function that must be implemented, called during stop(); resets any new internal state variables and
         objects up used during the federated updating process, both for synchronous and asynchronous learning.
         """
         raise NotImplementedError
@@ -133,39 +139,37 @@ class FederatedOnlineAggregator(ABC):
 class FederatedModelAggregator(FederatedOnlineAggregator):
     """TODO
     """
-    _model: FederatedModel
     _m_aggr: ModelAggregator
 
     _update_interval_t: int
-    _t_last_update: float
+    _num_clients: int
+    _min_clients: float
 
-    _sampled_update: bool
-    _min_clients: int
+    _online_update: bool
 
-    def __init__(self, model: FederatedModel, m_aggr: ModelAggregator, addr: tuple[str, int], name: str = "",
-                 timeout: int = 10,
-                 update_interval_t: int = None, sampled_update: bool = False, min_clients: int = 1):
+    def __init__(self, m_aggr: ModelAggregator, addr: tuple[str, int], name: str = "",
+                 timeout: int = 10, online_update: bool = True,
+                 update_interval_t: int = None, num_clients: int = None, min_clients: float = 1.0):
         """TODO CHECKING, LOGGING, COMMENTS
 
-        :param model: Actual model to be fitted and run predictions alternatingly in online manner.
         :param m_aggr: TODO
         :param addr: TODO
         :param name: Name of federated online node for logging purposes.
         :param timeout: Timeout for waiting to receive global model updates from model aggregation server.
+        :param online_update: If async, allows the aggregation server to trigger a sync update (instead of intervals).
         :param update_interval_t: Federated updating interval, defined by time; every X seconds, do a sync update.
-        :param sampled_update: If async, allows the aggregation server to trigger a sync update (instead of intervals).
+        :param num_clients:
         :param min_clients:
         """
         super().__init__(addr=addr, name=name, timeout=timeout)
 
-        self._model = model
         self._m_aggr = m_aggr
 
         self._update_interval_t = update_interval_t
-        self._t_last_update = time()
-
-        self._sampled_update = sampled_update
+        self._num_clients = num_clients
         self._min_clients = min_clients
+
+        self._online_update = online_update
 
     def setup(self):
         pass
@@ -191,23 +195,84 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
         """
         self._logger.info("Starting...")
         while self._started:
-           self._logger.debug("AsyncUpdater: Performing federated update step checks...")
-           try:
-               if self._update_interval_t is not None: # Sync Update
-                   self._logger.debug("AsyncUpdater: Time-based federated updating initiated...")
-                   self._sync_aggr()
-                   sleep(self._update_interval_t)
-               else:
-                   # Async Update
-                   break
-           except RuntimeError:
-               # stop() was called
-               break
+            self._logger.debug("AsyncUpdater: Performing federated update step checks...")
+            try:
+                if self._update_interval_t is not None:  # Sync Update
+                    self._logger.debug("AsyncUpdater: Time-based federated updating initiated...")
+                    self._sync_aggr()
+                    sleep(self._update_interval_t)
+
+                elif self._online_update:  # FIXME
+                    self._logger.debug("AsyncUpdater: Sampled federated updating initiated...")
+                    self._async_aggr()
+
+                else:  # FIXME
+                    # Federated updating disabled
+                    break
+            except RuntimeError:
+                # stop() was called
+                break
         self._logger.info("Stopping...")
 
     def _sync_aggr(self):
-        pass
+        """TODO CHECKING, LOGGING, COMMENTS
+        """
+        clients = self._aggr_serv.poll_connections()[1].values()
+        if self._num_clients is not None:
+            if len(clients) < self._num_clients:
+                return
+            clients = sample(cast(Sequence, clients), self._num_clients)
+        num_clients = len(clients)
 
+        for client in clients:
+            client.send(None)
+        sleep(self._timeout)
+
+        clients = ep_select(clients)[0]
+        client_models = self.get_client_models(clients)
+
+        if len(client_models) < self._min_clients * num_clients:
+            return
+        global_model = self._m_aggr.aggregate(client_models)
+        _, w_ready = self._aggr_serv.poll_connections()
+        clients = w_ready.values()
+        for client in clients:
+            client.send(global_model)
+
+    def _async_aggr(self):
+        """TODO CHECKING, LOGGING, COMMENTS
+        """
+        clients = self._aggr_serv.poll_connections()[0].values()
+        if self._num_clients is not None and len(clients) < self._num_clients * self._min_clients:
+            return
+
+        client_models = self.get_client_models(clients)
+        if (len(client_models) == 0 or
+                self._num_clients is not None and len(client_models) < self._min_clients * self._num_clients):
+            return
+        global_model = self._m_aggr.aggregate(client_models)
+        clients = ep_select(clients)[1]
+        for client in clients:
+            client.send(global_model)
+
+    def get_client_models(self, clients: Iterable[StreamEndpoint]):
+        """TODO CHECKING, LOGGING, COMMENTS
+        """
+        client_models = []
+        for client in clients:
+            client_model = None
+            try:
+                while True:
+                    client_msg = client.receive(timeout=0)
+                    if isinstance(client_msg, list):
+                        client_model = client_msg
+                    else:
+                        pass  # FIXME logging
+            except (RuntimeError, TimeoutError):
+                pass # FIXME logging
+            if client_model is not None:
+                client_models.append(client_model)
+        return client_models
 
 
 class FederatedResultAggregator(FederatedOnlineAggregator):

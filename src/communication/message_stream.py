@@ -3,7 +3,7 @@
     and LZ4 compression.
 
     Author: Fabian Hofmann
-    Modified: 18.10.23
+    Modified: 12.11.23
 
     TODO Future Work: SSL https://docs.python.org/3/library/ssl.html
     TODO Future Work: Potential race conditions during rapid start/stop | open/close of endpoints/endpoint sockets
@@ -19,7 +19,7 @@ import socket
 import sys
 import threading
 from time import sleep, time
-from typing import Callable, Optional
+from typing import Callable, Iterable, Optional
 
 from lz4.frame import compress, decompress
 
@@ -688,13 +688,14 @@ class StreamEndpoint:
             while not self._send_buffer.empty() and time() - start < timeout:
                 sleep(1)
         self._started = False
-        self._ready.clear()
+        self._ready.set()
         self._endpoint_socket.close(shutdown)
 
         if self._multithreading:
             self._logger.info("Multithreading detected, waiting for endpoint sender/receiver threads to stop...")
             self._sender.join()
             self._receiver.join()
+        self._ready.clear()
         self._logger.info("Endpoint stopped.")
 
     def send(self, obj: object):
@@ -766,7 +767,7 @@ class StreamEndpoint:
         states, addrs = self._endpoint_socket.poll()
         if self._multithreading:
             states[1] = states[1] or not self._recv_buffer.empty()
-            states[2] = states[2] or not self._send_buffer.full()
+            states[2] = states[2] or not self._send_buffer.full() and states[0]
         return states, addrs
 
     def _create_socket_starter(self):
@@ -1099,11 +1100,11 @@ class EndpointServer:
             self.stop()
 
 
-def ep_select(endpoints: list[StreamEndpoint]) -> tuple[list[StreamEndpoint], list[StreamEndpoint]]:
+def ep_select(endpoints: Iterable[StreamEndpoint]) -> tuple[list[StreamEndpoint], list[StreamEndpoint]]:
     """General select function to check a number of endpoints whether objects can be read from or written to them. For
     simplicity's sake, does not mirror the actual UNIX select function (supporting separate lists).
 
-    :param endpoints: List of endpoints to check for readiness.
+    :param endpoints: Iterable of endpoints to check for readiness.
     :return: Tuple of lists of endpoints that are read/write ready:
     """
     ep_states = [(endpoint, endpoint.poll()) for endpoint in endpoints]
