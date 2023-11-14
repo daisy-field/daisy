@@ -102,6 +102,13 @@ class Chordnode:
         self._max_fingers = max_fingers
 
     def _send_message(self, ep, remote_addr, message):
+        """Sends a given message to a given address using a given endpoint. Initiates endpoint clean up if the given endpoint is no longer usable, but sends the message nevertheless.
+
+        :param ep:
+        :param remote_addr:
+        :param message:
+        :return:
+        """
         if ep is not None:
             if self._clean_up_ep_if_dropout(ep):
                 return
@@ -115,37 +122,56 @@ class Chordnode:
             endpoint.stop(shutdown=True)
 
     def _join(self, remote_addr: tuple[str, int]):
-        """
-        Sends join request to node in existing Chordring
-        :param remote_addr: Address of bootstrap node
-        """
-        if remote_addr is not None:
-            message_id = uuid4()
-            self._sent_messages[message_id] = (MessageOrigin.JOIN, time(), None)
+        """Creates and sends a join message to a node in an existing chord ring.
 
-            join_chord_message = Chordmessage(message_id=message_id, message_type=MessageType.JOIN,
-                                              node_tuple=(self._id, self._addr))
-            endpoint = StreamEndpoint(name=f"Join-Endpoint-{self._id}", addr=self._addr,
-                                      remote_addr=remote_addr, acceptor=False, multithreading=True,
-                                      buffer_size=10000)
-            endpoint.start()
-            endpoint.send(join_chord_message)
-            endpoint.stop(shutdown=True)
+        # TODO if message is lost should be retried after ttl of message runs out
+
+        :param remote_addr: Address of bootstrap node.
+        """
+        message_id = uuid4()
+        self._sent_messages[message_id] = (MessageOrigin.JOIN, time(), None)
+        join_chord_message = Chordmessage(message_id=message_id, message_type=MessageType.JOIN,
+                                          node_tuple=(self._id, self._addr))
+        endpoint = StreamEndpoint(name=f"Join-Endpoint-{self._id}", addr=self._addr,
+                                  remote_addr=remote_addr, acceptor=False, multithreading=True,
+                                  buffer_size=10000)
+        endpoint.start()
+        endpoint.send(join_chord_message)
+        endpoint.stop(shutdown=True)
         # if remote_addr is none start new chordring
 
     def _notify(self, remote_id: int, remote_addr: tuple[str, int]):
+        """
+        :param remote_id:
+        :param remote_addr:
+        """
         notify_message = Chordmessage(message_id=uuid4(), message_type=MessageType.NOTIFY,
                                       node_tuple=self._predecessor)
         ep = self._get_ep_if_exists(remote_id, remote_addr)
         self._send_message(ep, remote_addr, notify_message)
 
     def _stabilize(self, remote_id: int, remote_addr: tuple[str, int]):
+        """Creates and sends a nodes id and address to its supposed successor, in order to confirm correctness.
+
+        :param remote_id: Chord-Id of supposed successor
+        :param remote_addr: Address of supposed successor
+        """
+        if remote_id is None or remote_addr is None:
+            logging.log(level=logging.WARNING,
+                        msg={f"MISSING VALUE in STABILIZE (remote_id:{remote_id}, remote_addr:{remote_addr})"})  # TODO
+            return
         stabilize_message = Chordmessage(message_id=uuid4(), message_type=MessageType.STABILIZE,
                                          node_tuple=(self._id, self._addr))
         ep = self._get_ep_if_exists(remote_id, remote_addr)
         self._send_message(ep, remote_addr, stabilize_message)
 
     def _update_finger(self, finger_node: tuple[int, tuple[str, int]], finger_id: int):
+        """Updates an entry in a nodes fingertable by maintaining its endpoint and assigning current finger-values or removing the finger entirely from the fingertable.
+
+        :param finger_node:
+        :param finger_id:
+        :return:
+        """
         finger = self._fingertable.pop(finger_id, None)
         if finger is not None:
             finger_ids_in_ft = {finger_id for finger_id, finger_addr, finger_ep in self._fingertable.values()
@@ -153,7 +179,8 @@ class Chordnode:
             if len(finger_ids_in_ft) == 0:
                 self._close_and_remove_ep(finger[1], finger[2])
 
-        ep = self._get_ep_if_exists(*finger_node)  # checks ep-server and self._finger_table
+        ep = self._get_ep_if_exists(*finger_node)  # checks ep-server and self._finger_table, in case ep has not been
+        # removed already
         if ep is not None:
             if self._clean_up_ep_if_dropout(ep):
                 return
@@ -165,6 +192,12 @@ class Chordnode:
         self._fingertable[finger_id] = (finger_node[0], finger_node[1], ep)
 
     def _get_ep_if_exists(self, node_id: int, node_addr: tuple[str, int]) -> Optional[StreamEndpoint]:
+        """
+
+        :param node_id:
+        :param node_addr:
+        :return:
+        """
         ep = {finger_ep for finger_id, finger_addr, finger_ep in self._fingertable.values()
               if node_id == finger_id}
         if len(ep) == 0:
@@ -207,6 +240,12 @@ class Chordnode:
         return True
 
     def _close_and_remove_ep(self, ep_addr: tuple[str, int], ep: StreamEndpoint):
+        """
+
+        :param ep_addr:
+        :param ep:
+        :return:
+        """
         ep_in_epserver = self._endpoint_server.get_connections([ep_addr]).get(ep_addr)
         if ep_in_epserver is None and ep is not None:
             ep.stop(shutdown=True)
@@ -214,10 +253,10 @@ class Chordnode:
             self._endpoint_server.close_connections([ep_addr])
 
     def _fix_fingers(self):
-        """Function to keep fingertables current with nodes joining and leaving the chordring. Should be called
-        periodically by each node.
+        """Iterates the finger indices, initiating lookups for the respective nodes; defaults to the successor.
+
+        Note: this method does not actually update any finger table entries.
         """
-        # TODO what if fingers die
         for i in range(self._max_fingers):
             finger = self._id + 2 ** i % (2 ** self._max_fingers)
             if self._is_pred(finger):
@@ -226,17 +265,26 @@ class Chordnode:
                 message_id = uuid4()
                 self._sent_messages[message_id] = (MessageOrigin.FIX_FINGERS, time(), i)
                 self._find_succ(finger, self._addr, message_id)
-                # fixme only returns succ of fingers, but what if finger doesnt change?
 
     def _is_succ(self, node_id: int) -> bool:
         return (self._id < self._predecessor[0]) & (node_id not in range(self._id + 1, self._predecessor[0] + 1)) \
             or (node_id in range(self._predecessor[0] + 1, self._id + 1))
 
     def _is_pred(self, node_id: int) -> bool:
+        """FIXME WHAT IF SUCC NONE?
+
+        :param node_id:
+        :return:
+        """
         return (self._id > self._successor[0]) & (node_id not in range(self._successor[0] + 1, self._id + 1)) \
             or (node_id in range(self._id + 1, self._successor[0] + 1))
 
     def _get_closest_known_pred(self, node_id: int) -> StreamEndpoint | None:
+        """
+
+        :param node_id:
+        :return:
+        """
         closest_pred = None
         for finger in range(self._max_fingers):
             f_curr = self._fingertable.get(finger, (None, None, None))  # id, addr, ep
@@ -285,13 +333,28 @@ class Chordnode:
                              node_tuple=(node_id, node_addr)))
 
     def _process_join(self, message: Chordmessage):
+        """
+
+        :param message:
+        :return:
+        """
         self._find_succ(*message.node_tuple, message.message_id)
 
     def _process_notify(self, message: Chordmessage):
+        """
+
+        :param message:
+        :return:
+        """
         if message.node_tuple[0] != self._id:
             self._stabilize(*message.node_tuple)
 
     def _process_stabilize(self, message: Chordmessage):
+        """
+
+        :param message:
+        :return:
+        """
         # if (node id is my pred (I am succ) or between me and my pred) update my pred
         if self._is_succ(message.node_tuple[0]):
             self._predecessor = message.node_tuple
@@ -306,6 +369,11 @@ class Chordnode:
             self._notify(*message.node_tuple)
 
     def _process_find_succ_res(self, message: Chordmessage):
+        """
+
+        :param message:
+        :return:
+        """
         if message.message_id not in self._sent_messages:
             return
         msg_origin, _, msg_finger = self._sent_messages.pop(message.message_id, (None, None, None))
@@ -315,21 +383,32 @@ class Chordnode:
             self._update_finger(message.node_tuple, msg_finger)
 
     def _process_find_succ_req(self, message: Chordmessage):
+        """
+
+        :param message:
+        :return:
+        """
         # call find succ with node from message as target
         self._find_succ(*message.node_tuple, message.message_id)
 
     def run(self, bootstrap_addr: tuple[str, int] = None):
+        """Starts the chord node, joining an existing chord ring or bootstrapping one, before starting the periodic
+        loop to maintain the ring and process incoming messages.
+
+        :param bootstrap_addr: Remote address of peer of existing ring to jon to, otherwise None.
+        """
         last_refresh_time = time()  # TODO implement dynamic ep creation relative to recv/time
         recv_messages_count = 0
 
         self._endpoint_server.start()
-        self._join(bootstrap_addr)
+        if bootstrap_addr is not None:
+            self._join(bootstrap_addr)
 
         while True:
             curr_time = time()
             if curr_time - last_refresh_time >= 30:
                 self._fix_fingers()
-                self._stabilize(self._id, self._addr)
+                self._stabilize(*self._successor)
             r_ready, _ = self._endpoint_server.poll_connections()
             for ep in r_ready:
                 message = typing.cast(Chordmessage, r_ready[ep].receive(timeout=5))
