@@ -23,13 +23,11 @@ class FederatedOnlineAggregator(ABC):
 
     To realize this, the following methods must be implemented:
 
-        * setup(): Setup function for any state variables called during the starting of the starting of the node.
+        * setup(): Setup function for any state variables called during the starting of the starting of the aggregator.
 
-        * cleanup(): Cleanup function for any stat variables called during the stopping of the node.
+        * cleanup(): Cleanup function for any stat variables called during the stopping of the aggregator.
 
-        * sync_fed_update(): Singular, synchronous federated update step.
-
-        * create_async_fed_learner(): Continuous, asynchronous federated update loop.
+        * create_fed_aggr(): Encapsulates the aggregation loop for the entire life-cycle of the aggregator.
     """
     _logger: logging.Logger
 
@@ -116,7 +114,12 @@ class FederatedOnlineAggregator(ABC):
     def create_fed_aggr(self):
         """TODO CHECKING, LOGGING, COMMENTS
 
-        Continuous, asynchronous federated update loop, that runs concurrently to the thread of
+        Continuous, asynchronous federated aggregation loop, that runs over the entire life-cycle
+                * create_fed_aggr(): Encapsulates the aggregation loop for the entire runtime of the aggregator.
+
+        Any implementation
+
+        that runs concurrently to the thread of
         create_local_learner(), to update the underlying model of the federated online node.
 
         Note that any update of federated models while fitting or prediction is done will result in race conditions and
