@@ -112,25 +112,7 @@ class FederatedOnlineAggregator(ABC):
 
     @abstractmethod
     def create_fed_aggr(self):
-        """TODO CHECKING, LOGGING, COMMENTS
-
-        Continuous, asynchronous federated aggregation loop, that runs over the entire life-cycle
-                * create_fed_aggr(): Encapsulates the aggregation loop for the entire runtime of the aggregator.
-
-        Any implementation
-
-        that runs concurrently to the thread of
-        create_local_learner(), to update the underlying model of the federated online node.
-
-        Note that any update of federated models while fitting or prediction is done will result in race conditions and
-        unsafe states! It is therefore crucial to use the _m_lock instance variable to synchronize access to the model.
-        Using this lock object, one can also manage when and how the other thread is able to use the model during any
-        update step (if updating is done in semi-synchronous manner).
-
-        For coordination/planning when to perform an update, any implementation can also use existing state variables
-        also used in the synchronous create_local_learner(), see: _update_interval_s, _update_interval_t,
-        _s_since_update, _t_last_update, for sample- or time-based updating periods. Access to these variables must also
-        be synchronized, using the _u_lock instance variable.
+        """Continuous, asynchronous federated aggregation loop, that must run over the entire life-cycle.
         """
         raise NotImplementedError
 
@@ -153,10 +135,12 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
     def __init__(self, m_aggr: ModelAggregator, addr: tuple[str, int], name: str = "",
                  timeout: int = 10, online_update: bool = True,
                  update_interval_t: int = None, num_clients: int = None, min_clients: float = 1.0):
-        """TODO CHECKING, LOGGING, COMMENTS
+        """Creates a new federated model aggregator.
 
-        :param m_aggr: TODO
-        :param addr: TODO
+        TODO CHECKING, LOGGING, COMMENTS
+
+        :param m_aggr: Actual aggregator to aggregate models with.
+        :param addr: Address of aggregation server for clients to connect to.
         :param name: Name of federated online node for logging purposes.
         :param timeout: Timeout for waiting to receive global model updates from model aggregation server.
         :param online_update: If async, allows the aggregation server to trigger a sync update (instead of intervals).
