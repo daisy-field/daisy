@@ -3,6 +3,8 @@
 
     Author: Seraphin Zunzer
     Modified: 09.05.22
+
+    TODO: CLEANUP IN WAY SIMILAR TO AGGREGATOR.PY
 """
 import logging
 import threading
