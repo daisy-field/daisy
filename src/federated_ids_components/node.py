@@ -304,7 +304,7 @@ class FederatedOnlineClient(FederatedOnlineNode):
 
     This implementation follows the FedAvg approach, i.e. the client reports its model's parameters to the server either
     in fixed intervals, either time-based or sample-based (like the implemented abstract class), or when called upon
-    (selected FedAvg), before receiving the new global model that replaces the local one. However, it is not fixed how
+    (sampled FedAvg), before receiving the new global model that replaces the local one. However, it is not fixed how
     the model aggregation server decides how the different models get aggregated; whether it happens in synchronized
     fashion or for each reporting client individually (see aggregator.py)
     """
