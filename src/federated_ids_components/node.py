@@ -278,7 +278,8 @@ class FederatedOnlineNode(ABC):
     @abstractmethod
     def create_async_fed_learner(self):
         """Continuous, asynchronous federated update loop, that runs concurrently to the thread of
-        create_local_learner(), to update the underlying model of the federated online node.
+        create_local_learner(), to update the underlying model of the federated online node. Must use the _started
+        semaphore to exit the loop in case the node is stopped (see stop()).
 
         Note that any update of federated models while fitting or prediction is done will result in race conditions and
         unsafe states! It is therefore crucial to use the _m_lock instance variable to synchronize access to the model.
@@ -302,10 +303,10 @@ class FederatedOnlineClient(FederatedOnlineNode):
     learning by itself, always reports to the same centralized server that aggregate the models in their stead.
 
     This implementation follows the FedAvg approach, i.e. the client reports its model's parameters to the server either
-    in fixed intervals, either time-based or sample-based (like the extended base class), or when called upon (selected
-    FedAvg), before receiving the new global model that replaces the local one. However, it is not fixed how the model
-    aggregation server decides how the different models get aggregated; whether it happens in synchronized fashion or
-    for each reporting client individually (see aggregator.py)
+    in fixed intervals, either time-based or sample-based (like the implemented abstract class), or when called upon
+    (selected FedAvg), before receiving the new global model that replaces the local one. However, it is not fixed how
+    the model aggregation server decides how the different models get aggregated; whether it happens in synchronized
+    fashion or for each reporting client individually (see aggregator.py)
     """
     _m_aggr_server: StreamEndpoint
     _timeout: int

@@ -1113,6 +1113,32 @@ def ep_select(endpoints: Iterable[StreamEndpoint]) -> tuple[list[StreamEndpoint]
     return r_ready, w_ready
 
 
+def receive_latest_ep_objs(endpoints: Iterable[StreamEndpoint], obj_type: type = object) \
+        -> dict[StreamEndpoint, Optional[object]]:
+    """General helper function to receive the latest objects of a certain type from a number of endpoints. Note this
+    flushes any other messages held by these endpoints as well, as non-blocking receives are called on them until their
+    buffers are exhausted. Any messages of others types are discarded, as are endpoints who are not ready.
+
+    :param endpoints: Iterable of endpoints to receive objects from.
+    :param obj_type: Type of objects to receive. If none given, receives the latest message of any type.
+    :return: Dictionary of each endpoint and their respective received object, None if nothing received for endpoint.
+    """
+    ep_objs = {}
+    for endpoint in endpoints:
+        ep_obj = None
+        try:
+            while True:
+                ep_msg = endpoint.receive(timeout=0)
+                if isinstance(ep_msg, obj_type):
+                    ep_obj = ep_msg
+                else:
+                    pass
+        except (RuntimeError, TimeoutError):
+            pass
+        ep_objs[endpoint] = ep_obj
+    return ep_objs
+
+
 def _convert_addr_to_name(addr: tuple) -> tuple[str, int]:
     """Translates a socket address, which is either a 2-tuple (ipv4) or a 4-tuple (ipv6) into a 2-tuple (host, port).
     Tries to resolve the host to its (DNS) hostname, otherwise keeps the numeric representation. Ports/Services are
