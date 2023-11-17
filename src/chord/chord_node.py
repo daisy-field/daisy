@@ -33,10 +33,7 @@ class MessageOrigin(Enum):
 
 
 class Chordmessage:
-    """
-    Class for Chord messages. Message_type can be chosen freely, but should be documented. Sender_id and Sender_addr
-    will be set to the id and addr of the Node who sends the message. Payload can contain anything that should be
-    processed by the receiving node in accordance to the message type.
+    """Class for Chord messages.
     """
     message_id: uuid4
     message_type: MessageType
@@ -44,11 +41,10 @@ class Chordmessage:
 
     def __init__(self, message_id: uuid4, message_type: MessageType,
                  node_tuple: tuple[int, tuple[str, int]] = None):
-        """
-        Creates a new Chordmessage Object.
-        :param message_id: message identifier
-        :param message_type: denotes how the message will be processed at receiving endpoint
-        :param node_tuple:
+        """Creates a new Chordmessage.
+        :param message_id: Message identifier
+        :param message_type: Type of message for processing in receive function.
+        :param node_tuple: Id and address of the node sent whithin the Chordmessage.
         """
         self.message_id = message_id
         self.message_type = message_type
@@ -59,8 +55,7 @@ class Chordmessage:
 # TODO logging
 
 class Chordnode:
-    """
-    Class for Chordnodes.
+    """Class for Chordnodes.
     """
 
     _id: int
@@ -102,7 +97,7 @@ class Chordnode:
         self._max_fingers = max_fingers
 
     def _send_message(self, ep, remote_addr, message):
-        """Sends a given message to a given address using a given endpoint. Initiates endpoint clean up if the given endpoint is no longer usable, but sends the message nevertheless.
+        """Sends a message to an address. Initiates StreamEndpoint clean up if the given endpoint is no longer usable, but sends the message nevertheless.
 
         :param ep:
         :param remote_addr:
@@ -132,16 +127,11 @@ class Chordnode:
         self._sent_messages[message_id] = (MessageOrigin.JOIN, time(), None)
         join_chord_message = Chordmessage(message_id=message_id, message_type=MessageType.JOIN,
                                           node_tuple=(self._id, self._addr))
-        endpoint = StreamEndpoint(name=f"Join-Endpoint-{self._id}", addr=self._addr,
-                                  remote_addr=remote_addr, acceptor=False, multithreading=True,
-                                  buffer_size=10000)
-        endpoint.start()
-        endpoint.send(join_chord_message)
-        endpoint.stop(shutdown=True)
-        # if remote_addr is none start new chordring
+        self._send_message(None, remote_addr, join_chord_message)
 
     def _notify(self, remote_id: int, remote_addr: tuple[str, int]):
-        """
+        """Send the predecessor of a node to another node. Used to repair successor pointers on the cord ring.
+
         :param remote_id:
         :param remote_addr:
         """
@@ -151,22 +141,25 @@ class Chordnode:
         self._send_message(ep, remote_addr, notify_message)
 
     def _stabilize(self, remote_id: int, remote_addr: tuple[str, int]):
-        """Creates and sends a nodes id and address to its supposed successor, in order to confirm correctness.
+        """Sends self to succ, initiating reparation of successor and predecessor pointers.
 
-        :param remote_id: Chord-Id of supposed successor
-        :param remote_addr: Address of supposed successor
+        TODO Succ may have failed in the meantime, ask next fingertable entry or predecessor
+
+        :param remote_id: Chord-Id of successor
+        :param remote_addr: Address of successor
         """
         if remote_id is None or remote_addr is None:
             logging.log(level=logging.WARNING,
-                        msg={f"MISSING VALUE in STABILIZE (remote_id:{remote_id}, remote_addr:{remote_addr})"})  # TODO
+                        msg={f"MISSING VALUE in STABILIZE (remote_id:{remote_id}, remote_addr:{remote_addr})"})
             return
         stabilize_message = Chordmessage(message_id=uuid4(), message_type=MessageType.STABILIZE,
                                          node_tuple=(self._id, self._addr))
+        logging.log(level=logging.INFO, msg=f"Attempting STABILIZE from {self._id} to succ node {remote_id} with {self._id}")
         ep = self._get_ep_if_exists(remote_id, remote_addr)
         self._send_message(ep, remote_addr, stabilize_message)
 
     def _update_finger(self, finger_node: tuple[int, tuple[str, int]], finger_id: int):
-        """Updates an entry in a nodes fingertable by maintaining its endpoint and assigning current finger-values or removing the finger entirely from the fingertable.
+        """Updates an entry in a nodes fingertable by maintaining its StreamEndpoint and assigning current finger-values or removing the finger entirely from the fingertable.
 
         :param finger_node:
         :param finger_id:
@@ -191,44 +184,51 @@ class Chordnode:
             ep.start()
         self._fingertable[finger_id] = (finger_node[0], finger_node[1], ep)
 
-    def _get_ep_if_exists(self, node_id: int, node_addr: tuple[str, int]) -> Optional[StreamEndpoint]:
-        """
+    def _get_ep_if_exists(self, remote_id: int, remote_addr: tuple[str, int]) -> Optional[StreamEndpoint]:
+        """Checks whether an StreamEndpoint to a given node exists and returns it. Returns None if StreamEndpoint does not exist.
 
-        :param node_id:
-        :param node_addr:
-        :return:
+        :param remote_id: node id to check connection to
+        :param remote_addr: address of
+        :return ep
         """
         ep = {finger_ep for finger_id, finger_addr, finger_ep in self._fingertable.values()
-              if node_id == finger_id}
+              if remote_id == finger_id}
         if len(ep) == 0:
-            ep = self._endpoint_server.get_connections([node_addr]).get(node_addr)
+            ep = self._endpoint_server.get_connections([remote_addr]).get(remote_addr)
         else:
             ep = ep.pop()
         return ep
 
     def _clean_up_ep_if_dropout(self, ep: StreamEndpoint) -> bool:
-        """"
-        true if ep is dropout
+        """Searches through all available connections of a node to see where a given StreamEndpoint is used and initiates cleanup of the StreamEndpoint if it has died.
+
+         TODO predecessor und successor updates auslagern
+        Note: may result in removal of successor or predecessor endpoint of a node or empty fingertables.
+
+        :param ep: StreamEndpoint suspected as dropout
         """
-        if ep is None:
+        if ep is None:  # dropout
             return True
+
         states, addrs = ep.poll()
         if states[0]:
-            return False
+            return False  # may not work like this, ep can be not dropout but unavailable
+
         dropouts = [finger_key for finger_key, finger in self._fingertable.items()
                     if ep is finger[2]]
         for do in dropouts:
             do_id, do_addr, do_ep = self._fingertable.pop(do, (None, None, None))
             if do_ep is None:
                 continue
-            self._close_and_remove_ep(do_addr, do_ep)
-        if ep is self._predecessor_endpoint:
+            self._close_and_remove_ep(do_addr, do_ep) # close finger_eps that are ep
+
+        if ep is self._predecessor_endpoint: # clean up predecessor ep if necessary
             self._close_and_remove_ep(self._predecessor[1], ep)
             self._predecessor = None
             self._predecessor_endpoint = None
-        if ep is self._successor_endpoint:
+        if ep is self._successor_endpoint: # clean up succ ep if necessary
             self._close_and_remove_ep(self._successor[1], ep)
-            for finger in range(self._max_fingers):
+            for finger in range(self._max_fingers):  # set some arbitrary finger as succ, will be repaired by stabilize/notify calls
                 f_id, f_addr, f_ep = self._fingertable.get(finger, (None, None, None))
                 if not self._clean_up_ep_if_dropout(f_ep):
                     self._successor = (f_id, f_addr)
@@ -241,10 +241,8 @@ class Chordnode:
 
     def _close_and_remove_ep(self, ep_addr: tuple[str, int], ep: StreamEndpoint):
         """
-
-        :param ep_addr:
-        :param ep:
-        :return:
+        :param ep_addr: Address of StreamEndpoint to remove
+        :param ep: StreamEndpoint to remove
         """
         ep_in_epserver = self._endpoint_server.get_connections([ep_addr]).get(ep_addr)
         if ep_in_epserver is None and ep is not None:
