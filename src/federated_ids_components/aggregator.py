@@ -1,35 +1,37 @@
 """
-    Class for Federated Aggregator TODO
+    A collection of various types of federated aggregators, implementing the same interface for each federated
+    aggregator type. Each of them receives and aggregates data from federated nodes at runtime in a client-server-based
+    exchange, continuously.
 
     Author: Fabian Hofmann
-    Modified: 27.10.23
+    Modified: 16.11.23
 """
 import logging
 import threading
 from abc import ABC, abstractmethod
 from random import sample
 from time import sleep
-from typing import cast, Iterable, Sequence
+from typing import cast, Sequence
 
-from src.communication import EndpointServer, StreamEndpoint, ep_select
+import numpy as np
+
+from src.communication import EndpointServer, ep_select, receive_latest_ep_objs
 from src.federated_learning import ModelAggregator
 
 
 class FederatedOnlineAggregator(ABC):
     """Abstract class for generic federated online aggregators, that receive and aggregates data from federated nodes at
     runtime in a client-server-based exchange, continuously. To accomplish this, the abstract class in its core is
-    merely a wrapper around the EndpointServer class to process new incoming clients, leaving the actual functionality
-    to its implementations, which run in multithreaded manner.
+    merely a wrapper around the EndpointServer class to process new incoming clients, leaving the actual aggregation
+    functionality to its implementations, which run in threaded manner.
 
     To realize this, the following methods must be implemented:
 
-        * setup(): Setup function for any state variables called during the starting of the starting of the node.
+        * setup(): Setup function for any state variables called during the starting of the starting of the aggregator.
 
-        * cleanup(): Cleanup function for any stat variables called during the stopping of the node.
+        * cleanup(): Cleanup function for any state variables called during the stopping of the aggregator.
 
-        * sync_fed_update(): Singular, synchronous federated update step.
-
-        * create_async_fed_learner(): Continuous, asynchronous federated update loop.
+        * create_fed_aggr(): Encapsulates the aggregation loop for the entire life-cycle of the aggregator.
     """
     _logger: logging.Logger
 
@@ -114,20 +116,12 @@ class FederatedOnlineAggregator(ABC):
 
     @abstractmethod
     def create_fed_aggr(self):
-        """TODO CHECKING, LOGGING, COMMENTS
+        """Continuous, asynchronous federated aggregation loop, that runs over the entire life-cycle. Must use the
+        _started semaphore to exit the loop in case the node is stopped (see stop()).
 
-        Continuous, asynchronous federated update loop, that runs concurrently to the thread of
-        create_local_learner(), to update the underlying model of the federated online node.
-
-        Note that any update of federated models while fitting or prediction is done will result in race conditions and
-        unsafe states! It is therefore crucial to use the _m_lock instance variable to synchronize access to the model.
-        Using this lock object, one can also manage when and how the other thread is able to use the model during any
-        update step (if updating is done in semi-synchronous manner).
-
-        For coordination/planning when to perform an update, any implementation can also use existing state variables
-        also used in the synchronous create_local_learner(), see: _update_interval_s, _update_interval_t,
-        _s_since_update, _t_last_update, for sample- or time-based updating periods. Access to these variables must also
-        be synchronized, using the _u_lock instance variable.
+        Since the abstract federated online aggregator does not define which kind of data is aggregated, the aggregation
+        can be equally manifold. The only property shared is the usage of the _aggr_serv endpoint server, to communicate
+        with federated nodes.
         """
         raise NotImplementedError
 
@@ -137,39 +131,52 @@ class FederatedOnlineAggregator(ABC):
 
 
 class FederatedModelAggregator(FederatedOnlineAggregator):
-    """TODO
+    """Centralized federated learning is the simplest federated approach, since any client in the topology, while
+    learning by itself, always reports to the same centralized server that aggregate the models in their stead. To
+    accomplish this, this implementation additionally wraps itself around the model aggregator
+
+    Thus, this implementation is essentially the inverse counterpart to FederatedOnlineClient, which either operates in
+    synchronous fashion --- polling a sample of the existing clients to receive their models, aggregating them, before
+    sending the new global model to the entire population, or in asynchronous mode. The latter behaves inverse to the
+    federated client, since it periodically checks the connected clients for message activity, aggregating any received
+    models with the current global one and sending them back to the respective client. Note that the latter only works
+    if the model aggregator has an internal state for the global model.
     """
     _m_aggr: ModelAggregator
+
+    _online_update: bool
 
     _update_interval_t: int
     _num_clients: int
     _min_clients: float
 
-    _online_update: bool
-
     def __init__(self, m_aggr: ModelAggregator, addr: tuple[str, int], name: str = "",
                  timeout: int = 10, online_update: bool = True,
-                 update_interval_t: int = None, num_clients: int = None, min_clients: float = 1.0):
-        """TODO CHECKING, LOGGING, COMMENTS
+                 update_interval_t: int = None, num_clients: int = None, min_clients: float = 0.5):
+        """Creates a new federated model aggregator.
 
-        :param m_aggr: TODO
-        :param addr: TODO
-        :param name: Name of federated online node for logging purposes.
-        :param timeout: Timeout for waiting to receive global model updates from model aggregation server.
-        :param online_update: If async, allows the aggregation server to trigger a sync update (instead of intervals).
-        :param update_interval_t: Federated updating interval, defined by time; every X seconds, do a sync update.
-        :param num_clients:
-        :param min_clients:
+        :param m_aggr: Actual aggregator to aggregate models with.
+        :param addr: Address of aggregation server for clients to connect to.
+        :param name: Name of federated model aggregator for logging purposes.
+        :param timeout: Timeout for waiting to receive local model updates from federated clients.
+        :param online_update: Async updating, i.e. waiting for individual clients to report their local models in
+        unspecified/unset intervals, before sending them the freshly aggregated global model back. Enabled by default.
+        :param update_interval_t: If async disabled, sets how often the aggregation server should do a federated
+        aggregation step to compute a global model to send to the clients (in seconds).
+        :param num_clients: Allows sampling of client population to perform a sampled synchronous aggregation step. If
+        none provided, always attempts to request models from the entire population.
+        :param min_clients: Minimum ratio of responsive clients to requested ones, aborts aggr step if not satisfied. If
+        none provided, tolerates a 50% failure rate.
         """
         super().__init__(addr=addr, name=name, timeout=timeout)
 
         self._m_aggr = m_aggr
 
+        self._online_update = online_update
+
         self._update_interval_t = update_interval_t
         self._num_clients = num_clients
         self._min_clients = min_clients
-
-        self._online_update = online_update
 
     def setup(self):
         pass
@@ -178,101 +185,92 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
         pass
 
     def create_fed_aggr(self):
-        """TODO CHECKING, LOGGING, COMMENTS
-
-        Continuous, asynchronous federated update loop, that runs concurrently to the thread of
-        create_local_learner(), to update the underlying model of the federated online node.
-
-        Note that any update of federated models while fitting or prediction is done will result in race conditions and
-        unsafe states! It is therefore crucial to use the _m_lock instance variable to synchronize access to the model.
-        Using this lock object, one can also manage when and how the other thread is able to use the model during any
-        update step (if updating is done in semi-synchronous manner).
-
-        For coordination/planning when to perform an update, any implementation can also use existing state variables
-        also used in the synchronous create_local_learner(), see: _update_interval_s, _update_interval_t,
-        _s_since_update, _t_last_update, for sample- or time-based updating periods. Access to these variables must also
-        be synchronized, using the _u_lock instance variable.
+        """Starts the loop to either synchronously aggregate in fixed intervals or check in looping manner whether there
+        are federated clients requesting an asynchronous updating step.
         """
-        self._logger.info("Starting...")
+        self._logger.info("Starting model aggregation loop...")
         while self._started:
-            self._logger.debug("AsyncUpdater: Performing federated update step checks...")
             try:
                 if self._update_interval_t is not None:  # Sync Update
-                    self._logger.debug("AsyncUpdater: Time-based federated updating initiated...")
+                    self._logger.debug("Initiating interval-based synchronous aggregation step...")
                     self._sync_aggr()
                     sleep(self._update_interval_t)
 
-                elif self._online_update:  # FIXME
-                    self._logger.debug("AsyncUpdater: Sampled federated updating initiated...")
+                elif self._online_update:
+                    self._logger.debug("Checking federated clients for asynchronous aggregation requests...")
                     self._async_aggr()
 
-                else:  # FIXME
-                    # Federated updating disabled
+                else:
+                    # Federated aggregation disabled
                     break
             except RuntimeError:
                 # stop() was called
                 break
-        self._logger.info("Stopping...")
+        self._logger.info("Model aggregation loop stopped.")
 
     def _sync_aggr(self):
-        """TODO CHECKING, LOGGING, COMMENTS
+        """Performs a synchronous, sampled federated aggregation step, i.e. sending out a request for local models to a
+        sample of the client population. If sufficient clients respond to the request after a set timeout, their models
+        are aggregated, potentially also taking into account the global model of the previous step (depending on the
+        model aggregator chosen), and the newly created global model is sent back to all available clients.
         """
         clients = self._aggr_serv.poll_connections()[1].values()
         if self._num_clients is not None:
             if len(clients) < self._num_clients:
+                self._logger.info(f"Insufficient write-ready clients available for aggregation step [{len(clients)}]!")
                 return
             clients = sample(cast(Sequence, clients), self._num_clients)
         num_clients = len(clients)
 
+        self._logger.debug(f"Requesting local models from sampled clients [{len(clients)}]...")
         for client in clients:
             client.send(None)
         sleep(self._timeout)
 
         clients = ep_select(clients)[0]
-        client_models = self.get_client_models(clients)
+        self._logger.debug(f"Receiving local models from available requested clients [{len(clients)}]...")
+        client_models = [model for model
+                         in cast(list[list[np.ndarray]], receive_latest_ep_objs(clients, list).values())
+                         if model is not None]
 
-        if len(client_models) < self._min_clients * num_clients:
+        if len(client_models) < min(1, int(num_clients * self._min_clients)):
+            self._logger.info(f"Insufficient number of client models for aggregation received [{len(client_models)}]!")
             return
+        self._logger.debug(f"Aggregating client models [{len(client_models)}] into global model...")
         global_model = self._m_aggr.aggregate(client_models)
-        _, w_ready = self._aggr_serv.poll_connections()
-        clients = w_ready.values()
+
+        clients = self._aggr_serv.poll_connections()[1].values()
+        self._logger.debug(f"Sending aggregated global model to all available clients [{len(clients)}]...")
         for client in clients:
             client.send(global_model)
 
     def _async_aggr(self):
-        """TODO CHECKING, LOGGING, COMMENTS
+        """Performs an asynchronous federated aggregation step, i.e. checking whether a sufficient number of clients
+        sent their local models to the server, before aggregating their models, potentially also taking into account the
+        global model of the previous step (depending on the model aggregator chosen). The newly created global model is
+        sent back only to all clients that requested an aggregation step.
         """
         clients = self._aggr_serv.poll_connections()[0].values()
         if self._num_clients is not None and len(clients) < self._num_clients * self._min_clients:
+            self._logger.info(f"Insufficient read-ready clients available for aggregation step [{len(clients)}]!")
             return
 
-        client_models = self.get_client_models(clients)
+        self._logger.debug(f"Receiving local models from requesting clients [{len(clients)}]...")
+        client_models = [model for model
+                         in cast(list[list[np.ndarray]], receive_latest_ep_objs(clients, list).values())
+                         if model is not None]
+
         if (len(client_models) == 0 or
-                self._num_clients is not None and len(client_models) < self._min_clients * self._num_clients):
+                self._num_clients is not None and len(client_models) < self._num_clients * self._min_clients):
+            self._logger.info(f"Insufficient number of client models for aggregation received [{len(client_models)}]!")
             return
+        self._logger.debug(f"Aggregating client models [{len(client_models)}] into global model...")
         global_model = self._m_aggr.aggregate(client_models)
+
         clients = ep_select(clients)[1]
+        self._logger.debug(f"Sending aggregated global model to available requesting clients [{len(clients)}]...")
         for client in clients:
             client.send(global_model)
-
-    def get_client_models(self, clients: Iterable[StreamEndpoint]):
-        """TODO CHECKING, LOGGING, COMMENTS
-        """
-        client_models = []
-        for client in clients:
-            client_model = None
-            try:
-                while True:
-                    client_msg = client.receive(timeout=0)
-                    if isinstance(client_msg, list):
-                        client_model = client_msg
-                    else:
-                        pass  # FIXME logging
-            except (RuntimeError, TimeoutError):
-                pass # FIXME logging
-            if client_model is not None:
-                client_models.append(client_model)
-        return client_models
 
 
 class FederatedResultAggregator(FederatedOnlineAggregator):

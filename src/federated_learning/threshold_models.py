@@ -1,8 +1,8 @@
 """
-    A collection of extensions to the FederatedModel base class to support a wide array of threshold models, which are
-    used for anomaly detection, mostly for the mapping from numerical scalar values to binary class labels. For this the
-    most common models currently are the statistical ones, that use either the mean (combined with std. dev.) or the
-    median to compute a singular threshold value for simple classification.
+    A collection of extensions to the FederatedModel class to support a wide array of threshold models, which are used
+    for anomaly detection, mostly for the mapping from numerical scalar values to binary class labels. For this the most
+    common models currently are the statistical ones, that use either the mean (combined with std. dev.) or the median
+    to compute a singular threshold value for simple classification.
 
     Author: Fabian Hofmann, Seraphin Zunzer
     Modified: 14.09.23
