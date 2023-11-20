@@ -53,7 +53,11 @@ class Chordmessage:
 
 # TODO Boostrapping
 # TODO logging
-
+# BIG TODO EP Chaos cleanup
+    # failing ep
+    # silent ep
+    # read/write ready?
+    # closing ep
 class Chordnode:
     """Class for Chordnodes.
     """
@@ -265,6 +269,11 @@ class Chordnode:
                 self._find_succ(finger, self._addr, message_id)
 
     def _is_succ(self, node_id: int) -> bool:
+        """
+
+        :param node_id:
+        :return: true if self is successor of node, else false
+        """
         return (self._id < self._predecessor[0]) & (node_id not in range(self._id + 1, self._predecessor[0] + 1)) \
             or (node_id in range(self._predecessor[0] + 1, self._id + 1))
 
@@ -272,17 +281,26 @@ class Chordnode:
         """FIXME WHAT IF SUCC NONE?
 
         :param node_id:
-        :return:
+        :return: true if self is predecessor of node, else false
         """
         return (self._id > self._successor[0]) & (node_id not in range(self._successor[0] + 1, self._id + 1)) \
             or (node_id in range(self._id + 1, self._successor[0] + 1))
 
     def _get_closest_known_pred(self, node_id: int) -> StreamEndpoint | None:
-        """
+        """Finds the closest predecessor one node knows for another node in fingertable.
+
+        # FIXME empty fingertable
+        # FIXME only one finger
+        # FIXME only self in fingertable -> self successor? what if succ is null too
+        Note: If the fingertable is empty
 
         :param node_id:
         :return:
         """
+
+        if len(self._fingertable) == 1:
+            return self._successor_endpoint
+
         closest_pred = None
         for finger in range(self._max_fingers):
             f_curr = self._fingertable.get(finger, (None, None, None))  # id, addr, ep
@@ -299,7 +317,7 @@ class Chordnode:
                     f_next = self._fingertable.get(i, (None, None, None))
 
             if (f_curr[0] < f_next[0]) & (node_id in range(f_curr[0], f_next[0] + 1)):
-                return f_curr[2]  # FIXME
+                return f_curr[2]  # FIXME wth is this shit
             if (f_curr[0] > f_next[0]) & (node_id in range(f_next[0], f_curr[0] + 1)):
                 return f_next[2]
         return closest_pred
