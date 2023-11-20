@@ -232,11 +232,11 @@ class Chordnode:
             self._close_and_remove_ep(do_addr, do_ep)  # close finger_eps that are ep
 
         if ep is self._predecessor_endpoint:  # clean up predecessor ep if necessary
-            self._close_and_remove_ep(self._predecessor[1], ep)
+            self._close_and_remove_ep(self._predecessor, ep)
             self._predecessor = None
             self._predecessor_endpoint = None
         if ep is self._successor_endpoint:  # clean up succ ep if necessary
-            self._close_and_remove_ep(self._successor[1], ep)
+            self._close_and_remove_ep(self._successor, ep)
             for finger in range(
                     self._max_fingers):  # set some arbitrary finger as succ, will be repaired by stabilize/notify calls
                 f_id, f_addr, f_ep = self._fingertable.get(finger, (None, None, None))
