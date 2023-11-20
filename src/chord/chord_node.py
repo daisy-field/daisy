@@ -269,7 +269,7 @@ class Chordnode:
         Note: this method does not actually update any finger table entries.
         """
         if self._successor[0] == self._id:
-            self._logger.log(f"In fix_fingers: Successor is self")
+            self._logger.info(f"In fix_fingers: Successor is self")
         for i in range(self._max_fingers):
             finger = self._id + 2 ** i % (2 ** self._max_fingers)
             if self._is_pred(finger):
