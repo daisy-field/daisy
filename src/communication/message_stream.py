@@ -956,8 +956,8 @@ class EndpointServer:
         with self._c_lock:
             self._logger.debug(f"Polling {len(self._connections)} connections for readability and writability...")
             c_states = {addr: (ep, ep.poll) for addr, ep in self._connections.items()}
-        r_ready = {addr: t[0] for addr, t in c_states.items() if t[0][1]}
-        w_ready = {addr: t[0] for addr, t in c_states.items() if t[0][2]}
+        r_ready = {addr: t[0] for addr, t in c_states.items() if t[1][0][1]}
+        w_ready = {addr: t[0] for addr, t in c_states.items() if t[1][0][2]}
         self._logger.debug(f"{len(r_ready)} connections for readability and "
                            f"{len(w_ready)} connections for writability found.")
         return r_ready, w_ready
