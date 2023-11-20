@@ -66,11 +66,10 @@ class Chordnode:
     _name: str  # for debugging and fun
     _addr: tuple[str, int]
     _fingertable: dict[int, tuple[int, tuple[str, int], StreamEndpoint]]
-    _successor: tuple[int, tuple[str, int]]
-    _successor_endpoint: StreamEndpoint
-    _predecessor: tuple[int, tuple[str, int]]
-    _predecessor_endpoint: StreamEndpoint
-    _node_endpoints: list[StreamEndpoint]
+    _successor: tuple[int, tuple[str, int]] | None
+    _successor_endpoint: StreamEndpoint | None
+    _predecessor: tuple[int, tuple[str, int]] | None
+    _predecessor_endpoint: StreamEndpoint | None
     _endpoint_server: EndpointServer
     _max_fingers: int  # let m/max_fingers be the number of bits in the key/node identifiers. (copied from paper)
     _sent_messages: dict[uuid4, tuple[MessageOrigin, time, Optional[int]]]
@@ -78,7 +77,6 @@ class Chordnode:
 
     def __init__(self, name: str, addr: tuple[str, int],
                  predecessor: tuple[int, tuple[str, int]] = None,
-                 node_endpoints: list[StreamEndpoint] = None,
                  max_fingers: int = 32):
         """
         Creates a new Chord Peer.
@@ -95,7 +93,6 @@ class Chordnode:
         self._fingertable = {}
         self._successor = (self._id, self._addr)  # init to None, set at join to chord ring
         self._predecessor = predecessor
-        self._node_endpoints = node_endpoints
         self._endpoint_server = EndpointServer(f"{name}-endpointserver", addr=addr, multithreading=True)
         self._max_fingers = max_fingers
         self._sent_messages = {}
