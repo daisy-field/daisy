@@ -17,8 +17,6 @@ import typing
 from src.communication.message_stream import StreamEndpoint, EndpointServer
 
 
-# TODO Comments :c
-
 class MessageType(Enum):
     JOIN = 1
     FIND_SUCC_RES = 2
@@ -51,13 +49,6 @@ class Chordmessage:
         self.node_tuple = node_tuple
 
 
-# TODO Boostrapping
-# TODO logging
-# BIG TODO EP Chaos cleanup
-# failing ep
-# silent ep
-# read/write ready?
-# closing ep
 class Chordnode:
     """Class for Chordnodes.
     """
@@ -92,7 +83,9 @@ class Chordnode:
         self._addr = addr
         self._fingertable = {}
         self._successor = (self._id, self._addr)  # init to None, set at join to chord ring
+        self._successor_endpoint = None
         self._predecessor = predecessor
+        self._predecessor_endpoint = None
         self._endpoint_server = EndpointServer(f"{name}-endpointserver", addr=addr, multithreading=True)
         self._max_fingers = max_fingers
         self._sent_messages = {}
@@ -106,7 +99,7 @@ class Chordnode:
         :param message:
         :return:
         """
-        logging.log(level=logging.INFO, msg="")
+        self._logger.info(f"Attempting to send Message of Type {message.message_type} with id {message.message_id}")
         if ep is not None:
             if self._clean_up_ep_if_dropout(ep):
                 return
@@ -119,14 +112,15 @@ class Chordnode:
             endpoint.send(message)
             while True:
                 states, _ = endpoint.poll()
-                if states[2]:  # wait until endpoint buffer is free (message sent) to close, mk sense?
+                if states[2]:  # FIXME wait until endpoint buffer is free (message sent) to close, mk sense? -> fragen
                     break
+            self._logger.info(f"Initiating Endpoint Stop")
             endpoint.stop(shutdown=True)
 
     def _join(self, remote_addr: tuple[str, int]):
         """Creates and sends a join message to a node in an existing chord ring.
 
-        # TODO if message is lost should be retried after ttl of message runs out
+        # TODO if message is lost should be retried after ttl of message runs out -> method to check ttl of messages periodically?
 
         :param remote_addr: Address of bootstrap node.
         """
@@ -135,6 +129,14 @@ class Chordnode:
         join_chord_message = Chordmessage(message_id=message_id, message_type=MessageType.JOIN,
                                           node_tuple=(self._id, self._addr))
         self._send_message(None, remote_addr, join_chord_message)
+
+    def check_sent_messages_ttl(self):
+        """Checks whether sent messages can be forgotten and deletes them.
+        """
+        for key in self._sent_messages.values():
+            if self._sent_messages[key][1] is not None:
+                if time()-self._sent_messages[key][1] > 60:
+                    self._sent_messages.pop(key)
 
     def _notify(self, remote_id: int, remote_addr: tuple[str, int]):
         """Send the predecessor of a node to another node. Used to repair successor pointers on the cord ring.
@@ -148,9 +150,9 @@ class Chordnode:
         self._send_message(ep, remote_addr, notify_message)
 
     def _stabilize(self, remote_id: int, remote_addr: tuple[str, int]):
-        """Sends self to succ, initiating reparation of successor and predecessor pointers.
+        """Sends self to successor, initiating reparation of successor and predecessor pointers.
 
-        TODO Succ may have failed in the meantime, ask next fingertable entry or predecessor
+        Later TODO Succ may have failed in the meantime, ask next fingertable entry or predecessor
 
         :param remote_id: Chord-Id of successor
         :param remote_addr: Address of successor
@@ -211,7 +213,7 @@ class Chordnode:
         """Searches through all available connections of a node to see where a given StreamEndpoint is used and initiates cleanup of the StreamEndpoint if it has died.
 
          TODO predecessor und successor updates auslagern
-         TODO Methodennamen überarbeiten damit return impliziert ist
+         FIXME Methodennamen überarbeiten damit return impliziert ist
         Note: may result in removal of successor or predecessor endpoint of a node or empty fingertables.
 
         :param ep: StreamEndpoint suspected as dropout
@@ -309,9 +311,8 @@ class Chordnode:
         :return:
         """
 
-        if len(self._fingertable) <= 1:
-            self._logger.info(f"In function self._get_closest_known_pred: no Fingers found")
-            return self._successor_endpoint
+        if self._check_node_in_chord():
+            self._logger.info(f"In function self._get_closest_known_pred: Node is alone")
 
         closest_pred = None
         for finger in range(self._max_fingers):
@@ -354,11 +355,13 @@ class Chordnode:
                                           node_tuple=(self._id, self._addr))
             ep = self._get_ep_if_exists(node_id, node_addr)
             self._send_message(ep, node_addr, succ_found_msg)
-        else:
+        #else: TODO closest pred should not return ep and check for if node is alone
             # idk, ask closest pred of node
-            self._get_closest_known_pred(node_id).send(
-                Chordmessage(message_id=message_id, message_type=MessageType.FIND_SUCC_REQ,
-                             node_tuple=(node_id, node_addr)))
+            #closest_pred_ep = (self._get_closest_known_pred(node_id)
+            #if closest_pred_ep is None:
+            #                    .send(
+            #    Chordmessage(message_id=message_id, message_type=MessageType.FIND_SUCC_REQ,
+            #                 node_tuple=(node_id, node_addr))))
 
     def _process_join(self, message: Chordmessage):
         """
@@ -428,6 +431,7 @@ class Chordnode:
         if self._successor is None:
             if self._predecessor is None:
                 if len(self._fingertable) == 0:
+                    self._logger.warning(f"Not connected in Chord, departing.")
                     return True
         return False
 
@@ -443,7 +447,7 @@ class Chordnode:
         if bootstrap_addr is not None:
             self._join(bootstrap_addr)
         while True:
-            # TODO check ft, succ, pred empty -> depart? see _check_node_in_chord
+            # check here for departure or not, if yes depart.
             curr_time = time()
             if curr_time - last_refresh_time >= 30:
                 self._fix_fingers()
@@ -469,7 +473,6 @@ class Chordnode:
 if __name__ == "__main__":
     logging.basicConfig(format="%(asctime)s %(levelname)-8s %(name)-10s %(message)s", datefmt="%Y-%m-%d %H:%M:%S",
                         level=logging.INFO)
-    # TODO how to start multiple nodes in one main?
     in_name = input('Enter node name:')
     in_port = input('Enter node port:')
     in_addr = "127.0.0.1"
