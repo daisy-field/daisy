@@ -7,7 +7,8 @@
 """
 
 import logging
-from time import time, sleep
+from time import time
+
 from uuid import uuid4
 from enum import Enum
 from typing import Optional
@@ -72,14 +73,12 @@ class Chordpeer:
     _logger: logging.Logger
 
     def __init__(self, name: str, addr: tuple[str, int],
-                 successor: tuple[int, tuple[str, int]] = None,
                  max_fingers: int = 32):
         """
         Creates a new Chord Peer.
 
         :param name: Name of peer for logging and fun.
         :param addr: Address of peer.
-        :param predecessor: Predecessor of peer on Chord Ring, initialized as None.
         :param max_fingers: Max size of fingertable, also used for calculating peer ids on chord
         """
 
@@ -88,7 +87,7 @@ class Chordpeer:
         self._addr = addr
 
         self._fingertable = {}
-        self._successor = (self._id, self._addr)
+        self._successor = None # vllt. doch auf self initen?
         self._successor_endpoint = None
         self._predecessor = (self._id, self._addr)
         self._predecessor_endpoint = None
@@ -124,11 +123,11 @@ class Chordpeer:
             endpoint.send(message)
             self._logger.info(f"Sent Message of Type {message.message_type} with Peer {message.peer_tuple}")
 
-
     def _join(self, remote_addr: tuple[str, int]):
         """Creates and sends a join message to a peer in an existing chord ring.
 
-        # TODO if message is lost should be retried after ttl of message runs out -> method to check ttl of messages periodically?
+        # TODO if message is lost should be retried after ttl of message runs out -> method to check ttl of messages
+        periodically?
 
         :param remote_addr: Address of bootstrap peer.
         """
@@ -273,11 +272,12 @@ class Chordpeer:
 
     def _fix_fingers(self):
         """Iterates the finger indices, initiating lookups for the respective peers; defaults to the successor.
-        # TODO avoid having self in fingertable
-        Note: this method does not actually update any finger table entries.
+
+        Note: this method does not actually update any finger table entries. It will return early if a node has no successor, since this implies an empty fingertable as well FIXME.
         """
-        if self._successor[0] == self._id:
-            self._logger.info(f"In fix_fingers: Successor is self")
+        if self._successor is None:
+            self._logger.info(f"In fix_fingers: Successor is self, aborting. ")
+            return
         for i in range(self._max_fingers):
             finger = self._id + 2 ** i % (2 ** self._max_fingers)
             if self._is_pred(finger):
@@ -300,56 +300,63 @@ class Chordpeer:
             or (peer_id in range(self._predecessor[0] + 1, self._id + 1))
 
     def _is_pred(self, peer_id: int) -> bool:
-        """Checks whether self is predecessor of a peer or not. Predecessor may be None.
+        """Checks whether self is predecessor of a peer or not. Predecessor may be None. Throws TypeError.
 
         :param peer_id:
         :return: true if self is predecessor of peer, else false
         """
-        if self._successor is None:
-            return False
-        return (self._id > self._successor[0]) & (peer_id not in range(self._successor[0] + 1, self._id + 1)) \
+        try:
+            return (self._id > self._successor[0]) & (peer_id not in range(self._successor[0] + 1, self._id + 1)) \
             or (peer_id in range(self._id + 1, self._successor[0] + 1))
+        except TypeError:
+            self._logger.error(f"TypeError: Successor may be None.")
+            return False
 
     def _get_closest_known_pred(self, peer_id: int) -> StreamEndpoint | None:
         """Finds the closest predecessor one peer knows for another peer in fingertable.
 
-        # FIXME empty fingertable
-        # FIXME only one finger
-        # FIXME only self in fingertable -> self successor? what if succ is null too
-        Note: If the fingertable is empty
+        # FIXME only one finger - should work now
+        Note: If the fingertable is empty throws an Error and returns None.
 
         :param peer_id:
         :return:
         """
+        if self._successor is None or (self._successor[0] == self._id):
+            if self._predecessor is None or (self._predecessor[0] == self._id):
+                if len(self._fingertable) == 0:
+                    self._logger.warning(
+                        f"In function self._get_closest_known_pred: Peer is not connected in Chord; Pred and succ are None or self, empty Fingertable")
+                    return
 
-        if self._check_peer_alone_in_chord():
-            self._logger.info(f"In function self._get_closest_known_pred: peer is alone")
-            return
+        for f_index in range(self._max_fingers):
+            f_curr = self._fingertable.get(f_index, (None, None, None))  # id, addr, ep
+            f_next = self._fingertable.get(f_index + 1, (None, None, None))
 
-        closest_pred = None
-        for finger in range(self._max_fingers):
-            f_curr = self._fingertable.get(finger, (None, None, None))  # id, addr, ep
-            f_next = self._fingertable.get(finger + 1, (None, None, None))
-
-            i = finger + 1
-            while (f_curr is None or f_next is None) and i < self._max_fingers:
-                if f_curr is None:
+            i = f_index + 1
+            while (f_curr == (None, None, None) or f_next == (None, None, None)) and i < self._max_fingers:
+                if f_curr == (None, None, None):
                     f_curr = self._fingertable.get(i, (None, None, None))
-                if f_next is None:
+                if f_next == (None, None, None):
                     f_next = self._fingertable.get(i + 1, (None, None, None))
                 i += 1
-                if f_curr[0] == f_next[0] and f_curr is not None:
+                if f_curr[0] == f_next[0] and f_curr != (None, None, None):
                     f_next = self._fingertable.get(i, (None, None, None))
+
+            # fingertable has only one entry, so either curr or next must be none
+            if f_curr == (None, None, None) and f_next != (None, None, None):
+                return f_next[2]
+            elif f_next == (None, None, None) and f_curr != (None, None, None):
+                return f_curr[2]
 
             try:
                 if (f_curr[0] < f_next[0]) & (peer_id in range(f_curr[0], f_next[0] + 1)):
-                    return f_curr[2]  # FIXME wth is this shit
+                    return f_curr[2]
                 if (f_curr[0] > f_next[0]) & (peer_id in range(f_next[0], f_curr[0] + 1)):
                     return f_next[2]
             except TypeError:
                 self._logger.error(f"TypeError in _get_closest_known_pred: Maybe Fingertable of Peer is empty?")
                 return
-        return closest_pred
+        return
 
     def _find_succ(self, peer_id: int, peer_addr: tuple[str, int], message_id: uuid4):
         """Function to find successor of peer with chord id find_succ_id. Message will be relayed along the cordring
@@ -371,7 +378,6 @@ class Chordpeer:
                                           peer_tuple=(self._id, self._addr))
             ep = self._get_ep_if_exists(peer_id, peer_addr)
             self._send_message(ep, peer_addr, succ_found_msg)
-        # TODO closest pred should not return ep and check for if peer is alone
         # idk, ask closest pred of peer
         else:
             closest_pred_ep = self._get_closest_known_pred(peer_id)
@@ -379,7 +385,7 @@ class Chordpeer:
                 closest_pred_ep.send(Chordmessage(message_id=message_id, message_type=MessageType.FIND_SUCC_REQ,
                                                   peer_tuple=(peer_id, peer_addr)))
             except AttributeError:
-                self._logger.error(f"AttributeError in find_succ: Maybe Peer is alone in/disconnected from Chord?")
+                self._logger.error(f"AttributeError in find_succ: Maybe Peer is alone in/disconnected from Chord? Sending back self.")
                 succ_found_msg = Chordmessage(message_id=message_id, message_type=MessageType.FIND_SUCC_RES,
                                               peer_tuple=(self._id, self._addr))
                 ep = self._get_ep_if_exists(peer_id, peer_addr)
@@ -451,6 +457,7 @@ class Chordpeer:
 
     def _check_peer_alone_in_chord(self):
         """Checks whether a peer is still connected to the chord ring.
+
         # TODO worth it to wait for other peer to connect? not really
 
         Note: while a peer itself can have no connections left to other peers, another peer may still be able to connect.
@@ -467,6 +474,8 @@ class Chordpeer:
         """Starts the chord peer, joining an existing chord ring or bootstrapping one, before starting the periodic
         loop to maintain the ring and process incoming messages.
 
+        # TODO cleanup onetime eps die älter als 30 sec sind.
+
         :param bootstrap_addr: Remote address of peer of existing ring to jon to, otherwise None.
         """
         last_refresh_time = time()
@@ -478,8 +487,13 @@ class Chordpeer:
             curr_time = time()
             if curr_time - last_refresh_time >= 30:
                 self._logger.info(msg=f"Initiating fix_fingers and Stabilize")
-                self._fix_fingers()
-                self._stabilize(*self._successor)
+                try:
+                    self._fix_fingers()
+                    self._stabilize(*self._successor)
+                except TypeError:
+                    self._logger.error(f"TypeError in run: Successor may be None at stabilize call.")
+                last_refresh_time = time()
+
             r_ready, _ = self._endpoint_server.poll_connections()
             for addr in r_ready:
                 try:
@@ -487,7 +501,9 @@ class Chordpeer:
                     msg_type = message.message_type
 
                     self._logger.info(f"Received Message of Type {msg_type} with peer {message.peer_tuple}")
-                    self._logger.info(f"NODE STATUS: id: {self._id}, predecessor: {self._predecessor}, successor: {self._successor}, finger: {self._fingertable}")
+                    self._logger.info(
+                        f"NODE STATUS: id: {self._id}, predecessor: {self._predecessor}, successor: {self._successor}, "
+                        f"finger: {self._fingertable}")
 
                     match msg_type:
                         case MessageType.JOIN:
@@ -500,8 +516,8 @@ class Chordpeer:
                             self._process_stabilize(message)
                         case MessageType.NOTIFY:
                             self._process_notify(message)
-                except:
-                    self._logger.error(f"")
+                except (TypeError, RuntimeError) as e:
+                    self._logger.error(f"{e.__class__.__name__}({e}) in run during receive loop")
 
 
 if __name__ == "__main__":
@@ -510,7 +526,7 @@ if __name__ == "__main__":
     in_name = input('Enter peer name:')
     in_port = input('Enter peer port:')
     in_addr = "127.0.0.1"
-    in_remote_port = input('Enter peer remote_t_id:')
+    in_remote_port = input('Enter peer remote port:')
     # ("127.0.0.1", 32000)
     # ("127.0.0.1", 13000)
     peer = Chordpeer(name=in_name, addr=(in_addr, int(in_port)))
