@@ -5,7 +5,7 @@
     Modified: 15.09.23
 
 """
-
+import datetime
 import logging
 from time import time
 
@@ -87,7 +87,7 @@ class Chordpeer:
         self._addr = addr
 
         self._fingertable = {}
-        self._successor = None # vllt. doch auf self initen?
+        self._successor = None  # vllt. doch auf self initen?
         self._successor_endpoint = None
         self._predecessor = (self._id, self._addr)
         self._predecessor_endpoint = None
@@ -103,10 +103,13 @@ class Chordpeer:
     def _send_message(self, ep, remote_addr, message):
         """Sends a Chordmessage over a given endpoint. Initiates clean up if the given endpoint is no longer usable, but sends the message nevertheless.
 
-        :param ep:
-        :param remote_addr:
-        :param message:
-        :return:
+        Note: The given Endpoint may be None, or inactive. The Node to whom the Message should be sent may have failed,
+        or left the chordring. Due to the sychronicity of the Endpoints sending message and immediately closing
+        the endpoint may lead to losing the message.
+
+        :param ep: Endpoint to a receiving Chord Node.
+        :param remote_addr: Address of a Chord Node
+        :param message: Chordmessage to be sent
         """
         if ep is not None:
             if self._clean_up_ep_if_dropout(ep):
@@ -170,7 +173,6 @@ class Chordpeer:
             return
         stabilize_message = Chordmessage(message_id=uuid4(), message_type=MessageType.STABILIZE,
                                          peer_tuple=(self._id, self._addr))
-        self._logger.info(f"Attempting STABILIZE to Peer {remote_id}")
         ep = self._get_ep_if_exists(remote_id, remote_addr)
         self._send_message(ep, remote_addr, stabilize_message)
 
@@ -229,9 +231,9 @@ class Chordpeer:
         if ep is None:  # dropout
             return True
 
-        states, addrs = ep.poll()
-        if states[0]:
-            return False  # may not work like this, ep can be not dropout but unavailable
+        states, addrs = ep.poll()  # supposed to filter eps that are not dropouts, everything after this line assumes dropout ep
+        if states[0] or states[1] or states[2]:  # may not work like this, ep can be not dropout but unavailable
+            return False
 
         dropouts = [finger_key for finger_key, finger in self._fingertable.items()
                     if ep is finger[2]]
@@ -242,11 +244,11 @@ class Chordpeer:
             self._close_and_remove_ep(do_addr, do_ep)  # close finger_eps that are ep
 
         if ep is self._predecessor_endpoint:  # clean up predecessor ep if necessary
-            self._close_and_remove_ep(self._predecessor, ep)
+            self._close_and_remove_ep(self._predecessor[1], ep)
             self._predecessor = None
             self._predecessor_endpoint = None
         if ep is self._successor_endpoint:  # clean up succ ep if necessary
-            self._close_and_remove_ep(self._successor, ep)
+            self._close_and_remove_ep(self._successor[1], ep)
             for finger in range(
                     self._max_fingers):  # set some arbitrary finger as succ, will be repaired by stabilize/notify calls
                 f_id, f_addr, f_ep = self._fingertable.get(finger, (None, None, None))
@@ -276,8 +278,12 @@ class Chordpeer:
         Note: this method does not actually update any finger table entries. It will return early if a node has no successor, since this implies an empty fingertable as well FIXME.
         """
         if self._successor is None:
-            self._logger.info(f"In fix_fingers: Successor is self, aborting. ")
+            self._logger.warning(f"In fix_fingers: Successor is None, ending fix_fingers. ")
             return
+
+        if self._successor[0] == self._id and len(self._fingertable) == 0:
+            return
+
         for i in range(self._max_fingers):
             finger = self._id + 2 ** i % (2 ** self._max_fingers)
             if self._is_pred(finger):
@@ -288,13 +294,13 @@ class Chordpeer:
                 self._find_succ(finger, self._addr, message_id)
 
     def _is_succ(self, peer_id: int) -> bool:
-        """Checks whether self is successor of a peer or not. Successor may be None.
+        """Checks whether self is the successor of a peer or not. Successor may be None.
 
         Note: will return True if s
         :param peer_id:
         :return: true if self is successor of peer, else false
         """
-        if self._predecessor is self:
+        if self._predecessor[0] == self._id:
             return True
         return (self._id < self._predecessor[0]) & (peer_id not in range(self._id + 1, self._predecessor[0] + 1)) \
             or (peer_id in range(self._predecessor[0] + 1, self._id + 1))
@@ -305,11 +311,14 @@ class Chordpeer:
         :param peer_id:
         :return: true if self is predecessor of peer, else false
         """
+        if peer_id == self._id == self._successor[0]:
+            return False
+
         try:
             return (self._id > self._successor[0]) & (peer_id not in range(self._successor[0] + 1, self._id + 1)) \
-            or (peer_id in range(self._id + 1, self._successor[0] + 1))
+                or (peer_id in range(self._id + 1, self._successor[0] + 1))
         except TypeError:
-            self._logger.error(f"TypeError: Successor may be None.")
+            self._logger.error(f"TypeError in is_pred: Successor is None.")
             return False
 
     def _get_closest_known_pred(self, peer_id: int) -> StreamEndpoint | None:
@@ -385,7 +394,8 @@ class Chordpeer:
                 closest_pred_ep.send(Chordmessage(message_id=message_id, message_type=MessageType.FIND_SUCC_REQ,
                                                   peer_tuple=(peer_id, peer_addr)))
             except AttributeError:
-                self._logger.error(f"AttributeError in find_succ: Maybe Peer is alone in/disconnected from Chord? Sending back self.")
+                self._logger.error(
+                    f"AttributeError in find_succ: Maybe Peer is alone in/disconnected from Chord? Sending back self.")
                 succ_found_msg = Chordmessage(message_id=message_id, message_type=MessageType.FIND_SUCC_RES,
                                               peer_tuple=(self._id, self._addr))
                 ep = self._get_ep_if_exists(peer_id, peer_addr)
@@ -398,10 +408,15 @@ class Chordpeer:
         :return:
         """
         self._find_succ(*message.peer_tuple, message.message_id)
+        if self._successor is None:
+            self._successor = message.peer_tuple
+            self._successor_endpoint = StreamEndpoint(name=f"succ-ep-{self._name}",
+                                                      remote_addr=message.peer_tuple[1], acceptor=False,
+                                                      multithreading=True,
+                                                      buffer_size=10000)
 
     def _process_notify(self, message: Chordmessage):
-        """
-
+        """Processes the received node from a notify message. If the node is not self but could be
         :param message:
         :return:
         """
@@ -417,7 +432,6 @@ class Chordpeer:
         # if pred is still self change!!
         if self._predecessor == (self._id, self._addr):
             self._predecessor = message.peer_tuple
-
         # if (peer id is my pred (I am succ) or between me and my pred) update my pred
         elif self._is_succ(message.peer_tuple[0]):
             self._predecessor = message.peer_tuple
@@ -429,7 +443,8 @@ class Chordpeer:
                     buffer_size=10000)
             else:
                 self._predecessor_endpoint = ep
-            self._notify(*self._predecessor)
+        else:
+            return
 
     def _process_find_succ_res(self, message: Chordmessage):
         """
@@ -490,8 +505,9 @@ class Chordpeer:
                 try:
                     self._fix_fingers()
                     self._stabilize(*self._successor)
+                    self._notify(*self._predecessor)
                 except TypeError:
-                    self._logger.error(f"TypeError in run: Successor may be None at stabilize call.")
+                    self._logger.warning(f"TypeError in run: Successor None at stabilize call.")
                 last_refresh_time = time()
 
             r_ready, _ = self._endpoint_server.poll_connections()
@@ -502,8 +518,7 @@ class Chordpeer:
 
                     self._logger.info(f"Received Message of Type {msg_type} with peer {message.peer_tuple}")
                     self._logger.info(
-                        f"NODE STATUS: id: {self._id}, predecessor: {self._predecessor}, successor: {self._successor}, "
-                        f"finger: {self._fingertable}")
+                        f"NODE STATUS: id: {self._id}, predecessor: {self._predecessor}, successor: {self._successor}")
 
                     match msg_type:
                         case MessageType.JOIN:
@@ -529,7 +544,8 @@ if __name__ == "__main__":
     in_remote_port = input('Enter peer remote port:')
     # ("127.0.0.1", 32000)
     # ("127.0.0.1", 13000)
-    peer = Chordpeer(name=in_name, addr=(in_addr, int(in_port)))
+
+    peer = Chordpeer(name=in_name, addr=(in_addr, int(in_port)), max_fingers=16)
     if in_remote_port == '':
         peer.run()  # start as first chord peer
     else:
