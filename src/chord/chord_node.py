@@ -7,6 +7,7 @@
 """
 import datetime
 import logging
+import threading
 from time import time
 
 from uuid import uuid4
@@ -51,6 +52,8 @@ class Chordmessage:
 
 
 class Chordpeer:
+    # TODO HIGH PRIO: REFACTOR EP handling
+
     """Class for Chordpeers.
     """
 
@@ -68,7 +71,7 @@ class Chordpeer:
     _max_fingers: int  # let m/max_fingers be the number of bits in the key/peer identifiers. (copied from paper)
 
     _sent_messages: dict[uuid4, tuple[MessageOrigin, time, Optional[int]]]
-    _one_time_eps: dict[uuid4, StreamEndpoint]
+    #_one_time_eps: dict[uuid4, StreamEndpoint]
 
     _logger: logging.Logger
 
@@ -96,7 +99,7 @@ class Chordpeer:
         self._max_fingers = max_fingers
 
         self._sent_messages = {}
-        self._one_time_eps = {}
+        #self._one_time_eps = {}
 
         self._logger = logging.getLogger(name + "-Peer")
 
@@ -112,8 +115,8 @@ class Chordpeer:
         :param message: Chordmessage to be sent
         """
         if ep is not None:
-            if self._clean_up_ep_if_dropout(ep):
-                return
+            #if self._clean_up_ep_if_dropout(ep):
+            #    return
             ep.send(message)
             self._logger.info(f"Sent Message of Type {message.message_type} with Peer {message.peer_tuple}")
         else:
@@ -122,9 +125,10 @@ class Chordpeer:
                                       remote_addr=remote_addr, acceptor=False, multithreading=True,
                                       buffer_size=10000)
             endpoint.start()
-            self._one_time_eps[message.message_id] = endpoint
+            #self._one_time_eps[message.message_id] = endpoint
             endpoint.send(message)
-            self._logger.info(f"Sent Message of Type {message.message_type} with Peer {message.peer_tuple}")
+            self._logger.info(f"Sent Message of Type {message.message_type} with Peer {message.peer_tuple} via {ep_name}")
+            threading.Thread(target=lambda: endpoint.stop(shutdown=True, timeout=30), daemon=True).start()
 
     def _join(self, remote_addr: tuple[str, int]):
         """Creates and sends a join message to a peer in an existing chord ring.
@@ -188,14 +192,16 @@ class Chordpeer:
             finger_ids_in_ft = {finger_id for finger_id, finger_addr, finger_ep in self._fingertable.values()
                                 if finger[2] is finger_ep}
             if len(finger_ids_in_ft) == 0:
-                self._close_and_remove_ep(finger[1], finger[2])
+                #self._close_and_remove_ep(finger[1], finger[2])
+                finger[2].stop(shutdown=True)
 
         ep = self._get_ep_if_exists(*finger_peer)  # checks ep-server and self._finger_table, in case ep has not been
         # removed already
-        if ep is not None:
-            if self._clean_up_ep_if_dropout(ep):
-                return
-        else:  # create new ep if none exists
+        #if ep is not None:
+            #if self._clean_up_ep_if_dropout(ep):
+                #return
+        #else:  # create new ep if none exists
+        if ep is None:
             ep = StreamEndpoint(name=f"finger-ep-{np.random.randint(0, 100)}",
                                 remote_addr=finger_peer[1], acceptor=False, multithreading=True,
                                 buffer_size=10000)
@@ -205,25 +211,31 @@ class Chordpeer:
     def _get_ep_if_exists(self, remote_id: int, remote_addr: tuple[str, int]) -> Optional[StreamEndpoint]:
         """Checks whether a StreamEndpoint to a given peer exists and returns it. Returns None if StreamEndpoint does not exist.
 
-        Note: Endpoints, or peers, may fail at any point whithin or outside the function. Any endpoint returned by this function may be dead. This problem remains to be solved somehow.
+        Note: Endpoints, or peers, may fail at any point within or outside the function. Any endpoint returned by this function may be dead. This problem remains to be solved somehow.
 
         :param remote_id: peer id to check connection to
         :param remote_addr: address of remote peer
         :return ep: StreamEndpoint to peer or None
         """
+        if remote_id == self._predecessor[0]:
+            return self._predecessor_endpoint
+        if remote_id == self._successor[0]:
+            return self._successor_endpoint
+
         ep = {finger_ep for finger_id, finger_addr, finger_ep in self._fingertable.values()
               if remote_id == finger_id}
         if len(ep) == 0:
-            ep = self._endpoint_server.get_connections([remote_addr]).get(remote_addr)
-        else:
-            ep = ep.pop()
-        return ep
+            #ep = self._endpoint_server.get_connections([remote_addr]).get(remote_addr)
+            return None
+        try:
+            return ep.pop()
+        except KeyError as e:
+            self._logger.error(f"{e.__class__.__name__}({e})::No ep found in fingertable")
 
-    def _clean_up_ep_if_dropout(self, ep: StreamEndpoint) -> bool:
+    def _clean_up_ep_if_dropout(self, ep: StreamEndpoint) -> bool:  # currently not in useage
         """Searches through all available connections of a peer to see where a given StreamEndpoint is used and initiates cleanup of the StreamEndpoint if it has died.
 
          TODO predecessor und successor updates auslagern
-         FIXME Methodennamen überarbeiten damit return impliziert ist
         Note: may result in removal of successor or predecessor endpoint of a peer or empty fingertables.
 
         :param ep: StreamEndpoint suspected as dropout
@@ -376,6 +388,10 @@ class Chordpeer:
         :param peer_id: chord id of peer whose successor should be found
         :message_id:
         """
+
+        if peer_id == self._id:
+            return
+
         if self._is_pred(peer_id):
             succ_found_msg = Chordmessage(message_id=message_id, message_type=MessageType.FIND_SUCC_RES,
                                           peer_tuple=self._successor)
@@ -489,8 +505,6 @@ class Chordpeer:
         """Starts the chord peer, joining an existing chord ring or bootstrapping one, before starting the periodic
         loop to maintain the ring and process incoming messages.
 
-        # TODO cleanup onetime eps die älter als 30 sec sind.
-
         :param bootstrap_addr: Remote address of peer of existing ring to jon to, otherwise None.
         """
         last_refresh_time = time()
@@ -499,27 +513,21 @@ class Chordpeer:
             self._join(bootstrap_addr)
         while True:
             # check here for departure or not, if yes depart.
-            curr_time = time()
-            if curr_time - last_refresh_time >= 30:
-                self._logger.info(msg=f"Initiating fix_fingers and Stabilize")
-                try:
+            try:
+                curr_time = time()
+                if curr_time - last_refresh_time >= 30 and self._successor is not None:
+                    self._logger.info(msg=f"Initiating fix_fingers and Stabilize")
                     self._fix_fingers()
                     self._stabilize(*self._successor)
                     self._notify(*self._predecessor)
-                except TypeError:
-                    self._logger.warning(f"TypeError in run: Successor None at stabilize call.")
-                last_refresh_time = time()
-
-            r_ready, _ = self._endpoint_server.poll_connections()
-            for addr in r_ready:
-                try:
+                    last_refresh_time = time()
+                r_ready, _ = self._endpoint_server.poll_connections()
+                for addr in r_ready:
                     message = typing.cast(Chordmessage, r_ready[addr].receive())
                     msg_type = message.message_type
-
                     self._logger.info(f"Received Message of Type {msg_type} with peer {message.peer_tuple}")
                     self._logger.info(
-                        f"NODE STATUS: id: {self._id}, predecessor: {self._predecessor}, successor: {self._successor}")
-
+                        f"CURRENT POINTERS::id::{self._id}, predecessor: {self._predecessor}, successor: {self._successor}")
                     match msg_type:
                         case MessageType.JOIN:
                             self._process_join(message)
@@ -531,17 +539,16 @@ class Chordpeer:
                             self._process_stabilize(message)
                         case MessageType.NOTIFY:
                             self._process_notify(message)
-                except (TypeError, RuntimeError) as e:
-                    self._logger.error(f"{e.__class__.__name__}({e}) in run during receive loop")
-
+            except (TypeError, RuntimeError) as e:
+                self._logger.error(f"{e.__class__.__name__}({e}) in run")
 
 if __name__ == "__main__":
     logging.basicConfig(format="%(asctime)s %(levelname)-8s %(name)-10s %(message)s", datefmt="%Y-%m-%d %H:%M:%S",
                         level=logging.INFO)
     in_name = input('Enter peer name:')
     in_port = input('Enter peer port:')
-    in_addr = "127.0.0.1"
     in_remote_port = input('Enter peer remote port:')
+    in_addr = "127.0.0.1"
     # ("127.0.0.1", 32000)
     # ("127.0.0.1", 13000)
 
