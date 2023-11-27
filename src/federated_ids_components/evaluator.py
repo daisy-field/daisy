@@ -4,7 +4,7 @@
     Author: Seraphin Zunzer
     Modified: 09.05.22
 
-    TODO: CLEANUP IN WAY SIMILAR TO AGGREGATOR.PY
+    TODO: CLEANUP IN WAY SIMILAR TO AGGREGATOR.PY, JUST ANOTHER AGGREGATOR REALLY (INHERIT FROM BASE AGGR)
 """
 import logging
 import threading
