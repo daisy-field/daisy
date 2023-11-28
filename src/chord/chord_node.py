@@ -126,7 +126,7 @@ class Chordpeer:
             endpoint.send(message)
             self._logger.info(
                 f"Sent Message of Type {message.message_type} with Peer {message.peer_tuple} via {ep_name}")
-            #threading.Thread(target=lambda: endpoint.stop(shutdown=True, timeout=15), daemon=True).start()
+            threading.Thread(target=lambda: endpoint.stop(shutdown=True, timeout=30), daemon=True).start()
 
     def _join(self, remote_addr: tuple[str, int]):
         """Creates and sends a join message to a peer in an existing chord ring.
@@ -224,7 +224,7 @@ class Chordpeer:
         try:
             return ep.pop()
         except KeyError as e:
-            self._logger.error(f"{e.__class__.__name__}({e})::in get_ep_if-exists: No ep found")
+            self._logger.error(f"{e.__class__.__name__} ({e}) :: in get_ep_if-exists: No ep found")
             return
 
     def _clean_up_ep_if_dropout(self, ep: StreamEndpoint) -> bool:  # currently not in useage
@@ -277,9 +277,9 @@ class Chordpeer:
         if ep_in_epserver is None:
             if ep.poll()[0][0] and ep is not None:
                 return
-                #ep.stop(shutdown=True)
-        #else:
-         #   self._endpoint_server.close_connections([ep_addr])
+                # ep.stop(shutdown=True)
+        # else:
+        #   self._endpoint_server.close_connections([ep_addr])
 
     def _fix_fingers(self):
         """Iterates the finger indices, initiating lookups for the respective peers; defaults to the successor.
@@ -317,14 +317,14 @@ class Chordpeer:
         :param peer_id:
         :return: true if self is predecessor of peer, else false
         """
-        #if peer_id == self._id == self._successor[0]:
-          #  return False
+        # if peer_id == self._id == self._successor[0]:
+        #  return False
 
         try:
             return (self._id > self._successor[0]) & (peer_id not in range(self._successor[0] + 1, self._id + 1)) \
                 or (peer_id in range(self._id + 1, self._successor[0] + 1))
-        except TypeError:
-            self._logger.error(f"TypeError in is_pred: Successor is None.")
+        except TypeError as e:
+            self._logger.error(f"{e.__class__.__name__} ({e}) ::  in _is_pred")
             return False
 
     def _get_closest_known_pred(self, peer_id: int) -> StreamEndpoint | None:
@@ -344,23 +344,23 @@ class Chordpeer:
                     return
 
         for f_index in range(self._max_fingers):
-            f_curr = self._fingertable.get(f_index, (None, None, None))  # id, addr, ep
-            f_next = self._fingertable.get(f_index + 1, (None, None, None))
+            f_curr = self._fingertable.get(f_index, None)  # id, addr, ep
+            f_next = self._fingertable.get(f_index + 1, None)
 
             i = f_index + 1
-            while (f_curr == (None, None, None) or f_next == (None, None, None)) and i < self._max_fingers:
-                if f_curr == (None, None, None):
-                    f_curr = self._fingertable.get(i, (None, None, None))
-                if f_next == (None, None, None):
-                    f_next = self._fingertable.get(i + 1, (None, None, None))
+            while (f_curr is None or f_next is None) and i < self._max_fingers:
+                if f_curr is None:
+                    f_curr = self._fingertable.get(i, None)
+                if f_next is None:
+                    f_next = self._fingertable.get(i + 1, None)
                 i += 1
-                if f_curr[0] == f_next[0] and f_curr != (None, None, None):
-                    f_next = self._fingertable.get(i, (None, None, None))
+                if f_curr[0] == f_next[0] and f_curr is not None:
+                    f_next = self._fingertable.get(i, None)
 
             # fingertable has only one entry, so either curr or next must be none
-            if f_curr == (None, None, None) and f_next != (None, None, None):
+            if f_curr is None and f_next is not None:
                 return f_next[2]
-            elif f_next == (None, None, None) and f_curr != (None, None, None):
+            elif f_next is None and f_curr is not None:
                 return f_curr[2]
 
             try:
@@ -368,8 +368,9 @@ class Chordpeer:
                     return f_curr[2]
                 if (f_curr[0] > f_next[0]) & (peer_id in range(f_next[0], f_curr[0] + 1)):
                     return f_next[2]
-            except TypeError:
-                self._logger.error(f"TypeError in _get_closest_known_pred: Maybe Fingertable of Peer is empty?")
+            except TypeError as e:
+                self._logger.error(
+                    f"{e.__class__.__name__} ({e}) :: in _get_closest_known_pred: Maybe Fingertable of Peer is empty?")
                 return
         return
 
@@ -424,6 +425,7 @@ class Chordpeer:
                                                       remote_addr=message.peer_tuple[1], acceptor=False,
                                                       multithreading=True,
                                                       buffer_size=10000)
+            self._successor_endpoint.start()
         self._find_succ(*message.peer_tuple, message.message_id)
 
     def _process_notify(self, message: Chordmessage):
@@ -493,18 +495,19 @@ class Chordpeer:
             self._join(bootstrap_addr)
         while True:
             # check here for departure or not, if yes depart.
-            try:
-                curr_time = time()
 
-                if curr_time - last_refresh_time >= 30 and self._successor is not None:
-                    self._fix_fingers()
-                    self._stabilize(*self._successor)
-                    self._notify(*self._predecessor)
-                    last_refresh_time = curr_time
+            curr_time = time()
 
-                r_ready, _ = self._endpoint_server.poll_connections()
+            if curr_time - last_refresh_time >= 30 and self._successor is not None:
+                self._fix_fingers()
+                self._stabilize(*self._successor)
+                self._notify(*self._predecessor)
+                last_refresh_time = curr_time
 
-                for addr in r_ready:
+            r_ready, _ = self._endpoint_server.poll_connections()
+            # TODO what about other eps opened by self? eg finger-eps that recv? are they in ep-server?
+            for addr in r_ready:
+                try:
                     message = typing.cast(Chordmessage, r_ready[addr].receive())
                     msg_type = message.message_type
                     self._logger.info(f"Received Message of Type {msg_type} with peer {message.peer_tuple}")
@@ -522,9 +525,8 @@ class Chordpeer:
                             self._process_stabilize(message)
                         case MessageType.NOTIFY:
                             self._process_notify(message)
-
-            except (TypeError, RuntimeError) as e:
-                self._logger.error(f"{e.__class__.__name__}({e}) in run")
+                except (TypeError, RuntimeError) as e:
+                    self._logger.error(f"{e.__class__.__name__} ({e}) :: in run during receive")
 
 
 if __name__ == "__main__":
