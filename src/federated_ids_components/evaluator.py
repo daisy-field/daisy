@@ -8,25 +8,23 @@
 """
 import logging
 import threading
-from datetime import time, datetime
+from datetime import datetime
 from random import random
 from time import sleep
 
-from src.communication import EndpointServer
 from src.federated_ids_components.dashboard import Dashboard
-from typing import Tuple
 
 
 class FederatedOnlineEvaluator():
-
     _logger: logging.Logger
 
     evaluation_objects = []
-    _logged_metrics = {'accuracy': {'node_addr_1': [0.1,0.1,0.1,0.1,0.1,0.1], 'node_addr_2':[0.2,0.2,0.2,0.2,0.2,0.2]},
-                       'f1': {'node_addr_1': [0.3,0.4,0.1,0.5,0.6,0.9], 'node_addr_2':[0.1,0.9,0.2,0.3,0.5,0.6]},
-                        'precision': {'node_addr_1': [0.2, 0.2, 0.3, 0.5, 0.7, 0.9], 'node_addr_2': [0.2, 0.4, 0.5, 0.1, 0.5, 0.6]},
-                        'recall': {'node_addr_1': [0.7, 0.6, 0.1, 0.4, 0.9, 0.4], 'node_addr_2': [0.5, 0.2, 0.6, 0.7, 0.9, 0.6]},
-                       'x':['07:41:19','07:41:20', '07:41:21', '07:41:22', '07:41:23', '07:41:24']}
+    _logged_metrics = {
+        'accuracy': {'node_addr_1': [0.1, 0.1, 0.1, 0.1, 0.1, 0.1], 'node_addr_2': [0.2, 0.2, 0.2, 0.2, 0.2, 0.2]},
+        'f1': {'node_addr_1': [0.3, 0.4, 0.1, 0.5, 0.6, 0.9], 'node_addr_2': [0.1, 0.9, 0.2, 0.3, 0.5, 0.6]},
+        'precision': {'node_addr_1': [0.2, 0.2, 0.3, 0.5, 0.7, 0.9], 'node_addr_2': [0.2, 0.4, 0.5, 0.1, 0.5, 0.6]},
+        'recall': {'node_addr_1': [0.7, 0.6, 0.1, 0.4, 0.9, 0.4], 'node_addr_2': [0.5, 0.2, 0.6, 0.7, 0.9, 0.6]},
+        'x': ['07:41:19', '07:41:20', '07:41:21', '07:41:22', '07:41:23', '07:41:24']}
     _nodes = ["node_addr_1", "node_addr_2"]
     _metrics_to_log = ['accuracy', 'f1', 'recall', 'precision']
 
@@ -41,20 +39,20 @@ class FederatedOnlineEvaluator():
         self._logger.info("Initializing federated evaluator...")
 
         self._addr = addr
-        #self._eval_server = EndpointServer(name="Evaluator", addr=self._addr)
-        #self._eval_server.start()
+        # self._eval_server = EndpointServer(name="Evaluator", addr=self._addr)
+        # self._eval_server.start()
 
         self.dashboard = Dashboard(self, window_size=None)
         dashbord = threading.Thread(target=self.dashboard.run)
         dashbord.start()
 
-        #Just a simulation to add new metrics
+        # Just a simulation to add new metrics
         self.simulate_process()
 
         while 1:
             sleep(10)
             r_nodes = []
-            r_ready,_ = self._eval_server.poll_connections()
+            r_ready, _ = self._eval_server.poll_connections()
             for i in r_ready.items():
                 addr, ep = i
                 if addr not in self._nodes:
@@ -62,25 +60,24 @@ class FederatedOnlineEvaluator():
                 r_nodes.append(addr)
                 new_metrics = []
                 try:
-                   r_metrics = ep.receive()
-                   if isinstance(r_metrics, dict):
-                       new_metrics.append(r_metrics)
-                   else:
-                       self._logger.warning("Received malformed metrics!")
+                    r_metrics = ep.receive()
+                    if isinstance(r_metrics, dict):
+                        new_metrics.append(r_metrics)
+                    else:
+                        self._logger.warning("Received malformed metrics!")
                 except RuntimeError:
                     continue
                 while True:
                     try:
-                       r_metrics = ep.receive(timeout=0)
-                       if isinstance(r_metrics, dict):
-                           new_metrics.append(r_metrics)
-                       else:
-                           self._logger.warning("Received malformed metrics!")
+                        r_metrics = ep.receive(timeout=0)
+                        if isinstance(r_metrics, dict):
+                            new_metrics.append(r_metrics)
+                        else:
+                            self._logger.warning("Received malformed metrics!")
                     except (TimeoutError, RuntimeError):
-                       break
+                        break
                 self.queue_metrics(addr, new_metrics[-1])
             self.fill_empty_metrics(responding_nodes=r_nodes)
-
 
     def fill_empty_metrics(self, responding_nodes):
         for addr in self._nodes:
@@ -107,7 +104,6 @@ class FederatedOnlineEvaluator():
                 else:
                     self._logged_metrics[metric][addr] += [None]
 
-
     def simulate_process(self):
         """ Test dashboard by adding random values to metrics
 
@@ -127,14 +123,13 @@ class FederatedOnlineEvaluator():
             responding_nodes = ['node_addr_1', 'node_addr_2']
             t += 1
             if t % 10 == 0:
-                responding_nodes.append("new_node_"+str(t))
-                self.add_node("new_node_"+str(t))
-                self.queue_metrics("new_node_"+str(t), {"accuracy": [random(), random(), random()],
-                                                "f1": [random(), random(), random()]})
+                responding_nodes.append("new_node_" + str(t))
+                self.add_node("new_node_" + str(t))
+                self.queue_metrics("new_node_" + str(t), {"accuracy": [random(), random(), random()],
+                                                          "f1": [random(), random(), random()]})
 
             self.fill_empty_metrics(responding_nodes)
 
 
 if __name__ == "__main__":
     eval = FederatedOnlineEvaluator(("127.0.0.1", 54323))
-

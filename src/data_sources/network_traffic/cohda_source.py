@@ -11,7 +11,7 @@ from typing import Callable
 
 import numpy as np
 
-from src.data_sources.network_traffic.pyshark_source import PysharkProcessor, default_f, default_l_aggregator
+from src.data_sources.network_traffic.pyshark_source import PysharkProcessor, default_f, default_nn_aggregator
 
 
 class CohdaProcessor(PysharkProcessor):
@@ -23,17 +23,17 @@ class CohdaProcessor(PysharkProcessor):
 
     def __init__(self, client_id: int, events: list[tuple[int, tuple[datetime, datetime], list[str], list[str], str]],
                  name: str = "", f_features: tuple[str, ...] = default_f,
-                 l_aggregator: Callable[[str, list], object] = default_l_aggregator):
+                 nn_aggregator: Callable[[str, object], object] = default_nn_aggregator):
         """Creates a new cohda processor for a specific client.
 
         :param client_id: ID of client.
         :param events: List of labeled, self-descriptive, events by which one can label individual data points with.
         :param name: Name of processor for logging purposes.
         :param f_features: Selection of features that every data point will have after processing.
-        :param l_aggregator: List aggregator that is able to aggregator dictionary values that are lists into singleton
+        :param nn_aggregator: List aggregator that is able to aggregator dictionary values that are lists into singleton
         values, depending on the key they are sorted under.
         """
-        super().__init__(name, f_features, l_aggregator)
+        super().__init__(name, f_features, nn_aggregator)
 
         self._client_id = client_id
         self._events = events

@@ -7,21 +7,18 @@
     TODO: CLEANUP IN WAY SIMILAR TO AGGREGATOR.PY
 """
 import logging
-import threading
 
 import dash
 import dash_bootstrap_components as dbc
 import dash_core_components as dcc
 import dash_html_components as html
-import pandas as pd
-import plotly
-import plotly.express as px
 import plotly.graph_objs as go
 from dash.dependencies import Output, Input, State
 from dash_bootstrap_templates import ThemeSwitchAIO, load_figure_template
 
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
+
 
 class Dashboard():
     """
@@ -34,7 +31,7 @@ class Dashboard():
     _app = dash.Dash(__name__, update_title=None)
     _app.title = "Federated Learning"
     _dark_template = "slate"
-    _light_template = "journal" #lux"
+    _light_template = "journal"  # lux"
     load_figure_template([_light_template, _dark_template])
 
     def __init__(self, evaluator, window_size):
@@ -50,11 +47,11 @@ class Dashboard():
             [
                 html.Br(),
                 html.Div([ThemeSwitchAIO(aio_id="theme", themes=[dbc.themes.COSMO, dbc.themes.DARKLY])],
-                    style={'float': "right", 'margin-right':"0.5cm"}),
+                         style={'float': "right", 'margin-right': "0.5cm"}),
                 html.Br(),
                 dbc.Card(
                     dbc.CardBody([
-                            html.H1("Federated Intrusion Detection System for the Edge", style={'margin': "0.5cm"}),
+                        html.H1("Federated Intrusion Detection System for the Edge", style={'margin': "0.5cm"}),
                     ]), style={'margin': "0.5cm"}),
 
                 html.Br(),
@@ -62,24 +59,24 @@ class Dashboard():
                     dbc.CardBody([
                         dbc.Row([
                             dbc.Col([
-                                dcc.Graph(id="chart_acc", style={'display': 'inline-block', 'width':'100%'}),
+                                dcc.Graph(id="chart_acc", style={'display': 'inline-block', 'width': '100%'}),
                             ]),
                             dbc.Col([
-                                dcc.Graph(id="chart_rec", style={'display': 'inline-block', 'width':'100%'}),
+                                dcc.Graph(id="chart_rec", style={'display': 'inline-block', 'width': '100%'}),
                             ]),
                         ], align='center'),
                         dbc.Row([
                             dbc.Col([
-                                dcc.Graph(id="chart_prec", style={'display': 'inline-block', 'width':'100%'}),
+                                dcc.Graph(id="chart_prec", style={'display': 'inline-block', 'width': '100%'}),
                             ]),
                             dbc.Col([
-                                dcc.Graph(id="chart_f1", style={'display': 'inline-block', 'width':'100%'}),
+                                dcc.Graph(id="chart_f1", style={'display': 'inline-block', 'width': '100%'}),
                             ])
                         ], align='center'),
                         dcc.Interval(id="graph-update", interval=1000, n_intervals=0),
                     ]), style={'margin': "0.5cm"}),
 
-               ])
+            ])
 
         if self._app is not None and hasattr(self, "callbacks"):
             self.callbacks(self._app)
@@ -95,7 +92,7 @@ class Dashboard():
         @_app.callback(
             Output("chart_acc", "figure"),
             [Input("graph-update", "n_intervals"),
-            Input(ThemeSwitchAIO.ids.switch("theme"), "value")],
+             Input(ThemeSwitchAIO.ids.switch("theme"), "value")],
             State("chart_acc", "figure")
         )
         def update_acc(n, toggle, figure):
@@ -107,22 +104,22 @@ class Dashboard():
             x_max, x_min = self.update_range(figure, len(self._evaluator._logged_metrics['x']))
             fig = go.Figure()
             for i in self._evaluator._logged_metrics['accuracy']:
-                fig.add_trace(go.Scatter(x = self._evaluator._logged_metrics['x'],
+                fig.add_trace(go.Scatter(x=self._evaluator._logged_metrics['x'],
                                          y=self._evaluator._logged_metrics['accuracy'][i],
                                          mode='lines',
                                          name=i))
             fig.update_layout(
-                    title='Accuracy',
-                    template= self._light_template if toggle else self._dark_template,
-                    plot_bgcolor = 'rgba(0, 0, 0, 0)',
-                    paper_bgcolor = 'rgba(0, 0, 0, 0)',
-                    yaxis_range=[0, 1],
-                    font = dict(size=18),
-                    uirevision=True,
-                    xaxis=dict(rangeslider=dict(visible=True),
-                               range=[x_min,x_max],
-                               tickvals = [x_min+1,x_max],
-                               tickfont=dict(size=14))
+                title='Accuracy',
+                template=self._light_template if toggle else self._dark_template,
+                plot_bgcolor='rgba(0, 0, 0, 0)',
+                paper_bgcolor='rgba(0, 0, 0, 0)',
+                yaxis_range=[0, 1],
+                font=dict(size=18),
+                uirevision=True,
+                xaxis=dict(rangeslider=dict(visible=True),
+                           range=[x_min, x_max],
+                           tickvals=[x_min + 1, x_max],
+                           tickfont=dict(size=14))
             )
             return fig
 
@@ -194,7 +191,6 @@ class Dashboard():
             )
             return fig
 
-
         @_app.callback(
             Output("chart_f1", "figure"),
             [Input("graph-update", "n_intervals"),
@@ -229,8 +225,6 @@ class Dashboard():
             )
             return fig
 
-
-
     def update_range(self, figure, len_x):
         try:
             x_min = figure['layout']['xaxis']['range'][0]
@@ -248,4 +242,3 @@ class Dashboard():
 
     def run(self):
         self._app.run_server(port=8050)
-
