@@ -10,7 +10,7 @@
         * ConfMatrSlidingWindowEvaluation - Evaluator that computes the confusion matrix metrics over a sliding window.
         * TFMetricSlidingWindowEvaluation - Class wrapper for generic tensorflow metrics over a sliding window.
 
-    Author: Seraphin Zunzer, Fabian Hofmann
+    Author: Fabian Hofmann
     Modified: 31.08.23
 """
 

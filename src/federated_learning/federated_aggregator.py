@@ -3,7 +3,7 @@
     or other parameters/model types and topologies for the federated distributed system, any strategy has to follow the
     same simple interface. This module provides this abstract class and some sample aggregators to be used.
 
-    Author: Fabian Hofmann, Seraphin Zunzer
+    Author: Fabian Hofmann
     Modified: 14.08.23
 
     TODO future work: weighted moving average based on significance of data point
