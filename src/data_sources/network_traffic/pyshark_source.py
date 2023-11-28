@@ -148,7 +148,7 @@ class PysharkProcessor(DataProcessor):
         """
         l_point = []
         for key, value in d_point.items():
-            if isinstance(value, list):
+            if isinstance(value, list): # FIXME
                 value = self.l_aggregator(key, value)
             l_point.append(value)
         return np.asarray(l_point)
@@ -198,7 +198,7 @@ class LivePysharkHandler(SourceHandler):
 
 class PcapHandler(SourceHandler):
     """The wrapper implementation to support and handle any number of pcap files as data sources. Finite: finishes after
-    all files have been processed. Warning: Note entirely compliant with the source handler abstract class: Neither
+    all files have been processed. Warning: Not entirely compliant with the source handler abstract class: Neither
     fully thread safe, nor does its __iter__() method shut down after close() has been called. Due to its finite nature
     acceptable however, as this handler is nearly always only closed ones all data points have been retrieved.
     """
