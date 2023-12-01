@@ -66,7 +66,7 @@ class TFFederatedModel(FederatedModel):
     _batch_size: int
     _epochs: int
 
-    def __init__(self, model: keras.Model, optimizer: str | keras.optimizers, loss: str | keras.losses.Loss,
+    def __init__(self, model: keras.Model, optimizer: str | keras.optimizers.Optimizer, loss: str | keras.losses.Loss,
                  metrics: list[str | Callable | keras.metrics.Metric] = None,
                  batch_size: int = 32, epochs: int = 1):
         """Creates a new tensorflow federated model from a given model. Since this also compiles the given model,
@@ -122,8 +122,9 @@ class TFFederatedModel(FederatedModel):
         return self._model(x_data, training=False).numpy()
 
     @classmethod
-    def get_fae(cls, input_size: int, optimizer: str | keras.optimizers = "Adam", loss: str | keras.losses.Loss = "mse",
-                metrics: list[str | Callable, keras.metrics.Metric] = None,
+    def get_fae(cls, input_size: int,
+                optimizer: str | keras.optimizers.Optimizer = "Adam", loss: str | keras.losses.Loss = "mse",
+                metrics: list[str | Callable | keras.metrics.Metric] = None,
                 batch_size: int = 32, epochs: int = 1) -> Self:
         """Factory class method to create a simple federated autoencoder model of a fixed depth but with variable input
         size.
@@ -245,7 +246,7 @@ class FederatedIFTM(FederatedModel):
         # Train IF
         self._if.fit(x_data, y_true)
 
-    def predict(self, x_data) -> Optional[Tensor[bool]]:
+    def predict(self, x_data) -> Optional[Tensor]:
         """Makes a prediction on the given data and returns it bby calling the wrapped models; first the IF to make a
         prediction, after which the error can be computed for the final prediction step using the TM.
 
