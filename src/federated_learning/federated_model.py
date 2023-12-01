@@ -67,7 +67,7 @@ class TFFederatedModel(FederatedModel):
     _epochs: int
 
     def __init__(self, model: keras.Model, optimizer: str | keras.optimizers, loss: str | keras.losses.Loss,
-                 metrics: list[str | Callable, keras.metrics.Metric] = None,
+                 metrics: list[str | Callable | keras.metrics.Metric] = None,
                  batch_size: int = 32, epochs: int = 1):
         """Creates a new tensorflow federated model from a given model. Since this also compiles the given model,
         there are set of additional arguments, for more information on those see:
