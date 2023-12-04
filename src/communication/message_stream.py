@@ -120,7 +120,7 @@ class EndpointSocket:
         """Closes the endpoint socket, cleaning up any underlying datastructures if acceptor. If already closed, allows
         the cleanup of just the datastructures incase a shutdown is requested.
         """
-        if not self._opened and shutdown and self._remote_addr is not None:
+        if not self._opened and shutdown and self._acceptor and self._remote_addr is not None:
             self._unreg_remote(self._addr, self._remote_addr)
             return
 
