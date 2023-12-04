@@ -830,7 +830,8 @@ class StreamEndpoint:
         self.stop(shutdown=True)
 
     def __del__(self):
-        self.stop(shutdown=True)
+        if not self._shutdown:
+            self.stop(shutdown=True)
 
 
 class EndpointServer:
