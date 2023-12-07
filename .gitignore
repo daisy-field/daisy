@@ -2,3 +2,6 @@
 # (lol)
 
 .idea
+
+# pyproject installation files
+src/of_ids.egg-info
