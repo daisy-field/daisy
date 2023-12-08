@@ -121,6 +121,8 @@ dependencies = [ # Optional
 # Similar to `dependencies` above, these must be valid existing
 # projects.
 [project.optional-dependencies] # Optional
+cuda = ["tensorflow[and-cuda]~=2.15.0"]
+direct-ml = ["tensorflow-directml-plugin"]
 #dev = ["check-manifest"]
 #test = ["coverage"]
 
