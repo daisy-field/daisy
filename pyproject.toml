@@ -56,45 +56,42 @@ license = {file = "LICENSE.txt"}
 # This should be your name or the name of the organization who originally
 # authored the project, and a valid email address corresponding to the name
 # listed.
-#authors = [
-#    {name = "A. Random Developer", email = "author@example.com" } # Optional
-#]
+authors = [
+    {name = "Fabian Hofmann", email = "fabian@alberts-hofmann.de" } # Optional
+]
 
 # This should be your name or the names of the organization who currently
 # maintains the project, and a valid email address corresponding to the name
 # listed.
-#maintainers = [
-#    {name = "A. Great Maintainer", email = "maintainer@example.com" } # Optional
-#]
+maintainers = [
+    {name = "Fabian Hofmann", email = "fabian@alberts-hofmann.de" } # Optional
+]
 
 # Classifiers help users find your project by categorizing it.
 #
 # For a list of valid classifiers, see https://pypi.org/classifiers/
-#classifiers = [  # Optional
-#    # How mature is this project? Common values are
-#    #   3 - Alpha
-#    #   4 - Beta
-#    #   5 - Production/Stable
-#    "Development Status :: 3 - Alpha",
-#
-#    # Indicate who your project is intended for
-#    "Intended Audience :: Developers",
-#    "Topic :: Software Development :: Build Tools",
-#
-#    # Pick your license as you wish
-#    "License :: OSI Approved :: MIT License",
-#
-#    # Specify the Python versions you support here. In particular, ensure
-#    # that you indicate you support Python 3. These classifiers are *not*
-#    # checked by "pip install". See instead "python_requires" below.
-#    "Programming Language :: Python :: 3",
-#    "Programming Language :: Python :: 3.7",
-#    "Programming Language :: Python :: 3.8",
-#    "Programming Language :: Python :: 3.9",
-#    "Programming Language :: Python :: 3.10",
-#    "Programming Language :: Python :: 3.11",
-#    "Programming Language :: Python :: 3 :: Only",
-#]
+classifiers = [  # Optional
+    # How mature is this project? Common values are
+    #   3 - Alpha
+    #   4 - Beta
+    #   5 - Production/Stable
+    "Development Status :: 3 - Alpha",
+
+    # Indicate who your project is intended for
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Build Tools",
+
+    # Pick your license as you wish
+    "License :: OSI Approved :: GPL-3.0 License",
+
+    # Specify the Python versions you support here. In particular, ensure
+    # that you indicate you support Python 3. These classifiers are *not*
+    # checked by "pip install". See instead "python_requires" below.
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3 :: Only",
+]
 
 # This field lists other packages that your project depends on to run.
 # Any package you put here will be installed by pip when your project is
@@ -119,7 +116,7 @@ dependencies = [ # Optional
 #
 # Similar to `dependencies` above, these must be valid existing
 # projects.
-#[project.optional-dependencies] # Optional
+[project.optional-dependencies] # Optional
 #dev = ["check-manifest"]
 #test = ["coverage"]
 
@@ -133,7 +130,7 @@ dependencies = [ # Optional
 # issues, where the source is hosted, where to say thanks to the package
 # maintainers, and where to support the project financially. The key is
 # what's used to render the link text on PyPI.
-#[project.urls]  # Optional
+[project.urls]  # Optional
 #"Homepage" = "https://github.com/pypa/sampleproject"
 #"Bug Reports" = "https://github.com/pypa/sampleproject/issues"
 #"Funding" = "https://donate.pypi.org"
@@ -142,7 +139,7 @@ dependencies = [ # Optional
 
 # The following would provide a command line executable called `sample`
 # which executes the function `main` from this package when invoked.
-#[project.scripts]  # Optional
+[project.scripts]  # Optional
 #sample = "sample:main"
 
 # This is configuration specific to the `setuptools` build backend.
