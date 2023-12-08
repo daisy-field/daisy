@@ -9,11 +9,13 @@
     # TODO Future Work: ALT.: Flattening of Lists instead of encoding them into singular numerical features
 """
 
+import ipaddress
 import json
 import logging
 import os
 from collections import defaultdict
 from collections.abc import MutableMapping
+from ipaddress import AddressValueError
 from typing import Callable, Iterator, Optional
 
 import numpy as np
@@ -97,30 +99,48 @@ default_f = (
 )
 
 
-def default_l_aggregator(key: str, value_l: list) -> int:
-    value_l.sort()
-    return hash(str(value_l))
+def default_nn_aggregator(key: str, value: object) -> int:
+    if isinstance(value, list):
+        value.sort()
+        return hash(str(value))
+
+    if isinstance(value, str):
+        try:
+            return int(ipaddress.IPv4Address(value))
+        except AddressValueError:
+            pass
+        try:
+            return int(ipaddress.IPv6Address(value))
+        except AddressValueError:
+            pass
+        try:
+            return int(value, 16)
+        except ValueError:
+            pass
+        return hash(value)
+
+    raise ValueError(f"Unable to aggregate non-numerical item: {key, value}")
 
 
 class PysharkProcessor(DataProcessor):
     """A simple data processor implementation supporting the processing of pyshark packets.
     """
     f_features: tuple[str, ...]
-    l_aggregator: Callable[[str, list], object]
+    nn_aggregator: Callable[[str, object], object]
 
     def __init__(self, name: str = "", f_features: tuple[str, ...] = default_f,
-                 l_aggregator: Callable[[str, list], object] = default_l_aggregator):
+                 nn_aggregator: Callable[[str, object], object] = default_nn_aggregator):
         """Creates a new pyshark processor.
 
         :param name: Name of processor for logging purposes.
         :param f_features: Selection of features that every data point will have after processing.
-        :param l_aggregator: List aggregator that is able to aggregator dictionary values that are lists into singleton
+        :param nn_aggregator: Aggregator that is able to aggregate non-numerical dictionary values into numbers.
         values, depending on the key they are sorted under.
         """
         super().__init__(name)
 
         self.f_features = f_features
-        self.l_aggregator = l_aggregator
+        self.nn_aggregator = nn_aggregator
 
     def map(self, o_point: (XmlLayer, JsonLayer)) -> dict:
         """Wrapper around the pyshark packet deserialization functions.
@@ -148,8 +168,8 @@ class PysharkProcessor(DataProcessor):
         """
         l_point = []
         for key, value in d_point.items():
-            if isinstance(value, list):
-                value = self.l_aggregator(key, value)
+            if not isinstance(value, int | float):
+                value = self.nn_aggregator(key, value)
             l_point.append(value)
         return np.asarray(l_point)
 
@@ -198,7 +218,7 @@ class LivePysharkHandler(SourceHandler):
 
 class PcapHandler(SourceHandler):
     """The wrapper implementation to support and handle any number of pcap files as data sources. Finite: finishes after
-    all files have been processed. Warning: Note entirely compliant with the source handler abstract class: Neither
+    all files have been processed. Warning: Not entirely compliant with the source handler abstract class: Neither
     fully thread safe, nor does its __iter__() method shut down after close() has been called. Due to its finite nature
     acceptable however, as this handler is nearly always only closed ones all data points have been retrieved.
     """

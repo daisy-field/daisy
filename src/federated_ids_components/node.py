@@ -76,7 +76,7 @@ class FederatedOnlineNode(ABC):
 
     def __init__(self, data_source: DataSource, batch_size: int, model: FederatedModel,
                  name: str = "",
-                 label_split: int = 2 ** 32, supervised: bool = False, metrics: list[tf.metrics] = None,
+                 label_split: int = 2 ** 32, supervised: bool = False, metrics: list[tf.metrics.Metric] = None,
                  eval_server: tuple[str, int] = None, aggr_server: tuple[str, int] = None,
                  sync_mode: bool = True, update_interval_s: int = None, update_interval_t: int = None):
         """Creates a new federated online node.
@@ -314,7 +314,7 @@ class FederatedOnlineClient(FederatedOnlineNode):
 
     def __init__(self, data_source: DataSource, batch_size: int, model: FederatedModel, m_aggr_server: tuple[str, int],
                  timeout: int = 10, name: str = "",
-                 label_split: int = 2 ** 32, supervised: bool = False, metrics: list[tf.metrics] = None,
+                 label_split: int = 2 ** 32, supervised: bool = False, metrics: list[tf.metrics.Metric] = None,
                  eval_server: tuple[str, int] = None, aggr_server: tuple[str, int] = None,
                  sync_mode: bool = True,
                  sampled_update: bool = False, update_interval_s: int = None, update_interval_t: int = None):

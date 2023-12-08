@@ -71,7 +71,7 @@ class FederatedTM(FederatedModel, ABC):
         reduced_data = self._reduce_fn(x_data)
         self.update_threshold(reduced_data)
 
-    def predict(self, x_data) -> Tensor[bool]:
+    def predict(self, x_data) -> Tensor:
         """Makes a prediction on the given data and returns it, which must be compatible with the tensorflow API
         (see: https://www.tensorflow.org/api_docs/python/tf/keras/Model#fit).
 

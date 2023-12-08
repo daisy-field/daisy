@@ -276,7 +276,7 @@ class DataSource:
         :param source_handler: Actual source that provisions data points to data source.
         :param generator: Generator object from which data points are retrieved, fallback from source handler.
         :param data_processor: Processor containing the methods on how to process individual data points.
-        :param process_fn: Processor functioning to process individual data points. If neither processor nor function
+        :param process_fn: Processor function to process individual data points. If neither processor nor function
         provided, defaults to NOP.
         :param multithreading: Enables transparent multithreading for speedup.
         :param buffer_size: Size of shared buffer in multithreading mode.
