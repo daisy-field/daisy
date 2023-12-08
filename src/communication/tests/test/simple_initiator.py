@@ -7,8 +7,8 @@ from src.communication import StreamEndpoint
 
 
 def threaded_initiator(t_id: int):
-    endpoint = StreamEndpoint(name=f"Initiator-{t_id}", addr=("127.0.0.1", 13000 + t_id),
-                              remote_addr=("127.0.0.1", 32000 + t_id),
+    endpoint = StreamEndpoint(name=f"Initiator-{t_id}",
+                              remote_addr=("127.0.0.1", 13000),
                               acceptor=False, multithreading=True, buffer_size=10000)
     endpoint.start()
 
@@ -24,14 +24,16 @@ def threaded_initiator(t_id: int):
 
         if i % 10 == 0:
             if random.randrange(100) % 3 == 0:
+                logging.warning("Shutting Down")
                 endpoint.stop(shutdown=True)
                 sleep(random.randrange(3))
 
-                endpoint = StreamEndpoint(name=f"Initiator-{t_id}", addr=("127.0.0.1", 13000 + t_id),
-                                          remote_addr=("127.0.0.1", 32000 + t_id),
+                endpoint = StreamEndpoint(name=f"Initiator-{t_id}",
+                                          remote_addr=("127.0.0.1", 13000),
                                           acceptor=False, multithreading=True, buffer_size=10000)
                 endpoint.start()
             else:
+                logging.warning("Stopping")
                 endpoint.stop()
                 sleep(random.randrange(3))
                 endpoint.start()
@@ -68,8 +70,8 @@ def simple_initiator():
 
 if __name__ == "__main__":
     logging.basicConfig(format="%(asctime)s %(levelname)-8s %(name)-10s %(message)s", datefmt="%Y-%m-%d %H:%M:%S",
-                        level=logging.DEBUG)
+                        level=logging.INFO)
 
-    simple_initiator()
+    # simple_initiator()
     # single_message_initiator()
-    # multithreaded_initiator(100)
+    multithreaded_initiator(1)

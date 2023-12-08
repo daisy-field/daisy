@@ -9,10 +9,10 @@ import logging
 import threading
 import typing
 from enum import Enum
-from time import time
+from time import time, sleep
 from typing import Optional
 from uuid import uuid4
-
+import argparse
 import numpy as np
 
 from src.communication.message_stream import StreamEndpoint, EndpointServer
@@ -112,6 +112,10 @@ class Chordpeer:
         :param remote_addr: Address of a Chord peer
         :param message: Chordmessage to be sent
         """
+        def timed_stop(ep_to_close):
+            sleep(10)
+            ep_to_close.stop(shutdown=True, timeout=10)
+
         if (ep is not None) and (ep.poll()[0][0]):
             # if self._clean_up_ep_if_dropout(ep):
             #    return
@@ -127,7 +131,7 @@ class Chordpeer:
             endpoint.send(message)
             self._logger.info(
                 f"Sent Message of Type {message.message_type} From {self._name, self._id} To {remote_addr} With {message.peer_tuple}")
-            threading.Thread(target=lambda: endpoint.stop(shutdown=True, timeout=10), daemon=True).start()
+            threading.Thread(target=lambda: timed_stop(endpoint), daemon=True).start()
 
     def _join(self, remote_addr: tuple[str, int]):
         """Creates and sends a join message to a peer in an existing chord ring.
@@ -578,22 +582,26 @@ class Chordpeer:
                 f"id: {self._id}, \n" +
                 f"predecessor: {self._predecessor}, \n" +
                 f"successor: {self._successor}, \n" +
-                f"fingers: {[('(' + str(key) + '), ') for key in self._fingertable.keys()]}, \n" +
+                f"fingers: {[('(' + str(key) + ') ') for key in self._fingertable.keys()]}, \n" +
                 f"currently waiting for responses to {len(self._sent_messages)} messages.")
 
 
 if __name__ == "__main__":
     logging.basicConfig(format="%(asctime)s %(levelname)-8s %(name)-10s %(message)s", datefmt="%Y-%m-%d %H:%M:%S",
                         level=logging.INFO)
-    in_name = input('Enter peer name:')
-    in_port = input('Enter peer port:')
-    in_remote_port = input('Enter peer remote port:')
-    in_addr = "127.0.0.1"
-    # ("127.0.0.1", 32000)
-    # ("127.0.0.1", 13000)
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument("--peerName",
+                        help="Peer name")
+    parser.add_argument("--peerPort", type=int,
+                        help="Port of peer")
+    parser.add_argument("--remotePort", type=int, default=None,
+                        help="Port of remote peer")
+    args = parser.parse_args()
 
-    peer = Chordpeer(name=in_name, addr=(in_addr, int(in_port)), max_fingers=16)
-    if in_remote_port == '':
+    peer_ip = "127.0.0.1"
+
+    peer = Chordpeer(name=args.peerName, addr=(peer_ip, args.peerPort), max_fingers=16)
+    if args.remotePort == '':
         peer.run()  # start as first chord peer
     else:
-        peer.run((in_addr, int(in_remote_port)))  # join existing chord
+        peer.run((peer_ip, args.remotePort))  # join existing chord

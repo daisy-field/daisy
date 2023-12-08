@@ -192,11 +192,12 @@ class EndpointSocket:
         :return: Tuple of boolean states (connectivity, readability, writability) and address-pair of endpoint socket.
         """
         states = [False] * 3
-        with self._sock_lock:
+        if self._sock_lock.acquire(blocking=False):
             if self._sock is not None:
                 states[0] = True
                 states[1] = len(select.select([self._sock], [], [], 0)[0]) != 0
                 states[2] = len(select.select([], [self._sock], [], 0)[1]) != 0
+            self._sock_lock.release()
         return states, (self._addr, self._remote_addr)
 
     def _connect(self):
