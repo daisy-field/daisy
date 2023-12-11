@@ -8,6 +8,7 @@
     TODO Future Work: SSL https://docs.python.org/3/library/ssl.html
     TODO Future Work: Potential race conditions during rapid start/stop | open/close of endpoints/endpoint sockets
     FIXME: Generic Initiator Endpoint Sockets are unable to reestablish connection to same remote endpoint
+    FIXME: Sender/Receiver Threads racing for re-establishing connection leading to inefficiencies
 """
 
 import ctypes
@@ -205,8 +206,8 @@ class EndpointSocket:
         """
         while self._opened:
             try:
-                self._logger.info(f"Trying to (re-)establish connection {self._addr, self._remote_addr}...")
-                with self._sock_lock:
+                with (self._sock_lock):
+                    self._logger.info(f"Trying to (re-)establish connection {self._addr, self._remote_addr}...")
                     _close_socket(self._sock)
                     self._sock = None
                     if self._acceptor:
@@ -219,8 +220,8 @@ class EndpointSocket:
                         self._sock, self._addr = self._get_c_socket(self._addr, self._remote_addr)
                     self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, self._send_b_size)
                     self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, self._recv_b_size)
-                self._logger.info(f"Connection {self._addr, self._remote_addr} (re-)established.")
-                break
+                    self._logger.info(f"Connection {self._addr, self._remote_addr} (re-)established.")
+                    break
             except (OSError, ValueError, AttributeError, RuntimeError) as e:
                 self._logger.info(f"{e.__class__.__name__}({e}) while trying to (re-)establish connection "
                                   f"{self._addr, self._remote_addr}. Retrying...")
