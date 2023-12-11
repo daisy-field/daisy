@@ -74,4 +74,4 @@ if __name__ == "__main__":
 
     # simple_initiator()
     # single_message_initiator()
-    multithreaded_initiator(1)
+    multithreaded_initiator(5)
