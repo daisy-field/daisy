@@ -12,10 +12,10 @@ def simple_server():
                 print(connection[1].receive(0))
             for connection in w.items():
                 connection[1].send(f"pong")
-            sleep(10)
+            sleep(1)
 
 
 if __name__ == "__main__":
     logging.basicConfig(format="%(asctime)s %(levelname)-8s %(name)-10s %(message)s", datefmt="%Y-%m-%d %H:%M:%S",
-                        level=logging.WARNING)
+                        level=logging.INFO)
     simple_server()

@@ -7,7 +7,7 @@ from src.communication import StreamEndpoint
 
 
 def threaded_initiator(t_id: int):
-    endpoint = StreamEndpoint(name=f"Initiator-{t_id}",
+    endpoint = StreamEndpoint(name=f"Initiator-{t_id}", addr=("127.0.0.1", 32000 + t_id),
                               remote_addr=("127.0.0.1", 13000),
                               acceptor=False, multithreading=True, buffer_size=10000)
     endpoint.start()
@@ -28,7 +28,7 @@ def threaded_initiator(t_id: int):
                 endpoint.stop(shutdown=True)
                 sleep(random.randrange(3))
 
-                endpoint = StreamEndpoint(name=f"Initiator-{t_id}",
+                endpoint = StreamEndpoint(name=f"Initiator-{t_id}", addr=("127.0.0.1", 32000 + t_id),
                                           remote_addr=("127.0.0.1", 13000),
                                           acceptor=False, multithreading=True, buffer_size=10000)
                 endpoint.start()
@@ -74,4 +74,4 @@ if __name__ == "__main__":
 
     # simple_initiator()
     # single_message_initiator()
-    multithreaded_initiator(5)
+    multithreaded_initiator(2)
