@@ -130,7 +130,7 @@ class Chordpeer:
         else:
             ep_name = f"one-time-ep-{np.random.randint(0, 100)}"
             endpoint = StreamEndpoint(name=ep_name,
-                                      remote_addr=remote_addr, acceptor=False, multithreading=True,
+                                      remote_addr=remote_addr, acceptor=False, multithreading=False,
                                       buffer_size=10000)
             endpoint.start()
             endpoint.send(message)
@@ -152,7 +152,7 @@ class Chordpeer:
                                           peer_tuple=(self._id, self._addr))
         self._send_message(None, remote_addr, join_chord_message)
 
-    def _check_sent_messages_ttl(self):
+    def cleanup_dead_messages(self):
         """Checks whether sent messages can be forgotten and deletes them.
         """
         for key in self._sent_messages.values():
@@ -207,7 +207,7 @@ class Chordpeer:
         ep = self._get_ep(*finger_tuple)
         if ep is None:
             ep = StreamEndpoint(name=f"finger-ep-{finger_index}",
-                                remote_addr=finger_tuple[1], acceptor=False, multithreading=True,
+                                remote_addr=finger_tuple[1], acceptor=False, multithreading=False,
                                 buffer_size=10000)
             ep.start()
         self._fingertable[finger_index] = (finger_tuple[0], finger_tuple[1], ep)
@@ -321,6 +321,7 @@ class Chordpeer:
         :return: True if self is successor of peer, else False
         """
         if self._predecessor[0] == self._id and peer_id != self._id:
+            # FIXME is this wrong?
             return True
 
         return ((self._id < self._predecessor[0]) and (peer_id not in range(self._id + 1, self._predecessor[0] + 1))) \
@@ -334,14 +335,14 @@ class Chordpeer:
         :param peer_id: Id of peer check predecessor relation
         :return: True if self is predecessor of peer, else false.
         """
-        if self._successor is None and peer_id != self._id:
+        if self._successor is None and peer_id != self._id:  # if no pred set
             return True
         return ((self._id > self._successor[0]) and (peer_id not in range(self._successor[0] + 1, self._id + 1))) \
             or (peer_id in range(self._id + 1, self._successor[0] + 1))
 
     def _get_closest_known_pred(self, peer_id: int) -> StreamEndpoint | None:
         """Finds the closest predecessor one peer knows for another peer in its fingertable.
-
+        # FIXME Logik fix
         # FIXME only one finger - should work now
         Note: If the fingertable is empty returns None.
 
@@ -392,8 +393,7 @@ class Chordpeer:
         :param peer_id: chord id of peer whose successor should be found
         :message_id:
         """
-        if self._id == peer_id:
-            # delete succ?
+        if self._addr == peer_addr:  # addr not id, wenn id dann eigenen succ
             # TODO log this
             return
         # second condition: if two peers are in ring A should not send B to B as its successor
@@ -424,6 +424,9 @@ class Chordpeer:
                                               peer_tuple=(self._id, self._addr))
                 ep = self._get_ep(peer_id, peer_addr)
                 self._send_message(ep, peer_addr, succ_found_msg)
+            except RuntimeError as e:
+                self._logger.error(
+                    f"{e.__class__.__name__} ({e}) :: in find_succ: Endpoint not connected.")
 
     def _process_join(self, message: Chordmessage):
         """Handles incoming join messages. Sets the successor of self if it is None and initiates successor lookup for new node.
@@ -437,7 +440,7 @@ class Chordpeer:
             self._successor = message.peer_tuple
             self._successor_endpoint = StreamEndpoint(name=f"succ-ep-{self._name}",
                                                       remote_addr=message.peer_tuple[1], acceptor=False,
-                                                      multithreading=True,
+                                                      multithreading=False,
                                                       buffer_size=10000)
             self._successor_endpoint.start()
         self._logger.info(f"In _process_join: initiating _find_succ for {message.peer_tuple}.")
@@ -458,7 +461,7 @@ class Chordpeer:
             if ep is None:
                 self._successor_endpoint = StreamEndpoint(
                     name=f"{self._name}-successor-ep-{np.random.randint(0, 100)}",
-                    remote_addr=self._addr, acceptor=False, multithreading=True,
+                    remote_addr=self._addr, acceptor=False, multithreading=False,
                     buffer_size=10000)
             else:
                 self._successor_endpoint = ep
@@ -481,7 +484,7 @@ class Chordpeer:
             if ep is None:
                 self._predecessor_endpoint = StreamEndpoint(
                     name=f"{self._name}-predecessor-ep-{np.random.randint(0, 100)}",
-                    remote_addr=self._addr, acceptor=False, multithreading=True,
+                    remote_addr=self._addr, acceptor=False, multithreading=False,
                     buffer_size=10000)
             else:
                 self._predecessor_endpoint = ep
@@ -507,7 +510,7 @@ class Chordpeer:
             self._successor = message.peer_tuple
             self._successor_endpoint = StreamEndpoint(
                 name=f"{self._name}-sucessor-ep-{np.random.randint(0, 100)}",
-                remote_addr=self._addr, acceptor=False, multithreading=True,
+                remote_addr=self._addr, acceptor=False, multithreading=False,
                 buffer_size=10000)
             self._logger.info(
                 f"Updated successor to {self._successor}. In _process_find_succ_res.")
@@ -551,6 +554,7 @@ class Chordpeer:
             if curr_time - last_refresh_time >= 15:
                 self._fix_fingers()
                 self._stabilize(*self._successor)
+                self.cleanup_dead_messages()
                 last_refresh_time = curr_time
 
             received_messages = self._receive_on_all_endpoints(start)
@@ -572,7 +576,6 @@ class Chordpeer:
                     case MessageType.NOTIFY:
                         self._process_notify(message)
                         self._logger.info("Post process Stabilize: " + self.__str__())
-            self._check_sent_messages_ttl()
 
     def _receive_on_all_endpoints(self, start: float):
         """Receives on all available endpoints where there is something to receive. May return an empty list if no messages were received.
