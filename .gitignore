@@ -5,3 +5,5 @@
 
 # pyproject installation files
 src/of_ids.egg-info
+**/__pycache_
+__pycache__/
