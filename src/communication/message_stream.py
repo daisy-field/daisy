@@ -7,8 +7,7 @@
 
     TODO Future Work: SSL https://docs.python.org/3/library/ssl.html
     TODO Future Work: Potential race conditions during rapid start/stop | open/close of endpoints/endpoint sockets
-    FIXME: Generic Initiator Endpoint Sockets are unable to reestablish connection to same remote endpoint
-    FIXME: Sender/Receiver Threads racing for re-establishing connection leading to inefficiencies
+    FIXME: (Potential Bug) Sender/Receiver Threads racing for re-establishing connection leading to inefficiencies
 """
 
 import ctypes
@@ -54,7 +53,6 @@ class EndpointSocket:
     _addr: tuple[str, int]
     _remote_addr: Optional[tuple[str, int]]
     _acceptor: bool
-    _static_addr: bool
 
     _send_b_size: int
     _recv_b_size: int
@@ -84,12 +82,11 @@ class EndpointSocket:
         self._logger = logging.getLogger(name + "-Socket")
         self._logger.info(f"Initializing endpoint socket {addr, remote_addr}...")
 
-        self._addr = addr
+        self._addr = addr if addr is not None else ('0.0.0.0', 0)
         self._remote_addr = remote_addr
-        self._static_addr = addr is not None
         self._acceptor = acceptor
         if acceptor:
-            if not self._static_addr:
+            if addr is None:
                 raise ValueError("Accepting endpoint socket requires an address!")
             elif remote_addr is not None:
                 self._reg_remote(remote_addr)
@@ -216,7 +213,6 @@ class EndpointSocket:
                             self._sock, remote_addr = self._get_a_socket(self._addr, self._remote_addr)
                         self._remote_addr = remote_addr
                     else:
-                        self._addr = self._addr if self._static_addr else ('0.0.0.0', 0)
                         self._sock, self._addr = self._get_c_socket(self._addr, self._remote_addr)
                     self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, self._send_b_size)
                     self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, self._recv_b_size)
@@ -552,8 +548,7 @@ class EndpointSocket:
                 try:
                     sock = socket.socket(r_af, r_t, r_p)
                     sock.settimeout(10)
-                    if s_addr != ('0.0.0.0', 0):
-                        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                     sock.bind(s_addr)
                     sock.connect(r_addr)
                     sock.settimeout(None)

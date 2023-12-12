@@ -5,14 +5,19 @@ from src.communication import EndpointServer
 
 
 def simple_server():
-    with EndpointServer(name="Testserver", addr=("127.0.0.1", 13000), c_timeout=5, multithreading=True) as server:
+    with EndpointServer(name="Testserver", addr=("127.0.0.1", 13000), c_timeout=60, multithreading=True) as server:
+        i = 0
         while True:
             r, w = server.poll_connections()
             for connection in r.items():
-                print(connection[1].receive(0))
+                try:
+                    print(connection[1].receive(0))
+                except TimeoutError:
+                    print("rip timeout")
             for connection in w.items():
-                connection[1].send(f"pong")
+                connection[1].send(f"pong {i}")
             sleep(1)
+            i += 1
 
 
 if __name__ == "__main__":

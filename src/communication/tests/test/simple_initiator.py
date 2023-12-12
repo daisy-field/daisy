@@ -15,7 +15,6 @@ def threaded_initiator(t_id: int):
     i = 0
     while True:
         endpoint.send(f"{t_id}-ping {i}")
-        i += 1
         try:
             print(f"{t_id}-{endpoint.receive(random.randrange(5))}")
         except TimeoutError:
@@ -37,6 +36,7 @@ def threaded_initiator(t_id: int):
                 endpoint.stop()
                 sleep(random.randrange(3))
                 endpoint.start()
+        i += 1
 
 
 def multithreaded_initiator(num_threads: int):
@@ -66,6 +66,7 @@ def simple_initiator():
         except TimeoutError:
             print("nothing to receive")
         sleep(2)
+        i += 1
 
 
 if __name__ == "__main__":
