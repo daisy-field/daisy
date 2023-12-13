@@ -110,7 +110,8 @@ class EndpointSocket:
         self._opened = True
         if self._acceptor:
             self._open_l_socket(self._addr)
-        self._connect()
+        with self._sock_lock:
+            self._connect()
         self._logger.info("Endpoint socket opened.")
 
     def close(self, shutdown: bool = False):
@@ -138,7 +139,12 @@ class EndpointSocket:
 
         :param p_data: Bytes to send.
         """
+        first_round = True
         while self._opened:
+            if not first_round: # FIXME
+                sleep(1)
+                first_round = False
+
             try:
                 with self._sock_lock:
                     if self._sock is None:
@@ -147,8 +153,8 @@ class EndpointSocket:
                 return
             except (OSError, ValueError, RuntimeError) as e:
                 self._logger.warning(f"{e.__class__.__name__}({e}) while trying to send data. Retrying...")
-                self._connect()
-            sleep(1)
+                with self._sock_lock:
+                    self._connect()
 
     def recv(self, timeout: int = None) -> Optional[bytes]:
         """Receives the bytes of a single object sent over the connection, performing simple marshalling (size is
@@ -159,7 +165,12 @@ class EndpointSocket:
         :return: Received bytes or None of end point socket has been closed.
         :raises TimeoutError: If timeout set and triggered.
         """
+        first_round = True
         while self._opened:
+            if not first_round: # FIXME
+                sleep(1)
+                first_round = False
+
             try:
                 with self._sock_lock:
                     if self._sock is None:
@@ -174,26 +185,30 @@ class EndpointSocket:
                 if timeout is not None and type(e) is TimeoutError:
                     raise e
                 self._logger.warning(f"{e.__class__.__name__}({e}) while trying to receive data. Retrying...")
-                self._connect()
-            sleep(1)
+                with self._sock_lock:
+                    self._connect()
         return None
 
-    def poll(self) -> tuple[list[bool], tuple[tuple[str, int], tuple[str, int]]]:
-        """Polls the state of various stats of the endpoint socket (see below) and addresses of endpoint socket.
+    def poll(self, lazy: bool = False) -> tuple[list[bool], tuple[tuple[str, int], tuple[str, int]]]:
+        """Polls the state of various state and addresses of the endpoint socket:
             * 0,0: Existence of socket (true if connected).
             * 0,1: Whether there is something to read on the underlying socket.
             * 0,2: Whether one is able to write on the underlying socket.
             + 1,0: Address of endpoint socket, else None
             + 1,1: Address of remote endpoint socket, else None.
+        Note this does not necessarily guarantee that the underlying socket is actually connected and available for
+        reading/writing; e.g. the connection could have broken down since then and is currently being re-established.
 
+        :param lazy: Whether to lazily skip the actual state of the underlying socket and just check for connectivity.
         :return: Tuple of boolean states (connectivity, readability, writability) and address-pair of endpoint socket.
         """
-        states = [False] * 3
-        with self._sock_lock:
-            if self._sock is not None:
-                states[0] = True
-                states[1] = len(select.select([self._sock], [], [], 0)[0]) != 0
-                states[2] = len(select.select([], [self._sock], [], 0)[1]) != 0
+        states = [self._sock is not None] + [False] * 2
+        if not lazy:
+            with self._sock_lock:
+                states[0] = self._sock is not None
+                if self._sock is not None:
+                    states[1] = len(select.select([self._sock], [], [], 0)[0]) != 0
+                    states[2] = len(select.select([], [self._sock], [], 0)[1]) != 0
         return states, (self._addr, self._remote_addr)
 
     def _connect(self):
@@ -203,26 +218,24 @@ class EndpointSocket:
         """
         while self._opened:
             try:
-                with (self._sock_lock):
-                    self._logger.info(f"Trying to (re-)establish connection {self._addr, self._remote_addr}...")
-                    _close_socket(self._sock)
-                    self._sock = None
-                    if self._acceptor:
-                        remote_addr = self._remote_addr
-                        while self._opened and self._sock is None:
-                            self._sock, remote_addr = self._get_a_socket(self._addr, self._remote_addr)
-                        self._remote_addr = remote_addr
-                    else:
-                        self._sock, self._addr = self._get_c_socket(self._addr, self._remote_addr)
-                    self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, self._send_b_size)
-                    self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, self._recv_b_size)
-                    self._logger.info(f"Connection {self._addr, self._remote_addr} (re-)established.")
-                    break
+                self._logger.info(f"Trying to (re-)establish connection {self._addr, self._remote_addr}...")
+                _close_socket(self._sock)
+                self._sock = None
+                if self._acceptor:
+                    remote_addr = self._remote_addr
+                    while self._opened and self._sock is None:
+                        self._sock, remote_addr = self._get_a_socket(self._addr, self._remote_addr)
+                    self._remote_addr = remote_addr
+                else:
+                    self._sock, self._addr = self._get_c_socket(self._addr, self._remote_addr)
+                self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, self._send_b_size)
+                self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, self._recv_b_size)
+                self._logger.info(f"Connection {self._addr, self._remote_addr} (re-)established.")
+                break
             except (OSError, ValueError, AttributeError, RuntimeError) as e:
                 self._logger.info(f"{e.__class__.__name__}({e}) while trying to (re-)establish connection "
                                   f"{self._addr, self._remote_addr}. Retrying...")
                 sleep(10)
-                continue
 
     @classmethod
     def _reg_remote(cls, remote_addr: tuple[str, int]):
@@ -753,17 +766,21 @@ class StreamEndpoint:
     def poll(self) -> tuple[list[bool], tuple[tuple[str, int], tuple[str, int]]]:
         """Polls the state of various stats of the endpoint (see below) and addresses of endpoint.
             * 0,0: Existence of underlying socket (true if connected).
-            * 0,1: Whether there is something to read on the internal buffer or underlying socket.
-            * 0,2: Whether one is able to write on the internal buffer or underlying socket.
+            * 0,1: Whether there is something to read on the internal buffer (async) or underlying socket (sync).
+            * 0,2: Whether one is able to write on the internal buffer (async) or underlying socket (sync).
             + 1,0: Address of endpoint, else None
             + 1,1: Address of remote endpoint, else None.
+        Note this does not necessarily guarantee that the underlying endpoint socket is actually connected and available
+        for reading/writing; not only could have the connection broken down since then and is being re-established, but
+        in multithreading mode the content of the internal buffers might change over time and thus change the read/write
+        state.
 
         :return: Tuple of boolean states (connectivity, readability, writability) and address-pair of endpoint.
         """
-        states, addrs = self._endpoint_socket.poll()
+        states, addrs = self._endpoint_socket.poll(lazy=self._multithreading)
         if self._multithreading:
-            states[1] = states[1] or not self._recv_buffer.empty()
-            states[2] = states[2] or not self._send_buffer.full() and states[0]
+            states[1] = not self._recv_buffer.empty()
+            states[2] = not self._send_buffer.full() and states[0]
         return states, addrs
 
     def _create_socket_starter(self):
