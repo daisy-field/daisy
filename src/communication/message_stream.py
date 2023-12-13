@@ -139,18 +139,13 @@ class EndpointSocket:
 
         :param p_data: Bytes to send.
         """
-        first_round = True
         while self._opened:
-            if not first_round: # FIXME
-                sleep(1)
-                first_round = False
-
             try:
                 with self._sock_lock:
-                    if self._sock is None:
-                        continue
-                    _send_payload(self._sock, p_data)
-                return
+                    if _check_w_socket(self._sock):
+                        _send_payload(self._sock, p_data)
+                        return
+                sleep(1)
             except (OSError, ValueError, RuntimeError) as e:
                 self._logger.warning(f"{e.__class__.__name__}({e}) while trying to send data. Retrying...")
                 with self._sock_lock:
@@ -165,22 +160,13 @@ class EndpointSocket:
         :return: Received bytes or None of end point socket has been closed.
         :raises TimeoutError: If timeout set and triggered.
         """
-        first_round = True
         while self._opened:
-            if not first_round: # FIXME
-                sleep(1)
-                first_round = False
-
             try:
                 with self._sock_lock:
-                    if self._sock is None:
-                        continue
-                    if timeout is not None and not select.select([self._sock], [], [], timeout)[0]:
-                        raise TimeoutError
-                    elif not select.select([self._sock], [], [], 0)[0]:
-                        continue
-                    p_data = _recv_payload(self._sock)
-                return p_data
+                    if _check_r_socket(self._sock, timeout=timeout):
+                        p_data = _recv_payload(self._sock)
+                        return p_data
+                sleep(1)
             except (OSError, ValueError, RuntimeError) as e:
                 if timeout is not None and type(e) is TimeoutError:
                     raise e
@@ -1224,6 +1210,36 @@ def _recv_n_data(sock: socket.socket, size: int, buff_size: int = 4096) -> bytes
         data[size - r_size:size - r_size + n_size] = n_data
         r_size -= n_size
     return data
+
+
+def _check_r_socket(sock: socket.socket, timeout: int = None) -> bool:
+    """Checks a given socket whether data can be read from it.
+
+    :param sock: Socket to check for read readiness.
+    :param timeout: Timeout (seconds) to wait for socket to be read ready.
+    :return: True if socket is ready to be read from, else false.
+    :raises TimeoutError: If timeout set and triggered.
+    """
+    if sock is None:
+        return False
+    if timeout is not None and not select.select([sock], [], [], timeout)[0]:
+        raise TimeoutError
+    elif not select.select([sock], [], [], 0)[0]:
+        return False
+    return True
+
+
+def _check_w_socket(sock: socket.socket) -> bool:
+    """Checks a given socket whether data can be written to it.
+
+    :param sock: Socket to check for write readiness.
+    :return: True if socket is ready to be written to, else false.
+    """
+    if sock is None:
+        return False
+    elif not select.select([], [sock], [], 0)[1]:
+        return False
+    return True
 
 
 def _close_socket(sock: socket.socket):
