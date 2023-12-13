@@ -58,6 +58,7 @@ class EndpointSocket:
     _recv_b_size: int
     _sock: Optional[socket.socket]
     _sock_lock: threading.Lock
+    _conn_lock: threading.Lock
 
     _opened: bool
 
@@ -98,6 +99,7 @@ class EndpointSocket:
         self._recv_b_size = recv_b_size
         self._sock = None
         self._sock_lock = threading.Lock()
+        self._conn_lock = threading.Lock()
 
         self._opened = False
         self._logger.info(f"Endpoint socket {addr, remote_addr} initialized.")
@@ -110,8 +112,7 @@ class EndpointSocket:
         self._opened = True
         if self._acceptor:
             self._open_l_socket(self._addr)
-        with self._sock_lock:
-            self._connect()
+        self._connect()
         self._logger.info("Endpoint socket opened.")
 
     def close(self, shutdown: bool = False):
@@ -148,8 +149,7 @@ class EndpointSocket:
                 sleep(1)
             except (OSError, ValueError, RuntimeError) as e:
                 self._logger.warning(f"{e.__class__.__name__}({e}) while trying to send data. Retrying...")
-                with self._sock_lock:
-                    self._connect()
+                self._connect()
 
     def recv(self, timeout: int = None) -> Optional[bytes]:
         """Receives the bytes of a single object sent over the connection, performing simple marshalling (size is
@@ -171,8 +171,7 @@ class EndpointSocket:
                 if timeout is not None and type(e) is TimeoutError:
                     raise e
                 self._logger.warning(f"{e.__class__.__name__}({e}) while trying to receive data. Retrying...")
-                with self._sock_lock:
-                    self._connect()
+                self._connect()
         return None
 
     def poll(self, lazy: bool = False) -> tuple[list[bool], tuple[tuple[str, int], tuple[str, int]]]:
@@ -202,26 +201,30 @@ class EndpointSocket:
         underlying socket, before opening it again and trying to connect/accept a remote endpoint socket. Fault-tolerant
         for breakdowns and resets in the connection. Blocking.
         """
-        while self._opened:
-            try:
-                self._logger.info(f"Trying to (re-)establish connection {self._addr, self._remote_addr}...")
-                _close_socket(self._sock)
-                self._sock = None
-                if self._acceptor:
-                    remote_addr = self._remote_addr
-                    while self._opened and self._sock is None:
-                        self._sock, remote_addr = self._get_a_socket(self._addr, self._remote_addr)
-                    self._remote_addr = remote_addr
-                else:
-                    self._sock, self._addr = self._get_c_socket(self._addr, self._remote_addr)
-                self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, self._send_b_size)
-                self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, self._recv_b_size)
-                self._logger.info(f"Connection {self._addr, self._remote_addr} (re-)established.")
-                break
-            except (OSError, ValueError, AttributeError, RuntimeError) as e:
-                self._logger.info(f"{e.__class__.__name__}({e}) while trying to (re-)establish connection "
-                                  f"{self._addr, self._remote_addr}. Retrying...")
-                sleep(10)
+        if not self._conn_lock.acquire(blocking=False):
+            return
+        with self._sock_lock:
+            while self._opened:
+                try:
+                    self._logger.info(f"Trying to (re-)establish connection {self._addr, self._remote_addr}...")
+                    _close_socket(self._sock)
+                    self._sock = None
+                    if self._acceptor:
+                        remote_addr = self._remote_addr
+                        while self._opened and self._sock is None:
+                            self._sock, remote_addr = self._get_a_socket(self._addr, self._remote_addr)
+                        self._remote_addr = remote_addr
+                    else:
+                        self._sock, self._addr = self._get_c_socket(self._addr, self._remote_addr)
+                    self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, self._send_b_size)
+                    self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, self._recv_b_size)
+                    self._logger.info(f"Connection {self._addr, self._remote_addr} (re-)established.")
+                    break
+                except (OSError, ValueError, AttributeError, RuntimeError) as e:
+                    self._logger.info(f"{e.__class__.__name__}({e}) while trying to (re-)establish connection "
+                                      f"{self._addr, self._remote_addr}. Retrying...")
+                    sleep(10)
+        self._conn_lock.release()
 
     @classmethod
     def _reg_remote(cls, remote_addr: tuple[str, int]):

@@ -36,6 +36,7 @@ def threaded_initiator(t_id: int):
                 endpoint.stop()
                 sleep(random.randrange(3))
                 endpoint.start()
+        sleep(1)
         i += 1
 
 
@@ -75,4 +76,4 @@ if __name__ == "__main__":
 
     # simple_initiator()
     # single_message_initiator()
-    multithreaded_initiator(2)
+    multithreaded_initiator(5)
