@@ -41,33 +41,41 @@ def start_demo_client(client_id: int, pcap_dir_base_path: pathlib.Path, batch_si
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
     parser.add_argument("--debug", type=bool, default=False,
-                        help="Show debug outputs")
-    parser.add_argument("--clientId", type=int, choices=[2, 5],
+                        help="Show debug outputs", required=True)
+    parser.add_argument("--clientId", type=int, choices=[2, 5], required=True,
                         help="ID of client (decides which data to draw from set)")
     parser.add_argument("--pcapBasePath", type=pathlib.Path,
                         default="../../../../Datasets/v2x_2023-03-06/",
                         help="Path to the march23 v2x dataset directory (root)")
+
+    servers = parser.add_argument_group("Servers")
+    servers.add_argument("--modelAggrServIp", default="0.0.0.0",
+                         help="IP of model aggregation server")
+    servers.add_argument("--modelAggrServPort", type=int, default=8001,
+                         choices=range(1, 65535), metavar="[1-65535]",
+                         help="Port of model aggregation server")
+    servers.add_argument("--noEvalServ", type=bool, default=False,
+                         help="Disables centralized evaluation")
+    servers.add_argument("--evalServIp", default="0.0.0.0",
+                         help="IP of evaluation server")
+    servers.add_argument("--evalServPort", type=int, default=8002,
+                         choices=range(1, 65535), metavar="[1-65535]",
+                         help="Port of evaluation server")
+    servers.add_argument("--noAggrServ", type=bool, default=False,
+                         help="Disables centralized aggregation")
+    servers.add_argument("--aggrServIp", default="0.0.0.0",
+                         help="IP of aggregation server")
+    servers.add_argument("--aggrServPort", type=int, default=8003,
+                         choices=range(1, 65535), metavar="[1-65535]",
+                         help="Port of aggregation server")
+
     parser.add_argument("--batchSize", default=32,
                         help="Batch size during processing of data (mini-batches are multiples of that argument)")
     parser.add_argument("--updateInterval", default=5,
                         help="Federated updating interval, defined by time (s)")
-    parser.add_argument("--modelAggrServIp", default="0.0.0.0",
-                        help="IP of model aggregation server")
-    parser.add_argument("--modelAggrServPort", type=int, default=8001, range=(1, 65535),
-                        help="Port of model aggregation server")
-    parser.add_argument("--noEvalServ", type=bool, default=False,
-                        help="Disables centralized evaluation")
-    parser.add_argument("--evalServIp", default="0.0.0.0",
-                        help="IP of evaluation server")
-    parser.add_argument("--evalServPort", type=int, default=8002, range=(1, 65535),
-                        help="Port of evaluation server")
-    parser.add_argument("--noAggrServ", type=bool, default=False,
-                        help="Disables centralized aggregation")
-    parser.add_argument("--aggrServIp", default="0.0.0.0",
-                        help="IP of aggregation server")
-    parser.add_argument("--aggrServPort", type=int, default=8003, range=(1, 65535),
-                        help="Port of aggregation server")
+
     args = parser.parse_args()
 
     if args.debug:
