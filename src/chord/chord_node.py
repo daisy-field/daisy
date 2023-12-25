@@ -344,11 +344,8 @@ class Chordpeer:
         return pred
 
     def _get_closest_known_pred(self, peer_id: int) -> StreamEndpoint | None:
-        """Finds the closest predecessor one peer knows for another peer in its fingertable.
-        # FIXME Logik fix
-        # FIXME only one finger - should work now
+        """Finds the closest predecessor one peer knows for another peer in its fingertable. Defaults to None.
         # TODO make this not return ep, but node id instead
-        Note: If the fingertable is empty returns None.
 
         :param peer_id:
         :return:
@@ -357,41 +354,16 @@ class Chordpeer:
             self._logger.info(f"In _get_closest_known_pred: empty fingertable; returning None")
             return
 
-        for f_index in range(self._max_fingers):
-            f_curr = self._fingertable.get(f_index, None)  # id, addr, ep
-            f_next = self._fingertable.get(f_index + 1, None)
-
-            i = f_index + 1
-            while (f_curr is None or f_next is None) and i < self._max_fingers:
-                if f_curr is None:
-                    f_curr = self._fingertable.get(i, None)
-                if f_next is None:
-                    f_next = self._fingertable.get(i + 1, None)
-                i += 1
-            if f_curr == f_next and f_curr is not None:
-                f_next = self._fingertable.get(i, None)
-
-            # case: fingertable has only one entry, so either curr or next must be none
-            if f_curr is None and f_next is not None:
-                self._logger.info(f"In _get_closest_known_pred: found closest pred {f_next[0]} as only finger")
-                return f_next[2]
-            elif f_next is None and f_curr is not None:
-                self._logger.info(f"In _get_closest_known_pred: found closest pred {f_curr[0]} as only finger")
-                return f_curr[2]
-
+        for i in range(0, self._max_fingers, -1):
             try:
-                # FIXME logik von <> überprüfen
-                if (f_curr[0] < f_next[0]) and (peer_id in range(f_curr[0], f_next[0] + 1)):
-                    self._logger.info(f"In _get_closest_known_pred: found closest pred {f_curr[0]}")
-                    return f_curr[2]
-                if (f_curr[0] > f_next[0]) and (peer_id in range(f_next[0], f_curr[0] + 1)):
-                    self._logger.info(f"In _get_closest_known_pred: found closest pred {f_next[0]}")
-                    return f_next[2]
-            except TypeError as e:
+                if self._fingertable[i][0] in range(self._id, peer_id):  # TODO impl in_between()
+                    return self._fingertable[i][2]
+            except TypeError as t:
                 self._logger.error(
-                    f"{e.__class__.__name__} ({e}) :: in _get_closest_known_pred: Maybe Fingertable of Peer is empty?")
-                return
-        return
+                    f"{e.__class__.__name__} ({t}) :: in _get_closest_known_pred")
+            except ValueError as v:
+                self._logger.error(
+                    f"{e.__class__.__name__} ({v}) :: in _get_closest_known_pred")
 
     def _find_succ(self, peer_id: int, peer_addr: tuple[str, int], message_id: uuid4):
         """Checks whether a peer knows the sucessor of the given peer. If it knows the successor it will send back its (id, addr) pair, otherwise the next peer will be asked.
