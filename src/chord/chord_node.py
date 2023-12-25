@@ -57,7 +57,6 @@ def close_tmp_ep(ep: StreamEndpoint, sleep_time: int = 10, stop_timeout: int = 1
 
 
 class Chordpeer:
-    # TODO HIGH PRIO: REFACTOR EP handling
     # TODO: have succ in finger table and not external
     """Class for Chordpeers.
     """
@@ -223,9 +222,9 @@ class Chordpeer:
         :param remote_addr: address of remote peer
         :return ep: StreamEndpoint to peer or None
         """
-        if (remote_id == self._predecessor[0]) and (self._predecessor_endpoint is not None):
+        if self._predecessor_endpoint is not None and remote_id == self._predecessor[0]:
             return self._predecessor_endpoint
-        if (remote_id == self._successor[0]) and (self._successor_endpoint is not None):
+        if self._successor_endpoint is not None and remote_id == self._successor[0]:
             return self._successor_endpoint
 
         ep = {finger_ep for finger_id, finger_addr, finger_ep in self._fingertable.values()
@@ -288,8 +287,7 @@ class Chordpeer:
         ep_in_epserver = self._endpoint_server.get_connections([ep_addr]).get(ep_addr)
         if ep_in_epserver is None:
             if ep.poll()[0][0] and ep is not None:
-                return
-                # ep.stop(shutdown=True)
+                ep.stop(shutdown=True)
         # else:
         #   self._endpoint_server.close_connections([ep_addr])
 
@@ -299,7 +297,7 @@ class Chordpeer:
         Note: this method does not actually update any finger table entries. It will return early if a peer has no successor.
         """
         # if self._successor is None:
-        # self._logger.warning(f"In fix_fingers: Successor is None, ending fix_fingers. ")
+        self._logger.info(f"Starting to update Fingers... ")
         # return
 
         for i in range(self._max_fingers):
@@ -321,11 +319,13 @@ class Chordpeer:
         :return: True if self is successor of peer, else False
         """
         if self._predecessor[0] == self._id and peer_id != self._id:
-            # FIXME is this wrong?
+            self._logger.info(f"In _is_succ: self.predecessor has not yet been set; defaulting to true.")
             return True
 
-        return ((self._id < self._predecessor[0]) and (peer_id not in range(self._id + 1, self._predecessor[0] + 1))) \
-            or (peer_id in range(self._predecessor[0] + 1, self._id + 1))
+        succ = ((self._id < self._predecessor[0]) and (peer_id not in range(self._id + 1, self._predecessor[0] + 1))) \
+               or (peer_id in range(self._predecessor[0] + 1, self._id + 1))
+        self._logger.info(f"In _is_succ: self is succ of {peer_id} is {succ}")
+        return succ
 
     def _is_pred(self, peer_id: int) -> bool:
         """Checks whether self is the predecessor of another peer or not.
@@ -336,20 +336,25 @@ class Chordpeer:
         :return: True if self is predecessor of peer, else false.
         """
         if self._successor is None and peer_id != self._id:  # if no pred set
+            self._logger.info(f"In _is_pred: self.predecessor has not yet been set; defaulting to true.")
             return True
-        return ((self._id > self._successor[0]) and (peer_id not in range(self._successor[0] + 1, self._id + 1))) \
-            or (peer_id in range(self._id + 1, self._successor[0] + 1))
+        pred = ((self._id > self._successor[0]) and (peer_id not in range(self._successor[0] + 1, self._id + 1))) \
+               or (peer_id in range(self._id + 1, self._successor[0] + 1))
+        self._logger.info(f"In _is_pred: self is pred of {peer_id} is {pred}")
+        return pred
 
     def _get_closest_known_pred(self, peer_id: int) -> StreamEndpoint | None:
         """Finds the closest predecessor one peer knows for another peer in its fingertable.
         # FIXME Logik fix
         # FIXME only one finger - should work now
+        # TODO make this not return ep, but node id instead
         Note: If the fingertable is empty returns None.
 
         :param peer_id:
         :return:
         """
         if len(self._fingertable) == 0:
+            self._logger.info(f"In _get_closest_known_pred: empty fingertable; returning None")
             return
 
         for f_index in range(self._max_fingers):
@@ -368,15 +373,19 @@ class Chordpeer:
 
             # case: fingertable has only one entry, so either curr or next must be none
             if f_curr is None and f_next is not None:
+                self._logger.info(f"In _get_closest_known_pred: found closest pred {f_next[0]} as only finger")
                 return f_next[2]
             elif f_next is None and f_curr is not None:
+                self._logger.info(f"In _get_closest_known_pred: found closest pred {f_curr[0]} as only finger")
                 return f_curr[2]
 
             try:
                 # FIXME logik von <> überprüfen
                 if (f_curr[0] < f_next[0]) and (peer_id in range(f_curr[0], f_next[0] + 1)):
+                    self._logger.info(f"In _get_closest_known_pred: found closest pred {f_curr[0]}")
                     return f_curr[2]
                 if (f_curr[0] > f_next[0]) and (peer_id in range(f_next[0], f_curr[0] + 1)):
+                    self._logger.info(f"In _get_closest_known_pred: found closest pred {f_next[0]}")
                     return f_next[2]
             except TypeError as e:
                 self._logger.error(
@@ -394,39 +403,38 @@ class Chordpeer:
         :message_id:
         """
         if self._addr == peer_addr:  # addr not id, wenn id dann eigenen succ
-            # TODO log this
+            self._logger.info(f"In _find_succ: self._addr == peer_addr ")
             return
         # second condition: if two peers are in ring A should not send B to B as its successor
         elif peer_addr == self._predecessor[1] or self._is_succ(peer_id):
-            # TODO log this
+            self._logger.info(f"In _find_succ: found succ for {peer_id} as self ")
             succ_found_msg = Chordmessage(message_id=message_id, message_type=MessageType.FIND_SUCC_RES,
                                           peer_tuple=(self._id, self._addr))
             ep = self._get_ep(peer_id, peer_addr)
             self._send_message(ep, peer_addr, succ_found_msg)
         elif self._is_pred(peer_id):
-            # TODO log this
+            self._logger.info(f"In _find_succ: found succ for {peer_id} as self._successor:{self._successor[0]} ")
             succ_found_msg = Chordmessage(message_id=message_id, message_type=MessageType.FIND_SUCC_RES,
                                           peer_tuple=self._successor)
             ep = self._get_ep(peer_id, peer_addr)
             self._send_message(ep, peer_addr, succ_found_msg)  # not closing ep if it comes from check
         # idk, ask closest pred of peer
         else:
-            # TODO log this
+            self._logger.info(f"In _find_succ: no succ found for {peer_id}. Trying to relay lookup.")
             closest_pred_ep = self._get_closest_known_pred(peer_id)
             try:
                 closest_pred_ep.send(Chordmessage(message_id=message_id, message_type=MessageType.FIND_SUCC_REQ,
                                                   peer_tuple=(peer_id, peer_addr)))
             except AttributeError as e:
                 self._logger.error(
-                    f"{e.__class__.__name__} ({e}) :: in find_succ: Sending back self. Lonely Peer, or disconnected "
-                    f"from Chord.")
+                    f"{e.__class__.__name__} ({e}) :: in find_succ: failed to relay lookup; no ep for closest pred found in ft")
                 succ_found_msg = Chordmessage(message_id=message_id, message_type=MessageType.FIND_SUCC_RES,
                                               peer_tuple=(self._id, self._addr))
                 ep = self._get_ep(peer_id, peer_addr)
                 self._send_message(ep, peer_addr, succ_found_msg)
             except RuntimeError as e:
                 self._logger.error(
-                    f"{e.__class__.__name__} ({e}) :: in find_succ: Endpoint not connected.")
+                    f"{e.__class__.__name__} ({e}) :: in find_succ: failed to relay lookup; endpoint not connected.")
 
     def _process_join(self, message: Chordmessage):
         """Handles incoming join messages. Sets the successor of self if it is None and initiates successor lookup for new node.
@@ -447,7 +455,7 @@ class Chordpeer:
         self._find_succ(*message.peer_tuple, message.message_id)
 
     def _process_notify(self, message: Chordmessage):
-        """Handles incoming notify messages. Initialzes new stabilize round or ends.
+        """Handles incoming notify messages.
 
         :param message:
         :return:
@@ -551,7 +559,7 @@ class Chordpeer:
 
             curr_time = time()
 
-            if curr_time - last_refresh_time >= 15:
+            if curr_time - last_refresh_time >= 30:
                 self._fix_fingers()
                 self._stabilize(*self._successor)
                 self.cleanup_dead_messages()
@@ -572,10 +580,10 @@ class Chordpeer:
                         self._process_find_succ_req(message)
                     case MessageType.STABILIZE:
                         self._process_stabilize(message)
-                        self._logger.info("Post process Notify: " + self.__str__())
+                        self._logger.info("Post process stabilize: " + self.__str__())
                     case MessageType.NOTIFY:
                         self._process_notify(message)
-                        self._logger.info("Post process Stabilize: " + self.__str__())
+                        self._logger.info("Post process notify: " + self.__str__())
 
     def _receive_on_all_endpoints(self, start: float):
         """Receives on all available endpoints where there is something to receive. May return an empty list if no messages were received.
