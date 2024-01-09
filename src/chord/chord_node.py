@@ -127,7 +127,7 @@ class Chordpeer:
             ep.send(message)
             self._logger.info(
                 f"Sent Message of Type {message.message_type} From {self._name, self._id} To {remote_addr} With {message.peer_tuple}")
-        except RuntimeError as e:
+        except (AttributeError, RuntimeError) as e:  # attributeError if ep is none, runtimeError if ep is not started
             self._logger.warning(f"{e.__class__.__name__} ({e}) :: in _send_message: creating new ep to send.")
 
             ep_name = f"one-time-ep-{np.random.randint(0, 100)}"
