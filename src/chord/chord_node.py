@@ -261,7 +261,7 @@ class Chordpeer:
 
         # clean through finger table
         dropout_keys = [finger_key for finger_key, finger in self._fingertable.items()
-                    if ep is finger[2]]
+                        if ep is finger[2]]
         for do_key in dropout_keys:
             do_id, do_addr, do_ep = self._fingertable.pop(do_key, (None, None, None))
             if do_ep is None:
@@ -571,24 +571,29 @@ class Chordpeer:
 
         # TODO recv ohne Poll möglich?
         received_messages = []
-        if len(self._fingertable) > 0:
-            received_messages = [typing.cast(Chordmessage, finger_ep.receive()) for _, _, finger_ep in
-                                 self._fingertable.values() if finger_ep.poll()[0][1]]
-        if (self._successor_endpoint is not None) and self._successor_endpoint.poll()[0][1]:
+        for _, _, finger_ep in self._fingertable.values():
+            try:
+                received_messages.append(typing.cast(Chordmessage, finger_ep.receive()))
+            except (AttributeError, RuntimeError):
+                pass
+        try:
             received_messages.append(typing.cast(Chordmessage, self._successor_endpoint.receive()))
-        if (self._predecessor_endpoint is not None) and self._predecessor_endpoint.poll()[0][1]:
+        except (AttributeError, RuntimeError):
+            pass
+        try:
             received_messages.append(typing.cast(Chordmessage, self._predecessor_endpoint.receive()))
+        except (AttributeError, RuntimeError):
+            pass
         r_ready, _ = self._endpoint_server.poll_connections()
         for addr in r_ready:
             try:
                 received_messages.append(typing.cast(Chordmessage, r_ready[addr].receive()))
-            except RuntimeError as e:
-                self._logger.error(
-                    f"{e.__class__.__name__} ({e}) :: in receive_on_all_endpoints: Recv on closed Endpoint")
+            except RuntimeError:
+                pass
 
         if len(received_messages) > 0:
             self._logger.info(
-                f"In receive_on_all_endpoints: Received {len(received_messages)} Messages at {time() - start} Seconds")
+                f"Received {len(received_messages)} Messages")
         return received_messages
 
     def _process_find_succ_req(self, message: Chordmessage):
