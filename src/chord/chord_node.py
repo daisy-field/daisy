@@ -122,14 +122,14 @@ class Chordpeer:
             self._logger.warning(
                 f"Trying to send Message of Type {message.message_type} With {message.peer_tuple} to self. Aborting.")
             return
-        # TODO try catch this
-        states, addrs = ep.poll()  # supposed to filter eps that are not dropouts, everything after this line assumes dropout ep
-        if states[0] or states[1] or states[2]:
+        try:
             # if not self._clean_up_dead_ep(ep):
             ep.send(message)
             self._logger.info(
                 f"Sent Message of Type {message.message_type} From {self._name, self._id} To {remote_addr} With {message.peer_tuple}")
-        else:
+        except RuntimeError as e:
+            self._logger.warning(f"{e.__class__.__name__} ({e}) :: in _send_message: creating new ep to send.")
+
             ep_name = f"one-time-ep-{np.random.randint(0, 100)}"
             endpoint = StreamEndpoint(name=ep_name,
                                       remote_addr=remote_addr, acceptor=False, multithreading=False,
