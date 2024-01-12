@@ -543,7 +543,7 @@ class Chordpeer:
                 self.cleanup_dead_messages()
                 last_refresh_time = curr_time
             sleep(1)
-            received_messages = self._receive_on_all_endpoints(start)
+            received_messages = self._receive_on_all_endpoints()
             for message in received_messages:
                 msg_type = message.message_type
                 self._logger.info(f"In run: Recv {msg_type} with {message.peer_tuple}")
@@ -562,14 +562,13 @@ class Chordpeer:
                         self._process_notify(message)
                         self._logger.info("Post process notify: " + self.__str__())
 
-    def _receive_on_all_endpoints(self, start: float):
+    def _receive_on_all_endpoints(self):
         """Receives on all available endpoints where there is something to receive. May return an empty list if no messages were received.
 
         :param start: boot time of peer, for logging purposes.
         :return: List of Chordmessages for further processing
         """
 
-        # TODO recv ohne Poll möglich?
         received_messages = []
         for _, _, finger_ep in self._fingertable.values():
             try:
