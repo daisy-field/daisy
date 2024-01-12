@@ -120,26 +120,25 @@ class Chordpeer:
         """
         if remote_addr == self._addr:
             self._logger.warning(
-                f"Trying to send Message of Type {message.message_type.name} With {message.peer_tuple} to self. Aborting.")
+                f"Trying to send Message of Type {message.message_type} With {message.peer_tuple} to self. Aborting.")
             return
+        try:
+            # if not self._clean_up_dead_ep(ep):
+            ep.send(message)
+            self._logger.info(
+                f"Sent Message of Type {message.message_type} From {self._name, self._id} To {remote_addr} With {message.peer_tuple}")
+        except (AttributeError, RuntimeError) as e:  # attributeError if ep is none, runtimeError if ep is not started
+            self._logger.warning(f"{e.__class__.__name__} ({e}) :: in _send_message: creating new ep to send.")
 
-        if ep is not None:
-            states, addrs = ep.poll()
-            if states[0] or states[2]:
-                ep.send(message)
-                self._logger.info(
-                    f"Sent {message.message_type.name} From {self._id} To {remote_addr} With {message.peer_tuple}")
-                return
-
-        ep_name = f"one-time-ep-{np.random.randint(0, 100)}"
-        endpoint = StreamEndpoint(name=ep_name,
-                                  remote_addr=remote_addr, acceptor=False, multithreading=False,
-                                  buffer_size=10000)
-        endpoint.start()
-        endpoint.send(message)
-        self._logger.info(
-            f"Sent {message.message_type.name} From {self._name, self._id} To {remote_addr} With {message.peer_tuple}")
-        threading.Thread(target=lambda: close_tmp_ep(endpoint, 10, 10), daemon=True).start()
+            ep_name = f"one-time-ep-{np.random.randint(0, 100)}"
+            endpoint = StreamEndpoint(name=ep_name,
+                                      remote_addr=remote_addr, acceptor=False, multithreading=True,
+                                      buffer_size=10000)
+            endpoint.start()
+            endpoint.send(message)
+            self._logger.info(
+                f"Sent Message of Type {message.message_type} From {self._name, self._id} To {remote_addr} With {message.peer_tuple}")
+            threading.Thread(target=lambda: close_tmp_ep(endpoint, 10, 10), daemon=True).start()
 
     def _join(self, remote_addr: tuple[str, int]):
         """Creates and sends a join message to a peer in an existing chord ring.
@@ -230,15 +229,15 @@ class Chordpeer:
         if self._successor_endpoint is not None and remote_id == self._successor[0]:
             return self._successor_endpoint
 
-        ep = {finger_ep for finger_id, finger_addr, finger_ep in self._fingertable.values()
-              if remote_id == finger_id}
+        ep_as_set = {finger_ep for finger_id, finger_addr, finger_ep in self._fingertable.values()
+                     if remote_id == finger_id}
         try:
-            return ep.pop()
+            return ep_as_set.pop()
         except KeyError as e:
             self._logger.error(f"{e.__class__.__name__} ({e}) :: in get_ep_if-exists: No ep found. Creating new ep")
 
             ep = StreamEndpoint(name=f"get-ep-{random.randint(0, 100)}",
-                                remote_addr=remote_addr, acceptor=False, multithreading=False,
+                                remote_addr=remote_addr, acceptor=False, multithreading=True,
                                 buffer_size=10000)
             ep.start()
             return ep
@@ -396,7 +395,7 @@ class Chordpeer:
             self._successor = message.peer_tuple
             self._successor_endpoint = StreamEndpoint(name=f"succ-ep-{self._name}",
                                                       remote_addr=message.peer_tuple[1], acceptor=False,
-                                                      multithreading=False,
+                                                      multithreading=True,
                                                       buffer_size=10000)
             self._successor_endpoint.start()
         self._logger.info(f"In _process_join: initiating _find_succ for {message.peer_tuple}.")
@@ -418,7 +417,7 @@ class Chordpeer:
             if ep is None:
                 self._successor_endpoint = StreamEndpoint(
                     name=f"{self._name}-successor-ep-{np.random.randint(0, 100)}",
-                    remote_addr=self._addr, acceptor=False, multithreading=False,
+                    remote_addr=self._addr, acceptor=False, multithreading=True,
                     buffer_size=10000)
             else:
                 self._successor_endpoint = ep
@@ -441,7 +440,7 @@ class Chordpeer:
             if ep is None:
                 self._predecessor_endpoint = StreamEndpoint(
                     name=f"{self._name}-predecessor-ep-{np.random.randint(0, 100)}",
-                    remote_addr=self._addr, acceptor=False, multithreading=False,
+                    remote_addr=self._addr, acceptor=False, multithreading=True,
                     buffer_size=10000)
             else:
                 self._predecessor_endpoint = ep
@@ -467,7 +466,7 @@ class Chordpeer:
             self._successor = message.peer_tuple
             self._successor_endpoint = StreamEndpoint(
                 name=f"{self._name}-sucessor-ep-{np.random.randint(0, 100)}",
-                remote_addr=self._addr, acceptor=False, multithreading=False,
+                remote_addr=self._addr, acceptor=False, multithreading=True,
                 buffer_size=10000)
             self._logger.info(
                 f"Updated successor to {self._successor}. In _process_find_succ_res.")
@@ -502,7 +501,7 @@ class Chordpeer:
                 self.cleanup_dead_messages()
                 last_refresh_time = curr_time
             sleep(1)
-            received_messages = self._receive_on_all_endpoints()
+            received_messages = self._receive_on_endpoints()
             for message in received_messages:
                 msg_type = message.message_type
                 self._logger.info(f"In run: Received {msg_type.name} with {message.peer_tuple}")
@@ -523,38 +522,38 @@ class Chordpeer:
                         self._process_notify(message)
                         self._logger.info("Post process notify: " + self.__str__())
 
-    def _receive_on_all_endpoints(self):
+    def _get_readable_endpoints(self) -> set[StreamEndpoint]:
         """Receives on all available endpoints where there is something to receive. May return an empty list if no messages were received.
 
-        :param start: boot time of peer, for logging purposes.
-        :return: List of Chordmessages for further processing
+        :return: List of Streamendpoint with readable buffer
         """
+        readable_endpoints = {finger_ep for _, _, finger_ep in self._fingertable.values() if finger_ep.poll()[0][1]}
 
-        received_messages = []
-        for _, _, finger_ep in list(set(self._fingertable.values())):
-            try:
-                received_messages.append(typing.cast(Chordmessage, finger_ep.receive()))
-            except (AttributeError, RuntimeError):
-                pass
-        try:
-            received_messages.append(typing.cast(Chordmessage, self._successor_endpoint.receive()))
-        except (AttributeError, RuntimeError):
-            pass
-        try:
-            received_messages.append(typing.cast(Chordmessage, self._predecessor_endpoint.receive()))
-        except (AttributeError, RuntimeError):
-            pass
+        if (self._successor_endpoint is not None) and self._successor_endpoint.poll()[0][1]:
+            readable_endpoints.add(self._successor_endpoint)
+        if (self._predecessor_endpoint is not None) and self._predecessor_endpoint.poll()[0][1]:
+            readable_endpoints.add(self._predecessor_endpoint)
         r_ready, _ = self._endpoint_server.poll_connections()
         for addr in r_ready:
-            try:
-                received_messages.append(typing.cast(Chordmessage, r_ready[addr].receive()))
-            except RuntimeError:
-                pass
+            readable_endpoints.add(r_ready[addr])
 
-        if len(received_messages) > 0:
-            self._logger.info(
-                f"Received {len(received_messages)} Messages")
-        return received_messages
+        return readable_endpoints
+
+    def _receive_on_endpoints(self) -> list[Chordmessage]:
+        """
+        Acquires a set of StreamEndpoints and receives all messages from their buffers. 
+
+        :return: List of received Chordmessages
+        """
+        endpoints = self._get_readable_endpoints()
+        messages = []
+        for endpoint in endpoints:
+            try:
+                while True:
+                    messages.append(typing.cast(Chordmessage, endpoint.receive(timeout=0)))
+            except (RuntimeError, TimeoutError):
+                pass
+        return messages
 
     def _process_find_succ_req(self, message: Chordmessage):
         """Handles incoming find successor request messages. Terminates the search if the request contains self, or initiates new find successor step.
