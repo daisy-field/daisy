@@ -10,9 +10,9 @@ import logging
 
 import dash
 import dash_bootstrap_components as dbc
-import dash_core_components as dcc
-import dash_html_components as html
 import plotly.graph_objs as go
+from dash import dcc
+from dash import html
 from dash.dependencies import Output, Input, State
 from dash_bootstrap_templates import ThemeSwitchAIO, load_figure_template
 
@@ -20,7 +20,7 @@ log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
 
-class Dashboard():
+class Dashboard:
     """
     Class for creating the Dashboard in dash to plot the evaluation metrics.
     Static values are used for a simple working interface. These variables should be updated with the live data,

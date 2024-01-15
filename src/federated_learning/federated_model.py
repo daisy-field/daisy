@@ -142,20 +142,25 @@ class TFFederatedModel(FederatedModel):
         enc_inputs = keras.layers.Input(shape=(input_size,))
         x = keras.layers.Dense(input_size)(enc_inputs)
         x = keras.layers.Dense(35)(x)
-        encoder = keras.layers.Dense(18)(x)
+        enc_outputs = keras.layers.Dense(18)(x)
+        encoder = keras.Model(inputs=enc_inputs, outputs=enc_outputs)
 
         dec_inputs = keras.layers.Input(shape=(18,))
         y = keras.layers.Dense(35)(dec_inputs)
         y = keras.layers.Dense(input_size)(y)
-        decoder = keras.layers.Activation("sigmoid")(y)
+        dec_outputs = keras.layers.Activation("sigmoid")(y)
+        decoder = keras.Model(inputs=dec_inputs, outputs=dec_outputs)
 
-        ae = keras.models.Model(inputs=enc_inputs, outputs=decoder(encoder))
-        return TFFederatedModel(ae, optimizer, loss, metrics, batch_size, epochs)
+        fae_inputs = keras.Input(shape=(input_size,))
+        encoded = encoder(fae_inputs)
+        fae_outputs = decoder(encoded)
+        fae = keras.models.Model(inputs=fae_inputs, outputs=fae_outputs)
+        return TFFederatedModel(fae, optimizer, loss, metrics, batch_size, epochs)
 
 
 class FederatedIFTM(FederatedModel):
     """Double union of two federated models, following the IFTM hybdrid  model approach --- identify function threshold
-    model principle by Florian et al. (https://ieeexplore.ieee.org/document/8456348): One for the computation of the
+    model principle by Schmidt et al. (https://ieeexplore.ieee.org/document/8456348): One for the computation of the
     identity of a given sample (alternatively prediction of the next sample), while the other maps the error/loss using
     a threshold(-model) to the binary class labels for anomaly detection. Both are generic federated models, so any
     approach can be used for them, as long as they abide by the required properties:

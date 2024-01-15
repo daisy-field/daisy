@@ -93,7 +93,7 @@ class FederatedTM(FederatedModel, ABC):
 class AvgTM(FederatedTM, ABC):
     """Base class for average-based threshold models, all of which computing their internal threshold values by first
     computing the mean and standard deviation for the data stream and then adding them together for the (absolute)
-    threshold of the model. This method is very similar to the one employed by Florian et al. for the original version
+    threshold of the model. This method is very similar to the one employed by Schmidt et al. for the original version
     of IFTM as well (https://ieeexplore.ieee.org/document/8456348), and was therefore implemented here, however this
     approach is not alone for error-based anomaly detection approaches, since it follows simple statistical assumptions
     for normal distributions (i.e., a sample is considered anomalous if it is further than x-times the std. dev. from
