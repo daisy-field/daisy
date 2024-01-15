@@ -567,12 +567,15 @@ class Chordpeer:
         self._logger.info(f"Init _find_succ for {message.peer_tuple[0]}, In _process_find_succ_req.")
         self._lookup_successor(*message.peer_tuple, message.message_id)
 
+    def _fingertable_to_string(self):
+        return [('(' + f'f_id: {self._fingertable[key][0]}' + ')') for key in self._fingertable.keys()]
+
     def __str__(self):
         return (f"ChordPeer {self._name}:\n" +
                 f"id: {self._id}, \n" +
                 f"predecessor: {self._predecessor}, \n" +
                 f"successor: {self._successor}, \n" +
-                f"fingers: {[('(' + str(key) + ') ') for key in self._fingertable.keys()]}, \n" +
+                f"fingers: {self._fingertable_to_string()}, \n" +
                 f"currently waiting for responses to {len(self._sent_messages)} messages.")
 
 
