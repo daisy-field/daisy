@@ -26,9 +26,11 @@ def start_demo_client(client_id: int, pcap_dir_base_path: pathlib.Path, batch_si
     processor = CohdaProcessor(client_id=client_id, events=march23_events)
     data_source = DataSource(source_handler=handler, data_processor=processor)
 
-    id_fn = TFFederatedModel.get_fae(input_size=65, batch_size=batch_size)
+    optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
+    loss = tf.keras.losses.MeanAbsoluteError()
+    id_fn = TFFederatedModel.get_fae(input_size=65, optimizer=optimizer, loss=loss, batch_size=batch_size, epochs=1)
     t_m = EMAvgTM(alpha=0.05)
-    err_fn = tf.keras.losses.MeanSquaredError(reduction=tf.keras.losses.Reduction.NONE)
+    err_fn = tf.keras.losses.MeanAbsoluteError(reduction=tf.keras.losses.Reduction.NONE)
     model = FederatedIFTM(identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn, param_split=65)
 
     metrics = [ConfMatrSlidingWindowEvaluation(window_size=batch_size * 32)]
