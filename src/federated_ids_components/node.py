@@ -4,7 +4,7 @@
     running predictions on the samples of that data stream at every step.
 
     Author: Fabian Hofmann
-    Modified: 07.11.23
+    Modified: 17.01.24
 """
 
 import logging
@@ -141,9 +141,9 @@ class FederatedOnlineNode(ABC):
             raise RuntimeError("Federated online node has already been started!")
         self._started = True
         _try_ops(
-            self._data_source.open,
-            self._eval_serv.start,
-            self._aggr_serv.start,
+            lambda: self._data_source.open(),
+            lambda: self._eval_serv.start(),
+            lambda: self._aggr_serv.start(),
             logger=self._logger
         )
         self._logger.info("Performing further setup...")
@@ -177,7 +177,7 @@ class FederatedOnlineNode(ABC):
             raise RuntimeError("Federated online node has not been started!")
         self._started = False
         _try_ops(
-            self._data_source.close,
+            lambda: self._data_source.close(),
             lambda: self._eval_serv.stop(shutdown=True),
             lambda: self._aggr_serv.stop(shutdown=True),
             logger=self._logger
@@ -348,7 +348,7 @@ class FederatedOnlineClient(FederatedOnlineNode):
 
     def setup(self):
         _try_ops(
-            lambda: self._m_aggr_server.start,
+            lambda: self._m_aggr_server.start(),
             logger=self._logger
         )
 

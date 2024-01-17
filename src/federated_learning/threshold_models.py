@@ -5,7 +5,9 @@
     to compute a singular threshold value for simple classification.
 
     Author: Fabian Hofmann, Seraphin Zunzer
-    Modified: 14.09.23
+    Modified: 17.01.24
+
+    TODO future work: merge avg-based aggregators with avg-based federated_aggregators(.py) due to redundancy issues
 """
 from abc import ABC, abstractmethod
 from collections import deque
@@ -28,7 +30,7 @@ class FederatedTM(FederatedModel, ABC):
 
     Note that for the initial value, the threshold is always zero (any point is considered an anomaly during detection).
     """
-    _threshold: float
+    _threshold: float | Tensor
     _reduce_fn: Callable
 
     def __init__(self, threshold: float = 0, reduce_fn: Callable[[Tensor], Tensor] = lambda o: o):
@@ -105,11 +107,11 @@ class AvgTM(FederatedTM, ABC):
     Note that many of the implementations are very similar to the ModelAggregator implementations, as both treat the
     aggregated values as a timeseries
     """
-    _mean: float
-    _var: float
+    _mean: float | Tensor
+    _var: float | Tensor
     _var_weight: float
 
-    def __init__(self, mean: float = None, var: float = None, var_weight: float = 1.0,
+    def __init__(self, mean: float = 0, var: float = 0, var_weight: float = 1.0,
                  reduce_fn: Callable[[Tensor], Tensor] = lambda o: o):
         """Creates a new average-based threshold model.
 
@@ -151,10 +153,10 @@ class AvgTM(FederatedTM, ABC):
         if x_data is not None:
             for sample in x_data:
                 d_1 = sample - self._mean
-                self._mean = self.update_mean(sample)
+                self.update_mean(sample)
                 d_2 = sample - self._mean
                 self._var += d_1 * d_2
-        self._threshold = self._mean + self._var * self._var_weight if self._mean is not None else 0
+        self._threshold = self._mean + self._var * self._var_weight
 
     @abstractmethod
     def update_mean(self, new_sample: float):
@@ -173,7 +175,7 @@ class CumAvgTM(AvgTM):
     """
     _n: int
 
-    def __init__(self, mean: float = None, var: float = None, var_weight: float = 1.0,
+    def __init__(self, mean: float = 0, var: float = 0, var_weight: float = 1.0,
                  reduce_fn: Callable[[Tensor], Tensor] = lambda o: o):
         """Creates a new cumulative averaging threshold model.
 
@@ -223,7 +225,7 @@ class SMAvgTM(AvgTM):
     _window: deque
     _window_size: int
 
-    def __init__(self, window_size: int = 5, mean: float = None, var: float = None, var_weight: float = 1.0,
+    def __init__(self, window_size: int = 5, mean: float = 0, var: float = 0, var_weight: float = 1.0,
                  reduce_fn: Callable[[Tensor], Tensor] = lambda o: o):
         """Creates a new simple moving averaging threshold model.
 
@@ -285,7 +287,7 @@ class EMAvgTM(AvgTM):
     """
     _alpha = float
 
-    def __init__(self, alpha: float = 0.05, mean: float = None, var: float = None, var_weight: float = None,
+    def __init__(self, alpha: float = 0.05, mean: float = 0, var: float = 0, var_weight: float = 1.0,
                  reduce_fn: Callable[[Tensor], Tensor] = lambda o: o):
         """Creates a new exponential moving averaging threshold model.
 

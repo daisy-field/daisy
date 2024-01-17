@@ -19,9 +19,9 @@ class CohdaProcessor(PysharkProcessor):
     are appended according to the used protocol, timestamps, source and destination ip addresses.
     """
     _client_id: int
-    _events: list[tuple[int, tuple[datetime, datetime], list[str], list[str], str]]
+    _events: list[tuple[int, tuple[datetime, datetime], list[str], list[str], int]]
 
-    def __init__(self, client_id: int, events: list[tuple[int, tuple[datetime, datetime], list[str], list[str], str]],
+    def __init__(self, client_id: int, events: list[tuple[int, tuple[datetime, datetime], list[str], list[str], int]],
                  name: str = "", f_features: tuple[str, ...] = default_f,
                  nn_aggregator: Callable[[str, object], object] = default_nn_aggregator):
         """Creates a new cohda processor for a specific client.
@@ -45,27 +45,32 @@ class CohdaProcessor(PysharkProcessor):
         :param d_point: Data point as dictionary.
         :return: Labeled data point as vector.
         """
-        d_point['label'] = "Normal"
+        d_point['label'] = 0
         for event in self._events:
             client, (start_time, end_time), protocols, addresses, label = event
-            if client == self._client_id and start_time <= d_point['meta.time'].to_datetime() <= end_time and \
-                    any([x in d_point['meta.protocols'] for x in protocols]) and \
-                    all([x in d_point['ip.addr'] for x in addresses]):
+            if (client == self._client_id
+                    and start_time <= datetime.strptime(d_point['meta.time'], '%Y-%m-%d %H:%M:%S.%f') <= end_time
+                    and any([x in d_point['meta.protocols'] for x in protocols])
+                    and all([x in d_point['ip.addr'] for x in addresses])):
                 d_point['label'] = label
                 break
-
         return super().reduce(d_point)
 
 
 # Existing datasets captured on Cohda boxes 2 and 5 on March 6th contains attacks in the following:
-march23_events: list[tuple[int, tuple[datetime, datetime], list[str], list[str], str]] = \
+# 1: "Installation Attack Tool"
+# 2: "SSH Brute Force"
+# 3: "SSH Privilege Escalation"
+# 4: "SSH Brute Force Response"
+# 5: "SSH Data Leakage"
+march23_events: list[tuple[int, tuple[datetime, datetime], list[str], list[str], int]] = \
     [(5, (datetime(2023, 3, 6, 12, 34, 17), datetime(2023, 3, 6, 12, 40, 28)),
-      ["http", "tcp"], ["192.168.213.86", "185."], "Installation Attack Tool"),
+      ["http", "tcp"], ["192.168.213.86", "185."], 1),
      (5, (datetime(2023, 3, 6, 12, 49, 4), datetime(2023, 3, 6, 13, 23, 16)),
-      ["ssh", "tcp"], ["192.168.230.3", "192.168.213.86"], "SSH Brute Force"),
+      ["ssh", "tcp"], ["192.168.230.3", "192.168.213.86"], 2),
      (5, (datetime(2023, 3, 6, 13, 25, 27), datetime(2023, 3, 6, 13, 31, 11)),
-      ["ssh", "tcp"], ["192.168.230.3", "192.168.213.86"], "SSH Privilege Escalation"),
+      ["ssh", "tcp"], ["192.168.230.3", "192.168.213.86"], 3),
      (2, (datetime(2023, 3, 6, 12, 49, 4), datetime(2023, 3, 6, 13, 23, 16)),
-      ["ssh", "tcp"], ["192.168.230.3", "130.149.98.119"], "SSH Brute Force Response"),
+      ["ssh", "tcp"], ["192.168.230.3", "130.149.98.119"], 4),
      (2, (datetime(2023, 3, 6, 13, 25, 27), datetime(2023, 3, 6, 13, 31, 11)),
-      ["ssh", "tcp"], ["192.168.230.3", "130.149.98.119"], "SSH Data Leakage")]
+      ["ssh", "tcp"], ["192.168.230.3", "130.149.98.119"], 5)]

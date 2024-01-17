@@ -3,10 +3,11 @@
     either via file inputs, live capture, or a remote source that generates packets in either fashion.
 
     Author: Jonathan Ackerschewski, Fabian Hofmann
-    Modified: 08.06.23
+    Modified: 17.01.24
 
-    # TODO Future Work: Encoding/mapping of string values into numerical features
-    # TODO Future Work: ALT.: Flattening of Lists instead of encoding them into singular numerical features
+    # TODO Future Work: Encoding/mapping of string/non-numerical values into numerical features
+    # TODO - Flattening of Lists instead of encoding them into singular numerical features
+    # TODO - NaN values also need to converted to something useful (that does not break the prediction/training)
 """
 
 import ipaddress
@@ -100,6 +101,9 @@ default_f = (
 
 
 def default_nn_aggregator(key: str, value: object) -> int:
+    """TODO: Docstring for default_nn_aggregator.
+
+    """
     if isinstance(value, list):
         value.sort()
         return hash(str(value))
@@ -170,6 +174,8 @@ class PysharkProcessor(DataProcessor):
         for key, value in d_point.items():
             if not isinstance(value, int | float):
                 value = self.nn_aggregator(key, value)
+            if np.isnan(value):
+                value = 0
             l_point.append(value)
         return np.asarray(l_point)
 

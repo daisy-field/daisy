@@ -33,7 +33,8 @@ def start_demo_client(client_id: int, pcap_dir_base_path: pathlib.Path, batch_si
 
     metrics = [ConfMatrSlidingWindowEvaluation(window_size=batch_size * 32)]
 
-    client = FederatedOnlineClient(data_source=data_source, batch_size=batch_size, model=model, metrics=metrics,
+    client = FederatedOnlineClient(data_source=data_source, batch_size=batch_size, model=model,
+                                   label_split=65, metrics=metrics,
                                    m_aggr_server=m_aggr_server, eval_server=eval_server, aggr_server=aggr_server,
                                    update_interval_t=update_interval)
     client.start()

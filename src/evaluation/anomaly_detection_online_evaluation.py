@@ -159,19 +159,20 @@ class ConfMatrSlidingWindowEvaluation(SlidingWindowEvaluation):
         self._fn = 0
         self._tn = 0
 
+    # noinspection DuplicatedCode
     def result(self) -> dict[str, float]:
         """Based on the accumulated confusion matrix, computes its derived scalar metrics and returns them.
 
         :return: Dictionary of all derived scalar (tensor) confusion matrix metrics.
         """
-        accuracy = (self.tp + self.tn) / len(self.true_labels)
-        recall = self.tp / (self.tp + self.fn)
-        tnr = self.tn / (self.tn + self.fp)
-        precision = self.tp / (self.tp + self.fp)
-        npv = self.tn / (self.tn + self.fn)
-        fnr = self.fn / (self.fn + self.tp)
-        fpr = self.fp / (self.fp + self.tn)
-        f1 = 2 * self.tp / (2 * self.tp + self.fp + self.fn)
+        accuracy = (self._tp + self._tn) / len(self.true_labels)
+        recall = tf.math.divide_no_nan(self._tp, (self._tp + self._fn))
+        tnr = tf.math.divide_no_nan(self._tn, (self._tn + self._fp))
+        precision = tf.math.divide_no_nan(self._tp, (self._tp + self._fp))
+        npv = tf.math.divide_no_nan(self._tn, (self._tn + self._fn))
+        fnr = tf.math.divide_no_nan(self._fn, (self._fn + self._tp))
+        fpr = tf.math.divide_no_nan(self._fp, (self._fp + self._tn))
+        f1 = tf.math.divide_no_nan(2 * self._tp, (2 * self._tp + self._fp + self._fn))
 
         metrics = {"accuracy": accuracy, "recall": recall, "true negative rate": tnr,
                    "precision": precision, "negative predictive value": npv,
