@@ -4,4 +4,6 @@
 .idea
 
 # pyproject installation files
+build
+of_ids.egg-info
 src/of_ids.egg-info

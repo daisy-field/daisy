@@ -43,7 +43,7 @@ requires-python = ">=3.11"
 # This is either text indicating the license for the distribution, or a file
 # that contains the license
 # https://packaging.python.org/en/latest/specifications/core-metadata/#license
-license = {file = "LICENSE.txt"}
+license = {file = "LICENSE.md"}
 
 # This field adds keywords for your project which will appear on the
 # project page. What does your project relate to?
@@ -141,7 +141,7 @@ direct-ml = ["tensorflow-directml-plugin"]
 # The following would provide a command line executable called `sample`
 # which executes the function `main` from this package when invoked.
 [project.scripts]  # Optional
-#sample = "sample:main"
+#demo_202312_client = "scripts.demo_202312:demo_202312_client"
 
 # This is configuration specific to the `setuptools` build backend.
 # If you are using a different build backend, you will need to change this.

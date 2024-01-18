@@ -79,7 +79,9 @@ def start_demo_client(client_id: int, pcap_dir_base_path: pathlib.Path, batch_si
                                    update_interval_t=update_interval)
     client.start()
 
-def client():
+
+def create_client():
+
     args = parse_args()
     if args.debug:
         logging.basicConfig(format="%(asctime)s %(levelname)-8s %(name)-10s %(message)s", datefmt="%Y-%m-%d %H:%M:%S",
@@ -102,4 +104,4 @@ def client():
 
 
 if __name__ == "__main__":
-    client()
+    create_client()
