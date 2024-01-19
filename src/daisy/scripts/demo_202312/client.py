@@ -81,7 +81,7 @@ def _create_client(client_id: int, pcap_dir_base_path: pathlib.Path, batch_size:
     client.start()
 
 
-def demo_202312_client():
+def client():
     """
 
     """
@@ -107,4 +107,4 @@ def demo_202312_client():
 
 
 if __name__ == "__main__":
-    demo_202312_client()
+    client()

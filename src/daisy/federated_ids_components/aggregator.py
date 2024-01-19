@@ -5,6 +5,8 @@
 
     Author: Fabian Hofmann
     Modified: 16.11.23
+
+    TODO Future Work: Defining granularity of logging in inits
 """
 import logging
 import threading

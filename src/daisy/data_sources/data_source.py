@@ -6,6 +6,8 @@
 
     Author: Fabian Hofmann, Jonathan Ackerschewski
     Modified: 27.07.23
+
+    TODO Future Work: Defining granularity of logging in inits
 """
 
 import logging
