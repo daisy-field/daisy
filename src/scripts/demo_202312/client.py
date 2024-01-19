@@ -17,7 +17,7 @@ from src.federated_ids_components import FederatedOnlineClient
 from src.federated_learning import TFFederatedModel, FederatedIFTM, EMAvgTM
 
 
-def parse_args() -> argparse.Namespace:
+def _parse_args() -> argparse.Namespace:
     """TODO
 
     """
@@ -55,8 +55,8 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def start_demo_client(client_id: int, pcap_dir_base_path: pathlib.Path, batch_size: int, update_interval: int,
-                      m_aggr_server: tuple[str, int], eval_server: tuple[str, int], aggr_server: tuple[str, int]):
+def _start_demo_client(client_id: int, pcap_dir_base_path: pathlib.Path, batch_size: int, update_interval: int,
+                       m_aggr_server: tuple[str, int], eval_server: tuple[str, int], aggr_server: tuple[str, int]):
     """TODO COMMENTS CHECKING
 
     """
@@ -80,9 +80,11 @@ def start_demo_client(client_id: int, pcap_dir_base_path: pathlib.Path, batch_si
     client.start()
 
 
-def create_client():
+def demo_202312_client():
+    """
 
-    args = parse_args()
+    """
+    args = _parse_args()
     if args.debug:
         logging.basicConfig(format="%(asctime)s %(levelname)-8s %(name)-10s %(message)s", datefmt="%Y-%m-%d %H:%M:%S",
                             level=logging.DEBUG)
@@ -98,10 +100,10 @@ def create_client():
     if args.aggrServ != "0.0.0.0":
         aggr_serv = (args.aggrServ, args.aggrServPort)
 
-    start_demo_client(client_id=args.clientId, pcap_dir_base_path=args.pcapBasePath, batch_size=args.batchSize,
-                      update_interval=args.updateInterval,
-                      m_aggr_server=m_aggr_serv, eval_server=eval_serv, aggr_server=aggr_serv)
+    _start_demo_client(client_id=args.clientId, pcap_dir_base_path=args.pcapBasePath, batch_size=args.batchSize,
+                       update_interval=args.updateInterval,
+                       m_aggr_server=m_aggr_serv, eval_server=eval_serv, aggr_server=aggr_serv)
 
 
 if __name__ == "__main__":
-    create_client()
+    demo_202312_client()
