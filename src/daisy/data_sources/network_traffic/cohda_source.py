@@ -11,7 +11,7 @@ from typing import Callable
 
 import numpy as np
 
-from src.data_sources.network_traffic.pyshark_source import PysharkProcessor, default_f, default_nn_aggregator
+from ...data_sources.network_traffic.pyshark_source import PysharkProcessor, default_f, default_nn_aggregator
 
 
 class CohdaProcessor(PysharkProcessor):

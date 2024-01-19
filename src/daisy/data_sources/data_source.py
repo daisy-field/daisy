@@ -16,7 +16,7 @@ from typing import Callable, Iterator
 
 import numpy as np
 
-from src.communication import StreamEndpoint
+from daisy.communication import StreamEndpoint
 
 
 class DataProcessor(ABC):

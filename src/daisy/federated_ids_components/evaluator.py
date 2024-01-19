@@ -12,7 +12,7 @@ from datetime import datetime
 from random import random
 from time import sleep
 
-from src.federated_ids_components.dashboard import Dashboard
+from .dashboard import Dashboard
 
 
 class FederatedOnlineEvaluator():

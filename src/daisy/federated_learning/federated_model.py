@@ -5,7 +5,7 @@
     Author: Fabian Hofmann
     Modified: 09.09.23
 
-    TODO Future Work should be the implementation of Open Source Interfaces (e.g. Keras Model API)
+    TODO Future Work: Should be the implementation of Open Source Interfaces (e.g. Keras Model API)
 """
 from abc import ABC, abstractmethod
 from typing import Callable, Optional, Self

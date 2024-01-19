@@ -10,16 +10,17 @@ import pathlib
 
 import tensorflow as tf
 
-from src.data_sources import DataSource
-from src.data_sources import PcapHandler, CohdaProcessor, march23_events
-from src.evaluation import ConfMatrSlidingWindowEvaluation
-from src.federated_ids_components import FederatedOnlineClient
-from src.federated_learning import TFFederatedModel, FederatedIFTM, EMAvgTM
+from daisy.data_sources import DataSource
+from daisy.data_sources import PcapHandler, CohdaProcessor, march23_events
+from daisy.evaluation import ConfMatrSlidingWindowEvaluation
+from daisy.federated_ids_components import FederatedOnlineClient
+from daisy.federated_learning import TFFederatedModel, FederatedIFTM, EMAvgTM
 
 
 def _parse_args() -> argparse.Namespace:
-    """TODO
+    """Creates a parser for the client arguments and parses them.
 
+    :return: Parsed arguments.
     """
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
@@ -55,8 +56,8 @@ def _parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _start_demo_client(client_id: int, pcap_dir_base_path: pathlib.Path, batch_size: int, update_interval: int,
-                       m_aggr_server: tuple[str, int], eval_server: tuple[str, int], aggr_server: tuple[str, int]):
+def _create_client(client_id: int, pcap_dir_base_path: pathlib.Path, batch_size: int, update_interval: int,
+                   m_aggr_server: tuple[str, int], eval_server: tuple[str, int], aggr_server: tuple[str, int]):
     """TODO COMMENTS CHECKING
 
     """
@@ -100,9 +101,9 @@ def demo_202312_client():
     if args.aggrServ != "0.0.0.0":
         aggr_serv = (args.aggrServ, args.aggrServPort)
 
-    _start_demo_client(client_id=args.clientId, pcap_dir_base_path=args.pcapBasePath, batch_size=args.batchSize,
-                       update_interval=args.updateInterval,
-                       m_aggr_server=m_aggr_serv, eval_server=eval_serv, aggr_server=aggr_serv)
+    _create_client(client_id=args.clientId, pcap_dir_base_path=args.pcapBasePath, batch_size=args.batchSize,
+                   update_interval=args.updateInterval, m_aggr_server=m_aggr_serv, eval_server=eval_serv,
+                   aggr_server=aggr_serv)
 
 
 if __name__ == "__main__":

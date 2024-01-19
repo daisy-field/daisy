@@ -16,9 +16,9 @@ from typing import Callable, cast, Optional
 import numpy as np
 import tensorflow as tf
 
-from src.communication import StreamEndpoint
-from src.data_sources import DataSource
-from src.federated_learning import FederatedModel, ModelAggregator
+from daisy.communication import StreamEndpoint
+from daisy.data_sources import DataSource
+from daisy.federated_learning import FederatedModel, ModelAggregator
 
 
 class FederatedOnlineNode(ABC):

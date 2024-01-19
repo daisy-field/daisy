@@ -29,8 +29,9 @@ from pyshark.packet.layers.json_layer import JsonLayer
 from pyshark.packet.layers.xml_layer import XmlLayer
 from pyshark.packet.packet import Packet
 
-from src.data_sources.data_source import DataProcessor, SourceHandler
+from ...data_sources.data_source import DataProcessor, SourceHandler
 
+# Exemplary network feature filter, supporting cohda-box (V2x) messages, besides TCP/IP and ETH.
 default_f = (
     'meta.len',
     'meta.time',
@@ -101,8 +102,13 @@ default_f = (
 
 
 def default_nn_aggregator(key: str, value: object) -> int:
-    """TODO: Docstring for default_nn_aggregator.
+    """Simple, exemplary value aggregator. Takes a non-numerical key-value pair and attempts to converted it into an
+    integer. This example does not take the key into account, but only checks the types of the value to proceed.
 
+    :param key: Name of pair, which always a string.
+    :param value: Arbitrary non-numerical value to be converted.
+    :return: Converted numerical value.
+    :raises ValueError: If value cannot be converted.
     """
     if isinstance(value, list):
         value.sort()

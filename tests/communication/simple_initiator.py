@@ -3,7 +3,7 @@ import random
 import threading
 from time import sleep
 
-from src.communication import StreamEndpoint
+from daisy.communication import StreamEndpoint
 
 
 def threaded_initiator(t_id: int):

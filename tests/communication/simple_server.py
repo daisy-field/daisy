@@ -1,7 +1,7 @@
 import logging
 from time import sleep
 
-from src.communication import EndpointServer
+from daisy.communication import EndpointServer
 
 
 def simple_server():

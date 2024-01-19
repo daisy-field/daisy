@@ -15,8 +15,8 @@ from typing import cast, Sequence
 
 import numpy as np
 
-from src.communication import EndpointServer, ep_select, receive_latest_ep_objs
-from src.federated_learning import ModelAggregator
+from daisy.communication import EndpointServer, ep_select, receive_latest_ep_objs
+from daisy.federated_learning import ModelAggregator
 
 
 class FederatedOnlineAggregator(ABC):

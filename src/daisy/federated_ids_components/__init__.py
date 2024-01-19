@@ -21,7 +21,7 @@
     Author: Fabian Hofmann, Seraphin Zunzer
     Modified: 27.11.23
 
-    FIXME FEDERATED_ONLINE_PEER + FEDERATED_RESULT_AGGR + FEDERATED_EVAL_AGGR
+    FIXME FEDERATED_RESULT_AGGR + FEDERATED_EVAL_AGGR + DASHBOARD
 """
 
 from .aggregator import FederatedModelAggregator, FederatedResultAggregator

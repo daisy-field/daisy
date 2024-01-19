@@ -7,7 +7,7 @@
     Author: Fabian Hofmann, Seraphin Zunzer
     Modified: 17.01.24
 
-    TODO future work: merge avg-based aggregators with avg-based federated_aggregators(.py) due to redundancy issues
+    TODO Future Work: Merge avg-based aggregators with avg-based federated_aggregators(.py) due to redundancy issues
 """
 from abc import ABC, abstractmethod
 from collections import deque
@@ -17,7 +17,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import Tensor
 
-from src.federated_learning.federated_model import FederatedModel
+from daisy.federated_learning.federated_model import FederatedModel
 
 
 class FederatedTM(FederatedModel, ABC):
