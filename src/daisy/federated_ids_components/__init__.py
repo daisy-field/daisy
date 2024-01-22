@@ -15,8 +15,9 @@
         * FederatedOnlineAggregator - Abstract aggregators that perform aggregation at runtime, continuously.
         * FederatedModelAggregator - Base class for client-server-based model aggregation, i.e. counterpart to the
         FederatedOnlineClient federate online node implementation.
-        * FederatedResultAggregator -
-        * FederatedEvalAggregator -
+        * FederatedValueAggregator -
+        * FederatedPredictionAggregator -
+        * FederatedEvaluationAggregator -
 
     Author: Fabian Hofmann, Seraphin Zunzer
     Modified: 27.11.23
@@ -24,7 +25,8 @@
     FIXME FEDERATED_RESULT_AGGR + FEDERATED_EVAL_AGGR + DASHBOARD
 """
 
-from .aggregator import FederatedModelAggregator, FederatedResultAggregator
+from .aggregator import FederatedModelAggregator
+from .aggregator import FederatedValueAggregator, FederatedPredictionAggregator, FederatedEvaluationAggregator
 from .aggregator import FederatedOnlineAggregator
 from .evaluator import FederatedOnlineEvaluator
 from .node import FederatedOnlineClient, FederatedOnlinePeer

@@ -4,13 +4,16 @@
     exchange, continuously.
 
     Author: Fabian Hofmann
-    Modified: 16.11.23
+    Modified: 22.01.24
 
+    TODO: Adapt ResultAggregator to needs
+    TODO: - Integrate Evaluator into ValueAggregator (i.e. inherit from it)
     TODO Future Work: Defining granularity of logging in inits
 """
 import logging
 import threading
 from abc import ABC, abstractmethod
+from collections import deque
 from random import sample
 from time import sleep
 from typing import cast, Sequence
@@ -135,7 +138,7 @@ class FederatedOnlineAggregator(ABC):
 class FederatedModelAggregator(FederatedOnlineAggregator):
     """Centralized federated learning is the simplest federated approach, since any client in the topology, while
     learning by itself, always reports to the same centralized server that aggregate the models in their stead. To
-    accomplish this, this implementation additionally wraps itself around the model aggregator
+    accomplish this, this implementation additionally wraps itself around the model aggregator.
 
     Thus, this implementation is essentially the inverse counterpart to FederatedOnlineClient, which either operates in
     synchronous fashion --- polling a sample of the existing clients to receive their models, aggregating them, before
@@ -193,7 +196,7 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
         self._logger.info("Starting model aggregation loop...")
         while self._started:
             try:
-                if self._update_interval_t is not None:  # Sync Update
+                if self._update_interval_t is not None:
                     self._logger.debug("Initiating interval-based synchronous aggregation step...")
                     self._sync_aggr()
                     sleep(self._update_interval_t)
@@ -275,16 +278,156 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
             client.send(global_model)
 
 
-class FederatedResultAggregator(FederatedOnlineAggregator):
-    """TODO
+class FederatedValueAggregator(FederatedOnlineAggregator):
+    """Base class for generic value aggregation of messages which are sent continuously by the federated nodes to the
+    aggregation server. These values are treated as some sort of series, each assigned to a federated node and its
+    respective endpoint from which new values can be retrieved and stored in a sliding window queue.
 
+    Since the content of messages sent by the federated nodes are shaped in various ways, depending on their type
+    (potentially containing multiple values even), extensions of this class may be required, which should at least
+    override the following methods:
+
+        * process_node_msg(): Converts a singular received message from a federated node into a list of values to be
+        added to the sliding window queue of that node. Per default this method assumes a singleton value.
+
+    Note that the base class could be extended in various other ways as well (for example adding a dashboard), it is
+    recommended to put such functionality into the setup() and cleanup() methods.
     """
+    _aggr_values: dict[tuple[str, int], deque]
+    _window_size: int
+
+    def __init__(self, addr: tuple[str, int], name: str = "", timeout: int = 10, window_size: int = None):
+        """Creates a new federated value aggregator.
+
+        :param addr: Address of aggregation server for federated nodes to report to.
+        :param name: Name of federated value aggregator for logging purposes.
+        :param timeout: Timeout for waiting to receive message from federated nodes.
+        :param window_size: Maximum number of latest received entries stored for each federated node.
+        """
+        super().__init__(addr=addr, name=name, timeout=timeout)
+
+        self._window_size = window_size
 
     def setup(self):
+        self._aggr_values = {}
+
+    def cleanup(self):
+        self._aggr_values = {}
+
+    def create_fed_aggr(self):
+        """Starts the loop to continuously poll the federated nodes for new values to receive and process, before adding
+        them to the datastructure.
+        """
+        self._logger.info("Starting result aggregation loop...")
+        while self._started:
+            try:
+                nodes = self._aggr_serv.poll_connections()[0].items()
+
+                if len(nodes) == 0:
+                    sleep(self._timeout)
+                    continue
+
+                for node, node_ep in nodes:
+                    if node in self._aggr_values:
+                        self._aggr_values[node] = deque(maxlen=self._window_size)
+                    try:
+                        while True:
+                            new_values = self.process_node_msg(node, node_ep.receive(timeout=0))
+                            self._aggr_values[node].extend(new_values)
+                    except (RuntimeError, TimeoutError):
+                        pass
+            except RuntimeError:
+                # stop() was called
+                break
+        self._logger.info("Result aggregation loop stopped.")
+
+    def process_node_msg(self, node: tuple[str, int], msg) -> list:
+        """Converts a singular received message from a federated node into a list of values to be
+        added to the sliding window queue of that client. Per default this method assumes a singleton value.
+
+        :param node: Node from whom the message was received.
+        :param msg: Message to be processed.
+        :return: List of values to be added to the sliding window of the respective node.
+        """
+        return [msg]
+
+
+class FederatedPredictionAggregator(FederatedValueAggregator):
+    """Aggregator for prediction values from a federated IDS. Since federated IDS nodes report their predictions in
+    minibatches, each message received from a node contains a multitude of values, which must be fragmented first,
+    before they can be stored.
+
+    TODO @Seraphin
+    """
+
+    def __init__(self, addr: tuple[str, int], name: str = "", timeout: int = 10, window_size: int = None):
+        """Creates a new federated prediction aggregator.
+
+        :param addr: Address of aggregation server for federated nodes to report to.
+        :param name: Name of federated value aggregator for logging purposes.
+        :param timeout: Timeout for waiting to receive message from federated nodes.
+        :param window_size: Maximum number of latest received entries stored for each federated node.
+        """
+        super().__init__(addr=addr, name=name, timeout=timeout, window_size=window_size)
+
+    def setup(self):
+        """
+
+        """
         pass
 
     def cleanup(self):
+        """
+
+        """
         pass
 
-    def create_fed_aggr(self):
+    def process_node_msg(self, node: tuple[str, int], msg: tuple[np.ndarray, np.ndarray]) -> list:
+        """Converts a received message from a federated node containing a minibatch of predictions into a list of tuples
+        that each contain a datapoint and its respective prediction.
+
+        :param node: Node from whom the message was received.
+        :param msg: Minibatch arranged in x,y fashion to be disassembled into value pairs.
+        :return: List of values (x,y) to be added to the sliding window of the respective node.
+        """
+        values = []
+        x_data, y_pred = msg
+        for i in range(len(x_data)):
+            t = x_data[i], y_pred[i]
+            self._logger.debug(f"Prediction received from {node}: {t}")
+            values.append(t)
+        return values
+
+
+class FederatedEvaluationAggregator(FederatedValueAggregator):
+    """TODO @Seraphin
+
+    """
+
+    def __init__(self, addr: tuple[str, int], name: str = "", timeout: int = 10, window_size: int = None):
+        """Creates a new federated evaluator.
+
+        :param addr: Address of aggregation server for federated nodes to report to.
+        :param name: Name of federated value aggregator for logging purposes.
+        :param timeout: Timeout for waiting to receive message from federated nodes.
+        :param window_size: Maximum number of latest received entries stored for each federated node.
+        """
+        super().__init__(addr=addr, name=name, timeout=timeout, window_size=window_size)
+
+    def setup(self):
+        """
+
+        """
+        pass
+
+    def cleanup(self):
+        """
+
+        """
+        pass
+
+    def process_node_msg(self, node: tuple[str, int], msg):
+        """
+
+        """
         pass

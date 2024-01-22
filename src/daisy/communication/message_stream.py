@@ -1118,7 +1118,7 @@ def ep_select(endpoints: Iterable[StreamEndpoint]) -> tuple[list[StreamEndpoint]
 
 
 def receive_latest_ep_objs(endpoints: Iterable[StreamEndpoint], obj_type: type = object) \
-        -> dict[StreamEndpoint, Optional[object]]:
+        -> dict[StreamEndpoint, Optional]:
     """General helper function to receive the latest objects of a certain type from a number of endpoints. Note this
     flushes any other messages held by these endpoints as well, as non-blocking receives are called on them until their
     buffers are exhausted. Any messages of others types are discarded, as are endpoints who are not ready.

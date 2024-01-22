@@ -72,7 +72,7 @@ def _create_client(client_id: int, pcap_dir_base_path: pathlib.Path, batch_size:
     err_fn = tf.keras.losses.MeanAbsoluteError(reduction=tf.keras.losses.Reduction.NONE)
     model = FederatedIFTM(identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn, param_split=65)
 
-    metrics = [ConfMatrSlidingWindowEvaluation(window_size=batch_size * 32)]
+    metrics = [ConfMatrSlidingWindowEvaluation(window_size=batch_size)]
 
     client = FederatedOnlineClient(data_source=data_source, batch_size=batch_size, model=model,
                                    label_split=65, metrics=metrics,

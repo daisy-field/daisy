@@ -7,6 +7,7 @@
     Modified: 17.01.24
 
     TODO Future Work: Defining granularity of logging in inits
+    TODO Future Work: Args for client-side ports in init
 """
 
 import logging
@@ -236,7 +237,7 @@ class FederatedOnlineNode(ABC):
 
         self._logger.debug("AsyncLearner: Processing minibatch...")
         y_pred = self._model.predict(x_data)
-        self._logger.debug(f"AsyncLearner: Prediction results for minibatch: {y_pred}")
+        self._logger.debug(f"AsyncLearner: Prediction results for minibatch: {(x_data, y_pred)}")
         if self._aggr_serv is not None:
             self._aggr_serv.send((x_data, y_pred))
         if len(self._metrics) > 0:
