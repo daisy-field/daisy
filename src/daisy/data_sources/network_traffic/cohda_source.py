@@ -57,7 +57,7 @@ class CohdaProcessor(PysharkProcessor):
         return super().reduce(d_point)
 
 
-# Existing datasets captured on Cohda boxes 2 and 5 on March 6th contains attacks in the following:
+# Existing datasets captured on Cohda boxes 2 and 5 on March 6th (2023) contains attacks in the following:
 # 1: "Installation Attack Tool"
 # 2: "SSH Brute Force"
 # 3: "SSH Privilege Escalation"
