@@ -280,7 +280,7 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
 class FederatedValueAggregator(FederatedOnlineAggregator):
     """Base class for generic value aggregation of messages which are sent continuously by the federated nodes to the
     aggregation server. These values are treated as some sort of series, each assigned to a federated node and its
-    respective endpoint from which new values can be retrieved and stored in a sliding window queue.
+    respective endpoint from which new values can be retrieved and stored in an individual sliding window queue.
 
     Since the content of messages sent by the federated nodes are shaped in various ways, depending on their type
     (potentially containing multiple values even), extensions of this class may be required, which should at least

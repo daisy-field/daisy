@@ -15,9 +15,10 @@
         * FederatedOnlineAggregator - Abstract aggregators that perform aggregation at runtime, continuously.
         * FederatedModelAggregator - Base class for client-server-based model aggregation, i.e. counterpart to the
         FederatedOnlineClient federate online node implementation.
-        * FederatedValueAggregator -
-        * FederatedPredictionAggregator -
-        * FederatedEvaluationAggregator -
+        * FederatedValueAggregator - Base class for generic value aggregation via simple value caching using a sliding
+        window for each federated node.
+        * FederatedPredictionAggregator - Aggregator for prediction values from federated IDS nodes. Dashboard enabled.
+        * FederatedEvaluationAggregator - Aggregator for evaluation values from federated nodes. Dashboard enabled.
 
     Author: Fabian Hofmann, Seraphin Zunzer
     Modified: 27.11.23
