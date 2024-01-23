@@ -6,8 +6,7 @@
     Author: Fabian Hofmann
     Modified: 22.01.24
 
-    TODO: Adapt ResultAggregator to needs
-    TODO: - Integrate Evaluator into ValueAggregator (i.e. inherit from it)
+    TODO: Integrate Evaluator into ValueAggregator (i.e. inherit from it)
     TODO Future Work: Defining granularity of logging in inits
 """
 import logging
@@ -322,13 +321,12 @@ class FederatedValueAggregator(FederatedOnlineAggregator):
         while self._started:
             try:
                 nodes = self._aggr_serv.poll_connections()[0].items()
-
                 if len(nodes) == 0:
                     sleep(self._timeout)
                     continue
 
                 for node, node_ep in nodes:
-                    if node in self._aggr_values:
+                    if node not in self._aggr_values:
                         self._aggr_values[node] = deque(maxlen=self._window_size)
                     try:
                         while True:
@@ -349,6 +347,7 @@ class FederatedValueAggregator(FederatedOnlineAggregator):
         :param msg: Message to be processed.
         :return: List of values to be added to the sliding window of the respective node.
         """
+        self._logger.debug(f"Value received from {node}: {msg}")
         return [msg]
 
 
@@ -357,7 +356,7 @@ class FederatedPredictionAggregator(FederatedValueAggregator):
     minibatches, each message received from a node contains a multitude of values, which must be fragmented first,
     before they can be stored.
 
-    TODO @Seraphin
+    TODO @Seraphin New dashboard for IDS predictions
     """
 
     def __init__(self, addr: tuple[str, int], name: str = "", timeout: int = 10, window_size: int = None):
@@ -388,7 +387,7 @@ class FederatedPredictionAggregator(FederatedValueAggregator):
 
         :param node: Node from whom the message was received.
         :param msg: Minibatch arranged in x,y fashion to be disassembled into value pairs.
-        :return: List of values (x,y) to be added to the sliding window of the respective node.
+        :return: List of value pairs (x,f(x)) to be added to the sliding window of the respective node.
         """
         values = []
         x_data, y_pred = msg
@@ -400,7 +399,7 @@ class FederatedPredictionAggregator(FederatedValueAggregator):
 
 
 class FederatedEvaluationAggregator(FederatedValueAggregator):
-    """TODO @Seraphin
+    """TODO @Seraphin Evaluator Integration
 
     """
 
