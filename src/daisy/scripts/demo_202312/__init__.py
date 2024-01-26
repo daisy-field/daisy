@@ -18,4 +18,4 @@
     Author: Fabian Hofmann
     Modified: 23.01.24
 """
-from .client import client
+from .client import create_client

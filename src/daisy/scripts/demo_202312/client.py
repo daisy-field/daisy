@@ -1,7 +1,7 @@
 """TODO
 
     Author: Fabian Hofmann
-    Modified: 28.11.23
+    Modified: 26.01.24
 """
 
 import argparse
@@ -56,35 +56,11 @@ def _parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _create_client(client_id: int, pcap_dir_base_path: pathlib.Path, batch_size: int, update_interval: int,
-                   m_aggr_server: tuple[str, int], eval_server: tuple[str, int], aggr_server: tuple[str, int]):
-    """TODO COMMENTS CHECKING
-
-    """
-    handler = PcapHandler(f"{pcap_dir_base_path}/diginet-cohda-box-dsrc{client_id}")
-    processor = CohdaProcessor(client_id=client_id, events=march23_events)
-    data_source = DataSource(source_handler=handler, data_processor=processor)
-
-    optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
-    loss = tf.keras.losses.MeanAbsoluteError()
-    id_fn = TFFederatedModel.get_fae(input_size=65, optimizer=optimizer, loss=loss, batch_size=batch_size, epochs=1)
-    t_m = EMAvgTM(alpha=0.05)
-    err_fn = tf.keras.losses.MeanAbsoluteError(reduction=tf.keras.losses.Reduction.NONE)
-    model = FederatedIFTM(identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn, param_split=65)
-
-    metrics = [ConfMatrSlidingWindowEvaluation(window_size=batch_size)]
-
-    client = FederatedOnlineClient(data_source=data_source, batch_size=batch_size, model=model,
-                                   label_split=65, metrics=metrics,
-                                   m_aggr_server=m_aggr_server, eval_server=eval_server, aggr_server=aggr_server,
-                                   update_interval_t=update_interval)
-    client.start()
-
-
-def client():
+def create_client():
     """
 
     """
+    # Args parsing
     args = _parse_args()
     if args.debug:
         logging.basicConfig(format="%(asctime)s %(levelname)-8s %(name)-10s %(message)s", datefmt="%Y-%m-%d %H:%M:%S",
@@ -92,7 +68,6 @@ def client():
     else:
         logging.basicConfig(format="%(asctime)s %(levelname)-8s %(name)-10s %(message)s", datefmt="%Y-%m-%d %H:%M:%S",
                             level=logging.INFO)
-
     m_aggr_serv = (args.modelAggrServ, args.modelAggrServPort)
     eval_serv = None
     if args.evalServ != "0.0.0.0":
@@ -101,10 +76,27 @@ def client():
     if args.aggrServ != "0.0.0.0":
         aggr_serv = (args.aggrServ, args.aggrServPort)
 
-    _create_client(client_id=args.clientId, pcap_dir_base_path=args.pcapBasePath, batch_size=args.batchSize,
-                   update_interval=args.updateInterval, m_aggr_server=m_aggr_serv, eval_server=eval_serv,
-                   aggr_server=aggr_serv)
+    # Datasource
+    handler = PcapHandler(f"{args.pcapBasePath}/diginet-cohda-box-dsrc{args.clientId}")
+    processor = CohdaProcessor(client_id=args.clientId, events=march23_events)
+    data_source = DataSource(source_handler=handler, data_processor=processor)
+
+    # Model
+    optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
+    loss = tf.keras.losses.MeanAbsoluteError()
+    id_fn = TFFederatedModel.get_fae(input_size=65, optimizer=optimizer, loss=loss, batch_size=args.batchSize, epochs=1)
+    t_m = EMAvgTM(alpha=0.05)
+    err_fn = tf.keras.losses.MeanAbsoluteError(reduction=tf.keras.losses.Reduction.NONE)
+    model = FederatedIFTM(identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn, param_split=65)
+
+    # Eval Metrics
+    metrics = [ConfMatrSlidingWindowEvaluation(window_size=args.batchSize)]
+
+    FederatedOnlineClient(data_source=data_source, batch_size=args.batchSize, model=model,
+                          label_split=65, metrics=metrics,
+                          m_aggr_server=m_aggr_serv, eval_server=eval_serv, aggr_server=aggr_serv,
+                          update_interval_t=args.updateInterval).start()
 
 
 if __name__ == "__main__":
-    client()
+    create_client()

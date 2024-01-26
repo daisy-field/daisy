@@ -159,7 +159,7 @@ class TFFederatedModel(FederatedModel):
 
 
 class FederatedIFTM(FederatedModel):
-    """Double union of two federated models, following the IFTM hybdrid  model approach --- identify function threshold
+    """Double union of two federated models, following the IFTM hybrid  model approach --- identify function threshold
     model principle by Schmidt et al. (https://ieeexplore.ieee.org/document/8456348): One for the computation of the
     identity of a given sample (alternatively prediction of the next sample), while the other maps the error/loss using
     a threshold(-model) to the binary class labels for anomaly detection. Both are generic federated models, so any
