@@ -1,6 +1,6 @@
 """
     Pre-configured set of components of the federated IDS to perform the most simple demonstration of the entire system
-    using a simple client-server topology, consisting of N federated IDS detection clients along the model aggregation
+    using a simple client-server topology, consisting of two federated IDS detection clients along the model aggregation
     server and two additional aggregation servers, one for the prediction results and a second one for the evaluation
     results.
 
@@ -8,7 +8,7 @@
     script (each containing a main) or via the command line, the name scheme of which consists of "demo_202312_NAME"
     with the following options:
 
-        * client - TODO
+        * client - Online IDS client processing one of the two splits of the demonstration dataset (see below).
         * server - TODO
         * evaluation_aggregator - TODO
         * prediction_aggregator - TODO
