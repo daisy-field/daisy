@@ -1,7 +1,21 @@
-"""TODO
+"""
+    Pre-configured demonstration client for a federated intrusion detection system (IDS), that learns cooperatively with
+    another clients through a centralized model aggregation server using the federated averaging (FedAvg) technique. In
+    this example, the client is configured to process network traffic data from the road-side infrastructure (BeIntelli)
+    on Cohda boxes 2 and 5 on March 6th 2023.
+
+    This processing is done in online manner (as is the general nature of all current federated processing nodes), with
+    the underlying model running predictions on a minibatch, before training a single epoch on that batch. The model
+    itself is a hybrid approach for anomaly detection, using a simple autoencoder paired with a dynamic threshold to map
+    the anomaly score to a binary label. Finally, the prediction results are evaluated using a sliding window confusion
+    matrix along its anomaly detection evaluation metrics (e.g. Precision, Recall, F1-score, etc.).
+
+    Note that this demonstration client can also be launched as a standalone detection component, if no additional
+    client is run along with the model aggregation server. The same is the case for additional prediction and evaluation
+    result aggregation using centralize servers (see -h for more information).
 
     Author: Fabian Hofmann
-    Modified: 26.01.24
+    Modified: 30.01.24
 """
 
 import argparse
@@ -57,8 +71,10 @@ def _parse_args() -> argparse.Namespace:
 
 
 def create_client():
-    """
+    """Creates a pre-configured federated client with preset components that runs on either of the two subsets of the
+    March 6th 2023 network traffic data set. Entry point of this module's functionality.
 
+    See the header doc string of this module for more details about the preset client's configuration.
     """
     # Args parsing
     args = _parse_args()
@@ -90,7 +106,7 @@ def create_client():
     model = FederatedIFTM(identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn, param_split=65)
 
     # Eval Metrics
-    metrics = [ConfMatrSlidingWindowEvaluation(window_size=args.batchSize)]
+    metrics = [ConfMatrSlidingWindowEvaluation(window_size=args.batchSize*8)]
 
     FederatedOnlineClient(data_source=data_source, batch_size=args.batchSize, model=model,
                           label_split=65, metrics=metrics,
