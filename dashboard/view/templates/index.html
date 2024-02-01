@@ -1,0 +1,138 @@
+{% extends "./base.html" %}
+{% block body_theme %}
+{% if dark_theme %}
+"sb-nav-fixed bg-dark"
+{% else %}
+"sb-nav-fixed"
+{% endif %}
+{% endblock %}
+
+{% block footer_theme %}
+{% if dark_theme %}
+"py-4 bg-dark mt-auto"
+{% else %}
+"py-4 mt-auto"
+{% endif %}
+{% endblock %}
+
+{% block navbar_theme %}
+{% if dark_theme %}
+"sb-sidenav accordion sb-sidenav-dark"
+{% else %}
+"sb-sidenav accordion sb-sidenav-light"
+{% endif %}
+{% endblock %}
+
+{% block main %}
+<br>
+
+<h1 class="mt-4"></h1>
+<ol class="breadcrumb mb-4">
+    <li class="breadcrumb-item active">Operational Status</li>
+</ol>
+<div class="row">
+    <div class="col-xl-4 col-md-6">
+        <div class="card bg-success text-white mb-4" style="  display:flex">
+            <div class="card-body">Intrusion Detection System: Operational</div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <a class="small text-white stretched-link" href={% url "alerts" %} >View Details</a>
+                <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+            </div>
+        </div>
+    </div>
+   <div class="col-xl-4 col-md-6">
+        <div class="card bg-success text-white mb-4" style="  display:flex">
+            <div class="card-body">Knowledge Transfer: Operational</div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <a class="small text-white stretched-link" href={% url "alerts" %} >View Details</a>
+                <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-4 col-md-6">
+        <div class="card bg-success text-white mb-4" style="  display:flex">
+            <div class="card-body">Performance Evaluation: Operational</div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <a class="small text-white stretched-link" href={% url "alerts" %} >View Details</a>
+                <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+            </div>
+        </div>
+    </div>
+
+</div>
+<ol class="breadcrumb mb-4">
+    <li class="breadcrumb-item active">Metrics</li>
+</ol>
+<div class="row">
+    <div class="col-xl-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-chart-area me-1"></i>
+                F1-Score
+            </div>
+            <div class="card-body">
+                <canvas id="accuracy" width="100%" height="30"></canvas>
+            </div>
+            <div style="margin-left: auto;
+  margin-right: auto;width:90%;height:500">
+                {{ f1|safe }}
+            </div>
+            <div class="card-footer small text-muted">Updated yesterday at 11:59 PM</div>
+        </div>
+    </div>
+    <div class="col-xl-6">
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-chart-area me-1"></i>
+                Precision
+            </div>
+            <div class="card-body">
+                <canvas id="precision" width="100%" height="30"></canvas>
+            </div>
+            <div style="margin-left: auto;
+  margin-right: auto;width:90%;height:500">
+                {{ precision|safe }}
+            </div>
+            <div class="card-footer small text-muted">Updated yesterday at 11:59 PM</div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-xl-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-chart-area me-1"></i>
+                Recall
+            </div>
+            <div class="card-body">
+                <canvas id="recall" width="100%" height="30"></canvas>
+            </div>
+            <div style="margin-left: auto;
+  margin-right: auto;width:90%;height:500">
+                {{ recall|safe }}
+            </div>
+            <div class="card-footer small text-muted">Updated yesterday at 11:59 PM</div>
+        </div>
+    </div>
+    <div class="col-xl-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-chart-area me-1"></i>
+                Accuracy
+            </div>
+            <div class="card-body">
+                <canvas id="f1" width="100%" height="30"></canvas>
+            </div>
+            <div style="margin-left: auto;
+  margin-right: auto;width:90%;height:500">
+                {{ accuracy|safe }}
+            </div>
+            <div class="card-footer small text-muted">Updated yesterday at 11:59 PM</div>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}

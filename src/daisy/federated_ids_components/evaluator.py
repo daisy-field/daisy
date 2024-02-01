@@ -12,7 +12,7 @@ from datetime import datetime
 from random import random
 from time import sleep
 
-from .dashboard import Dashboard
+from daisy.federated_ids_components.dashboard import Dashboard
 
 
 class FederatedOnlineEvaluator():
