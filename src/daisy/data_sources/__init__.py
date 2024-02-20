@@ -18,6 +18,7 @@
 
 from .data_source import DataProcessor, SourceHandler
 from .data_source import DataSource, DataSourceRelay
+from .data_source import FileRelay
 from .data_source import SimpleDataProcessor
 from .data_source import SimpleSourceHandler, SimpleRemoteSourceHandler
 from .network_traffic import *

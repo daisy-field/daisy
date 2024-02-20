@@ -512,6 +512,8 @@ class FileRelay:  # TODO add comments
         self._logger = logging.getLogger(name)
         self._logger.info("Initializing file relay...")
 
+        self._started = False
+
         if target_file is None or not target_file:
             raise ValueError("File to write to required.")
         self._file = Path(target_file)
@@ -532,7 +534,6 @@ class FileRelay:  # TODO add comments
                                      multithreading, buffer_size)
         self._data_source = data_source
 
-        self._started = False
         self._logger.info("File relay initialized.")
 
     def start(self):
@@ -564,15 +565,16 @@ class FileRelay:  # TODO add comments
 
     def _create_relay(self):
         self._logger.info("Starting to relay data points from data source...")
-        with self._file.open("b") as file:
-            for d_point in self._data_source:
-                try:
-                    file.write(d_point)  # TODO make this to bytes
-                    # TODO write to file
-                    pass
-                except RuntimeError:
-                    # stop() was called
-                    break
+        #with self._file.open("b") as file:
+        for d_point in self._data_source:
+            try:
+                self._logger.debug(str(d_point))
+                #file.write(d_point)  # TODO make this to bytes
+                # TODO write to file
+                pass
+            except RuntimeError:
+                # stop() was called
+                break
         self._logger.info("Data source exhausted, or relay closing...")
 
     def __del__(self):
