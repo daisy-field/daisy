@@ -1,3 +1,6 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """
     A collection of extensions to the FederatedModel class to support a wide array of threshold models, which are used
     for anomaly detection, mostly for the mapping from numerical scalar values to binary class labels. For this the most

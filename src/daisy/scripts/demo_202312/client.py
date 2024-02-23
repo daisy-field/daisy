@@ -1,3 +1,6 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """
     Pre-configured demonstration client for a federated intrusion detection system (IDS), that learns cooperatively with
     another clients through a centralized model aggregation server using the federated averaging (FedAvg) technique. In

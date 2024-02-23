@@ -1,3 +1,6 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """
     Extensions to the tensorflow metric set, to measure the quality of online anomaly detection approaches. For now,
     only a sliding-window-based solution is realized, as this works for any kind of metric (not every metric can be

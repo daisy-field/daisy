@@ -1,3 +1,6 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """
     A collection of various types of federated aggregators, implementing the same interface for each federated
     aggregator type. Each of them receives and aggregates data from federated nodes at runtime in a client-server-based

@@ -1,3 +1,6 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """
     Collection of executable scripts to start up the various components of the package, more or less pre-configured by
     the respective script for ease of use and demonstration purposes. Each subpackage contains a bundled demo, i.e. a
