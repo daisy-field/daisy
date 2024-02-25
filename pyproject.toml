@@ -104,7 +104,9 @@ dependencies = [
     "pyshark~=0.6",
     "lz4~=4.3.2",
     "dash~=2.9.2",
-    "plotly~=5.14.1"
+    "plotly~=5.14.1",
+    "django~=5.0.1", 
+    "djangorestframework~=3.14.0"
 ]
 
 # List additional groups of dependencies here (e.g. development
