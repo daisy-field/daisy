@@ -1,3 +1,6 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """
     Pre-configured set of components of the federated IDS to perform the most simple demonstration of the entire system
     using a simple client-server topology, consisting of two federated IDS detection clients along the model aggregation

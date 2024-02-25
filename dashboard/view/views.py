@@ -1,4 +1,9 @@
 from dash_bootstrap_templates import load_figure_template
+
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 from django.shortcuts import render
 # Create your views here.
 from api.models import Accuracy #, Recall, Precision, F1

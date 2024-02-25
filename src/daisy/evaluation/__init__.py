@@ -1,3 +1,6 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """
     Toolbox for evaluation for the performance of federated online learning approaches, namely for intrusion detection.
     Since they require various kinds of inputs, there is no singular interface to implement and call when using one of

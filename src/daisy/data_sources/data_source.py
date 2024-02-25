@@ -1,3 +1,6 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """
     A collection of interfaces and base classes for data stream generation and preprocessing for further (ML) tasks.
     Supports generic generators, but also remote communication endpoints that hand over generic data points in

@@ -1,3 +1,6 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """
     A collection of interfaces and base classes for internal components for federated learning, from the models who are
     trained on and process data points in online-manner to the aggregators that must be able to aggregate generic models
