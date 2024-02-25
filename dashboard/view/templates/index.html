@@ -25,11 +25,15 @@
 
 {% block main %}
 <br>
+<br>
+<div class={% if dark_theme %}
+    "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
+    <div class="card-header">
+        <i class="fa-solid fa-signal"></i>
+         Operational Status
+    </div>
+    <div class="card-body">
 
-<h1 class="mt-4"></h1>
-<ol class="breadcrumb mb-4">
-    <li class="breadcrumb-item active">Operational Status</li>
-</ol>
 <div class="row">
     <div class="col-xl-4 col-md-6">
         <div class="card bg-success text-white mb-4" style="  display:flex">
@@ -40,7 +44,7 @@
             </div>
         </div>
     </div>
-   <div class="col-xl-4 col-md-6">
+    <div class="col-xl-4 col-md-6">
         <div class="card bg-success text-white mb-4" style="  display:flex">
             <div class="card-body">Knowledge Transfer: Operational</div>
             <div class="card-footer d-flex align-items-center justify-content-between">
@@ -61,77 +65,69 @@
     </div>
 
 </div>
-<ol class="breadcrumb mb-4">
-    <li class="breadcrumb-item active">Metrics</li>
-</ol>
+
+    </div>
+    <div class="card-footer small text-muted">Updated yesterday at 11:59 PM</div>
+</div>
+
+
+
 <div class="row">
     <div class="col-xl-6">
-        <div class="card mb-4">
-            <div class="card-header">
-                <i class="fas fa-chart-area me-1"></i>
-                F1-Score
-            </div>
-            <div class="card-body">
-                <canvas id="accuracy" width="100%" height="30"></canvas>
-            </div>
-            <div style="margin-left: auto;
-  margin-right: auto;width:90%;height:500">
-                {{ f1|safe }}
-            </div>
-            <div class="card-footer small text-muted">Updated yesterday at 11:59 PM</div>
+        <div class={% if dark_theme %}
+        "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %} >
+        <div class="card-header">
+            <i class="fas fa-chart-area me-1"></i>
+            F1-Score
         </div>
+    <div class="card-body">
+            {{ f1|safe }}
     </div>
-    <div class="col-xl-6">
+        <div class="card-footer small text-muted">Updated yesterday at 11:59 PM</div>
+    </div>
+</div>
+<div class="col-xl-6">
 
-        <div class="card mb-4">
-            <div class="card-header">
-                <i class="fas fa-chart-area me-1"></i>
-                Precision
-            </div>
-            <div class="card-body">
-                <canvas id="precision" width="100%" height="30"></canvas>
-            </div>
-            <div style="margin-left: auto;
-  margin-right: auto;width:90%;height:500">
-                {{ precision|safe }}
-            </div>
-            <div class="card-footer small text-muted">Updated yesterday at 11:59 PM</div>
-        </div>
+    <div class={% if dark_theme %}
+    "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
+    <div class="card-header">
+        <i class="fas fa-chart-area me-1"></i>
+        Precision
     </div>
+    <div class="card-body">
+        {{ precision|safe }}
+    </div>
+    <div class="card-footer small text-muted">Updated yesterday at 11:59 PM</div>
+</div>
+</div>
 </div>
 <div class="row">
     <div class="col-xl-6">
-        <div class="card mb-4">
-            <div class="card-header">
-                <i class="fas fa-chart-area me-1"></i>
-                Recall
-            </div>
-            <div class="card-body">
-                <canvas id="recall" width="100%" height="30"></canvas>
-            </div>
-            <div style="margin-left: auto;
-  margin-right: auto;width:90%;height:500">
-                {{ recall|safe }}
-            </div>
-            <div class="card-footer small text-muted">Updated yesterday at 11:59 PM</div>
+        <div class={% if dark_theme %}
+        "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
+        <div class="card-header">
+            <i class="fas fa-chart-area me-1"></i>
+            Recall
         </div>
-    </div>
-    <div class="col-xl-6">
-        <div class="card mb-4">
-            <div class="card-header">
-                <i class="fas fa-chart-area me-1"></i>
-                Accuracy
-            </div>
-            <div class="card-body">
-                <canvas id="f1" width="100%" height="30"></canvas>
-            </div>
-            <div style="margin-left: auto;
-  margin-right: auto;width:90%;height:500">
-                {{ accuracy|safe }}
-            </div>
-            <div class="card-footer small text-muted">Updated yesterday at 11:59 PM</div>
+        <div class="card-body">
+            {{ recall|safe }}
         </div>
+        <div class="card-footer small text-muted">Updated yesterday at 11:59 PM</div>
     </div>
+</div>
+<div class="col-xl-6">
+    <div class={% if dark_theme %}
+    "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
+    <div class="card-header">
+        <i class="fas fa-chart-area me-1"></i>
+        Accuracy
+    </div>
+    <div class="card-body">
+        {{ accuracy|safe }}
+    </div>
+    <div class="card-footer small text-muted">Updated yesterday at 11:59 PM</div>
+</div>
+</div>
 </div>
 
 

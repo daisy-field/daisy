@@ -1,3 +1,4 @@
+from dash_bootstrap_templates import load_figure_template
 from django.shortcuts import render
 # Create your views here.
 from api.models import Accuracy #, Recall, Precision, F1
@@ -15,9 +16,9 @@ def index(request):
     theme = request.session.get('is_dark_theme')
 
     accuracy = opy.plot(accuracy_plot(theme),auto_open=False, output_type='div')
-    recall = opy.plot(recall_plot(),auto_open=False, output_type='div')
-    precision = opy.plot(recall_plot(),auto_open=False, output_type='div')
-    f1 = opy.plot(recall_plot(),auto_open=False, output_type='div')
+    recall = opy.plot(recall_plot(theme),auto_open=False, output_type='div')
+    precision = opy.plot(recall_plot(theme),auto_open=False, output_type='div')
+    f1 = opy.plot(recall_plot(theme),auto_open=False, output_type='div')
 
 
     return render(request, 'index.html', {'f1':f1, 'precision':precision, 'accuracy':accuracy, 'recall':recall, "dark_theme":theme})
@@ -29,8 +30,11 @@ _logged_metrics = {
         'recall': {'node_addr_1': [0.7, 0.6, 0.1, 0.4, 0.9, 0.4], 'node_addr_2': [0.5, 0.2, 0.6, 0.7, 0.9, 0.6]},
         'x': ['07:41:19', '07:41:20', '07:41:21', '07:41:22', '07:41:23', '07:41:24']}
 
-_dark_template = "seaborn"
-_light_template = "plotly_white"
+_dark_template = "bootstrap_dark" #"slate"
+_light_template = "bootstrap"  # pulse"
+load_figure_template([_light_template, _dark_template])
+
+
 def accuracy_plot(dark_theme):
     k= []
     x=[]
@@ -39,7 +43,7 @@ def accuracy_plot(dark_theme):
         x.append(c)
         c += 1
         k.append(i.accuracy)
-    print(k,x)
+
     #x_max, x_min = update_range(figure, len(self._evaluator._logged_metrics['x']))
     fig = go.Figure()
     #for i in _logged_metrics['accuracy']:
@@ -49,20 +53,25 @@ def accuracy_plot(dark_theme):
                                  ))
     fig.update_layout(
         template= _dark_template if dark_theme else _light_template,
-        #plot_bgcolor='rgba(0, 0, 0, 0)',
-        #paper_bgcolor='rgba(0, 0, 0, 0)',
+        plot_bgcolor='rgba(0, 0, 0, 0)',
+        paper_bgcolor='rgba(0, 0, 0, 0)',
         yaxis_range=[0, 1],
         font=dict(size=10),
         uirevision=True,
+
+       # yaxis={
+        #    'showgrid': False},
         xaxis=dict(rangeslider=dict(visible=True),
                    #range=[x_min, x_max],
                    #tickvals=[x_min + 1, x_max],
-                   tickfont=dict(size=10))
-    )
+                   tickfont=dict(size=10),
+                   #showgrid= False,
+        )
+        )
     return fig
 
 
-def recall_plot():
+def recall_plot(dark_theme):
 
     #x_max, x_min = update_range(figure, len(self._evaluator._logged_metrics['x']))
     fig = go.Figure()
@@ -72,7 +81,7 @@ def recall_plot():
                                  mode='lines',
                                  name=i))
     fig.update_layout(
-        #template=self._light_template if toggle else self._dark_template,
+        template=_dark_template if dark_theme else _light_template,
         plot_bgcolor='rgba(0, 0, 0, 0)',
         paper_bgcolor='rgba(0, 0, 0, 0)',
         yaxis_range=[0, 1],
@@ -105,3 +114,11 @@ def alerts(request):
 def nodes(request):
     theme = request.session.get('is_dark_theme')
     return render(request, 'nodes.html', {"dark_theme":theme})
+
+def terms(request):
+    theme = request.session.get('is_dark_theme')
+    return render(request, 'tc.html', {"dark_theme":theme})
+
+def privacy(request):
+    theme = request.session.get('is_dark_theme')
+    return render(request, 'pp.html', {"dark_theme":theme})
