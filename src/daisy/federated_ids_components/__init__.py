@@ -30,6 +30,6 @@
 from .aggregator import FederatedModelAggregator
 from .aggregator import FederatedValueAggregator, FederatedPredictionAggregator, FederatedEvaluationAggregator
 from .aggregator import FederatedOnlineAggregator
-from .evaluator import FederatedOnlineEvaluator
+# from .evaluator import FederatedOnlineEvaluator
 from .node import FederatedOnlineClient, FederatedOnlinePeer
 from .node import FederatedOnlineNode

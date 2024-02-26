@@ -39,7 +39,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--debug", type=bool, default=False,
                         metavar="", help="Show debug outputs")
     parser.add_argument("--serv", required=True,
-                        metavar="", help="IP or hostname of model aggregation server")
+                        help="IP or hostname of model aggregation server")
     parser.add_argument("--servPort", type=int, default=8001, choices=range(1, 65535),
                         metavar="", help="Port of model aggregation server")
 

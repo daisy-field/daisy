@@ -251,6 +251,7 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
         clients = self._aggr_serv.poll_connections()[0].values()
         if self._num_clients is not None and len(clients) < self._num_clients:
             self._logger.info(f"Insufficient read-ready clients available for aggregation step [{len(clients)}]!")
+            sleep(1)
             return
 
         self._logger.debug(f"Receiving local models from requesting clients [{len(clients)}]...")
@@ -260,6 +261,7 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
 
         if len(client_models) == 0 or self._num_clients is not None and len(client_models) < self._num_clients:
             self._logger.info(f"Insufficient number of client models for aggregation received [{len(client_models)}]!")
+            sleep(1)
             return
         self._logger.debug(f"Aggregating client models [{len(client_models)}] into global model...")
         global_model = self._m_aggr.aggregate(client_models)
