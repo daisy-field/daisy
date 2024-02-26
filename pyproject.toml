@@ -144,6 +144,7 @@ direct-ml = ["tensorflow-directml-plugin"]
 # which executes the function `main` from this package when invoked.
 [project.scripts]  # Optional
 demo_202312_client = "daisy.scripts.demo_202312:create_client"
+demo_202312_client = "daisy.scripts.demo_202312:create_server"
 
 # This is configuration specific to the `setuptools` build backend.
 # If you are using a different build backend, you will need to change this.

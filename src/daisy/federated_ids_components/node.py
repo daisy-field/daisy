@@ -85,7 +85,8 @@ class FederatedOnlineNode(ABC):
                  label_split: int = 2 ** 32, supervised: bool = False, metrics: list[tf.metrics.Metric] = None,
                  eval_server: tuple[str, int] = None, aggr_server: tuple[str, int] = None,
                  sync_mode: bool = True, update_interval_s: int = None, update_interval_t: int = None):
-        """Creates a new federated online node.
+        """Creates a new federated online node. Note that by default, the node never performs a federated update step;
+        one of the intervals has to be set for that.
 
         :param data_source: Data source of data stream to draw data points (in order) from.
         :param batch_size: Minibatch size for each prediction-fitting step.
@@ -316,14 +317,12 @@ class FederatedOnlineClient(FederatedOnlineNode):
     """
     _m_aggr_server: StreamEndpoint
     _timeout: int
-    _sampled_update: bool
 
     def __init__(self, data_source: DataSource, batch_size: int, model: FederatedModel, m_aggr_server: tuple[str, int],
                  timeout: int = 10, name: str = "",
                  label_split: int = 2 ** 32, supervised: bool = False, metrics: list[tf.metrics.Metric] = None,
                  eval_server: tuple[str, int] = None, aggr_server: tuple[str, int] = None,
-                 sync_mode: bool = True,
-                 sampled_update: bool = False, update_interval_s: int = None, update_interval_t: int = None):
+                 sync_mode: bool = True, update_interval_s: int = None, update_interval_t: int = None):
         """Creates a new federated online client.
 
         :param data_source: Data source of data stream to draw data points (in order) from.
@@ -337,10 +336,10 @@ class FederatedOnlineClient(FederatedOnlineNode):
         :param metrics: Evaluation metrics to update at each step/minibatch. Default has no evaluation at all.
         :param eval_server: Address of centralized evaluation server (see evaluator.py).
         :param aggr_server: Address of centralized aggregation server (see aggregator.py).
-        :param sync_mode: Federated updating mode for node (sync/async). Default is synchronized.
-        :param sampled_update: If async, allows the aggregation server to trigger a sync update (instead of intervals).
-        :param update_interval_s: Federated updating interval, defined by samples; every X samples, do a sync update.
-        :param update_interval_t: Federated updating interval, defined by time; every X seconds, do a sync update.
+        :param sync_mode: Federated updating mode for node (sync/async). Default is synchronized. If async, allows the
+        aggregation server to trigger an update step if neither of the intervals are set.
+        :param update_interval_s: Federated updating interval, defined by samples; every X samples, do an update step.
+        :param update_interval_t: Federated updating interval, defined by time; every X seconds, do an update step.
         """
         super().__init__(data_source=data_source, batch_size=batch_size, model=model, name=name,
                          label_split=label_split, supervised=supervised, metrics=metrics,
@@ -350,7 +349,6 @@ class FederatedOnlineClient(FederatedOnlineNode):
         self._m_aggr_server = StreamEndpoint(name="MAggrServer", remote_addr=m_aggr_server,
                                              acceptor=False, multithreading=True)
         self._timeout = timeout
-        self._sampled_update = sampled_update
 
     def setup(self):
         _try_ops(
@@ -413,20 +411,15 @@ class FederatedOnlineClient(FederatedOnlineNode):
                             self.fed_update()
                             self._s_since_update = 0
                     sleep(1)
-
-                elif self._sampled_update:
-                    self._logger.debug("AsyncUpdater: Sampled federated updating initiated...")
-                    self.async_sampled_fed_update()
-
                 else:
-                    # Federated updating disabled
-                    break
+                    self._logger.debug("AsyncUpdater: Sampled federated updating initiated...")
+                    self.sampled_fed_update()
             except RuntimeError:
                 # stop() was called
                 break
         self._logger.info("AsyncUpdater: Stopping...")
 
-    def async_sampled_fed_update(self):
+    def sampled_fed_update(self):
         """Performs a sampled federated update step, waiting for the model aggregation server to call upon the federated
         (client) node, before either updating the model with the parameters received directly or initiating the updating
         step.

@@ -64,10 +64,10 @@ def _parse_args() -> argparse.Namespace:
                                 metavar="", help="Port of aggregation server")
 
     client_options = parser.add_argument_group("Client Options")
-    client_options.add_argument("--batchSize", default=32,
+    client_options.add_argument("--batchSize", type=int, default=32,
                                 metavar="", help="Batch size during processing of data "
                                                  "(mini-batches are multiples of that argument)")
-    client_options.add_argument("--updateInterval", default=None,
+    client_options.add_argument("--updateInterval", type=int, default=None,
                                 metavar="", help="Federated updating interval, defined by time (s)")
 
     return parser.parse_args()
