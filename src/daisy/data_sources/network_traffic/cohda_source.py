@@ -3,7 +3,7 @@
     packets that are captured from cohda boxes.
 
     Author: Seraphin Zunzer, Fabian Hofmann
-    Modified: 04.08.23
+    Modified: 27.02.24
 """
 
 from datetime import datetime
@@ -11,7 +11,7 @@ from typing import Callable
 
 import numpy as np
 
-from ...data_sources.network_traffic.pyshark_source import PysharkProcessor, default_f, default_nn_aggregator
+from ...data_sources.network_traffic.pyshark_processor import PysharkProcessor, default_f_features, default_nn_aggregator
 
 
 class CohdaProcessor(PysharkProcessor):
@@ -22,7 +22,7 @@ class CohdaProcessor(PysharkProcessor):
     _events: list[tuple[int, tuple[datetime, datetime], list[str], list[str], int]]
 
     def __init__(self, client_id: int, events: list[tuple[int, tuple[datetime, datetime], list[str], list[str], int]],
-                 name: str = "", f_features: tuple[str, ...] = default_f,
+                 name: str = "", f_features: tuple[str, ...] = default_f_features,
                  nn_aggregator: Callable[[str, object], object] = default_nn_aggregator):
         """Creates a new cohda processor for a specific client.
 
