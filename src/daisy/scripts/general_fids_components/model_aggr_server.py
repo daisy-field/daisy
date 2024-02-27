@@ -19,7 +19,7 @@
     result aggregation using centralize servers (see -h for more information).
 
     Author: Fabian Hofmann
-    Modified: 30.01.24
+    Modified: 27.01.24
 """
 
 import argparse
@@ -53,10 +53,10 @@ def _parse_args() -> argparse.Namespace:
 
 
 def create_server():
-    """TODOCreates a pre-configured federated client with preset components that runs on either of the two subsets of the
-    March 6th 2023 network traffic data set. Entry point of this module's functionality.
+    """TODO Creates a pre-configured federated server node for two the federated demo clients. Entry point of this module's
+    functionality.
 
-    See the header doc string of this module for more details about the preset client's configuration.
+    See the header doc string of this module for more details about the preset configuration.
     """
     # Args parsing
     args = _parse_args()

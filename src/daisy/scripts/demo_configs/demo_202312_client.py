@@ -1,24 +1,28 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""
-    Pre-configured demonstration client for a federated intrusion detection system (IDS), that learns cooperatively with
-    another clients through a centralized model aggregation server using the federated averaging (FedAvg) technique. In
-    this example, the client is configured to process network traffic data from the road-side infrastructure (BeIntelli)
-    on Cohda boxes 2 and 5 on March 6th 2023.
+"""TODO: Docstring for demo_202312_client
+    Pre-configured demonstration client for a simple federated intrusion detection system (IDS), that learns
+    cooperatively with another clients through a centralized model aggregation server using the federated averaging
+    (FedAvg) technique. In this example, the client is configured to process network traffic data from the road-side
+    infrastructure (BeIntelli) on Cohda boxes 2 and 5 on March 6th 2023, which must be available in (raw) pcap files for
+    each client.
 
-    This processing is done in online manner (as is the general nature of all current federated processing nodes), with
+    The processing is done in online manner (as is the general nature of all current federated processing nodes), with
     the underlying model running predictions on a minibatch, before training a single epoch on that batch. The model
     itself is a hybrid approach for anomaly detection, using a simple autoencoder paired with a dynamic threshold to map
     the anomaly score to a binary label. Finally, the prediction results are evaluated using a sliding window confusion
     matrix along its anomaly detection evaluation metrics (e.g. Precision, Recall, F1-score, etc.).
 
     Note that this demonstration client can also be launched as a standalone detection component, if no additional
-    client is run along with the model aggregation server. The same is the case for additional prediction and evaluation
-    result aggregation using centralize servers (see -h for more information).
+    client is run along with the model aggregation server. However, the full demonstration topology consists of two
+    federated IDS detection clients along the model aggregation server ('pred_aggr_server') and two additional
+    aggregation servers, one for the prediction results ('pred_aggr_server') and a second one for the evaluation results
+    ('eval_aggr_server'). These components can also be found in the general_fids_components subpackage, to be launched
+    directly through python, beside the command line option.
 
     Author: Fabian Hofmann
-    Modified: 30.01.24
+    Modified: 27.02.24
 """
 
 import argparse
@@ -52,15 +56,15 @@ def _parse_args() -> argparse.Namespace:
     server_options = parser.add_argument_group("Server Options")
     server_options.add_argument("--modelAggrServ", default="0.0.0.0",
                                 metavar="", help="IP or hostname of model aggregation server")
-    server_options.add_argument("--modelAggrServPort", type=int, default=8001, choices=range(1, 65535),
+    server_options.add_argument("--modelAggrServPort", type=int, default=8000, choices=range(1, 65535),
                                 metavar="", help="Port of model aggregation server")
     server_options.add_argument("--evalServ", default="0.0.0.0",
                                 metavar="", help="IP or hostname of evaluation server")
-    server_options.add_argument("--evalServPort", type=int, default=8002, choices=range(1, 65535),
+    server_options.add_argument("--evalServPort", type=int, default=8001, choices=range(1, 65535),
                                 metavar="", help="Port of evaluation server")
     server_options.add_argument("--aggrServ", default="0.0.0.0",
                                 metavar="", help="IP or hostname of aggregation server")
-    server_options.add_argument("--aggrServPort", type=int, default=8003, choices=range(1, 65535),
+    server_options.add_argument("--aggrServPort", type=int, default=8002, choices=range(1, 65535),
                                 metavar="", help="Port of aggregation server")
 
     client_options = parser.add_argument_group("Client Options")

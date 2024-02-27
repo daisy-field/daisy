@@ -99,7 +99,7 @@ classifiers = [
 # For an analysis of this field vs pip's requirements files see:
 # https://packaging.python.org/discussions/install-requires-vs-requirements/
 dependencies = [
-    "tensorflow~=2.15.0",
+#    "tensorflow~=2.15.0",
     "numpy~=1.26.2",
     "pyshark~=0.6",
     "lz4~=4.3.2",
@@ -118,7 +118,7 @@ dependencies = [
 # Similar to `dependencies` above, these must be valid existing
 # projects.
 [project.optional-dependencies] # Optional
-cuda = ["tensorflow[and-cuda]~=2.15.0"]
+#cuda = ["tensorflow[and-cuda]~=2.15.0"]
 direct-ml = ["tensorflow-directml-plugin"]
 #dev = ["check-manifest"]
 #test = ["coverage"]
@@ -142,9 +142,9 @@ direct-ml = ["tensorflow-directml-plugin"]
 
 # The following would provide a command line executable called `sample`
 # which executes the function `main` from this package when invoked.
-[project.scripts]  # Optional
-demo_202312_client = "daisy.scripts.demo_202312:create_client"
-demo_202312_server = "daisy.scripts.demo_202312:create_server"
+[project.scripts]
+model_aggr_server = "daisy.scripts.general_fids_components:model_aggr_server"
+demo_202312_client = "daisy.scripts.demo_configs:demo_202312_client"
 
 # This is configuration specific to the `setuptools` build backend.
 # If you are using a different build backend, you will need to change this.

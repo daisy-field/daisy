@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  daisy:
+    build:
+      context: .
+      dockerfile: daisy.Dockerfile
+    ports:
+      - "8000:8000/tcp"
+      - "8001:8001/tcp"
+      - "8002:8002/tcp"
