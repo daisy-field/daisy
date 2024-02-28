@@ -67,42 +67,7 @@ class DataProcessor(ABC):
         return self.reduce(self.filter(self.map(o_point)))
 
 
-class SimpleDataProcessor(DataProcessor):
-    """The simplest productive data processor --- a wrapper around a callable function which directly transforms a given
-    data point object into a numpy array, skipping all intermediary steps. Can also be used if the given format of map,
-    filter, reduce, does not fit the requirements.
-    """
-    _process_fn: Callable[[object], np.ndarray]
-
-    def __init__(self, process_fn: Callable[[object], np.ndarray], name: str = ""):
-        """Creates a data processor, simply wrapping it around the given callable.
-
-        :param process_fn: Callable object with which data points can be processed.
-        :param name: Name of processor for logging purposes.
-        """
-        super().__init__(name)
-
-        self._process_fn = process_fn
-
-    def map(self, o_point: object) -> dict:
-        pass
-
-    def filter(self, d_point: dict) -> dict:
-        pass
-
-    def reduce(self, d_point: dict) -> np.ndarray:
-        pass
-
-    def process(self, o_point: object) -> np.ndarray:
-        """Converts and processes a data point object into a feature vector (numpy array), using the wrapped callable.
-
-        :param o_point: Data point as object.
-        :return: Processed data point as vector.
-        """
-        return self._process_fn(o_point)
-
-
-class SimpleMethodDataProcessor(DataProcessor):  # TODO comments
+class SimpleDataProcessor(DataProcessor):  # TODO comments
 
     _map_fn: Callable[[object], dict]
     _filter_fn: Callable[[dict], dict]

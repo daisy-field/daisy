@@ -14,14 +14,14 @@
 import logging
 import queue
 import threading
-from typing import Callable, Iterator
+from typing import Iterator
 
 import numpy as np
 
-from daisy.data_sources import SourceHandler, DataProcessor, SimpleSourceHandler, SimpleDataProcessor
+from daisy.data_sources import SourceHandler, DataProcessor
 
 
-class DataSource:
+class DataSource:  # TODO comments and variable declarations
     """A wrapper around a customizable SourceHandler that yields data points as objects as they come, before stream
     processing using another, customizable DataProcessor. Data points, which can be from arbitrary sources, are thus
     processed and converted into numpy vectors/arrays.
@@ -38,8 +38,7 @@ class DataSource:
     _buffer: queue.Queue
     _opened: bool
 
-    def __init__(self, name: str = "", source_handler: SourceHandler = None, generator: Iterator[object] = None,
-                 data_processor: DataProcessor = None, process_fn: Callable[[object], np.ndarray] = lambda o: o,
+    def __init__(self, source_handler: SourceHandler, data_processor: DataProcessor, name: str = "",
                  multithreading: bool = False, buffer_size: int = 1024):
         """Creates a new data source.
 
@@ -55,21 +54,13 @@ class DataSource:
         self._logger = logging.getLogger(name)
         self._logger.info("Initializing data source...")
 
-        if source_handler is not None:
-            self._source_handler = source_handler
-        elif generator is not None:
-            self._source_handler = SimpleSourceHandler(generator, name + "Handler")
-        else:
-            raise ValueError("Data source requires either a data source handler or a generator to load data from!")
+        self._opened = False
 
-        if data_processor is not None:
-            self._data_processor = data_processor
-        else:
-            self._data_processor = SimpleDataProcessor(process_fn, name + "Processor")
+        self._source_handler = source_handler
+        self._data_processor = data_processor
 
         self._multithreading = multithreading
         self._buffer = queue.Queue(buffer_size)
-        self._opened = False
         self._logger.info("Data source initialized.")
 
     def open(self):

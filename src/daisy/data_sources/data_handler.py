@@ -83,16 +83,14 @@ class SimpleSourceHandler(SourceHandler):
         return self._generator
 
 
-class SimpleRemoteSourceHandler(SourceHandler):
+class SimpleRemoteSourceHandler(SourceHandler):  # TODO comments
     """The simple wrapper implementation to support and handle remote streaming endpoints of the Endpoint module as data
     sources. Considered infinite in nature, as it allows the generation of data point objects from a connected
     endpoint, until the client closes the handler.
     """
     _endpoint: StreamEndpoint
 
-    def __init__(self, name: str = "", endpoint: StreamEndpoint = None,
-                 addr: tuple[str, int] = ("127.0.0.1", 12000), remote_addr: tuple[str, int] = None,
-                 multithreading: bool = False, buffer_size: int = 1024):
+    def __init__(self, endpoint: StreamEndpoint, name: str = ""):
         """Creates a new remote source handler from a given stream endpoint. If no endpoint is provided, creates a new
         one instead with basic parameters.
 
@@ -105,9 +103,6 @@ class SimpleRemoteSourceHandler(SourceHandler):
         super().__init__(name)
 
         self._logger.info("Initializing remote source handler...")
-        if endpoint is None:
-            endpoint = StreamEndpoint("RemoteSource", addr, remote_addr, acceptor=True,
-                                      multithreading=multithreading, buffer_size=buffer_size)
         self._endpoint = endpoint
         self._logger.info("Remote source handler initialized.")
 

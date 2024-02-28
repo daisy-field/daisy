@@ -11,10 +11,11 @@ from typing import Callable
 
 import numpy as np
 
-from ...data_sources.network_traffic.pyshark_processor import PysharkProcessor, default_f_features, default_nn_aggregator
+from ...data_sources.network_traffic.pyshark_processor import default_f_features, default_nn_aggregator, pyshark_map_fn, pyshark_filter_fn, pyshark_reduce_fn
+from ...data_sources.data_processor import SimpleDataProcessor
 
 
-class CohdaProcessor(PysharkProcessor):
+class CohdaProcessor(SimpleDataProcessor):  # TODO comments
     """An extension of the pyshark processor to support the labeling of the data stream for evaluation purposes. Labels
     are appended according to the used protocol, timestamps, source and destination ip addresses.
     """
@@ -33,7 +34,7 @@ class CohdaProcessor(PysharkProcessor):
         :param nn_aggregator: List aggregator that is able to aggregator dictionary values that are lists into singleton
         values, depending on the key they are sorted under.
         """
-        super().__init__(name, f_features, nn_aggregator)
+        super().__init__(pyshark_map_fn(), pyshark_filter_fn(f_features), pyshark_reduce_fn(nn_aggregator), name)
 
         self._client_id = client_id
         self._events = events

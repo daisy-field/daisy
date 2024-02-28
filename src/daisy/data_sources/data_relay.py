@@ -1,16 +1,12 @@
 import logging
 import threading
-from typing import Callable, Iterator
 from pathlib import Path
 
-import numpy as np
-
 from daisy.communication import StreamEndpoint
-from daisy.data_sources import DataSource, SourceHandler, DataProcessor
-from daisy.data_sources import SimpleMethodDataProcessor, pyshark_map_fn, pyshark_filter_fn
+from daisy.data_sources import DataSource
 
 
-class DataSourceRelay:
+class DataSourceRelay:  # TODO comment and variable declarations
     """A union of a data source and a stream endpoint to retrieve data points from the former and relay them over the
     latter. This allows the disaggregation of the actual datasource from the other processing steps. For example, the
     relay could be deployed with our without an actual processor on another host and the data is forwarded over the
@@ -25,11 +21,7 @@ class DataSourceRelay:
     _relay: threading.Thread
     _started: bool
 
-    def __init__(self, name: str = "", data_source: DataSource = None, endpoint: StreamEndpoint = None,
-                 source_handler: SourceHandler = None, generator: Iterator[object] = None,
-                 data_processor: DataProcessor = None, process_fn: Callable[[object], np.ndarray] = lambda o: o,
-                 addr: tuple[str, int] = ("127.0.0.1", 12000), remote_addr: tuple[str, int] = None,
-                 multithreading: bool = False, buffer_size: int = 1024):
+    def __init__(self, data_source: DataSource, endpoint: StreamEndpoint, name: str = ""):
         """Creates a new data source relay. If either isn't provided, one can also provide the basic parameters for the
         creation of data source and/or endpoint.
 
@@ -49,17 +41,11 @@ class DataSourceRelay:
         self._logger = logging.getLogger(name)
         self._logger.info("Initializing data source relay...")
 
-        if data_source is None:
-            data_source = DataSource(name + "Source", source_handler, generator, data_processor, process_fn,
-                                     multithreading, buffer_size)
-        self._data_source = data_source
+        self._started = False
 
-        if endpoint is None:
-            endpoint = StreamEndpoint(name + "Endpoint", addr, remote_addr, acceptor=False,
-                                      multithreading=multithreading, buffer_size=buffer_size)
+        self._data_source = data_source
         self._endpoint = endpoint
 
-        self._started = False
         self._logger.info("Data source relay initialized.")
 
     def start(self):
@@ -120,7 +106,7 @@ class DataSourceRelay:
             self.stop()
 
 
-class FileRelay:  # TODO add comments
+class FileRelay:  # TODO add comments and variable declarations
     _logger: logging.Logger
 
     _data_source: DataSource
@@ -129,9 +115,7 @@ class FileRelay:  # TODO add comments
     _relay: threading.Thread
     _started: bool
 
-    def __init__(self, target_file: str, name: str = "", source_handler: SourceHandler = None,
-                 generator: Iterator[object] = None, overwrite_file: bool = False,
-                 multithreading: bool = False, buffer_size: int = 1024):
+    def __init__(self, target_file: str, data_source: DataSource, name: str = "", overwrite_file: bool = False):
         self._logger = logging.getLogger(name)
         self._logger.info("Initializing file relay...")
 
@@ -151,11 +135,7 @@ class FileRelay:  # TODO add comments
         except FileExistsError:
             if not overwrite_file:
                 raise ValueError("File already exists and should not be overwritten.")
-        #  TODO make the filter in pyshark_filter_fn changable
-        # TODO take out the processor here to make the class a universal CSV writer
-        file_processor = SimpleMethodDataProcessor(pyshark_map_fn(), pyshark_filter_fn(), lambda o: o)  # create a processor, that maps pyshark packages to dict and then uses a filter to select the packages. It does not reduce though
-        data_source = DataSource(name + "Source", source_handler, generator, file_processor, lambda o: o,
-                                 multithreading, buffer_size)
+
         self._data_source = data_source
 
         self._logger.info("File relay initialized.")

@@ -13,14 +13,12 @@
         * network_traffic - Handling and processing of data points (network packets) originating from t-/wireshark.
 
     Author: Fabian Hofmann, Jonathan Ackerschewski, Seraphin Zunzer
-    Modified: 27.02.24
+    Modified: 28.02.24
 """
 
-from .data_processor import DataProcessor, SimpleDataProcessor, SimpleMethodDataProcessor
+from .data_processor import DataProcessor, SimpleDataProcessor
 from .data_handler import SourceHandler, SimpleSourceHandler, SimpleRemoteSourceHandler
 from .data_source import DataSource
-from .data_relay import DataSourceRelay
+from .data_relay import DataSourceRelay, FileRelay
 
-
-from .file_writer import FileRelay
 from .network_traffic import *

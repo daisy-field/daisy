@@ -12,11 +12,11 @@
         * march23_events - Event tags for labeling purposes for the March23 dataset.
 
     Author: Fabian Hofmann, Jonathan Ackerschewski, Seraphin Zunzer
-    Modified: 27.02.24
+    Modified: 28.02.24
 """
 
 from .cohda_source import CohdaProcessor
 from .cohda_source import march23_events
 
 from .pyshark_handler import LivePysharkHandler, PcapHandler
-from .pyshark_processor import pyshark_map_fn, pyshark_filter_fn, pyshark_reduce_fn, PysharkProcessor
+from .pyshark_processor import pyshark_map_fn, pyshark_filter_fn, pyshark_reduce_fn, create_pyshark_processor

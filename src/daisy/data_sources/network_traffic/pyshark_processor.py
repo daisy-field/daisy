@@ -12,7 +12,7 @@ from pyshark.packet.layers.json_layer import JsonLayer
 from pyshark.packet.layers.xml_layer import XmlLayer
 from pyshark.packet.packet import Packet
 
-from daisy.data_sources import SimpleMethodDataProcessor
+from daisy.data_sources import SimpleDataProcessor
 
 # Exemplary network feature filter, supporting cohda-box (V2x) messages, besides TCP/IP and ETH.
 default_f_features = (
@@ -113,13 +113,11 @@ def default_nn_aggregator(key: str, value: object) -> int:
         return hash(value)
 
     raise ValueError(f"Unable to aggregate non-numerical item: {key, value}")
+# TODO comments
 
-
-class PysharkProcessor(SimpleMethodDataProcessor):  # TODO comment
-
-    def __init__(self, name: str = "", f_features: tuple[str, ...] = default_f_features,
+def create_pyshark_processor(name: str = "", f_features: tuple[str, ...] = default_f_features,  # TODO comment
                  nn_aggregator: Callable[[str, object], object] = default_nn_aggregator):
-        super().__init__(pyshark_map_fn(), pyshark_filter_fn(f_features), pyshark_reduce_fn(nn_aggregator), name)
+    return SimpleDataProcessor(pyshark_map_fn(), pyshark_filter_fn(f_features), pyshark_reduce_fn(nn_aggregator), name)
 
 
 # TODO is there a naming convention for functions, that return functions?
