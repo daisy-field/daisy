@@ -13,9 +13,9 @@ COPY ../src ./src
 COPY ../tests ./tests
 
 RUN pip3 install --no-cache-dir --upgrade pip
-RUN pip3 install --no-cache-dir .
+RUN pip3 install --no-cache-dir -e .
 
 
 FROM daisy-base as daisy-gpu
 
-RUN pip3 install --no-cache-dir .[cuda]
+RUN pip3 install --no-cache-dir -e .[cuda]
