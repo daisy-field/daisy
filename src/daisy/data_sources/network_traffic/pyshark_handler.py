@@ -1,9 +1,12 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """
     Implementations of the data source helper interface that allows the processing and provisioning of pyshark packets,
     either via file inputs, live capture, or a remote source that generates packets in either fashion.
 
     Author: Jonathan Ackerschewski, Fabian Hofmann
-    Modified: 17.01.24
+    Modified: 28.02.24
 
     # TODO Future Work: Encoding/mapping of string/non-numerical values into numerical features
     # TODO - Flattening of Lists instead of encoding them into singular numerical features

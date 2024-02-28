@@ -1,3 +1,19 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+"""
+    A collection of interfaces and base classes for data stream generation and preprocessing for further (ML) tasks.
+    Supports generic generators, but also remote communication endpoints that hand over generic data points in
+    streaming-manner, and any other implementations of the SourceHandler class. Note each different kind of data needs
+    its own implementation of the DataProcessor class.
+
+    Author: Fabian Hofmann, Jonathan Ackerschewski
+    Modified: 28.07.23
+
+    TODO Future Work: Defining granularity of logging in inits
+    TODO Future Work: Cleanup of inits to eliminate overlap of classes
+"""
+
 import logging
 from abc import ABC, abstractmethod
 from typing import Iterator

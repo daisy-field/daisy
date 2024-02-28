@@ -6,7 +6,7 @@
     either via file inputs, live capture, or a remote source that generates packets in either fashion.
 
     Author: Jonathan Ackerschewski, Fabian Hofmann
-    Modified: 17.01.24
+    Modified: 28.02.24
 
     # TODO Future Work: Encoding/mapping of string/non-numerical values into numerical features
     # TODO - Flattening of Lists instead of encoding them into singular numerical features
