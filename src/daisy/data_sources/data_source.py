@@ -21,7 +21,7 @@ import numpy as np
 from daisy.data_sources import SourceHandler, DataProcessor
 
 
-class DataSource:  # TODO comments and variable declarations
+class DataSource:
     """A wrapper around a customizable SourceHandler that yields data points as objects as they come, before stream
     processing using another, customizable DataProcessor. Data points, which can be from arbitrary sources, are thus
     processed and converted into numpy vectors/arrays.
@@ -42,12 +42,9 @@ class DataSource:  # TODO comments and variable declarations
                  multithreading: bool = False, buffer_size: int = 1024):
         """Creates a new data source.
 
-        :param name: Name of data source relay for logging purposes.
         :param source_handler: Actual source that provisions data points to data source.
-        :param generator: Generator object from which data points are retrieved, fallback from source handler.
         :param data_processor: Processor containing the methods on how to process individual data points.
-        :param process_fn: Processor function to process individual data points. If neither processor nor function
-        provided, defaults to NOP.
+        :param name: Name of data source relay for logging purposes.
         :param multithreading: Enables transparent multithreading for speedup.
         :param buffer_size: Size of shared buffer in multithreading mode.
         """

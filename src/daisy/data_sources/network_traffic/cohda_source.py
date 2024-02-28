@@ -15,7 +15,7 @@ from ...data_sources.network_traffic.pyshark_processor import default_f_features
 from ...data_sources.data_processor import SimpleDataProcessor
 
 
-class CohdaProcessor(SimpleDataProcessor):  # TODO comments
+class CohdaProcessor(SimpleDataProcessor):
     """An extension of the pyshark processor to support the labeling of the data stream for evaluation purposes. Labels
     are appended according to the used protocol, timestamps, source and destination ip addresses.
     """

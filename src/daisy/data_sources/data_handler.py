@@ -83,7 +83,7 @@ class SimpleSourceHandler(SourceHandler):
         return self._generator
 
 
-class SimpleRemoteSourceHandler(SourceHandler):  # TODO comments
+class SimpleRemoteSourceHandler(SourceHandler):
     """The simple wrapper implementation to support and handle remote streaming endpoints of the Endpoint module as data
     sources. Considered infinite in nature, as it allows the generation of data point objects from a connected
     endpoint, until the client closes the handler.
@@ -94,11 +94,8 @@ class SimpleRemoteSourceHandler(SourceHandler):  # TODO comments
         """Creates a new remote source handler from a given stream endpoint. If no endpoint is provided, creates a new
         one instead with basic parameters.
 
-        :param name: Name of handler for logging purposes.
         :param endpoint: Streaming endpoint from which data points are retrieved.
-        :param addr: If no endpoint is provided, local address of new endpoint.
-        :param multithreading: Enables transparent multithreading for speedup.
-        :param buffer_size: Size of shared buffer in multithreading mode.
+        :param name: Name of handler for logging purposes.
         """
         super().__init__(name)
 

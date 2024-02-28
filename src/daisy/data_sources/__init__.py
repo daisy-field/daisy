@@ -19,6 +19,6 @@
 from .data_processor import DataProcessor, SimpleDataProcessor
 from .data_handler import SourceHandler, SimpleSourceHandler, SimpleRemoteSourceHandler
 from .data_source import DataSource
-from .data_relay import DataSourceRelay, FileRelay
+from .data_relay import DataSourceRelay, CSVFileRelay
 
 from .network_traffic import *

@@ -67,7 +67,10 @@ class DataProcessor(ABC):
         return self.reduce(self.filter(self.map(o_point)))
 
 
-class SimpleDataProcessor(DataProcessor):  # TODO comments
+class SimpleDataProcessor(DataProcessor):
+    """A simple implementation of the DataProcessor interface. It takes a function for each step of map, filter, reduce
+    and calls them in the respective methods
+    """
 
     _map_fn: Callable[[object], dict]
     _filter_fn: Callable[[dict], dict]
@@ -75,6 +78,13 @@ class SimpleDataProcessor(DataProcessor):  # TODO comments
 
     def __init__(self, map_fn: Callable[[object], dict], filter_fn: Callable[[dict], dict],
                  reduce_fn: Callable[[dict], np.ndarray], name: str = ""):
+        """Creates the SimpleDataProcessor
+
+        :param map_fn: The map function, which receives a data point and should map it to a dictionary
+        :param filter_fn: The filter function, which receives the map output and filters it
+        :param reduce_fn: The reduce function, which receives the filter output and reduces it
+        :param name: The name for logging purposes
+        """
         super().__init__(name)
         self._map_fn = map_fn
         self._filter_fn = filter_fn

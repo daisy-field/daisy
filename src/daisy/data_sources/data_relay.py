@@ -6,7 +6,7 @@ from daisy.communication import StreamEndpoint
 from daisy.data_sources import DataSource
 
 
-class DataSourceRelay:  # TODO comment and variable declarations
+class DataSourceRelay:
     """A union of a data source and a stream endpoint to retrieve data points from the former and relay them over the
     latter. This allows the disaggregation of the actual datasource from the other processing steps. For example, the
     relay could be deployed with our without an actual processor on another host and the data is forwarded over the
@@ -22,21 +22,11 @@ class DataSourceRelay:  # TODO comment and variable declarations
     _started: bool
 
     def __init__(self, data_source: DataSource, endpoint: StreamEndpoint, name: str = ""):
-        """Creates a new data source relay. If either isn't provided, one can also provide the basic parameters for the
-        creation of data source and/or endpoint.
+        """Creates a new data source relay.
 
-        :param name: Name of data source relay for logging purposes.
         :param data_source: Data source to relay data points from.
         :param endpoint: Streaming endpoint to which data points are relayed to.
-        :param source_handler: Actual source that provisions data points to data source. Fallback from data source.
-        :param generator: Generator object from which data points are retrieved, fallback from source handler.
-        :param data_processor: Processor containing the methods on how to process individual data points.
-        :param process_fn: Processor functioning to process individual data points. If neither processor nor function
-        provided, defaults to NOP.
-        :param addr: Local address of new endpoint. Fallback from endpoint.
-        :param remote_addr: Address of remote endpoint to be connected to. Fallback from endpoint.
-        :param multithreading: Enables multithreading of data source and endpoint for speedup.
-        :param buffer_size: Size of shared buffers in multithreading mode.
+        :param name: Name of data source relay for logging purposes.
         """
         self._logger = logging.getLogger(name)
         self._logger.info("Initializing data source relay...")
@@ -106,7 +96,10 @@ class DataSourceRelay:  # TODO comment and variable declarations
             self.stop()
 
 
-class FileRelay:  # TODO add comments and variable declarations
+class CSVFileRelay:
+    """A relay allowing data points to be stored in a CSV file. For this to work, the processor is expected to return
+    a dictionary containing values for all fields in the headers parameter.
+    """
     _logger: logging.Logger
 
     _data_source: DataSource
@@ -119,6 +112,16 @@ class FileRelay:  # TODO add comments and variable declarations
 
     def __init__(self, target_file: str, data_source: DataSource, headers: tuple[str, ...], name: str = "",
                  overwrite_file: bool = False, separator: str = ","):
+        """Creates a new CSV relay instance
+
+        :param target_file: The path to the CSV file. The parent directories will be created if not existent.
+        :param data_source: The data source providing the data to store. The processor used by the data source is
+        expected to return a dictionary containing all values for all fields in the headers parameter
+        :param headers: The headers of the CSV file. The order is preserved in the CSV file
+        :param name: Name of the relay for logging purposes
+        :param overwrite_file: Whether the CSV file should be overwritten if it exists
+        :param separator: The separator used in the CSV file
+        """
         self._logger = logging.getLogger(name)
         self._logger.info("Initializing file relay...")
 
@@ -129,9 +132,10 @@ class FileRelay:  # TODO add comments and variable declarations
         self._file = Path(target_file)
         if self._file.is_dir():
             raise ValueError("File path points to a directory instead of a file.")
+        # create parent directories, then touch the file, to check whether it exists and is a valid path
         parent_dir = Path(*self._file.parts[:-1])
-        parent_dir.mkdir(parents=True, exist_ok=True)  # create parent directories
-        try:  # Create the file. If it exists, FileExistsError will be raised. If it is invalid, FileNotFoundError will be raised
+        parent_dir.mkdir(parents=True, exist_ok=True)
+        try:
             self._file.touch(exist_ok=False)
         except FileNotFoundError:
             raise ValueError("File points at an invalid path.")
@@ -146,6 +150,9 @@ class FileRelay:  # TODO add comments and variable declarations
         self._logger.info("File relay initialized.")
 
     def start(self):
+        """Starts the data source relay along any other objects in this union. Non-blocking, as
+        the relay is started in the background to allow the stopping of it afterward.
+        """
         self._logger.info("Starting file relay...")
         if self._started:
             raise RuntimeError(f"Relay has already been started!")
@@ -160,6 +167,9 @@ class FileRelay:  # TODO add comments and variable declarations
         self._logger.info("File relay started.")
 
     def stop(self):
+        """Closes and stops the data source and joins the relay thread into the current thread. Can be
+        restarted (and stopped) and arbitrary amount of times.
+        """
         self._logger.info("Stopping file relay...")
         if not self._started:
             raise RuntimeError(f"Relay has not been started!")
@@ -173,6 +183,8 @@ class FileRelay:  # TODO add comments and variable declarations
         self._logger.info("File relay stopped.")
 
     def _create_relay(self):
+        """Writes the data points to a file in a csv style
+        """
         self._logger.info("Starting to relay data points from data source...")
         with open(self._file, "w") as file:
             file.write(f"{self._separator.join(self._headers)}\n")

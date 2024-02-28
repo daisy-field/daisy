@@ -113,54 +113,65 @@ def default_nn_aggregator(key: str, value: object) -> int:
         return hash(value)
 
     raise ValueError(f"Unable to aggregate non-numerical item: {key, value}")
-# TODO comments
 
-def create_pyshark_processor(name: str = "", f_features: tuple[str, ...] = default_f_features,  # TODO comment
+
+def create_pyshark_processor(name: str = "", f_features: tuple[str, ...] = default_f_features,
                  nn_aggregator: Callable[[str, object], object] = default_nn_aggregator):
+    """Creates a SimpleDataProcessor using functions specifically for pyshark packets.
+
+    :param name: The name for logging purposes
+    :param f_features: The features to extract from the packets
+    :param nn_aggregator: The aggregator, which should map features to integers
+    """
     return SimpleDataProcessor(pyshark_map_fn(), pyshark_filter_fn(f_features), pyshark_reduce_fn(nn_aggregator), name)
 
 
-# TODO is there a naming convention for functions, that return functions?
-def pyshark_map_fn() -> Callable[[object], dict]:  # TODO comment
-    """Wrapper around the pyshark packet deserialization functions.
+def pyshark_map_fn() -> Callable[[object], dict]:
+    """Wrapper around the pyshark packet deserialization functions. Can be used in a SimpleDataProcessor as the map
+    function.
 
-            :param o_point: Data point as pyshark packet.
-            :return: Data point as a flattened dictionary.
-            """
+    :return: A function, which converts a packet into a flattened dictionary.
+    """
     return lambda o_point: packet_to_dict(o_point)
 
 
-def pyshark_filter_fn(f_features: tuple[str, ...] = default_f_features) -> Callable[[dict], dict]:  # TODO comment
+def pyshark_filter_fn(f_features: tuple[str, ...] = default_f_features) -> Callable[[dict], dict]:
+    """Filters the pyshark packet according to a pre-defined filter which is applied to every dictionary in order of
+    the selected features in the filter. Features that do not exist are set to None. Can be used in a
+    SimpleDataProcessor as the filter function.
+
+    :param f_features: A list of features
+    :return: A function, that filters each data point as a dictionary, ordered.
+    """
     return lambda d_point: _pyshark_filter_fn(d_point, f_features)
 
 
-def _pyshark_filter_fn(d_point: dict, f_features: tuple[str, ...]) -> dict: # TODO comment
-    """Filters the pyshark packet according to a pre-defined filter which is applied to every dictionary in order of
-    the selected features in the filter. Features that do not exist are set to None.
+def _pyshark_filter_fn(d_point: dict, f_features: tuple[str, ...]) -> dict:
+    """Helper function, that filters each data point according to a pre-defined filter.
 
-    :param d_point: Data point as dictionary.
-    :return: Data point as dictionary, ordered.
+    :param d_point: The data point as a dictionary
+    :param f_features: The filter to use
     """
     return {f_feature: d_point.pop(f_feature, np.nan) for f_feature in f_features}
 
 
-def pyshark_reduce_fn(nn_aggregator: Callable[[str, object], object] = default_nn_aggregator) -> Callable[[dict], np.ndarray]:  # TODO usage: SimpleMethodDataProcessor.__init__(_,_, pyshark_reduce_fn(some_nn_aggregator))
-    """Transform the pyshark data point directly into a numpy array without further processing, aggregating any  # TODO comment
+def pyshark_reduce_fn(nn_aggregator: Callable[[str, object], object] = default_nn_aggregator) -> Callable[[dict], np.ndarray]:
+    """Transform the pyshark data point directly into a numpy array without further processing, aggregating any
+    value that is list into a singular value. Can be used in a SimpleDataProcessor as the reduce function.
+
+    :param nn_aggregator: The aggregator
+    :return: A function for reducing a data point to a single value
+    """
+    return lambda d_point: _pyshark_reduce_fn(d_point, nn_aggregator)
+
+
+def _pyshark_reduce_fn(d_point: dict, nn_aggregator: Callable[[str, object], object]) -> np.ndarray:
+    """Transform the pyshark data point directly into a numpy array without further processing, aggregating any
     value that is list into a singular value.
 
     :param d_point: Data point as dictionary.
     :return: Data point as vector.
     """
-    return lambda d_point: _pyshark_reduce_fn(d_point, nn_aggregator)
-
-
-def _pyshark_reduce_fn(d_point: dict, nn_aggregator: Callable[[str, object], object]) -> np.ndarray:  # TODO comments
-    """Transform the pyshark data point directly into a numpy array without further processing, aggregating any
-        value that is list into a singular value.
-
-        :param d_point: Data point as dictionary.
-        :return: Data point as vector.
-        """
     l_point = []
     for key, value in d_point.items():
         if not isinstance(value, int | float):
