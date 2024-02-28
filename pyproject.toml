@@ -99,7 +99,7 @@ classifiers = [
 # For an analysis of this field vs pip's requirements files see:
 # https://packaging.python.org/discussions/install-requires-vs-requirements/
 dependencies = [
-#    "tensorflow~=2.15.0",
+    "tensorflow~=2.15.0",
     "numpy~=1.26.2",
     "pyshark~=0.6",
     "lz4~=4.3.2",
@@ -118,7 +118,7 @@ dependencies = [
 # Similar to `dependencies` above, these must be valid existing
 # projects.
 [project.optional-dependencies] # Optional
-#cuda = ["tensorflow[and-cuda]~=2.15.0"]
+cuda = ["tensorflow[and-cuda]~=2.15.0"]
 direct-ml = ["tensorflow-directml-plugin"]
 #dev = ["check-manifest"]
 #test = ["coverage"]

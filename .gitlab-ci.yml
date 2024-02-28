@@ -14,8 +14,8 @@ docker-build:
     - docker
   timeout: 10m
   script:
-    - docker build --pull -t ${DAISY_IMAGE} -f ci/daisy.Dockerfile .
-    - docker build --pull -t ${DAISY_GPU_IMAGE} -f ci/daisy.Dockerfile .
+    - docker build . --pull -f ci/daisy.Dockerfile -target daisy-base -t ${DAISY_IMAGE}
+    - docker build . --pull -f ci/daisy.Dockerfile daisy-gpu -t ${DAISY_GPU_IMAGE}
 
 docker-push:
   stage: deploy
