@@ -111,11 +111,14 @@ class FileRelay:  # TODO add comments and variable declarations
 
     _data_source: DataSource
     _file: Path
+    _headers: tuple[str, ...]
+    _separator: str
 
     _relay: threading.Thread
     _started: bool
 
-    def __init__(self, target_file: str, data_source: DataSource, name: str = "", overwrite_file: bool = False):
+    def __init__(self, target_file: str, data_source: DataSource, headers: tuple[str, ...], name: str = "",
+                 overwrite_file: bool = False, separator: str = ","):
         self._logger = logging.getLogger(name)
         self._logger.info("Initializing file relay...")
 
@@ -137,6 +140,8 @@ class FileRelay:  # TODO add comments and variable declarations
                 raise ValueError("File already exists and should not be overwritten.")
 
         self._data_source = data_source
+        self._separator = separator
+        self._headers = headers
 
         self._logger.info("File relay initialized.")
 
@@ -169,25 +174,16 @@ class FileRelay:  # TODO add comments and variable declarations
 
     def _create_relay(self):
         self._logger.info("Starting to relay data points from data source...")
-        # with self._file.open("b") as file:
-        for d_point in self._data_source:
-            try:
-                self._logger.info(d_point)
-                # TODO need to get the headers for the CSV here and write each new line to file
-               # self._logger.info(type(d_point))
-               # self._logger.info(dir(d_point))
-               # self._logger.info(getattr(d_point, "eth"))
-               # self._logger.info(dir(getattr(d_point, "eth")))
-               # try:
-               #     self._logger.info(getattr(getattr(d_point, "eth"), "addra"))
-               # except AttributeError:
-               #     self._logger.info("Unknown thingy")
-                # file.write(d_point)  # TODO make this to bytes
-                # TODO write to file
-                pass
-            except RuntimeError:
-                # stop() was called
-                break
+        with open(self._file, "w") as file:
+            file.write(f"{self._separator.join(self._headers)}\n")
+            for d_point in self._data_source:
+                try:
+                    values = map(lambda topic: str(d_point[topic]), self._headers)
+                    line = self._separator.join(values)
+                    file.write(f"{line}\n")
+                except RuntimeError:
+                    # stop() was called
+                    break
         self._logger.info("Data source exhausted, or relay closing...")
 
     def __del__(self):
