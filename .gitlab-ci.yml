@@ -1,0 +1,28 @@
+variables:
+  DAISY_IMAGE: ${CI_REGISTRY_IMAGE}/${CI_COMMIT_REF_NAME}
+  DAISY_GPU_IMAGE: ${CI_REGISTRY_IMAGE}/${CI_COMMIT_REF_NAME}-gpu
+
+stages:
+  - build
+  - deploy
+
+image: docker:20
+
+docker-build:
+  stage: build
+  tags:
+    - docker
+  timeout: 10m
+  script:
+    - docker build . --pull -f ci/daisy.Dockerfile --target daisy-base -t ${DAISY_IMAGE}
+    - docker build . --pull -f ci/daisy.Dockerfile --target daisy-gpu -t ${DAISY_GPU_IMAGE}
+
+docker-push:
+  stage: deploy
+  tags:
+    - docker
+  timeout: 10m
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker push ${DAISY_IMAGE}
+    - docker push ${DAISY_GPU_IMAGE}

@@ -1,3 +1,6 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """
     To allow the compatibility between different kinds of strategies for the aggregation of models, gradients, losses,
     or other parameters/model types and topologies for the federated distributed system, any strategy has to follow the

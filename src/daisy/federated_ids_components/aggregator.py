@@ -1,3 +1,6 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """
     A collection of various types of federated aggregators, implementing the same interface for each federated
     aggregator type. Each of them receives and aggregates data from federated nodes at runtime in a client-server-based
@@ -148,37 +151,33 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
     """
     _m_aggr: ModelAggregator
 
-    _online_update: bool
-
-    _update_interval_t: int
+    _update_interval: int
     _num_clients: int
     _min_clients: float
 
     def __init__(self, m_aggr: ModelAggregator, addr: tuple[str, int], name: str = "",
-                 timeout: int = 10, online_update: bool = True,
-                 update_interval_t: int = None, num_clients: int = None, min_clients: float = 0.5):
-        """Creates a new federated model aggregator.
+                 timeout: int = 10, update_interval: int = None, num_clients: int = None, min_clients: float = 0.5):
+        """Creates a new federated model aggregator. If update_interval_t is not set, defaults to asynchronous federated
+        model aggregation, i.e. waiting for individual clients to report their local models in unspecified/unset
+        intervals, before sending them the freshly aggregated global model back.
 
         :param m_aggr: Actual aggregator to aggregate models with.
         :param addr: Address of aggregation server for clients to connect to.
         :param name: Name of federated model aggregator for logging purposes.
         :param timeout: Timeout for waiting to receive local model updates from federated clients.
-        :param online_update: Async updating, i.e. waiting for individual clients to report their local models in
-        unspecified/unset intervals, before sending them the freshly aggregated global model back. Enabled by default.
-        :param update_interval_t: If async disabled, sets how often the aggregation server should do a federated
-        aggregation step to compute a global model to send to the clients (in seconds).
+        :param update_interval: Sets how often the aggregation server should do a (synchronous) federated aggregation
+        step to compute a global model to send to the clients (in seconds).
         :param num_clients: Allows sampling of client population to perform a sampled synchronous aggregation step. If
-        none provided, always attempts to request models from the entire population.
-        :param min_clients: Minimum ratio of responsive clients to requested ones, aborts aggr step if not satisfied. If
-        none provided, tolerates a 50% failure rate.
+        none provided, always attempts to request models from the entire population. For async mode, threshold of
+        waiting clients for a model update.
+        :param min_clients: Minimum ratio of responsive clients after a request for models during a sampled synchronous
+        aggregation step, aborts aggr step if not satisfied. If none provided, tolerates a 50% failure rate.
         """
         super().__init__(addr=addr, name=name, timeout=timeout)
 
         self._m_aggr = m_aggr
 
-        self._online_update = online_update
-
-        self._update_interval_t = update_interval_t
+        self._update_interval = update_interval
         self._num_clients = num_clients
         self._min_clients = min_clients
 
@@ -195,18 +194,13 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
         self._logger.info("Starting model aggregation loop...")
         while self._started:
             try:
-                if self._update_interval_t is not None:
+                if self._update_interval is not None:
                     self._logger.debug("Initiating interval-based synchronous aggregation step...")
                     self._sync_aggr()
-                    sleep(self._update_interval_t)
-
-                elif self._online_update:
+                    sleep(self._update_interval)
+                else:
                     self._logger.debug("Checking federated clients for asynchronous aggregation requests...")
                     self._async_aggr()
-
-                else:
-                    # Federated aggregation disabled
-                    break
             except RuntimeError:
                 # stop() was called
                 break
@@ -255,8 +249,9 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
         sent back only to all clients that requested an aggregation step.
         """
         clients = self._aggr_serv.poll_connections()[0].values()
-        if self._num_clients is not None and len(clients) < self._num_clients * self._min_clients:
+        if self._num_clients is not None and len(clients) < self._num_clients:
             self._logger.info(f"Insufficient read-ready clients available for aggregation step [{len(clients)}]!")
+            sleep(1)
             return
 
         self._logger.debug(f"Receiving local models from requesting clients [{len(clients)}]...")
@@ -264,9 +259,9 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
                          in cast(list[list[np.ndarray]], receive_latest_ep_objs(clients, list).values())
                          if model is not None]
 
-        if (len(client_models) == 0 or
-                self._num_clients is not None and len(client_models) < self._num_clients * self._min_clients):
+        if len(client_models) == 0 or self._num_clients is not None and len(client_models) < self._num_clients:
             self._logger.info(f"Insufficient number of client models for aggregation received [{len(client_models)}]!")
+            sleep(1)
             return
         self._logger.debug(f"Aggregating client models [{len(client_models)}] into global model...")
         global_model = self._m_aggr.aggregate(client_models)

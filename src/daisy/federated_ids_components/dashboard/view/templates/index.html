@@ -1,0 +1,134 @@
+{% extends "./base.html" %}
+{% block body_theme %}
+{% if dark_theme %}
+"sb-nav-fixed bg-dark"
+{% else %}
+"sb-nav-fixed"
+{% endif %}
+{% endblock %}
+
+{% block footer_theme %}
+{% if dark_theme %}
+"py-4 bg-dark mt-auto"
+{% else %}
+"py-4 mt-auto"
+{% endif %}
+{% endblock %}
+
+{% block navbar_theme %}
+{% if dark_theme %}
+"sb-sidenav accordion sb-sidenav-dark"
+{% else %}
+"sb-sidenav accordion sb-sidenav-light"
+{% endif %}
+{% endblock %}
+
+{% block main %}
+<br>
+<br>
+<div class={% if dark_theme %}
+    "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
+    <div class="card-header">
+        <i class="fa-solid fa-signal"></i>
+         Operational Status
+    </div>
+    <div class="card-body">
+
+<div class="row">
+    <div class="col-xl-4 col-md-6">
+        <div class="card bg-success text-white mb-4" style="  display:flex">
+            <div class="card-body">Intrusion Detection System: Operational</div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <a class="small text-white stretched-link" href={% url "alerts" %} >View Details</a>
+                <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6">
+        <div class="card bg-success text-white mb-4" style="  display:flex">
+            <div class="card-body">Knowledge Transfer: Operational</div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <a class="small text-white stretched-link" href={% url "alerts" %} >View Details</a>
+                <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-4 col-md-6">
+        <div class="card bg-success text-white mb-4" style="  display:flex">
+            <div class="card-body">Performance Evaluation: Operational</div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <a class="small text-white stretched-link" href={% url "alerts" %} >View Details</a>
+                <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+    </div>
+    <div class="card-footer small text-muted">Updated yesterday at 11:59 PM</div>
+</div>
+
+
+
+<div class="row">
+    <div class="col-xl-6">
+        <div class={% if dark_theme %}
+        "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %} >
+        <div class="card-header">
+            <i class="fas fa-chart-area me-1"></i>
+            F1-Score
+        </div>
+    <div class="card-body">
+            {{ f1|safe }}
+    </div>
+        <div class="card-footer small text-muted">Updated yesterday at 11:59 PM</div>
+    </div>
+</div>
+<div class="col-xl-6">
+
+    <div class={% if dark_theme %}
+    "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
+    <div class="card-header">
+        <i class="fas fa-chart-area me-1"></i>
+        Precision
+    </div>
+    <div class="card-body">
+        {{ precision|safe }}
+    </div>
+    <div class="card-footer small text-muted">Updated yesterday at 11:59 PM</div>
+</div>
+</div>
+</div>
+<div class="row">
+    <div class="col-xl-6">
+        <div class={% if dark_theme %}
+        "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
+        <div class="card-header">
+            <i class="fas fa-chart-area me-1"></i>
+            Recall
+        </div>
+        <div class="card-body">
+            {{ recall|safe }}
+        </div>
+        <div class="card-footer small text-muted">Updated yesterday at 11:59 PM</div>
+    </div>
+</div>
+<div class="col-xl-6">
+    <div class={% if dark_theme %}
+    "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
+    <div class="card-header">
+        <i class="fas fa-chart-area me-1"></i>
+        Accuracy
+    </div>
+    <div class="card-body">
+        {{ accuracy|safe }}
+    </div>
+    <div class="card-footer small text-muted">Updated yesterday at 11:59 PM</div>
+</div>
+</div>
+</div>
+
+
+{% endblock %}
