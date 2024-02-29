@@ -6,7 +6,7 @@ stages:
   - build
   - deploy
 
-image: docker:20
+image: docker:25
 
 docker-build:
   stage: build
