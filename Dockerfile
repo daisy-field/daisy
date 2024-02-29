@@ -13,7 +13,7 @@ RUN pip install --no-cache-dir --progress-bar off pip-tools virtualenv
 
 # installation of (base) dependencies into venv
 COPY pyproject.toml .
-RUN pip-compile
+RUN pip-compile --output-file=requirements.txt pyproject.toml
 RUN pip install --no-cache-dir --progress-bar off -r requirements.txt
 
 
