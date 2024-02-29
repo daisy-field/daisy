@@ -1,5 +1,6 @@
 # syntax=docker/dockerfile:1
 
+
 # Setup of Depedencies:
 FROM python:3.11-slim AS setup
 
@@ -18,7 +19,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 
 # Building of Base Image:
-FROM python:3.11-slim AS base
+FROM python:3.11-slim AS daisy-base
 
 WORKDIR /app
 EXPOSE 8000-8003
