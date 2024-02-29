@@ -6,8 +6,6 @@ stages:
   - build
   - deploy
 
-image: docker:25
-
 docker-build:
   stage: build
   tags:
