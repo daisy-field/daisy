@@ -24,6 +24,10 @@ FROM python:3.11-slim AS daisy-base
 WORKDIR /app
 EXPOSE 8000-8003
 
+# installtion of additional dependencies
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y tshark \
+    && rm -rf /var/cache/apt/archives /var/lib/apt/lists
+
 # import of built venv
 COPY --from=setup /app/venv /app/venv
 ENV PATH=/app/venv/bin:$PATH
