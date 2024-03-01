@@ -34,8 +34,8 @@ RUN pip3 install --no-cache-dir -e .
 
 
 # Building of GPU Image:
-FROM base as build-gpu
+FROM daisy-base as build-gpu
 RUN pip3 install --no-cache-dir -e .[cuda]
 
 # Building of CPU Image:
-FROM base as build
+FROM daisy-base as build
