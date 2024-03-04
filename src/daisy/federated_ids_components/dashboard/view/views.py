@@ -10,6 +10,10 @@ from api.models import Accuracy #, Recall, Precision, F1
 import plotly.offline as opy
 import plotly.graph_objs as go
 from django.http import HttpResponseRedirect
+
+from api.models import Aggregation
+
+
 def index(request):
 
     #all = Accuracy.objects.all()
@@ -26,7 +30,19 @@ def index(request):
     f1 = opy.plot(recall_plot(theme),auto_open=False, output_type='div')
 
 
-    return render(request, 'index.html', {'f1':f1, 'precision':precision, 'accuracy':accuracy, 'recall':recall, "dark_theme":theme})
+    return render(request, 'index.html',
+                  {'f1':f1,
+                   'precision':precision,
+                   'accuracy':accuracy,
+                   'recall':recall,
+                   "dark_theme":theme,
+                   "agg_status": getattr(Aggregation.objects.last(), "agg_status"),
+                   "agg_count":getattr(Aggregation.objects.last(), "agg_count"),
+                   "agg_time":getattr(Aggregation.objects.last(), "agg_time"),
+                   "eval_status": "Operational",
+                   "eval_count": "9",
+                   "eval_time": "02.03.2024"}
+                  )
 
 _logged_metrics = {
         'accuracy': {'node_addr_1': [0.1, 0.1, 0.1, 0.1, 0.1, 0.1], 'node_addr_2': [0.2, 0.2, 0.2, 0.2, 0.2, 0.2]},
@@ -113,6 +129,11 @@ def change_theme(request):
 def alerts(request):
     theme = request.session.get('is_dark_theme')
     return render(request, 'alerts.html', {"dark_theme":theme})
+
+def aggregate(request):
+    theme = request.session.get('is_dark_theme')
+    return render(request, 'aggregation.html', {"dark_theme":theme})
+
 
 
 
