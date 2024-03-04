@@ -7,10 +7,12 @@ from django.db import models
 
 class Node(models.Model):
     adress = models.CharField(max_length=255, unique=True)
+    last_connection =  models.DateTimeField()
 
 class Accuracy(models.Model):
     #address = models.ForeignKey(Node, on_delete=models.CASCADE)
     accuracy = models.FloatField()
+    #timestamp = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
         total_records = Accuracy.objects.count()
@@ -23,7 +25,21 @@ class Accuracy(models.Model):
 
         else:
             super().save(*args, **kwargs)
-    #timestamp = models.DateTimeField(auto_now_add=True)
+
+
+class Aggregation(models.Model):
+    agg_status = models.CharField(max_length=255)
+    agg_count = models.IntegerField()
+    agg_time = models.DateTimeField(auto_now_add=True)
+    def save(self, *args, **kwargs):
+        total_records = Aggregation.objects.count()
+        while total_records >= 1000:
+            pks = (Aggregation.objects
+                   .values_list('pk')[:1])
+            Aggregation.objects.filter(pk__in=pks).delete()
+            total_records = Aggregation.objects.count()
+        else:
+            super().save(*args, **kwargs)
 
 
 class Recall(models.Model):
