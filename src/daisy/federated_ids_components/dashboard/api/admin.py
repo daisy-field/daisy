@@ -9,4 +9,5 @@ admin.site.register(Accuracy)
 admin.site.register(F1)
 admin.site.register(Precision)
 admin.site.register(Recall)
+admin.site.register(Aggregation)
 # Register your models here.

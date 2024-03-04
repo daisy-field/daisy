@@ -25,3 +25,8 @@ class F1Serializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Accuracy
         fields = ['f1']
+
+class AggregationSerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        model = Aggregation
+        fields = ['agg_status', 'agg_count', 'agg_time']

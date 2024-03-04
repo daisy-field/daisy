@@ -19,6 +19,7 @@ from collections import deque
 from random import sample
 from time import sleep
 from typing import cast, Sequence
+import requests
 
 import numpy as np
 
@@ -156,7 +157,7 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
     _min_clients: float
 
     def __init__(self, m_aggr: ModelAggregator, addr: tuple[str, int], name: str = "",
-                 timeout: int = 10, update_interval: int = None, num_clients: int = None, min_clients: float = 0.5):
+                 timeout: int = 10, update_interval: int = None, num_clients: int = None, min_clients: float = 0.5, dashboard_address: str ="http://127.0.0.1:8000/"):
         """Creates a new federated model aggregator. If update_interval_t is not set, defaults to asynchronous federated
         model aggregation, i.e. waiting for individual clients to report their local models in unspecified/unset
         intervals, before sending them the freshly aggregated global model back.
@@ -180,6 +181,8 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
         self._update_interval = update_interval
         self._num_clients = num_clients
         self._min_clients = min_clients
+        self._dashboard_address = dashboard_address
+
 
     def setup(self):
         pass
@@ -241,6 +244,13 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
         self._logger.debug(f"Sending aggregated global model to all available clients [{len(clients)}]...")
         for client in clients:
             client.send(global_model)
+
+        try:
+            _ = requests.post(self._dashboard_address + "/aggregation/",
+                              data={'agg_status': "operational",
+                                    'agg_count': len(clients)})
+        except requests.exceptions.RequestException as e:
+            self._logger.warning(f"Dashboard server not available")
 
     def _async_aggr(self):
         """Performs an asynchronous federated aggregation step, i.e. checking whether a sufficient number of clients
@@ -425,3 +435,6 @@ class FederatedEvaluationAggregator(FederatedValueAggregator):
 
         """
         pass
+
+
+
