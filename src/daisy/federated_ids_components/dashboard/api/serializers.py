@@ -30,3 +30,20 @@ class AggregationSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Aggregation
         fields = ['agg_status', 'agg_count', 'agg_time']
+
+
+class EvaluationSerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        model = Evaluation
+        fields = ['eval_status', 'eval_count', 'eval_time']
+
+class AlertsSerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        model = Alerts
+        fields = ['category', 'active', 'timestamp', 'message']
+
+
+class NodeSerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        model = Node
+        fields = ['address']

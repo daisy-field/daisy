@@ -10,4 +10,7 @@ admin.site.register(F1)
 admin.site.register(Precision)
 admin.site.register(Recall)
 admin.site.register(Aggregation)
+admin.site.register(Evaluation)
+admin.site.register(Alerts)
+admin.site.register(Node)
 # Register your models here.

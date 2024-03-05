@@ -50,3 +50,35 @@ class AggregationSerializerView(viewsets.ModelViewSet):
     queryset = Aggregation.objects.all()
     serializer_class = AggregationSerializer
     permission_classes = [permissions.AllowAny]
+
+
+class EvaluationSerializerView(viewsets.ModelViewSet):
+    """
+    API endpoint that allows users to be viewed or edited.
+    """
+
+    queryset = Evaluation.objects.all()
+    serializer_class = EvaluationSerializer
+    permission_classes = [permissions.AllowAny]
+
+
+class AlertsSerializerView(viewsets.ModelViewSet):
+    """
+    API endpoint that allows users to be viewed or edited.
+    """
+
+    queryset = Alerts.objects.all()
+    serializer_class = AlertsSerializer
+    permission_classes = [permissions.AllowAny]
+
+class NodeSerializerView(viewsets.ModelViewSet):
+    """
+    API endpoint that allows users to be viewed or edited.
+    """
+
+    queryset = Node.objects.all()
+    serializer_class = NodeSerializer
+    permission_classes = [permissions.AllowAny]
+
+
+
