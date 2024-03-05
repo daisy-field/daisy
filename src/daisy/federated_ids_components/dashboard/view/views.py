@@ -135,6 +135,12 @@ def aggregate(request):
     return render(request, 'aggregation.html', {"dark_theme":theme})
 
 
+def evaluate(request):
+    theme = request.session.get('is_dark_theme')
+    return render(request, 'evaluation.html', {"dark_theme":theme})
+
+
+
 
 
 def nodes(request):

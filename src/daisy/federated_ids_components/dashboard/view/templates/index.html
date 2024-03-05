@@ -27,53 +27,83 @@
 <br>
 <br>
 <div class={% if dark_theme %}
-    "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
-    <div class="card-header">
-        <i class="fa-solid fa-signal"></i>
-         Operational Status
-    </div>
-    <div class="card-body">
-
-<div class="row">
-    <div class="col-xl-4 col-md-6">
-        <div class="card bg-success text-white mb-4" style="  display:flex">
-            <div class="card-body">Intrusion Detection System: Operational</div>
-            <div class="card-footer d-flex align-items-center justify-content-between">
-                <a class="small text-white stretched-link" href={% url "alerts" %} >View Details</a>
-                <div class="small text-white"><i class="fas fa-angle-right"></i></div>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-4 col-md-6">
-        <div class="card bg-success text-white mb-4" style="  display:flex">
-            <div class="card-header">Aggregation Server: {{agg_status}}</div>
-                <div class="card-body" style ="display:inline;">Last Connection: {{agg_time}}</div>
-                <div class="card-img-bottom" style="font-size:3em">{{agg_count}}</div> <!--; display:inline; float:right; margin-right: 5%-->
-            <div class="card-footer d-flex align-items-center justify-content-between">
-                <a class="small text-white stretched-link" href={% url "aggregate" %} >View Details</a>
-                <div class="small text-white"><i class="fas fa-angle-right"></i></div>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-xl-4 col-md-6">
-        <div class="card bg-success text-white mb-4" style="  display:flex">
-            <div class="card-header">Performance Evaluation: {{eval_status}}</div>
-            <div class="card-body">
-                <div style ="display:inline;">Last Update: {{eval_time}}</div>
-                <div style="font-size:3em; text-align:right; display:inline; float:right; margin-right: 10%">{{eval_count}}</div>
-            </div>
-                 <div class="card-footer d-flex align-items-center justify-content-between">
-                <a class="small text-white stretched-link" href={% url "alerts" %} >View Details</a>
-                <div class="small text-white"><i class="fas fa-angle-right"></i></div>
-            </div>
-        </div>
-    </div>
-
+"card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
+<div class="card-header">
+    <i class="fa-solid fa-signal"></i>
+    Operational Status
 </div>
 
+<div class="card-body">
+    <div class="row">
+        <div class="col-xl-4 col-md-4">
+            <div class="card bg-success text-white mb-4" style="  display:flex">
+                <div class="card-header"><i class="fa-solid fa-server"></i> Model Aggregation:</div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-xl-8 col-md-6">
+                            Status: {{agg_status}} <br>
+                            Last connection: <br>{{agg_time}}
+                        </div>
+                        <div class="col-xl-4 col-md-6">
+                            Connections:
+                            <p style="font-size:40px;">{{agg_count}}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" href={% url "aggregate" %} >View Details</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4 col-md-4">
+            <div class="card bg-success text-white mb-4" style="  display:flex">
+                <div class="card-header"><i class="fa-solid fa-chart-line"></i> Performance Evaluation:</div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-xl-8 col-md-6">
+                            Status: {{eval_status}} <br>
+                            Last connection: {{eval_time}}
+                        </div>
+                        <div class="col-xl-4 col-md-6">
+                            Connections:
+                            <p style="font-size:40px;">{{eval_count}}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" href={% url "evaluate" %} >View Details</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="col-xl-4 col-md-4">
+            <div class="card bg-secondary text-white mb-4" style="  display:flex">
+                <div class="card-header"><i class="fa-solid fa-grip-vertical"></i> Nodes:</div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-xl-6 col-md-6">
+                            Connected Nodes:
+                            <p style="font-size:40px;">{{eval_count}}</p>
+                        </div>
+                        <div class="col-xl-6 col-md-6">
+                            Registered Nodes:
+                            <p style="font-size:40px;">{{eval_count}}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" href={% url "nodes" %} >View Details</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                </div>
+            </div>
+            <div class="card-footer small text-muted"></div>
+        </div>
     </div>
-    <div class="card-footer small text-muted"></div>
+</div>
 </div>
 
 
@@ -104,7 +134,6 @@
         {{ precision|safe }}
     </div>
     <div class="card-footer small text-muted">Updated yesterday at 11:59 PM</div>
-</div>
 </div>
 </div>
 <div class="row">
