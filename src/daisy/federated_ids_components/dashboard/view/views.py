@@ -6,7 +6,6 @@ from dash_bootstrap_templates import load_figure_template
 
 from django.shortcuts import render
 # Create your views here.
-from api.models import Accuracy #, Recall, Precision, F1
 import plotly.offline as opy
 import plotly.graph_objs as go
 from django.http import HttpResponseRedirect
@@ -60,10 +59,10 @@ def accuracy_plot(dark_theme):
     k= []
     x=[]
     c= 0
-    for i in Accuracy.objects.all():
-        x.append(c)
-        c += 1
-        k.append(i.accuracy)
+    #for i in Accuracy.objects.all():
+    #    x.append(c)
+    #    c += 1
+    #    k.append(i.accuracy)
 
     #x_max, x_min = update_range(figure, len(self._evaluator._logged_metrics['x']))
     fig = go.Figure()
