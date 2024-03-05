@@ -5,10 +5,7 @@ from django.contrib import admin
 from .models import *
 
 
-admin.site.register(Accuracy)
-admin.site.register(F1)
-admin.site.register(Precision)
-admin.site.register(Recall)
+admin.site.register(Metrics)
 admin.site.register(Aggregation)
 admin.site.register(Evaluation)
 admin.site.register(Alerts)

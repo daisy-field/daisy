@@ -22,19 +22,22 @@ class Alerts(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
 
 
-class Accuracy(models.Model):
-    #address = models.ForeignKey(Node, on_delete=models.CASCADE)
+class Metrics(models.Model):
+    address =  models.CharField(max_length=255)
     accuracy = models.FloatField()
-    #timestamp = models.DateTimeField(auto_now_add=True)
+    f1 = models.FloatField()
+    recall = models.FloatField()
+    precision = models.FloatField()
+    timestamp = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
-        total_records = Accuracy.objects.count()
+        total_records = Metrics.objects.count()
         while total_records >= 50:
-            pks = (Accuracy.objects
+            pks = (Metrics.objects
                    .values_list('pk')[:1])
-            Accuracy.objects.filter(pk__in=pks).delete()
+            Metrics.objects.filter(pk__in=pks).delete()
             print("delete")
-            total_records = Accuracy.objects.count()
+            total_records = Metrics.objects.count()
 
         else:
             super().save(*args, **kwargs)
@@ -69,22 +72,6 @@ class Evaluation(models.Model):
         else:
             super().save(*args, **kwargs)
 
-
-class Recall(models.Model):
-    #address = models.ForeignKey(Node, on_delete=models.CASCADE)
-    recall = models.FloatField()
-    #timestamp = models.DateTimeField(auto_now_add=True)
-
-class Precision(models.Model):
-    #address = models.ForeignKey(Node, on_delete=models.CASCADE)
-    precision = models.FloatField()
-    #timestamp = models.DateTimeField(auto_now_add=True)
-
-
-class F1(models.Model):
-    #address = models.ForeignKey(Node, on_delete=models.CASCADE)
-    f1 = models.FloatField()
-    #timestamp = models.DateTimeField(auto_now_add=True)
 
 
 
