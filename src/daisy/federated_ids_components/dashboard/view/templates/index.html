@@ -41,10 +41,14 @@
         var options = {
             curveType: 'function',
             backgroundColor: {fill: 'transparent'},
+            legend: 'bottom',
+
         };
         {% else %}
         var options = {
             backgroundColor: 'transparent', // Set background color to transparent
+            curveType: 'function',
+
 
             hAxis: {
                 textStyle: {
@@ -59,10 +63,11 @@
                     color: '#FFFFFF' // Set text color for vertical axis labels
                 },
                 gridlines: {
-                    color: '#444444' // Set color of gridlines for vertical axis
+                    color: 'transparent' // Set color of gridlines for vertical axis
                 }
             },
             legend: {
+                position: 'top',
                 textStyle: {
                     color: '#FFFFFF' // Set text color for legend
                 }
@@ -71,7 +76,7 @@
                 color: '#FFFFFF' // Set text color for chart title
             }
         };
-        {% endif %}
+        {%endif %}
 
         var accuracy_chart = new google.visualization.LineChart(document.getElementById('accuracy_chart'));
         var f1_chart = new google.visualization.LineChart(document.getElementById('f1_chart'));
@@ -168,10 +173,6 @@
                         + currentdate.getMinutes() + ":"
                         + currentdate.getSeconds();
                     $("#updated").text("Last update: " + datetime)
-                    $("#updated1").text("Last update: " + datetime)
-                    $("#updated2").text("Last update: " + datetime)
-                    $("#updated3").text("Last update: " + datetime)
-                    $("#updated4").text("Last update: " + datetime)
 
                 },
                 error: (error) => {
@@ -180,9 +181,52 @@
 
             })
         }
+        function getAlerts() {
+             $.ajax({
+                 url: "http://127.0.0.1:8000/alert/",
+                 type: "GET",
+                 dataType: "json",
+                 success: (response) => {
+
+                     var alerts = 0
+                     var warnings = 0
+
+                     for (let i = 0; i < response.length; i++) {        //type = danger, warning, info
+                          if (response[i].active == true && response[i].category == "alert"){
+                                    alerts = alerts+1
+                               var element = document.getElementById("alert-card");
+                                     element.classList.add("bg-danger");
+                          }
+                         if (response[i].active == true & response[i].category == "warning"){
+                                 warnings = warnings+1
+                                  var element = document.getElementById("warning-card");
+                                     element.classList.add("bg-warning");
+                         }
+                     }
+                     if(alerts == 0){
+                            var element = document.getElementById("alert-card");
+                                     element.classList.remove("bg-danger");
+                     }
+                      if(warnings == 0){
+                            var element = document.getElementById("warning-card");
+                                     element.classList.remove("bg-warning");
+                     }
+
+                    document.getElementById('alert_box').innerText   = alerts
+                    document.getElementById('warning_box').innerText   = warnings
+                 },
+                 error: (error) => {
+                     console.log(error);
+                 }
+
+             })
+         }
 
         sendRequest();
-        setInterval(sendRequest, 10000);
+        setInterval(sendRequest, 3000);
+
+        getAlerts();
+        setInterval(getAlerts, 3000);
 
     }
 
@@ -246,10 +290,10 @@
 
 
             <div class="col-xl-2 col-md-2">
-                <div class="card bg-warning text-white mb-4" style="height:6cm;  display:flex">
-                    <div class="card-header"><i class="fa-solid fa-triangle-exclamation"></i> Warninggs:</div>
+                <div id="warning-card" class="card bg-secondary text-white mb-4" style="height:6cm;  display:flex">
+                    <div class="card-header"><i class="fa-solid fa-triangle-exclamation"></i> Warnings:</div>
                     <div class="card-body">
-                                <p style="font-size:40px;">{{eval_count}}</p>
+                        <p id ="warning_box" style="font-size:40px;"></p>
                     </div>
                     <div class="card-footer d-flex align-items-center justify-content-between">
                         <a class="small text-white stretched-link" href={% url "alerts" %} >View Details</a>
@@ -259,10 +303,11 @@
             </div>
 
             <div class="col-xl-2 col-md-2">
-                <div class="card bg-danger text-white mb-4" style="height:6cm; display:flex">
-                    <div class="card-header"><i class="fa-solid fa-skull-crossbones"></i> Alerts:</div>
+                <div  id="alert-card" class="card bg-secondary text-white mb-4" style="height:6cm; display:flex">
+                    <div class="card-header"><i class="fa-solid fa-skull-crossbones"></i> Alerts:
+                    </div>
                     <div class="card-body">
-                                <p style="font-size:40px;">{{eval_count}}</p>
+                        <p id ="alert_box"  style="font-size:40px;"></p>
                     </div>
                     <div class="card-footer d-flex align-items-center justify-content-between">
                         <a class="small text-white stretched-link" href={% url "alerts" %} >View Details</a>
@@ -280,55 +325,65 @@
 
 
 <div class="row">
-    <div class="col-xl-6">
+    <div class="col-xl-6 col-md-6">
         <div class={% if dark_theme %}
-        "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %} >
-        <div class="card-header">
-            <i class="fas fa-chart-area me-1"></i>
-            F1-Score
+            "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %} >
+            <div class="card-header">
+                <i class="fas fa-chart-area me-1"></i>
+                F1-Score
+            </div>
+            <div id="f1_chart" class="card-body"></div>
+            <div id="updated4" class="card-footer small text-muted">
+                <a class="small text-secondary stretched-link" href={% url "f1-score" %} >View Details</a>
+            </div>
         </div>
-        <div id="f1_chart" class="card-body">
+    </div>
+
+    <div class="col-xl-6 col-md-6">
+        <div class={% if dark_theme %}
+            "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
+            <div class="card-header">
+                <i class="fas fa-chart-area me-1"></i>
+                Precision
+            </div>
+            <div id="precision_chart" class="card-body"></div>
+            <div id="updated1" class="card-footer small text-muted">
+                <a class="small text-secondary stretched-link" href={% url "precision" %} >View Details</a>
+            </div>
         </div>
-        <div class="card-footer small text-muted">Updated yesterday at 11:59 PM</div>
     </div>
 </div>
-<div class="col-xl-6">
-    <div class={% if dark_theme %}
-    "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
-    <div class="card-header">
-        <i class="fas fa-chart-area me-1"></i>
-        Precision
-    </div>
-    <div id="precision_chart" class="card-body">
-    </div>
-    <div id="updated1" class="card-footer small text-muted"></div>
-</div>
-</div>
+
 <div class="row">
-    <div class="col-xl-6">
+    <div class="col-xl-6 col-md-6">
         <div class={% if dark_theme %}
         "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
-        <div class="card-header">
-            <i class="fas fa-chart-area me-1"></i>
-            Recall
+            <div class="card-header">
+                <i class="fas fa-chart-area me-1"></i>
+                Recall
+            </div>
+            <div id="recall_chart" class="card-body"></div>
+            <div id="updated2" class="card-footer small text-muted">
+                <a class="small text-secondary stretched-link" href={% url "recall" %} >View Details</a>
+            </div>
         </div>
-        <div id="recall_chart" class="card-body">
+    </div>
+
+    <div class="col-xl-6 col-md-6">
+        <div class={% if dark_theme %}
+        "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
+            <div class="card-header">
+                <i class="fas fa-chart-area me-1"></i>
+                Accuracy
+            </div>
+            <div id="accuracy_chart" class="card-body">
+            </div>
+            <div id="updated3" class="card-footer small text-muted">
+                <a class="small text-secondary stretched-link" href={% url "accuracy" %} >View Details</a>
+            </div>
         </div>
-        <div  id="updated2" class="card-footer small text-muted"></div>
     </div>
-</div>
-<div class="col-xl-6">
-    <div class={% if dark_theme %}
-    "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
-    <div class="card-header">
-        <i class="fas fa-chart-area me-1"></i>
-        Accuracy
-    </div>
-    <div id="accuracy_chart" class="card-body">
-    </div>
-    <div id="updated3" class="card-footer small text-muted"></div>
-</div>
-</div>
+
 </div>
 
 
