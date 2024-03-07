@@ -19,9 +19,9 @@ from collections import deque
 from random import sample
 from time import sleep
 from typing import cast, Sequence
-import requests
 
 import numpy as np
+import requests
 
 from daisy.communication import EndpointServer, ep_select, receive_latest_ep_objs
 from daisy.federated_learning import ModelAggregator
@@ -46,21 +46,27 @@ class FederatedOnlineAggregator(ABC):
     _aggr_serv: EndpointServer
     _timeout: int
 
+    _dashboard: str
+
     _fed_aggr: threading.Thread
     _started: bool
 
-    def __init__(self, addr: tuple[str, int], name: str = "", timeout: int = 10):
+    def __init__(self, addr: tuple[str, int], name: str = "", timeout: int = 10,
+                 dashboard: str = None):
         """Creates a new federated online aggregator.
 
         :param addr: Address of aggregation server for federated nodes to report to.
         :param name: Name of federated online aggregator for logging purposes.
         :param timeout: Timeout for waiting to receive message from federated nodes.
+        :param dashboard: TODO
         """
         self._logger = logging.getLogger(name)
         self._logger.info("Initializing federated online aggregator...")
 
         self._aggr_serv = EndpointServer(name="Server", addr=addr, c_timeout=timeout, multithreading=True)
         self._timeout = timeout
+
+        self._dashboard = dashboard
 
         self._started = False
         self._logger.info("Federated online aggregator initialized.")
@@ -133,6 +139,15 @@ class FederatedOnlineAggregator(ABC):
         """
         raise NotImplementedError
 
+    def _update_dashboard(self, ressource: str, data: dict):
+        """TODO
+
+        """
+        try:
+            _ = requests.post(url=self._dashboard + ressource, data=data)
+        except requests.exceptions.RequestException:
+            self._logger.warning(f"Dashboard server not available")
+
     def __del__(self):
         if self._started:
             self.stop()
@@ -157,7 +172,8 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
     _min_clients: float
 
     def __init__(self, m_aggr: ModelAggregator, addr: tuple[str, int], name: str = "",
-                 timeout: int = 10, update_interval: int = None, num_clients: int = None, min_clients: float = 0.5, dashboard_address: str ="http://127.0.0.1:8000/"):
+                 timeout: int = 10, update_interval: int = None, num_clients: int = None, min_clients: float = 0.5,
+                 dashboard_serv: str = "http://127.0.0.1:8000/"):
         """Creates a new federated model aggregator. If update_interval_t is not set, defaults to asynchronous federated
         model aggregation, i.e. waiting for individual clients to report their local models in unspecified/unset
         intervals, before sending them the freshly aggregated global model back.
@@ -173,16 +189,15 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
         waiting clients for a model update.
         :param min_clients: Minimum ratio of responsive clients after a request for models during a sampled synchronous
         aggregation step, aborts aggr step if not satisfied. If none provided, tolerates a 50% failure rate.
+        :param dashboard_serv: TODO
         """
-        super().__init__(addr=addr, name=name, timeout=timeout)
+        super().__init__(addr=addr, name=name, timeout=timeout, dashboard=dashboard_serv)
 
         self._m_aggr = m_aggr
 
         self._update_interval = update_interval
         self._num_clients = num_clients
         self._min_clients = min_clients
-        self._dashboard_address = dashboard_address
-
 
     def setup(self):
         pass
@@ -196,6 +211,7 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
         """
         self._logger.info("Starting model aggregation loop...")
         while self._started:
+            # TODO insert heartbeat here (optional), inkl connection count
             try:
                 if self._update_interval is not None:
                     self._logger.debug("Initiating interval-based synchronous aggregation step...")
@@ -245,12 +261,11 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
         for client in clients:
             client.send(global_model)
 
-        try:
-            _ = requests.post(self._dashboard_address + "/aggregation/",
-                              data={'agg_status': "operational",
-                                    'agg_count': len(clients)})
-        except requests.exceptions.RequestException as e:
-            self._logger.warning(f"Dashboard server not available")
+        # TODO formatting, number of clients that the model was sent to @seraphin, use client model len
+        self._update_dashboard("/aggregation/",
+                               {
+                                   'agg_status': "operational", # TODO TO BE REMOVED
+                                   'agg_count': len(client_models)})
 
     def _async_aggr(self):
         """Performs an asynchronous federated aggregation step, i.e. checking whether a sufficient number of clients
@@ -280,6 +295,10 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
         self._logger.debug(f"Sending aggregated global model to available requesting clients [{len(clients)}]...")
         for client in clients:
             client.send(global_model)
+
+        # TODO formatting, number of clients that were used to aggregate a model @seraphin, use .poll_connections()[1]
+        # TODO differentiate between time of last update and heartbeat of server *SEE ABOVE*
+        self._update_dashboard("/aggregation/", {'agg_status': "operational", 'agg_count': len(clients)})
 
 
 class FederatedValueAggregator(FederatedOnlineAggregator):
@@ -324,6 +343,7 @@ class FederatedValueAggregator(FederatedOnlineAggregator):
         """
         self._logger.info("Starting result aggregation loop...")
         while self._started:
+            # TODO insert heartbeat here (optional), inkl connection count
             try:
                 nodes = self._aggr_serv.poll_connections()[0].items()
                 if len(nodes) == 0:
@@ -400,6 +420,10 @@ class FederatedPredictionAggregator(FederatedValueAggregator):
             t = x_data[i], y_pred[i]
             self._logger.debug(f"Prediction received from {node}: {t}")
             values.append(t)
+
+            if y_pred[i]:
+                self._update_dashboard("/alert/",
+                                       {'category': "alert", 'active': True, 'message': "Alert raised!"})
         return values
 
 
@@ -431,10 +455,20 @@ class FederatedEvaluationAggregator(FederatedValueAggregator):
         pass
 
     def process_node_msg(self, node: tuple[str, int], msg):
+        """TODO
+{metric.name: metric(y_true, y_pred) for metric in self._metrics}
+{"accuracy": accuracy, "recall": recall, "true negative rate": tnr,
+                   "precision": precision, "negative predictive value": npv,
+                   "false negative rate": fnr, "false positive rate": fpr, "f1 measure": f1}
         """
-
-        """
-        pass
-
-
-
+        if "conf_matrix_online_evaluation" in msg:
+            conf_matrix = msg["conf_matrix_online_evaluation"]
+            self._update_dashboard("/metrics/",
+                                   {
+                                       'address': node[0],
+                                       'accuracy': conf_matrix["accuracy"],
+                                       'recall': conf_matrix["recall"],
+                                       'precision': conf_matrix["precision"],
+                                       'f1': conf_matrix["f1 measure"]
+                                   })
+        return msg
