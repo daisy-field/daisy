@@ -153,3 +153,19 @@ def terms(request):
 def privacy(request):
     theme = request.session.get('is_dark_theme')
     return render(request, 'pp.html', {"dark_theme":theme})
+
+def accuracy(request):
+    theme = request.session.get('is_dark_theme')
+    return render(request, 'accuracy.html', {"dark_theme":theme})
+
+def f1(request):
+    theme = request.session.get('is_dark_theme')
+    return render(request, 'f1.html', {"dark_theme":theme})
+
+def recall(request):
+    theme = request.session.get('is_dark_theme')
+    return render(request, 'recall.html', {"dark_theme":theme})
+
+def precision(request):
+    theme = request.session.get('is_dark_theme')
+    return render(request, 'precision.html', {"dark_theme":theme})

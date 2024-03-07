@@ -13,5 +13,9 @@ urlpatterns = [
     path('terms/', views.terms, name="terms"),
     path('privacy/', views.privacy, name="privacy"),
     path('change_theme/', views.change_theme, name="change_theme"),
+    path('accuracy/', views.accuracy, name="accuracy"),
+    path('recall/', views.recall, name="recall"),
+    path('precision/', views.precision, name="precision"),
+    path('f1-score/', views.f1, name="f1-score"),
 
 ]
