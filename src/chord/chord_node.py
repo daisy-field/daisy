@@ -140,8 +140,7 @@ class Chordpeer:
     def _join(self, remote_addr: tuple[str, int]):
         """Creates and sends a join message to a peer in an existing chord ring.
 
-        # TODO if message is lost should be retried after ttl of message runs out -> method to check ttl of messages
-        periodically?
+        # TODO retry after ttl of message runs out -> check ttl of messages periodically?
 
         :param remote_addr: Address of bootstrap peer.
         """
@@ -275,13 +274,11 @@ class Chordpeer:
         :return: True if self is successor of peer, else False
         """
         if self._predecessor[0] == self._id and peer_id != self._id:
-            self._logger.info(f"In _is_succ: self.predecessor has not been set yet; defaulting to true.")
             return True
 
         pred = ((self._id < self._predecessor[0]) and (
                 peer_id not in range(self._id + 1, self._predecessor[0] + 1))) or (
                        peer_id in range(self._predecessor[0] + 1, self._id + 1))
-        self._logger.info(f"In _is_succ: self is succ of {peer_id} is {pred}")
         return pred
 
     def _check_if_peer_is_successor(self, peer_id: int) -> bool:
@@ -293,11 +290,10 @@ class Chordpeer:
         :return: True if self is predecessor of peer, else false.
         """
         if self._successor is None and peer_id != self._id:  # if no pred set
-            self._logger.info(f"In _is_pred: self.predecessor has not yet been set; defaulting to true.")
             return True
+
         succ = ((self._id > self._successor[0]) and (peer_id not in range(self._successor[0] + 1, self._id + 1))) or (
                 peer_id in range(self._id + 1, self._successor[0] + 1))
-        self._logger.info(f"In _is_pred: self is pred of {peer_id} is {succ}")
         return succ
 
     def _get_closest_known_pred(self, peer_id: int) -> tuple[int, tuple[str, int], StreamEndpoint] | None:
@@ -480,7 +476,7 @@ class Chordpeer:
             # check here for departure or not
             curr_time = time()
             if curr_time - last_refresh_time >= 30:
-                # self._fix_fingers()
+                self._fix_fingers()
                 try:
                     self._stabilize(*self._successor)
                 except TypeError as e:
@@ -556,7 +552,7 @@ class Chordpeer:
         self._lookup_successor(*message.peer_tuple, message.message_id)
 
     def _fingertable_to_string(self):
-        return [('(' + f'f_id: {self._fingertable[key][0]}' + ')') for key in self._fingertable.keys()]
+        return [('(' + f'{key}: {self._fingertable[key][0]}' + ')') for key in self._fingertable.keys()]
 
     def __str__(self):
         return (
@@ -574,8 +570,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     peer_ip = "127.0.0.1"
-
-    peer = Chordpeer(name=args.peerName, addr=(peer_ip, args.peerPort), max_fingers=16, id_test=args.peerId)
+    # fixme test maxfingers 10
+    peer = Chordpeer(name=args.peerName, addr=(peer_ip, args.peerPort), max_fingers=10, id_test=args.peerId)
     if args.remotePort is None:
         peer.run()  # start as first chord peer
     else:
