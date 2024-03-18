@@ -31,7 +31,6 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install --no-instal
 
 # Import of CPU Dependencies:
 FROM base as base-cpu
-# import of built venv
 COPY --from=setup /app/venv /app/venv
 
 # Import of GPU Dependencies:
