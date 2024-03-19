@@ -92,12 +92,12 @@ def close_and_remove_endpoint(ep_server: EndpointServer, ep_addr: tuple[str, int
             ep.stop(shutdown=True)
 
 
-def cleanup_dead_messages(sent_messages: dict[uuid4, tuple[MessageOrigin, time, Optional[int]]]):
+def cleanup_dead_messages(sent_messages: dict[uuid4, tuple[MessageOrigin, time, Optional[int]]], ttl: float):
     """Checks whether sent messages can be forgotten and deletes them.
     """
-    for key in sent_messages.values():
+    for key in list(sent_messages):
         if sent_messages.get(key, None) is not None:
-            if time() - sent_messages[key][1] > 20:
+            if time() - sent_messages[key][1] > ttl:
                 sent_messages.pop(key)
 
 

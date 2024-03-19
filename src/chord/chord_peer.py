@@ -47,8 +47,10 @@ class Chordpeer:
     _sent_messages: dict[uuid4, tuple[MessageOrigin, time, Optional[int]]]
 
     _logger: logging.Logger
+    _refresh_time: float
 
-    def __init__(self, name: str, addr: tuple[str, int], max_fingers: int = 32, id_test: int = None):
+    def __init__(self, name: str, addr: tuple[str, int], max_fingers: int = 32, id_test: int = None,
+                 refresh_time: float = typing.cast(float, 10)):
         """
         Creates a new Chord Peer.
 
@@ -73,6 +75,7 @@ class Chordpeer:
         self._sent_messages = {}
 
         self._logger = logging.getLogger(name)
+        self._refresh_time = refresh_time
 
     def _send_message(self, ep: StreamEndpoint | None, remote_addr: tuple[str, int], message: Chordmessage):
         """Sends a Chordmessage over a given endpoint or temporarily creates a new one.
@@ -86,10 +89,6 @@ class Chordpeer:
         :param remote_addr: Address of a Chord peer
         :param message: Chordmessage to be sent
         """
-        if remote_addr == self._addr:
-            self._logger.warning(
-                f"Trying to send Message of Type {message.message_type} With {message.peer_tuple} to self.")
-            return
         try:
             ep.send(message)
             self._logger.info(
@@ -125,10 +124,10 @@ class Chordpeer:
     def _notify(self, remote_id: int, remote_addr: tuple[str, int]):
         """Creates and sends a notify message to validate a peers predecessor. Used to repair successor pointers on the chord ring.
         """
-        pred = self._predecessor
-        if self._predecessor is None and self._successor[0] != self._id:
-            pred = self._successor
-        notify_message = Chordmessage(message_id=uuid4(), message_type=MessageType.NOTIFY, peer_tuple=pred)
+        if self._predecessor[0] == self._id:
+            self._logger.warning(f"Notify to self")
+            return
+        notify_message = Chordmessage(message_id=uuid4(), message_type=MessageType.NOTIFY, peer_tuple=self._predecessor)
         ep = self._get_existing_or_new_endpoint(remote_id, remote_addr)
         self._send_message(ep, remote_addr, notify_message)
 
@@ -140,15 +139,18 @@ class Chordpeer:
         """
         if (remote_id is None) or (remote_addr is None):
             self._logger.warning(f"Stabilize missing value (remote_id:{remote_id}, remote_addr:{remote_addr})")
-            remote_id = self._predecessor[0]
-            remote_addr = self._predecessor[1]
+            return
+        # if remote_id == self._id:
+        #    self._logger.warning(f"Stabilize to self")
+        #    return
         stabilize_message = Chordmessage(message_id=uuid4(), message_type=MessageType.STABILIZE,
                                          peer_tuple=(self._id, self._addr))
         ep = self._get_existing_or_new_endpoint(remote_id, remote_addr)
         self._send_message(ep, remote_addr, stabilize_message)
 
     def _update_finger(self, finger_tuple: tuple[int, tuple[str, int]], finger_index: int):
-        """Updates an entry in a peers fingertable by maintaining its endpoint and assigning current finger-values or removing the finger entirely.
+        """Updates an entry in a peers fingertable by maintaining its endpoint and assigning current finger-values or
+        removing the finger entirely.
 
         :param finger_tuple:
         :param finger_index:
@@ -161,7 +163,6 @@ class Chordpeer:
             if len(finger_ids_in_ft) == 0:
                 if finger[2].poll()[0][0]:
                     finger[2].stop(shutdown=True)
-
         try:
             ep = self._get_existing_or_new_endpoint(*finger_tuple)
             self._fingertable[finger_index] = (finger_tuple[0], finger_tuple[1], ep)
@@ -208,12 +209,14 @@ class Chordpeer:
         for i in range(self._max_fingers):
             finger = self._id + 2 ** i % (2 ** self._max_fingers)
             if check_if_peer_is_successor(self._successor[0], self._id, finger):  # fixme why this?
+                print("updateing finger with successor")
                 self._update_finger(self._successor, i)
             else:
                 message_id = uuid4()
                 self._sent_messages[message_id] = (MessageOrigin.FIX_FINGERS, time(), i)
+                print("making new lookup succ call with ", finger)
                 self._lookup_successor(finger, self._addr,
-                                       message_id)  # update_finger happens in process find_succ res -> MessageOrigin.FIX_FINGERS  # and in run periodically
+                                       message_id)
 
     def _get_closest_known_pred(self, peer_id: int) -> tuple[int, tuple[str, int], StreamEndpoint] | None:
         """Finds the closest predecessor one peer knows for another peer in the fingertable. Defaults to None.
@@ -247,16 +250,16 @@ class Chordpeer:
         """
         self._logger.info(f"looking up {peer_id}.")
 
-        if self._predecessor is not None and check_if_peer_is_predecessor(self._predecessor[0], self._id, peer_id):
-            self._logger.info(f"In _find_succ: found succ for {peer_id} as self")
+        # second condition: if two peers are in ring A should not send B to B as its successor
+        if peer_addr == self._predecessor[1] or check_if_peer_is_predecessor(self._predecessor[0], self._id, peer_id):
+            self._logger.info(f"In _find_succ: found succ for {peer_id} as self ")
             succ_found_msg = Chordmessage(message_id=message_id, message_type=MessageType.LOOKUP_SUCC_RES,
                                           peer_tuple=(self._id, self._addr))
             ep = self._get_existing_or_new_endpoint(peer_id, peer_addr)
             self._send_message(ep, peer_addr, succ_found_msg)
 
-        elif check_if_peer_is_successor(self._successor[0], self._id,
-                                        peer_id) and self._successor is not None:  # succ init to None, so check
-            self._logger.info(f"In _find_succ: found succ for {peer_id} as self._successor.")
+        elif check_if_peer_is_successor(self._successor[0], self._id, peer_id):
+            self._logger.info(f"In _find_succ: found succ for {peer_id} as self._successor:{self._successor[0]} ")
             succ_found_msg = Chordmessage(message_id=message_id, message_type=MessageType.LOOKUP_SUCC_RES,
                                           peer_tuple=self._successor)
             ep = self._get_existing_or_new_endpoint(peer_id, peer_addr)
@@ -267,9 +270,12 @@ class Chordpeer:
 
             # send negative response including the closest predecessor from fingertable
             try:
-                closest_pred = self._get_closest_known_pred(peer_id)
-
-                print("hello")
+                # closest_pred = self._get_closest_known_pred(peer_id)
+                if self._successor[0] != self._id:
+                    self._successor_endpoint.send(
+                        Chordmessage(message_id=message_id, message_type=MessageType.LOOKUP_SUCC_REQ,
+                                     peer_tuple=(peer_id, peer_addr)))
+                # print("hello")
             except AttributeError as e:
                 self._logger.error(
                     f"{e.__class__.__name__} ({e}) :: in find_succ: failed to relay lookup; no ep for closest pred "
@@ -372,9 +378,6 @@ class Chordpeer:
             self._logger.info(f"Updated successor to {self._successor}. In _process_find_succ_res.")
             self._stabilize(*message.peer_tuple)
         if msg_origin == MessageOrigin.FIX_FINGERS:
-            if not message.success:
-                # TODO
-                print("TODO")
             self._logger.info(f"Initiating _update_finger for {msg_finger}. In _process_find_succ_res.")
             self._update_finger(message.peer_tuple, msg_finger)
 
@@ -395,13 +398,13 @@ class Chordpeer:
         while True:
             # check here for departure or not
             curr_time = time()
-            if curr_time - last_refresh_time >= 30:
-                self._fix_fingers()
+            if curr_time - last_refresh_time >= self._refresh_time:
                 try:
                     self._stabilize(*self._successor)
+                    self._fix_fingers()
                 except TypeError as e:
                     self._logger.error(f"{e.__class__.__name__} ({e}) :: could not Stabilize")
-                cleanup_dead_messages(self._sent_messages)
+                cleanup_dead_messages(self._sent_messages, self._refresh_time *2)
                 last_refresh_time = curr_time
 
             sleep(1)
@@ -411,8 +414,6 @@ class Chordpeer:
                 msg_type = message.message_type
                 self._logger.info(f"In run: Received {msg_type.name} with {message.peer_tuple}")
                 match msg_type:
-                    case MessageType.TEST:
-                        self._process_test(message)
                     case MessageType.JOIN:
                         self._process_join(message)
                         self._logger.info("JOINK Processed: " + self.__str__())
@@ -450,9 +451,6 @@ class Chordpeer:
     def __str__(self):
         return (
                 f"ChordPeer {self._name}:\n" + f"id: {self._id}, \n" + f"predecessor: {self._predecessor}, \n" + f"successor: {self._successor}, \n" + f"fingers: {fingertable_to_string(self._fingertable)}, \n" + f"currently waiting for responses to {len(self._sent_messages)} messages.")
-
-    def _process_test(self, message):
-        self._lookup_successor(*message.peer_tuple)
 
 
 if __name__ == "__main__":
