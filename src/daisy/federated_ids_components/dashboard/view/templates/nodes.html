@@ -25,106 +25,62 @@
 {% endblock %}
 
 {% block main %}
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+
+<script type="text/javascript">
+    function createcard(title, time){
+            var card = '<div class={% if dark_theme %}'+
+                '"card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>'+
+                '<div class="card-header"> <i class="fa-solid fa-grip-vertical"></i> '+ title +'</div>' +
+                '<div id="updated" class="card-footer small text-muted"></div> </div>' //<div className="card-body"></div>
+
+        return card
+        }
+         function sendRequest() {
+             $.ajax({
+                 url: "http://127.0.0.1:8000/node/",
+                 type: "GET",
+                 dataType: "json",
+                 success: (response) => {
+
+                     var Cards =""
+
+                     var currentdate = new Date();
+                     var datetime = +currentdate.getDate() + "/"
+                         + (currentdate.getMonth() + 1) + "/"
+                         + currentdate.getFullYear() + " -- "
+                         + currentdate.getHours() + ":"
+                         + currentdate.getMinutes() + ":"
+                         + currentdate.getSeconds();
+
+                     for (let i = 0; i < response.length; i++) {        //type = danger, warning, info
+                         Cards = Cards + createcard(response[i].address, datetime )
+                             }
+
+
+                    document.getElementById('content').innerHTML   = Cards
+
+                 },
+                 error: (error) => {
+                     console.log(error);
+                 }
+
+             })
+         }
+
+        sendRequest();
+        setInterval(sendRequest, 3000);
+</script>
+
+
 <h1 class="mt-4"></h1>
-<ol class="breadcrumb mb-4">
-    <li class="breadcrumb-item active">Overview Of All Active Nodes</li>
-</ol>
-<div class="row">
-    <div class="col-xl-5">
-        <div class="card mb-4">
-            <div class="card-header">
-                <i class="fa-solid fa-circle-nodes"></i>
-                Node 1
-            </div>
-            <div class="card-body">
-                <table id="datatablesSimple">
-                    <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Position</th>
-                        <th>Office</th>
-                        <th>Age</th>
-                        <th>Start date</th>
-                        <th>Salary</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr>
-                        <td>Tiger Nixon</td>
-                        <td>System Architect</td>
-                        <td>Edinburgh</td>
-                        <td>61</td>
-                        <td>2011/04/25</td>
-                        <td>$320,800</td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        <div class="col-xl-5">
-            <div class="card mb-4">
-                <div class="card-header">
-                    <i class="fa-solid fa-circle-nodes"></i>
-                    Node 2
-                </div>
-                <div class="card-body">
-                    <table id="node2">
-                        <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Position</th>
-                            <th>Office</th>
-                            <th>Age</th>
-                            <th>Start date</th>
-                            <th>Salary</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        <tr>
-                            <td>Tiger Nixon</td>
-                            <td>System Architect</td>
-                            <td>Edinburgh</td>
-                            <td>61</td>
-                            <td>2011/04/25</td>
-                            <td>$320,800</td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-5">
-        <div class="card mb-4">
-            <div class="card-header">
-                <i class="fa-solid fa-circle-nodes"></i>
-                Node 3
-            </div>
-            <div class="card-body">
-                <table id="node3">
-                    <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Position</th>
-                        <th>Office</th>
-                        <th>Age</th>
-                        <th>Start date</th>
-                        <th>Salary</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr>
-                        <td>Tiger Nixon</td>
-                        <td>System Architect</td>
-                        <td>Edinburgh</td>
-                        <td>61</td>
-                        <td>2011/04/25</td>
-                        <td>$320,800</td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
+
+<div id="content">
+
+
 </div>
+
+
+
 {% endblock %}

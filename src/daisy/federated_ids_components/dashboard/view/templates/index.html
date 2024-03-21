@@ -24,110 +24,366 @@
 {% endblock %}
 
 {% block main %}
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+
+<script type="text/javascript">
+    google.charts.load('current', {'packages': ['corechart']});
+    google.charts.setOnLoadCallback(drawChart);
+
+    function drawChart() {
+        var accuracyData = google.visualization.arrayToDataTable([
+            ['Time', 'Nodes'],
+            ['2004', 1000],
+        ]);
+
+        {%if not dark_theme %}
+        var options = {
+            curveType: 'function',
+            backgroundColor: {fill: 'transparent'},
+            legend: 'bottom',
+
+        };
+        {% else %}
+        var options = {
+            backgroundColor: 'transparent', // Set background color to transparent
+            curveType: 'function',
+
+
+            hAxis: {
+                textStyle: {
+                    color: '#FFFFFF' // Set text color for horizontal axis labels
+                },
+                gridlines: {
+                    color: '#444444' // Set color of gridlines for horizontal axis
+                }
+            },
+            vAxis: {
+                textStyle: {
+                    color: '#FFFFFF' // Set text color for vertical axis labels
+                },
+                gridlines: {
+                    color: 'transparent' // Set color of gridlines for vertical axis
+                }
+            },
+            legend: {
+                position: 'top',
+                textStyle: {
+                    color: '#FFFFFF' // Set text color for legend
+                }
+            },
+            titleTextStyle: {
+                color: '#FFFFFF' // Set text color for chart title
+            }
+        };
+        {%endif %}
+
+        var accuracy_chart = new google.visualization.LineChart(document.getElementById('accuracy_chart'));
+        var f1_chart = new google.visualization.LineChart(document.getElementById('f1_chart'));
+        var precision_chart = new google.visualization.LineChart(document.getElementById('precision_chart'));
+        var recall_chart = new google.visualization.LineChart(document.getElementById('recall_chart'));
+
+
+        function sendRequest() {
+            $.ajax({
+                url: "http://127.0.0.1:8000/metrics/",
+                type: "GET",
+                dataType: "json",
+                success: (response) => {
+
+                    accuracyData = google.visualization.arrayToDataTable([
+                        ["Time"],
+                        [""]
+                    ])
+                    var f1Data = google.visualization.arrayToDataTable([
+                        ["Time"],
+                        [""]
+                    ])
+                    var recallData = google.visualization.arrayToDataTable([
+                        ["Time"],
+                        [""]
+                    ])
+                    var precisionData = google.visualization.arrayToDataTable([
+                        ["Time"],
+                        [""]
+                    ])
+
+                    nodes = []
+                    response.forEach(function (element) {
+                        if (!nodes.includes(element.address)) {
+                            nodes.push(element.address)
+                        }
+                    })
+                    times = []
+                    response.forEach(function (element) {
+                        if (!times.includes(element.timestamp)) {
+                            times.push(element.timestamp)
+                        }
+                    })
+
+                    nodes.forEach(function (element) {
+                        accuracyData.addColumn('number', element);
+                        recallData.addColumn('number', element);
+                        precisionData.addColumn('number', element);
+                        f1Data.addColumn('number', element);
+                    })
+
+                    times.forEach(function (time) {
+                        var accuracyRow = [time]
+                        var precisionRow = [time]
+                        var f1Row = [time]
+                        var recallRow = [time]
+                        nodes.forEach(function (node) {
+                            var found = false
+                            response.forEach(function (element) {
+                                //console.log(element.time, element.address, time, node)
+                                if (element.timestamp == time && element.address == node) {
+                                    precisionRow.push(element.precision)
+                                    f1Row.push(element.f1)
+                                    recallRow.push(element.recall)
+                                    accuracyRow.push(element.accuracy)
+                                    found = true
+                                    console.log("Found")
+                                }
+                            })
+                            if (found === false) {
+                                precisionRow.push(0)
+                                accuracyRow.push(0)  //null
+                                f1Row.push(0)
+                                recallRow.push(0)
+                            }
+
+                        })
+                        accuracyData.addRow(accuracyRow)
+                        f1Data.addRow(f1Row)
+                        recallData.addRow(recallRow)
+                        precisionData.addRow(precisionRow)
+
+                    })
+                    accuracy_chart.draw(accuracyData, options);
+                    precision_chart.draw(precisionData, options);
+                    f1_chart.draw(f1Data, options);
+                    recall_chart.draw(recallData, options);
+
+                    var currentdate = new Date();
+                    var datetime = +currentdate.getDate() + "/"
+                        + (currentdate.getMonth() + 1) + "/"
+                        + currentdate.getFullYear() + " -- "
+                        + currentdate.getHours() + ":"
+                        + currentdate.getMinutes() + ":"
+                        + currentdate.getSeconds();
+                    $("#updated").text("Last update: " + datetime)
+
+                },
+                error: (error) => {
+                    console.log(error);
+                }
+
+            })
+        }
+        function getAlerts() {
+             $.ajax({
+                 url: "http://127.0.0.1:8000/alert/",
+                 type: "GET",
+                 dataType: "json",
+                 success: (response) => {
+
+                     var alerts = 0
+                     var warnings = 0
+
+                     for (let i = 0; i < response.length; i++) {        //type = danger, warning, info
+                          if (response[i].active == true && response[i].category == "alert"){
+                                    alerts = alerts+1
+                               var element = document.getElementById("alert-card");
+                                     element.classList.add("bg-danger");
+                          }
+                         if (response[i].active == true & response[i].category == "warning"){
+                                 warnings = warnings+1
+                                  var element = document.getElementById("warning-card");
+                                     element.classList.add("bg-warning");
+                         }
+                     }
+                     if(alerts == 0){
+                            var element = document.getElementById("alert-card");
+                                     element.classList.remove("bg-danger");
+                     }
+                      if(warnings == 0){
+                            var element = document.getElementById("warning-card");
+                                     element.classList.remove("bg-warning");
+                     }
+
+                    document.getElementById('alert_box').innerText   = alerts
+                    document.getElementById('warning_box').innerText   = warnings
+                 },
+                 error: (error) => {
+                     console.log(error);
+                 }
+
+             })
+         }
+
+        sendRequest();
+        setInterval(sendRequest, 3000);
+
+        getAlerts();
+        setInterval(getAlerts, 3000);
+
+    }
+
+
+</script>
+
+
 <br>
 <br>
-<div class={% if dark_theme %}
-    "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
+<div class={% if dark_theme %}"card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
     <div class="card-header">
         <i class="fa-solid fa-signal"></i>
-         Operational Status
+        Operational Status
     </div>
     <div class="card-body">
+        <div class="row">
 
-<div class="row">
-    <div class="col-xl-4 col-md-6">
-        <div class="card bg-success text-white mb-4" style="  display:flex">
-            <div class="card-body">Intrusion Detection System: Operational</div>
-            <div class="card-footer d-flex align-items-center justify-content-between">
-                <a class="small text-white stretched-link" href={% url "alerts" %} >View Details</a>
-                <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+            <div class="col-xl-4 col-md-4">
+                <div class="card bg-success text-white mb-4" style="height:6cm;  display:flex">
+                    <div class="card-header"><i class="fa-solid fa-server"></i> Model Aggregation:</div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-xl-8 col-md-6">
+                                Status: {{agg_status}} <br>
+                                Last connection: <br>{{agg_time}}
+                            </div>
+                            <div class="col-xl-4 col-md-6">
+                                Connections:
+                                <p style="font-size:40px;">{{agg_count}}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer d-flex align-items-center justify-content-between">
+                        <a class="small text-white stretched-link" href={% url "aggregate" %} >View Details</a>
+                        <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                    </div>
+                </div>
             </div>
-        </div>
-    </div>
-    <div class="col-xl-4 col-md-6">
-        <div class="card bg-success text-white mb-4" style="  display:flex">
-            <div class="card-body">Knowledge Transfer: Operational</div>
-            <div class="card-footer d-flex align-items-center justify-content-between">
-                <a class="small text-white stretched-link" href={% url "alerts" %} >View Details</a>
-                <div class="small text-white"><i class="fas fa-angle-right"></i></div>
-            </div>
-        </div>
-    </div>
 
-    <div class="col-xl-4 col-md-6">
-        <div class="card bg-success text-white mb-4" style="  display:flex">
-            <div class="card-body">Performance Evaluation: Operational</div>
-            <div class="card-footer d-flex align-items-center justify-content-between">
-                <a class="small text-white stretched-link" href={% url "alerts" %} >View Details</a>
-                <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+            <div class="col-xl-4 col-md-4">
+                <div class="card bg-success text-white mb-4" style="height:6cm;  display:flex">
+                    <div class="card-header"><i class="fa-solid fa-chart-line"></i> Performance Evaluation:</div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-xl-8 col-md-6">
+                                Status: {{eval_status}} <br>
+                                Last connection: {{eval_time}}
+                            </div>
+                            <div class="col-xl-4 col-md-6">
+                                Connections:
+                                <p style="font-size:40px;">{{eval_count}}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer d-flex align-items-center justify-content-between">
+                        <a class="small text-white stretched-link" href={% url "evaluate" %} >View Details</a>
+                        <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                    </div>
+                </div>
             </div>
+
+
+            <div class="col-xl-2 col-md-2">
+                <div id="warning-card" class="card bg-secondary text-white mb-4" style="height:6cm;  display:flex">
+                    <div class="card-header"><i class="fa-solid fa-triangle-exclamation"></i> Warnings:</div>
+                    <div class="card-body">
+                        <p id ="warning_box" style="font-size:40px;"></p>
+                    </div>
+                    <div class="card-footer d-flex align-items-center justify-content-between">
+                        <a class="small text-white stretched-link" href={% url "alerts" %} >View Details</a>
+                        <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-2 col-md-2">
+                <div  id="alert-card" class="card bg-secondary text-white mb-4" style="height:6cm; display:flex">
+                    <div class="card-header"><i class="fa-solid fa-skull-crossbones"></i> Alerts:
+                    </div>
+                    <div class="card-body">
+                        <p id ="alert_box"  style="font-size:40px;"></p>
+                    </div>
+                    <div class="card-footer d-flex align-items-center justify-content-between">
+                        <a class="small text-white stretched-link" href={% url "alerts" %} >View Details</a>
+                        <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                    </div>
+                </div>
+            </div>
+
         </div>
+
     </div>
+    <div id="updated" class="card-footer small text-muted"></div>
 
 </div>
 
-    </div>
-    <div class="card-footer small text-muted">Updated yesterday at 11:59 PM</div>
-</div>
-
-
 
 <div class="row">
-    <div class="col-xl-6">
+    <div class="col-xl-6 col-md-6">
         <div class={% if dark_theme %}
-        "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %} >
-        <div class="card-header">
-            <i class="fas fa-chart-area me-1"></i>
-            F1-Score
+            "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %} >
+            <div class="card-header">
+                <i class="fas fa-chart-area me-1"></i>
+                F1-Score
+            </div>
+            <div id="f1_chart" class="card-body"></div>
+            <div id="updated4" class="card-footer small text-muted">
+                <a class="small text-secondary stretched-link" href={% url "f1-score" %} >View Details</a>
+            </div>
         </div>
-    <div class="card-body">
-            {{ f1|safe }}
     </div>
-        <div class="card-footer small text-muted">Updated yesterday at 11:59 PM</div>
-    </div>
-</div>
-<div class="col-xl-6">
 
-    <div class={% if dark_theme %}
-    "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
-    <div class="card-header">
-        <i class="fas fa-chart-area me-1"></i>
-        Precision
+    <div class="col-xl-6 col-md-6">
+        <div class={% if dark_theme %}
+            "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
+            <div class="card-header">
+                <i class="fas fa-chart-area me-1"></i>
+                Precision
+            </div>
+            <div id="precision_chart" class="card-body"></div>
+            <div id="updated1" class="card-footer small text-muted">
+                <a class="small text-secondary stretched-link" href={% url "precision" %} >View Details</a>
+            </div>
+        </div>
     </div>
-    <div class="card-body">
-        {{ precision|safe }}
-    </div>
-    <div class="card-footer small text-muted">Updated yesterday at 11:59 PM</div>
 </div>
-</div>
-</div>
+
 <div class="row">
-    <div class="col-xl-6">
+    <div class="col-xl-6 col-md-6">
         <div class={% if dark_theme %}
         "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
-        <div class="card-header">
-            <i class="fas fa-chart-area me-1"></i>
-            Recall
+            <div class="card-header">
+                <i class="fas fa-chart-area me-1"></i>
+                Recall
+            </div>
+            <div id="recall_chart" class="card-body"></div>
+            <div id="updated2" class="card-footer small text-muted">
+                <a class="small text-secondary stretched-link" href={% url "recall" %} >View Details</a>
+            </div>
         </div>
-        <div class="card-body">
-            {{ recall|safe }}
+    </div>
+
+    <div class="col-xl-6 col-md-6">
+        <div class={% if dark_theme %}
+        "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
+            <div class="card-header">
+                <i class="fas fa-chart-area me-1"></i>
+                Accuracy
+            </div>
+            <div id="accuracy_chart" class="card-body">
+            </div>
+            <div id="updated3" class="card-footer small text-muted">
+                <a class="small text-secondary stretched-link" href={% url "accuracy" %} >View Details</a>
+            </div>
         </div>
-        <div class="card-footer small text-muted">Updated yesterday at 11:59 PM</div>
     </div>
-</div>
-<div class="col-xl-6">
-    <div class={% if dark_theme %}
-    "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
-    <div class="card-header">
-        <i class="fas fa-chart-area me-1"></i>
-        Accuracy
-    </div>
-    <div class="card-body">
-        {{ accuracy|safe }}
-    </div>
-    <div class="card-footer small text-muted">Updated yesterday at 11:59 PM</div>
-</div>
-</div>
+
 </div>
 
 

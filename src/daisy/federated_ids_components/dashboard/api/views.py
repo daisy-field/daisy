@@ -6,38 +6,52 @@ from .models import *
 from .serializers import *
 
 
-class AccuracySerializerView(viewsets.ModelViewSet):
+class MetricsSerializerView(viewsets.ModelViewSet):
     """
     API endpoint that allows users to be viewed or edited.
     """
 
-    queryset = Accuracy.objects.all()
-    serializer_class = AccuracySerializer
+    queryset = Metrics.objects.all()
+    serializer_class = MetricsSerializer
     permission_classes = [permissions.AllowAny]
 
-class F1SerializerView(viewsets.ModelViewSet):
+class AggregationSerializerView(viewsets.ModelViewSet):
     """
     API endpoint that allows users to be viewed or edited.
     """
 
-    queryset = F1.objects.all()
-    serializer_class = AccuracySerializer
+    queryset = Aggregation.objects.all()
+    serializer_class = AggregationSerializer
     permission_classes = [permissions.AllowAny]
 
-class PrecisionSerializerView(viewsets.ModelViewSet):
+
+class EvaluationSerializerView(viewsets.ModelViewSet):
     """
     API endpoint that allows users to be viewed or edited.
     """
 
-    queryset = Precision.objects.all()
-    serializer_class = AccuracySerializer
+    queryset = Evaluation.objects.all()
+    serializer_class = EvaluationSerializer
     permission_classes = [permissions.AllowAny]
 
-class RecallSerializerView(viewsets.ModelViewSet):
+
+class AlertsSerializerView(viewsets.ModelViewSet):
     """
     API endpoint that allows users to be viewed or edited.
     """
 
-    queryset = Recall.objects.all()
-    serializer_class = AccuracySerializer
+    queryset = Alerts.objects.all()
+    serializer_class = AlertsSerializer
     permission_classes = [permissions.AllowAny]
+
+class NodeSerializerView(viewsets.ModelViewSet):
+    """
+    API endpoint that allows users to be viewed or edited.
+    """
+
+    queryset = Node.objects.all()
+    serializer_class = NodeSerializer
+    permission_classes = [permissions.AllowAny]
+
+
+

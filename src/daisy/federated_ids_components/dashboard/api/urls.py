@@ -7,10 +7,12 @@ from rest_framework import routers
 from . import views
 
 router = routers.DefaultRouter()
-router.register(r'accuracy', views.AccuracySerializerView)
-router.register(r'recall', views.RecallSerializerView)
-router.register(r'f1', views.F1SerializerView)
-router.register(r'precision', views.PrecisionSerializerView)
+router.register(r'metrics', views.MetricsSerializerView)
+router.register(r'aggregation', views.AggregationSerializerView)
+router.register(r'evaluation', views.EvaluationSerializerView)
+router.register(r'alert', views.AlertsSerializerView)
+router.register(r'node', views.NodeSerializerView)
+
 
 # Wire up our API using automatic URL routing.
 # Additionally, we include login URLs for the browsable API.

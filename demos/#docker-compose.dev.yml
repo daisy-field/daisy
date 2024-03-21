@@ -4,7 +4,7 @@ services:
   daisy:
     build:
       context: .
-      dockerfile: daisy.Dockerfile
+      dockerfile: ../Dockerfile
     ports:
       - "8000:8000/tcp"
       - "8001:8001/tcp"
