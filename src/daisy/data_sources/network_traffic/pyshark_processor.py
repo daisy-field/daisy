@@ -1,7 +1,7 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""
+""" TODO REVIEW COMMETNS
     Implementations of the data source helper interface that allows the processing and provisioning of pyshark packets,
     either via file inputs, live capture, or a remote source that generates packets in either fashion.
 
@@ -131,7 +131,7 @@ def default_nn_aggregator(key: str, value: object) -> int:
 
 
 def create_pyshark_processor(name: str = "", f_features: tuple[str, ...] = default_f_features,
-                 nn_aggregator: Callable[[str, object], object] = default_nn_aggregator):
+                             nn_aggregator: Callable[[str, object], object] = default_nn_aggregator):
     """Creates a SimpleDataProcessor using functions specifically for pyshark packets.
 
     :param name: The name for logging purposes
@@ -170,7 +170,8 @@ def _pyshark_filter_fn(d_point: dict, f_features: tuple[str, ...]) -> dict:
     return {f_feature: d_point.pop(f_feature, np.nan) for f_feature in f_features}
 
 
-def pyshark_reduce_fn(nn_aggregator: Callable[[str, object], object] = default_nn_aggregator) -> Callable[[dict], np.ndarray]:
+def pyshark_reduce_fn(nn_aggregator: Callable[[str, object], object] = default_nn_aggregator) \
+        -> Callable[[dict], np.ndarray]:
     """Transform the pyshark data point directly into a numpy array without further processing, aggregating any
     value that is list into a singular value. Can be used in a SimpleDataProcessor as the reduce function.
 

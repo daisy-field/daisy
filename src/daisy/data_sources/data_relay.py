@@ -7,6 +7,9 @@
     streaming-manner, and any other implementations of the SourceHandler class. Note each different kind of data needs
     its own implementation of the DataProcessor class.
 
+    TODO REFVIEW COMENTS @Fabian
+    TODO interfacing?
+
     Author: Fabian Hofmann, Jonathan Ackerschewski
     Modified: 28.07.23
 
