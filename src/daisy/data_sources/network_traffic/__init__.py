@@ -1,7 +1,7 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""
+"""TODO REVIEW COMMENTs
     Implementations of the data source helper interface that allows the processing and provisioning of pyshark packets,
     either via file inputs, live capture, or a remote source that generates packets in either fashion.
 
@@ -15,11 +15,11 @@
         * march23_events - Event tags for labeling purposes for the March23 dataset.
 
     Author: Fabian Hofmann, Jonathan Ackerschewski, Seraphin Zunzer
-    Modified: 04.08.23
+    Modified: 28.02.24
 """
 
 from .cohda_source import CohdaProcessor
 from .cohda_source import march23_events
 
-from .pyshark_source import LivePysharkHandler, PcapHandler
-from .pyshark_source import PysharkProcessor
+from .pyshark_handler import LivePysharkHandler, PcapHandler
+from .pyshark_processor import pyshark_map_fn, pyshark_filter_fn, pyshark_reduce_fn, create_pyshark_processor

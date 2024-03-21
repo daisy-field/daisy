@@ -1,7 +1,7 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""
+""" TODO REVIEW comments
     A collection of interfaces and base classes for data stream generation and preprocessing for further (ML) tasks.
     The data source module is the core of the package while further subpackages are implementations/extensions of the
     provided interfaces to enable this framework for various use-cases.
@@ -16,11 +16,12 @@
         * network_traffic - Handling and processing of data points (network packets) originating from t-/wireshark.
 
     Author: Fabian Hofmann, Jonathan Ackerschewski, Seraphin Zunzer
-    Modified: 04.08.23
+    Modified: 28.02.24
 """
 
-from .data_source import DataProcessor, SourceHandler
-from .data_source import DataSource, DataSourceRelay
-from .data_source import SimpleDataProcessor
-from .data_source import SimpleSourceHandler, SimpleRemoteSourceHandler
+from .data_processor import DataProcessor, SimpleDataProcessor
+from .data_handler import SourceHandler, SimpleSourceHandler, SimpleRemoteSourceHandler
+from .data_source import DataSource
+from .data_relay import DataSourceRelay, CSVFileRelay
+
 from .network_traffic import *

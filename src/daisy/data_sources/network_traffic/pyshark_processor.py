@@ -1,11 +1,9 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""
+""" TODO REVIEW COMMETNS
     Implementations of the data source helper interface that allows the processing and provisioning of pyshark packets,
     either via file inputs, live capture, or a remote source that generates packets in either fashion.
-
-    TODO REVIEW COMMENTS
 
     Author: Jonathan Ackerschewski, Fabian Hofmann
     Modified: 28.02.24
@@ -15,29 +13,24 @@
     # TODO - NaN values also need to converted to something useful (that does not break the prediction/training)
 """
 
-import ipaddress
 import json
 import logging
-import os
+import ipaddress
+from typing import Callable
+from ipaddress import AddressValueError
+import numpy as np
 from collections import defaultdict
 from collections.abc import MutableMapping
-from ipaddress import AddressValueError
-from typing import Callable, Iterator, Optional
 
-import numpy as np
-import pyshark
-from pyshark.capture.capture import TSharkCrashException
-from pyshark.capture.file_capture import FileCapture
-from pyshark.capture.live_capture import LiveCapture
 from pyshark.packet.fields import LayerField, LayerFieldsContainer
 from pyshark.packet.layers.json_layer import JsonLayer
 from pyshark.packet.layers.xml_layer import XmlLayer
 from pyshark.packet.packet import Packet
 
-from ...data_sources.data_source import DataProcessor, SourceHandler
+from daisy.data_sources import SimpleDataProcessor
 
 # Exemplary network feature filter, supporting cohda-box (V2x) messages, besides TCP/IP and ETH.
-default_f = (
+default_f_features = (
     'meta.len',
     'meta.time',
     'meta.protocols',
@@ -137,191 +130,72 @@ def default_nn_aggregator(key: str, value: object) -> int:
     raise ValueError(f"Unable to aggregate non-numerical item: {key, value}")
 
 
-class PysharkProcessor(DataProcessor):
-    """A simple data processor implementation supporting the processing of pyshark packets.
+def create_pyshark_processor(name: str = "", f_features: tuple[str, ...] = default_f_features,
+                             nn_aggregator: Callable[[str, object], object] = default_nn_aggregator):
+    """Creates a SimpleDataProcessor using functions specifically for pyshark packets.
+
+    :param name: The name for logging purposes
+    :param f_features: The features to extract from the packets
+    :param nn_aggregator: The aggregator, which should map features to integers
     """
-    f_features: tuple[str, ...]
-    nn_aggregator: Callable[[str, object], object]
-
-    def __init__(self, name: str = "", f_features: tuple[str, ...] = default_f,
-                 nn_aggregator: Callable[[str, object], object] = default_nn_aggregator):
-        """Creates a new pyshark processor.
-
-        :param name: Name of processor for logging purposes.
-        :param f_features: Selection of features that every data point will have after processing.
-        :param nn_aggregator: Aggregator that is able to aggregate non-numerical dictionary values into numbers.
-        values, depending on the key they are sorted under.
-        """
-        super().__init__(name)
-
-        self.f_features = f_features
-        self.nn_aggregator = nn_aggregator
-
-    def map(self, o_point: (XmlLayer, JsonLayer)) -> dict:
-        """Wrapper around the pyshark packet deserialization functions.
-
-        :param o_point: Data point as pyshark packet.
-        :return: Data point as a flattened dictionary.
-        """
-        return packet_to_dict(o_point)
-
-    def filter(self, d_point: dict) -> dict:
-        """Filters the pyshark packet according to a pre-defined filter which is applied to every dictionary in order of
-        the selected features in the filter. Features that do not exist are set to None.
-
-        :param d_point: Data point as dictionary.
-        :return: Data point as dictionary, ordered.
-        """
-        return {f_feature: d_point.pop(f_feature, np.nan) for f_feature in self.f_features}
-
-    def reduce(self, d_point: dict) -> np.ndarray:
-        """Transform the pyshark data point directly into a numpy array without further processing, aggregating any
-        value that is list into a singular value.
-
-        :param d_point: Data point as dictionary.
-        :return: Data point as vector.
-        """
-        l_point = []
-        for key, value in d_point.items():
-            if not isinstance(value, int | float):
-                value = self.nn_aggregator(key, value)
-            if np.isnan(value):
-                value = 0
-            l_point.append(value)
-        return np.asarray(l_point)
+    return SimpleDataProcessor(pyshark_map_fn(), pyshark_filter_fn(f_features), pyshark_reduce_fn(nn_aggregator), name)
 
 
-class LivePysharkHandler(SourceHandler):
-    """The wrapper implementation to support and handle pyshark live captures as data sources. Considered infinite in
-    nature, as it allows the generation of pyshark packets, until the capture is stopped.
+def pyshark_map_fn() -> Callable[[object], dict]:
+    """Wrapper around the pyshark packet deserialization functions. Can be used in a SimpleDataProcessor as the map
+    function.
+
+    :return: A function, which converts a packet into a flattened dictionary.
     """
-    _capture: LiveCapture
-    _generator: Iterator[Packet]
-
-    def __init__(self, name: str = "", interfaces: list = 'any', bpf_filter: str = ""):
-        """Creates a new basic pyshark live capture handler on the given interfaces.
-
-        :param name: Name of handler for logging purposes.
-        :param interfaces: Network interfaces to capture. If not given, runs on all interfaces.
-        :param bpf_filter: Pcap conform filter to filter or ignore certain traffic.
-        """
-        super().__init__(name)
-
-        self._logger.info("Initializing live pyshark handler...")
-        self._capture = pyshark.LiveCapture(interface=interfaces, bpf_filter=bpf_filter)
-        self._logger.info("Live pyshark handler initialized.")
-
-    def open(self):
-        """Starts the pyshark live caption, initializing the wrapped generator.
-        """
-        self._logger.info("Beginning live pyshark capture...")
-        self._generator = self._capture.sniff_continuously()
-
-    def close(self):
-        """Stops the live caption, essentially disabling the generator. Note that the generator might block if one
-        tries to retrieve an object from it after that point.
-        """
-        self._capture.close()
-        self._logger.info("Live pyshark capture stopped.")
-
-    def __iter__(self) -> Iterator[Packet]:
-        """Returns the wrapped generator. Note this does not catch problems after a close() on the handler is called ---
-        one must not retrieve objects after as it will result in a deadlock!
-
-        :return: Pyshark generator object for data points as pyshark packets.
-        """
-        return self._generator
+    return lambda o_point: packet_to_dict(o_point)
 
 
-class PcapHandler(SourceHandler):
-    """The wrapper implementation to support and handle any number of pcap files as data sources. Finite: finishes after
-    all files have been processed. Warning: Not entirely compliant with the source handler abstract class: Neither
-    fully thread safe, nor does its __iter__() method shut down after close() has been called. Due to its finite nature
-    acceptable however, as this handler is nearly always only closed ones all data points have been retrieved.
+def pyshark_filter_fn(f_features: tuple[str, ...] = default_f_features) -> Callable[[dict], dict]:
+    """Filters the pyshark packet according to a pre-defined filter which is applied to every dictionary in order of
+    the selected features in the filter. Features that do not exist are set to None. Can be used in a
+    SimpleDataProcessor as the filter function.
+
+    :param f_features: A list of features
+    :return: A function, that filters each data point as a dictionary, ordered.
     """
-    _pcap_files: list[str]
+    return lambda d_point: _pyshark_filter_fn(d_point, f_features)
 
-    _cur_file_counter: int
-    _cur_file_handle: Optional[FileCapture]
-    _try_counter: int
 
-    def __init__(self, *file_names: str, try_counter: int = 3, name: str = ""):
-        """Creates a new pcap file handler.
+def _pyshark_filter_fn(d_point: dict, f_features: tuple[str, ...]) -> dict:
+    """Helper function, that filters each data point according to a pre-defined filter.
 
-        :param file_names: List of paths of single files or directories containing .pcap files. Each string should be a
-        name of a file or directory. In case a directory is passed, all files ending in .pcap are used. In case a single
-        file is passed, it is used regardless of file ending.
-        :param try_counter: Number of attempts to open a specific pcap file until throwing an exception.
-        :param name: Name of handler for logging purposes.
-        """
-        super().__init__(name)
+    :param d_point: The data point as a dictionary
+    :param f_features: The filter to use
+    """
+    return {f_feature: d_point.pop(f_feature, np.nan) for f_feature in f_features}
 
-        self._logger.info("Initializing pcap file handler...")
-        self._pcap_files = []
-        for path in file_names:
-            if os.path.isdir(path):
-                # Variables in following line are: file_tuple[0] = <sub>-directories; file_tuple[2] = files in directory
-                dirs = [(file_tuple[0], file_tuple[2]) for file_tuple in os.walk(path)]
-                files = [os.path.join(file_tuple[0], file_name) for file_tuple in dirs for file_name in file_tuple[1]
-                         if file_name.endswith(".pcap")]
-                if files is None:
-                    raise ValueError(f"Directory '{path}' does not contain any .pcap files!")
-                self._pcap_files += files
-            elif os.path.isfile(path) and path.endswith(".pcap"):
-                self._pcap_files.append(path)
-        if not self._pcap_files:
-            raise ValueError(f"No .pcap files in '{file_names}' could be found.")
 
-        self._cur_file_counter = 0
-        self._cur_file_handle = None
-        self._try_counter = try_counter
-        self._logger.info("Pcap file handler initialized.")
+def pyshark_reduce_fn(nn_aggregator: Callable[[str, object], object] = default_nn_aggregator) \
+        -> Callable[[dict], np.ndarray]:
+    """Transform the pyshark data point directly into a numpy array without further processing, aggregating any
+    value that is list into a singular value. Can be used in a SimpleDataProcessor as the reduce function.
 
-    def open(self):
-        """Opens and resets the pcap file handler to the very beginning of the file list.
-        """
-        self._logger.info("Opening pcap file source...")
-        self._cur_file_counter = 0
-        self._cur_file_handle = None
-        self._logger.info("Pcap file source opened.")
+    :param nn_aggregator: The aggregator
+    :return: A function for reducing a data point to a single value
+    """
+    return lambda d_point: _pyshark_reduce_fn(d_point, nn_aggregator)
 
-    def close(self):
-        """Closes any file of the pcap file handler.
-        """
-        self._logger.info("Closing pcap file source...")
-        if self._cur_file_handle is not None:
-            self._cur_file_handle.close()
-        self._logger.info("Pcap file source closed.")
 
-    def _open(self):
-        """Opens the next file of the pcap file list, trying to open it several times until succeeding (known bug from
-        the pyshark library).
-        """
-        self._logger.debug("Opening next pcap file...")
-        try_counter = 0
-        while try_counter < self._try_counter:
-            try:
-                self._cur_file_handle = pyshark.FileCapture(self._pcap_files[self._cur_file_counter])
-                break
-            except TSharkCrashException:
-                try_counter += 1
-                continue
-        if try_counter == self._try_counter:
-            raise RuntimeError(f"Could not open File '{self._pcap_files[self._cur_file_counter]}'")
-        self._cur_file_counter += 1
-        self._logger.info("Next pcap file opened.")
+def _pyshark_reduce_fn(d_point: dict, nn_aggregator: Callable[[str, object], object]) -> np.ndarray:
+    """Transform the pyshark data point directly into a numpy array without further processing, aggregating any
+    value that is list into a singular value.
 
-    def __iter__(self) -> Iterator[Packet]:
-        """Returns a generator that yields pyshark packets from each file after another, opening and closing them when
-        being actively read.
-
-        :return: Generator object for data points as pyshark packets.
-        """
-        for _ in self._pcap_files:
-            self._open()
-            for packet in self._cur_file_handle:
-                yield packet
-            self._cur_file_handle.close()
+    :param d_point: Data point as dictionary.
+    :return: Data point as vector.
+    """
+    l_point = []
+    for key, value in d_point.items():
+        if not isinstance(value, int | float):
+            value = nn_aggregator(key, value)
+        if np.isnan(value):
+            value = 0
+        l_point.append(value)
+    return np.asarray(l_point)
 
 
 def packet_to_dict(p: Packet) -> dict:

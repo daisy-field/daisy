@@ -5,8 +5,10 @@
     Implementations of the data source processor interface that allows the processing and provisioning of pyshark
     packets that are captured from cohda boxes.
 
+    TODO REVIEW COMMENTS
+
     Author: Seraphin Zunzer, Fabian Hofmann
-    Modified: 04.08.23
+    Modified: 27.02.24
 """
 
 from datetime import datetime
@@ -14,10 +16,12 @@ from typing import Callable
 
 import numpy as np
 
-from ...data_sources.network_traffic.pyshark_source import PysharkProcessor, default_f, default_nn_aggregator
+from ...data_sources.network_traffic.pyshark_processor import default_f_features, default_nn_aggregator, pyshark_map_fn, \
+    pyshark_filter_fn, pyshark_reduce_fn
+from ...data_sources.data_processor import SimpleDataProcessor
 
 
-class CohdaProcessor(PysharkProcessor):
+class CohdaProcessor(SimpleDataProcessor):
     """An extension of the pyshark processor to support the labeling of the data stream for evaluation purposes. Labels
     are appended according to the used protocol, timestamps, source and destination ip addresses.
     """
@@ -25,7 +29,7 @@ class CohdaProcessor(PysharkProcessor):
     _events: list[tuple[int, tuple[datetime, datetime], list[str], list[str], int]]
 
     def __init__(self, client_id: int, events: list[tuple[int, tuple[datetime, datetime], list[str], list[str], int]],
-                 name: str = "", f_features: tuple[str, ...] = default_f,
+                 name: str = "", f_features: tuple[str, ...] = default_f_features,
                  nn_aggregator: Callable[[str, object], object] = default_nn_aggregator):
         """Creates a new cohda processor for a specific client.
 
@@ -36,7 +40,7 @@ class CohdaProcessor(PysharkProcessor):
         :param nn_aggregator: List aggregator that is able to aggregator dictionary values that are lists into singleton
         values, depending on the key they are sorted under.
         """
-        super().__init__(name, f_features, nn_aggregator)
+        super().__init__(pyshark_map_fn(), pyshark_filter_fn(f_features), pyshark_reduce_fn(nn_aggregator), name)
 
         self._client_id = client_id
         self._events = events
