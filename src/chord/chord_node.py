@@ -78,7 +78,7 @@ class Chordpeer:
 
     _logger: logging.Logger
 
-    def __init__(self, name: str, addr: tuple[str, int], max_fingers: int = 32, id_test: int = None):
+    def __init__(self, name: str, addr: tuple[str, int], max_fingers: int = 32, id_test: int = None, refresh_interval: float = 5.0):
         """
         Creates a new Chord Peer.
 
@@ -100,6 +100,7 @@ class Chordpeer:
         self._endpoint_server = EndpointServer(f"{name}-endpointserver", addr=addr, multithreading=True, c_timeout=30)
         self._max_fingers = max_fingers
 
+        self._refresh_interval = refresh_interval
         self._sent_messages = {}
 
         self._logger = logging.getLogger(name)
@@ -153,10 +154,9 @@ class Chordpeer:
     def cleanup_dead_messages(self):
         """Checks whether sent messages can be forgotten and deletes them.
         """
-        for key in self._sent_messages.values():
+        for key in list(self._sent_messages):
             if self._sent_messages.get(key, None) is not None:
-                if time() - self._sent_messages[key][1] > 20:
-                    self._logger.info(f"Deleting Message: {self._sent_messages[key]}")
+                if time() - self._sent_messages[key][1] > self._refresh_interval:
                     self._sent_messages.pop(key)
 
     def _notify(self, remote_id: int, remote_addr: tuple[str, int]):
