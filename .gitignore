@@ -6,3 +6,5 @@
 # pyproject installation files
 src/of_ids.egg-info
 __pycache__/
+/src/chord/lib.py
+/src/chord/testclient.py
