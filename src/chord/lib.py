@@ -5,41 +5,6 @@ from uuid import uuid4
 
 from communication import StreamEndpoint, EndpointServer
 
-
-class MessageOrigin(Enum):
-    JOIN = 1
-    FIX_FINGERS = 2
-    TEST = 3
-
-
-class MessageType(Enum):
-    JOIN = 1
-    LOOKUP_SUCC_RES = 2
-    LOOKUP_SUCC_REQ = 3
-    STABILIZE = 4
-    NOTIFY = 5
-    TEST = 6
-
-
-class Chordmessage:
-    """Class for Chord messages.
-    """
-    message_id: uuid4
-    message_type: MessageType
-    peer_tuple: tuple[int, tuple[str, int]]
-    success: bool
-
-    def __init__(self, message_id: uuid4, message_type: MessageType, peer_tuple: tuple[int, tuple[str, int]] = None):
-        """Creates a new Chordmessage.
-        :param message_id: Message identifier
-        :param message_type: Type of message for processing in receive function.
-        :param peer_tuple: Id and address of the peer sent whithin the Chordmessage.
-        """
-        self.message_id = message_id
-        self.message_type = message_type
-        self.peer_tuple = peer_tuple
-
-
 def check_if_peer_is_predecessor(pred_id: int, peer_id: int, new_pred_id: int) -> bool:
     """Checks whether a peer is the precessor of self.
 

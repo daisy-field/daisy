@@ -10,15 +10,49 @@ import logging
 import random
 import threading
 import typing
+from enum import Enum
 from time import time, sleep
 from typing import Optional
 from uuid import uuid4
 
 import numpy as np
 
-from chord.lib import check_if_peer_is_predecessor, check_if_peer_is_successor, cleanup_dead_messages, \
-    fingertable_to_string, check_if_peer_is_between, MessageOrigin, MessageType, get_readable_endpoints, Chordmessage
+from chord.lib import *
 from src.communication.message_stream import StreamEndpoint, EndpointServer
+
+
+class MessageOrigin(Enum):
+    JOIN = 1
+    FIX_FINGERS = 2
+    TEST = 3
+
+
+class MessageType(Enum):
+    JOIN = 1
+    LOOKUP_SUCC_RES = 2
+    LOOKUP_SUCC_REQ = 3
+    STABILIZE = 4
+    NOTIFY = 5
+    TEST = 6
+
+
+class Chordmessage:
+    """Class for Chord messages.
+    """
+    message_id: uuid4
+    message_type: MessageType
+    peer_tuple: tuple[int, tuple[str, int]]
+    success: bool
+
+    def __init__(self, message_id: uuid4, message_type: MessageType, peer_tuple: tuple[int, tuple[str, int]] = None):
+        """Creates a new Chordmessage.
+        :param message_id: Message identifier
+        :param message_type: Type of message for processing in receive function.
+        :param peer_tuple: Id and address of the peer sent whithin the Chordmessage.
+        """
+        self.message_id = message_id
+        self.message_type = message_type
+        self.peer_tuple = peer_tuple
 
 
 def close_tmp_ep(ep: StreamEndpoint, sleep_time: int = 10, stop_timeout: int = 10):
@@ -47,9 +81,10 @@ class Chordpeer:
     _sent_messages: dict[uuid4, tuple[MessageOrigin, time, Optional[int]]]
 
     _logger: logging.Logger
-    _refresh_time: float
+    _refresh_interval: float
 
-    def __init__(self, name: str, addr: tuple[str, int], max_fingers: int = 32, id_test: int = None, refresh_interval: float = 5.0):
+    def __init__(self, name: str, addr: tuple[str, int], max_fingers: int = 32, id_test: int = None,
+                 refresh_interval: float = 5.0):
         """
         Creates a new Chord Peer.
 
@@ -75,7 +110,6 @@ class Chordpeer:
         self._sent_messages = {}
 
         self._logger = logging.getLogger(name)
-        self._refresh_time = refresh_time
 
     def _send_message(self, ep: StreamEndpoint | None, remote_addr: tuple[str, int], message: Chordmessage):
         """Sends a Chordmessage over a given endpoint or temporarily creates a new one.
@@ -406,13 +440,13 @@ class Chordpeer:
         while True:
             # check here for departure or not
             curr_time = time()
-            if curr_time - last_refresh_time >= self._refresh_time:
+            if curr_time - last_refresh_time >= self._refresh_interval:
                 try:
                     self._stabilize(*self._successor)
                     self._fix_fingers()
                 except TypeError as e:
                     self._logger.error(f"{e.__class__.__name__} ({e}) :: could not Stabilize")
-                cleanup_dead_messages(self._sent_messages, self._refresh_time *2)
+                cleanup_dead_messages(self._sent_messages, self._refresh_interval * 2)
                 last_refresh_time = curr_time
 
             sleep(1)
