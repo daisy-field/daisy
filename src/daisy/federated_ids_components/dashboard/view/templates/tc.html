@@ -1,0 +1,33 @@
+{% extends "./base.html" %}
+{% block body_theme %}
+{% if dark_theme %}
+"sb-nav-fixed bg-dark"
+{% else %}
+"sb-nav-fixed"
+{% endif %}
+{% endblock %}
+
+{% block footer_theme %}
+{% if dark_theme %}
+"py-4 bg-dark mt-auto"
+{% else %}
+"py-4 mt-auto"
+{% endif %}
+{% endblock %}
+
+{% block navbar_theme %}
+{% if dark_theme %}
+"sb-sidenav accordion sb-sidenav-dark"
+{% else %}
+"sb-sidenav accordion sb-sidenav-light"
+{% endif %}
+{% endblock %}
+
+{% block main %}
+
+<h1 class="mt-4"></h1>
+<ol class="breadcrumb mb-4">
+    <li class="breadcrumb-item active">Terms and Conditions</li>
+</ol>
+
+{% endblock %}

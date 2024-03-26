@@ -1,0 +1,148 @@
+{% extends "./base.html" %}
+
+{% block body_theme %}
+{% if dark_theme %}
+"sb-nav-fixed bg-dark"
+{% else %}
+"sb-nav-fixed"
+{% endif %}
+{% endblock %}
+
+{% block footer_theme %}
+{% if dark_theme %}
+"py-4 bg-dark mt-auto"
+{% else %}
+"py-4 mt-auto"
+{% endif %}
+{% endblock %}
+
+{% block navbar_theme %}
+{% if dark_theme %}
+"sb-sidenav accordion sb-sidenav-dark"
+{% else %}
+"sb-sidenav accordion sb-sidenav-light"
+{% endif %}
+{% endblock %}
+
+{% block main %}
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+
+<script type="text/javascript">
+    function createcard(type, time, message){
+            var card = ' <div style="width: 20%; display:inline-block" class="card bg-'+type+' text-white mb-4"> ' +
+                '<div class="card-body">'+ message +'</div>' +
+                '<div class="card-footer d-flex align-items-center justify-content-between">'+
+                '<a class="small text-white stretched-link" href="#">'+ time+'</a>'+
+                '<div class="small text-white"><i class="fas fa-angle-right"></i></div>'+
+                '</div>'+
+                '</div>'
+            return card
+        }
+         function sendRequest() {
+             $.ajax({
+                 url: "http://127.0.0.1:8000/alert/",
+                 type: "GET",
+                 dataType: "json",
+                 success: (response) => {
+
+                     var alertsCards =""
+                     var warningCards = ""
+                     var infoCards =""
+                     var historyCards =""
+
+                     for (let i = 0; i < response.length; i++) {        //type = danger, warning, info
+                          console.log(response[i].active)
+                         if (response[i].active == false){
+                             historyCards = historyCards + createcard("secondary", response[i].timestamp, response[i].message )
+                         }
+                         else
+                         {
+                             if (response[i].category == "alert"){
+                                 alertsCards = alertsCards + createcard("danger", response[i].timestamp, response[i].message)
+                             }
+                             if (response[i].category == "warning"){
+                                 warningCards = warningCards + createcard("warning", response[i].timestamp, response[i].message)
+                             }
+                             if (response[i].category == "info"){
+                                 infoCards = infoCards + createcard("info", response[i].timestamp, response[i].message)
+                             }
+                         }
+                     }
+                    document.getElementById('alerts_box').innerHTML   = alertsCards
+                    document.getElementById('warning_box').innerHTML   = warningCards
+                     document.getElementById('info_box').innerHTML   = infoCards
+                     document.getElementById('history_box').innerHTML   = historyCards
+
+                     var currentdate = new Date();
+                     var datetime = +currentdate.getDate() + "/"
+                         + (currentdate.getMonth() + 1) + "/"
+                         + currentdate.getFullYear() + " -- "
+                         + currentdate.getHours() + ":"
+                         + currentdate.getMinutes() + ":"
+                         + currentdate.getSeconds();
+                     $("#updated").text("Last update: " + datetime)
+                     $("#updated1").text("Last update: " + datetime)
+                     $("#updated2").text("Last update: " + datetime)
+                     $("#updated3").text("Last update: " + datetime)
+
+                 },
+                 error: (error) => {
+                     console.log(error);
+                 }
+
+             })
+         }
+
+        sendRequest();
+        setInterval(sendRequest, 3000);
+</script>
+
+
+<h1 class="mt-4"></h1>
+
+<div class={% if dark_theme %}
+"card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
+<div class="card-header">
+    <i class="fa-solid fa-skull-crossbones"></i>
+    No Alerts
+</div>
+<div class="card-body">
+    <div id="alerts_box" style="width: 100%; height: 100px"></div>
+</div>
+<div id="updated" class="card-footer small text-muted"></div>
+</div>
+
+<div class={% if dark_theme %}
+"card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
+<div class="card-header">
+    <i class="fa-solid fa-triangle-exclamation"></i>
+    Warnings
+</div>
+<div class="card-body">
+    <div id="warning_box" style="width: 100%; height: 100px"> No Warnings </div>
+</div>
+<div id="updated1" class="card-footer small text-muted"></div>
+</div>
+<div class={% if dark_theme %}
+"card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
+<div class="card-header">
+    <i class="fa-solid fa-circle-info"></i> Info
+</div>
+<div class="card-body">
+    <div id="info_box" style="width: 100%; height: 100px"> No Info Messages</div>
+</div>
+<div id="updated2" class="card-footer small text-muted"></div>
+</div>
+<div class={% if dark_theme %}
+"card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
+<div class="card-header">
+    <i class="fa-solid fa-clock-rotate-left"></i> History
+</div>
+<div class="card-body">
+    <div id="history_box" style="width: 100%; height: 100px"> No History</div>
+</div>
+<div id="updated3" class="card-footer small text-muted"></div>
+</div>
+
+{% endblock %}
