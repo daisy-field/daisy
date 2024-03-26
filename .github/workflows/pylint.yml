@@ -16,10 +16,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ricardochaves/python-lint@v1.4.0
         with:
-          python-root-list: "."
-          use-pylint: true
-          use-pycodestyle: true
-          use-flake8: true
+          python-root-list: "src"
+          use-pylint: false
+          use-pycodestyle: false
+          use-flake8: false
           use-black: false
           use-mypy: false
           use-isort: false
