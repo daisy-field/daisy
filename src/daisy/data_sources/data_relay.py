@@ -20,6 +20,7 @@
 import logging
 import threading
 from pathlib import Path
+from collections import OrderedDict
 
 from daisy.communication import StreamEndpoint
 from daisy.data_sources import DataSource
@@ -123,28 +124,41 @@ class CSVFileRelay:
 
     _data_source: DataSource
     _file: Path
+    _header_buffer_size: int
     _headers: tuple[str, ...]
     _separator: str
+    _default_missing_value: object
 
     _relay: threading.Thread
     _started: bool
 
-    def __init__(self, target_file: str, data_source: DataSource, headers: tuple[str, ...], name: str = "",
-                 overwrite_file: bool = False, separator: str = ","):
+    def __init__(self, target_file: str, data_source: DataSource, name: str = "", header_buffer_size: int = 1000,
+                 overwrite_file: bool = False, separator: str = ",", default_missing_value: object = ""):
         """Creates a new CSV relay instance
 
         :param target_file: The path to the CSV file. The parent directories will be created if not existent.
         :param data_source: The data source providing the data to store. The processor used by the data source is
         expected to return a dictionary containing all values for all fields in the headers parameter
-        :param headers: The headers of the CSV file. The order is preserved in the CSV file
         :param name: Name of the relay for logging purposes
+        :param header_buffer_size: The headers will be discovered from the data. This size determines how many packets
+        will be buffered and headers combined. Note that it can never be guaranteed that all features/headers of the
+        packets will be discovered, if for example a packet with new features arrives after the discovery is completed.
         :param overwrite_file: Whether the CSV file should be overwritten if it exists
         :param separator: The separator used in the CSV file
+        :param default_missing_value: The value that will be used, if a feature isn't present in a packet
+
+        :throws TypeError: If a data point arrives, that isn't of type dictionary. Only dictionaries are supported.
         """
         self._logger = logging.getLogger(name)
         self._logger.info("Initializing file relay...")
 
         self._started = False
+
+        if header_buffer_size <= 0:
+            raise ValueError("header_buffer_size must be greater 0")
+
+        if separator == '"':
+            raise ValueError(f"'{separator}' is not allowed as a separator")
 
         if target_file is None or not target_file:
             raise ValueError("File to write to required.")
@@ -164,7 +178,9 @@ class CSVFileRelay:
 
         self._data_source = data_source
         self._separator = separator
-        self._headers = headers
+        self._header_buffer_size = header_buffer_size
+        self._headers = ()
+        self._default_missing_value = default_missing_value
 
         self._logger.info("File relay initialized.")
 
@@ -205,17 +221,45 @@ class CSVFileRelay:
         """Writes the data points to a file in a csv style
         """
         self._logger.info("Starting to relay data points from data source...")
+        d_point_counter = 0
+        d_point_buffer = []
+        do_buffer = True
+        header_buffer = OrderedDict()
+        self._logger.info("Attempting to discover headers...")
         with open(self._file, "w") as file:
-            file.write(f"{self._separator.join(self._headers)}\n")
             for d_point in self._data_source:
                 try:
-                    values = map(lambda topic: str(d_point[topic]), self._headers)
-                    line = self._separator.join(values)
-                    file.write(f"{line}\n")
+                    if type(d_point) is not dict:
+                        raise TypeError(f"CSVFileRelay received data points, which aren't of type dictionary")
+                    if d_point_counter < self._header_buffer_size:
+                        header_buffer.update(OrderedDict.fromkeys(d_point.keys()))
+                        d_point_buffer += [d_point]
+                    else:
+                        if do_buffer:
+                            self._headers = tuple(header_buffer)
+                            self._logger.info(f"Headers found with buffer size of {self._header_buffer_size}: {self._headers}")
+                            file.write(f"{self._separator.join(self._headers)}\n")
+
+                            for d_point_in_buffer in d_point_buffer:
+                                values = map(lambda topic: self._get_value(d_point_in_buffer, topic), self._headers)
+                                line = self._separator.join(values)
+                                file.write(f"{line}\n")
+                            do_buffer = False
+
+                        values = map(lambda topic: self._get_value(d_point, topic), self._headers)
+                        line = self._separator.join(values)
+                        file.write(f"{line}\n")
+                    d_point_counter += 1
                 except RuntimeError:
                     # stop() was called
                     break
         self._logger.info("Data source exhausted, or relay closing...")
+
+    def _get_value(self, d_point: dict, topic: str) -> str:
+        string_value = str(d_point.get(topic, self._default_missing_value))
+        if self._separator in string_value:
+            string_value = f'"{string_value}"'
+        return string_value
 
     def __del__(self):
         if self._started:
