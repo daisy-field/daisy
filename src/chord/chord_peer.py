@@ -18,7 +18,7 @@ from uuid import uuid4
 import numpy as np
 
 from chord.lib import *
-from src.communication.message_stream import StreamEndpoint, EndpointServer
+from daisy.communication import StreamEndpoint, EndpointServer
 
 
 class MessageOrigin(Enum):
@@ -506,7 +506,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     peer_ip = "127.0.0.1"
-    # fixme test maxfingers 10
+
     peer = Chordpeer(name=args.peerName, addr=(peer_ip, args.peerPort), max_fingers=10, id_test=args.peerId)
     if args.remotePort is None:
         peer.run()  # start as first chord peer

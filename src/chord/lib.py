@@ -81,5 +81,4 @@ def get_readable_endpoints(finger_values, succ_ep: StreamEndpoint, pred_ep: Stre
     r_ready, _ = ep_server.poll_connections()
     for addr in r_ready:
         readable_endpoints.add(r_ready[addr])
-
     return readable_endpoints

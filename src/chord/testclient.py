@@ -4,8 +4,8 @@ from time import time, sleep
 from uuid import uuid4
 
 from chord.chord_peer import MessageType, close_tmp_ep
-from chord.lib import Chordmessage
-from communication import EndpointServer, StreamEndpoint
+from chord.chord_peer import Chordmessage
+from daisy.communication import EndpointServer, StreamEndpoint
 
 
 class TestPeer:
