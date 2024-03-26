@@ -9,8 +9,6 @@
 
     Author: Fabian Hofmann, Seraphin Zunzer
     Modified: 17.01.24
-
-    TODO Future Work: Merge avg-based aggregators with avg-based federated_aggregators(.py) due to redundancy issues
 """
 from abc import ABC, abstractmethod
 from collections import deque

@@ -127,6 +127,7 @@ class PcapHandler(SourceHandler):
         self._logger.info("Closing pcap file source...")
         if self._cur_file_handle is not None:
             self._cur_file_handle.close()
+            self._cur_file_handle = None
         self._logger.info("Pcap file source closed.")
 
     def _open(self):

@@ -443,8 +443,8 @@ class FederatedOnlineClient(FederatedOnlineNode):
 class FederatedOnlinePeer(FederatedOnlineNode):
     """TODO by @Lotta
 
-    :var _peers: TODO TBD by @Lotta
-    :var _topology: TODO TBD by @Lotta
+    :var _peers: TBD
+    :var _topology: TBD
     """
     _peers: list[StreamEndpoint]
     _topology: object
@@ -476,43 +476,25 @@ class FederatedOnlinePeer(FederatedOnlineNode):
                          eval_server=eval_server, aggr_server=aggr_server,
                          sync_mode=sync_mode, update_interval_s=update_interval_s, update_interval_t=update_interval_t)
 
-        # TODO adapt accordingly
         self._m_aggr = m_aggr
 
     def setup(self):
-        """TODO by @Lotta
+        """
         """
         raise NotImplementedError
 
     def cleanup(self):
-        """TODO by @Lotta
+        """
         """
         raise NotImplementedError
 
     def fed_update(self):
-        """TODO by @Lotta
-
-        Singular, synchronous federated update step for the underlying model of the federated online node.
-        Encapsulates all that is necessary, from communication to other nodes, to transferring of one's own model (if
-        necessary) to the model update itself.
+        """
         """
         raise NotImplementedError
 
     def create_async_fed_learner(self):
-        """TODO by @Lotta
-
-        Continuous, asynchronous federated update loop, that runs concurrently to the thread of
-        create_local_learner(), to update the underlying model of the federated online node.
-
-        Note that any update of federated models while fitting or prediction is done will result in race conditions and
-        unsafe states! It is therefore crucial to use the _m_lock instance variable to synchronize access to the model.
-        Using this lock object, one can also manage when and how the other thread is able to use the model during any
-        update step (if updating is done in semi-synchronous manner)
-
-        For coordination/planning when to perform an update, any implementation can also use existing state variables
-        also used in the synchronous create_local_learner(), see: _update_interval_s, _update_interval_t,
-        _s_since_update, _t_last_update, for sample- or time-based updating periods. Access to these variables must also
-        be synchronized, using the _u_lock instance variable.
+        """
         """
         raise NotImplementedError
 

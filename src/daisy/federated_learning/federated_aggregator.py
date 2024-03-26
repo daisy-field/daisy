@@ -9,7 +9,6 @@
     Author: Fabian Hofmann
     Modified: 14.08.23
 
-    TODO Future Work: merge avg-based aggregators with avg-based threshold_models(.py) due to redundancy issues
     TODO Future Work: weighted moving average based on significance of data point
     TODO - in that case requires serious consideration whether a list of model parameters can even work
     TODO - should be done with a custom weighting interface that computes the importance of model to the set (0-1)
