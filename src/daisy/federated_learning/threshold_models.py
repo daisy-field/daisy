@@ -2,14 +2,15 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """
-    A collection of extensions to the FederatedModel class to support a wide array of threshold models, which are used
-    for anomaly detection, mostly for the mapping from numerical scalar values to binary class labels. For this the most
-    common models currently are the statistical ones, that use either the mean (combined with std. dev.) or the median
-    to compute a singular threshold value for simple classification.
+A collection of extensions to the FederatedModel class to support a wide array of threshold models, which are used
+for anomaly detection, mostly for the mapping from numerical scalar values to binary class labels. For this the most
+common models currently are the statistical ones, that use either the mean (combined with std. dev.) or the median
+to compute a singular threshold value for simple classification.
 
-    Author: Fabian Hofmann, Seraphin Zunzer
-    Modified: 17.01.24
+Author: Fabian Hofmann, Seraphin Zunzer
+Modified: 17.01.24
 """
+
 from abc import ABC, abstractmethod
 from collections import deque
 from typing import Callable, cast
@@ -31,10 +32,13 @@ class FederatedTM(FederatedModel, ABC):
 
     Note that for the initial value, the threshold is always zero (any point is considered an anomaly during detection).
     """
+
     _threshold: float | Tensor
     _reduce_fn: Callable
 
-    def __init__(self, threshold: float = 0, reduce_fn: Callable[[Tensor], Tensor] = lambda o: o):
+    def __init__(
+        self, threshold: float = 0, reduce_fn: Callable[[Tensor], Tensor] = lambda o: o
+    ):
         """Creates a new threshold model.
 
         :param threshold: Init for actual threshold value.
@@ -108,12 +112,18 @@ class AvgTM(FederatedTM, ABC):
     Note that many of the implementations are very similar to the ModelAggregator implementations, as both treat the
     aggregated values as a timeseries
     """
+
     _mean: float | Tensor
     _var: float | Tensor
     _var_weight: float
 
-    def __init__(self, mean: float = 0, var: float = 0, var_weight: float = 1.0,
-                 reduce_fn: Callable[[Tensor], Tensor] = lambda o: o):
+    def __init__(
+        self,
+        mean: float = 0,
+        var: float = 0,
+        var_weight: float = 1.0,
+        reduce_fn: Callable[[Tensor], Tensor] = lambda o: o,
+    ):
         """Creates a new average-based threshold model.
 
         :param mean: Init mean value.
@@ -174,10 +184,16 @@ class CumAvgTM(AvgTM):
 
     Consequently, this aggregator is NOT stable for infinite learning aggregation steps (n).
     """
+
     _n: int
 
-    def __init__(self, mean: float = 0, var: float = 0, var_weight: float = 1.0,
-                 reduce_fn: Callable[[Tensor], Tensor] = lambda o: o):
+    def __init__(
+        self,
+        mean: float = 0,
+        var: float = 0,
+        var_weight: float = 1.0,
+        reduce_fn: Callable[[Tensor], Tensor] = lambda o: o,
+    ):
         """Creates a new cumulative averaging threshold model.
 
         :param mean: Init mean value.
@@ -202,8 +218,7 @@ class CumAvgTM(AvgTM):
 
         :return: Mean and variance (1st) and size of population (2nd) of threshold model.
         """
-        return (super().get_parameters()
-                + [np.array([self._n], dtype=np.float32)])
+        return super().get_parameters() + [np.array([self._n], dtype=np.float32)]
 
     def update_mean(self, new_sample: float):
         """Updates the cumulative mean value with new sample.
@@ -223,11 +238,18 @@ class SMAvgTM(AvgTM):
     averaging, as it uses only the past k elements of the population to compute the average. Note that this really needs
     a proper datastream/timeseries, as the order of samples influences the average at every step.
     """
+
     _window: deque
     _window_size: int
 
-    def __init__(self, window_size: int = 5, mean: float = 0, var: float = 0, var_weight: float = 1.0,
-                 reduce_fn: Callable[[Tensor], Tensor] = lambda o: o):
+    def __init__(
+        self,
+        window_size: int = 5,
+        mean: float = 0,
+        var: float = 0,
+        var_weight: float = 1.0,
+        reduce_fn: Callable[[Tensor], Tensor] = lambda o: o,
+    ):
         """Creates a new simple moving averaging threshold model.
 
         :param window_size: Size of sliding window.
@@ -260,8 +282,7 @@ class SMAvgTM(AvgTM):
 
         :return: Mean and variance (1st) and sliding window (2nd) of threshold model.
         """
-        return (super().get_parameters()
-                + [np.array(self._window, dtype=np.float32)])
+        return super().get_parameters() + [np.array(self._window, dtype=np.float32)]
 
     def update_mean(self, new_sample: float):
         """Updates the simple moving average value with new sample, removing the last sample from the sliding window and
@@ -286,10 +307,17 @@ class EMAvgTM(AvgTM):
     """Exponential moving averaging takes note of the entire model stream to compute the average, but weights them
     exponentially less the greater their distance to the present is; this process is also called exponential smoothing.
     """
+
     _alpha = float
 
-    def __init__(self, alpha: float = 0.05, mean: float = 0, var: float = 0, var_weight: float = 1.0,
-                 reduce_fn: Callable[[Tensor], Tensor] = lambda o: o):
+    def __init__(
+        self,
+        alpha: float = 0.05,
+        mean: float = 0,
+        var: float = 0,
+        var_weight: float = 1.0,
+        reduce_fn: Callable[[Tensor], Tensor] = lambda o: o,
+    ):
         """Creates a new exponential moving averaging threshold model.
 
         :param alpha: Smoothing/weight factor for new incoming values.
@@ -317,10 +345,13 @@ class MadTM(FederatedTM):
     average-based approaches, the median can only computed using a subset of the population when computed online (it
     cannot be computed online in fact, as this is a property of the median).
     """
+
     _window: deque
     _window_size: int
 
-    def __init__(self, window_size: int = 5, reduce_fn: Callable[[Tensor], Tensor] = lambda o: o):
+    def __init__(
+        self, window_size: int = 5, reduce_fn: Callable[[Tensor], Tensor] = lambda o: o
+    ):
         """Creates a new MAD threshold model.
 
         :param window_size: Size of sliding window.

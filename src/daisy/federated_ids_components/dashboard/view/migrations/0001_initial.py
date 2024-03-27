@@ -7,22 +7,28 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='Node',
+            name="Node",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('adress', models.CharField(max_length=20)),
-                ('accuracy', models.FloatField()),
-                ('f1', models.FloatField()),
-                ('precision', models.FloatField()),
-                ('recall', models.FloatField()),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("adress", models.CharField(max_length=20)),
+                ("accuracy", models.FloatField()),
+                ("f1", models.FloatField()),
+                ("precision", models.FloatField()),
+                ("recall", models.FloatField()),
             ],
         ),
     ]

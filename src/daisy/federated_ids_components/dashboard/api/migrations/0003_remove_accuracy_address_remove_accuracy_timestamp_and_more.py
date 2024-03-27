@@ -7,21 +7,20 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('api', '0002_accuracy'),
+        ("api", "0002_accuracy"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='accuracy',
-            name='address',
+            model_name="accuracy",
+            name="address",
         ),
         migrations.RemoveField(
-            model_name='accuracy',
-            name='timestamp',
+            model_name="accuracy",
+            name="timestamp",
         ),
         migrations.DeleteModel(
-            name='NodeData',
+            name="NodeData",
         ),
     ]

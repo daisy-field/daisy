@@ -15,6 +15,7 @@ class MetricsSerializerView(viewsets.ModelViewSet):
     serializer_class = MetricsSerializer
     permission_classes = [permissions.AllowAny]
 
+
 class AggregationSerializerView(viewsets.ModelViewSet):
     """
     API endpoint that allows users to be viewed or edited.
@@ -44,6 +45,7 @@ class AlertsSerializerView(viewsets.ModelViewSet):
     serializer_class = AlertsSerializer
     permission_classes = [permissions.AllowAny]
 
+
 class NodeSerializerView(viewsets.ModelViewSet):
     """
     API endpoint that allows users to be viewed or edited.
@@ -52,6 +54,3 @@ class NodeSerializerView(viewsets.ModelViewSet):
     queryset = Node.objects.all()
     serializer_class = NodeSerializer
     permission_classes = [permissions.AllowAny]
-
-
-

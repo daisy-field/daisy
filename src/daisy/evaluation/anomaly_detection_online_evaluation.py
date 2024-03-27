@@ -2,13 +2,14 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """
-    Extensions to the tensorflow metric set, to measure the quality of online anomaly detection approaches. For now,
-    only a sliding-window-based solution is realized, as this works for any kind of metric (not every metric can be
-    computed online).
+Extensions to the tensorflow metric set, to measure the quality of online anomaly detection approaches. For now,
+only a sliding-window-based solution is realized, as this works for any kind of metric (not every metric can be
+computed online).
 
-    Author: Fabian Hofmann
-    Modified: 17.08.23
+Author: Fabian Hofmann
+Modified: 17.08.23
 """
+
 from abc import ABC, abstractmethod
 from collections import deque
 from typing import Self
@@ -24,11 +25,12 @@ class SlidingWindowEvaluation(keras.metrics.Metric, ABC):
 
     Note that depending on the metric, non-abstract methods must be extended with a new metric's own functionality.
     """
+
     true_labels: deque
     pred_labels: deque
     _window_size: int
 
-    def __init__(self, name='ad_online_evaluation', window_size: int = -1, **kwargs):
+    def __init__(self, name="ad_online_evaluation", window_size: int = -1, **kwargs):
         """Creates a new sliding window evaluation metric.
 
         :param name: Name of metric.
@@ -87,8 +89,7 @@ class SlidingWindowEvaluation(keras.metrics.Metric, ABC):
             self.update_state(m.true_labels, m.pred_labels)
 
     def reset_state(self):
-        """Resets the sliding window and all the metric's state variables.
-        """
+        """Resets the sliding window and all the metric's state variables."""
         self.true_labels = deque()
         self.pred_labels = deque()
         self._reset()
@@ -115,12 +116,15 @@ class ConfMatrSlidingWindowEvaluation(SlidingWindowEvaluation):
     the k most recent predicted binary labels to evaluate the model's recent performance on them in point-wise
     manner.
     """
+
     _fp: int
     _tp: int
     _fn: int
     _tn: int
 
-    def __init__(self, name='conf_matrix_online_evaluation', window_size: int = 0, **kwargs):
+    def __init__(
+        self, name="conf_matrix_online_evaluation", window_size: int = 0, **kwargs
+    ):
         """Creates a new confusion matrix sliding window evaluation metric.
 
         :param name: Name of metric.
@@ -155,8 +159,7 @@ class ConfMatrSlidingWindowEvaluation(SlidingWindowEvaluation):
                 self._fp += mod
 
     def _reset(self):
-        """Zeroes the confusion matrix.
-        """
+        """Zeroes the confusion matrix."""
         self._fp = 0
         self._tp = 0
         self._fn = 0
@@ -177,9 +180,16 @@ class ConfMatrSlidingWindowEvaluation(SlidingWindowEvaluation):
         fpr = tf.math.divide_no_nan(self._fp, (self._fp + self._tn))
         f1 = tf.math.divide_no_nan(2 * self._tp, (2 * self._tp + self._fp + self._fn))
 
-        metrics = {"accuracy": accuracy, "recall": recall, "true negative rate": tnr,
-                   "precision": precision, "negative predictive value": npv,
-                   "false negative rate": fnr, "false positive rate": fpr, "f1 measure": f1}
+        metrics = {
+            "accuracy": accuracy,
+            "recall": recall,
+            "true negative rate": tnr,
+            "precision": precision,
+            "negative predictive value": npv,
+            "false negative rate": fnr,
+            "false positive rate": fpr,
+            "f1 measure": f1,
+        }
         metrics = {m_name: tf.constant(m_value) for m_name, m_value in metrics.items()}
         return metrics
 
@@ -190,6 +200,7 @@ class TFMetricSlidingWindowEvaluation(SlidingWindowEvaluation):
     tensorflow metric when called upon. Not very computational efficient since cumulative aggregation cannot be
     supported as not every metric can be computed in sliding window manner.
     """
+
     _tf_metric: keras.metrics.Metric
 
     def __init__(self, tf_metric: keras.metrics.Metric, window_size: int = 0, **kwargs):
@@ -200,18 +211,20 @@ class TFMetricSlidingWindowEvaluation(SlidingWindowEvaluation):
         :param window_size: Size of sliding window. If not provided, assume infinite window size.
         :param kwargs: Additional metric/layer keywords arguments.
         """
-        super().__init__(name=tf_metric.name + '_online_evaluation', window_size=window_size, **kwargs)
+        super().__init__(
+            name=tf_metric.name + "_online_evaluation",
+            window_size=window_size,
+            **kwargs,
+        )
 
         self._tf_metric = tf_metric
 
     def _update(self, t_label, p_label, remove: bool = False):
-        """Method is skipped as the entire metric is computed during every result() call.
-        """
+        """Method is skipped as the entire metric is computed during every result() call."""
         pass
 
     def _reset(self):
-        """As the metrics are reset every result() call, there is no reason to reset more.
-        """
+        """As the metrics are reset every result() call, there is no reason to reset more."""
         pass
 
     def result(self):

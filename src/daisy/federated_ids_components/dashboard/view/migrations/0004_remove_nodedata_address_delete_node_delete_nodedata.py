@@ -7,20 +7,19 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('view', '0003_rename_sensordata_nodedata'),
+        ("view", "0003_rename_sensordata_nodedata"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='nodedata',
-            name='address',
+            model_name="nodedata",
+            name="address",
         ),
         migrations.DeleteModel(
-            name='Node',
+            name="Node",
         ),
         migrations.DeleteModel(
-            name='NodeData',
+            name="NodeData",
         ),
     ]

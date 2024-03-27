@@ -2,16 +2,16 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """
-    To allow the compatibility between different kinds of strategies for the aggregation of models, gradients, losses,
-    or other parameters/model types and topologies for the federated distributed system, any strategy has to follow the
-    same simple interface. This module provides this abstract class and some sample aggregators to be used.
+To allow the compatibility between different kinds of strategies for the aggregation of models, gradients, losses,
+or other parameters/model types and topologies for the federated distributed system, any strategy has to follow the
+same simple interface. This module provides this abstract class and some sample aggregators to be used.
 
-    Author: Fabian Hofmann
-    Modified: 14.08.23
+Author: Fabian Hofmann
+Modified: 14.08.23
 
-    TODO Future Work: weighted moving average based on significance of data point
-    TODO - in that case requires serious consideration whether a list of model parameters can even work
-    TODO - should be done with a custom weighting interface that computes the importance of model to the set (0-1)
+TODO Future Work: weighted moving average based on significance of data point
+TODO - in that case requires serious consideration whether a list of model parameters can even work
+TODO - should be done with a custom weighting interface that computes the importance of model to the set (0-1)
 """
 
 from abc import ABC, abstractmethod
@@ -95,14 +95,14 @@ class CumAggregator(ModelAggregator):
     This kind of aggregation is also probably not compatible with the aggregation of gradients or losses, as these
     averages cannot be computed over various epochs overall.
     """
+
     _cum_avg: list[np.ndarray]
     _n: int
 
     _fed_avg: FedAvgAggregator
 
     def __init__(self):
-        """Creates a new cumulative aggregator.
-        """
+        """Creates a new cumulative aggregator."""
         self._n = 0
 
         self._fed_avg = FedAvgAggregator()
@@ -135,6 +135,7 @@ class SMAggregator(ModelAggregator):
     This kind of aggregation is also probably not compatible with the aggregation of gradients or losses, as these
     averages cannot be computed over various epochs overall.
     """
+
     _sm_avg: list[np.ndarray]
     _window: deque
     _window_size: int
@@ -185,6 +186,7 @@ class EMAggregator(ModelAggregator):
     This kind of aggregation is also probably not compatible with the aggregation of gradients or losses, as these
     averages cannot be computed over various epochs overall.
     """
+
     _em_avg = list[np.ndarray]
     _alpha = float
 
@@ -212,5 +214,7 @@ class EMAggregator(ModelAggregator):
             self._em_avg = models_avg
 
         for i in range(len(models_avg)):
-            self._em_avg[i] = self._alpha * models_avg[i] + (1 - self._alpha) * self._em_avg[i]
+            self._em_avg[i] = (
+                self._alpha * models_avg[i] + (1 - self._alpha) * self._em_avg[i]
+            )
         return self._em_avg

@@ -2,15 +2,15 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """
-    A collection of various types of federated worker nodes, implementing the same interface for each federated node
-    type. Each of them is able to learn cooperatively on generic streaming data using a generic model, while also
-    running predictions on the samples of that data stream at every step.
+A collection of various types of federated worker nodes, implementing the same interface for each federated node
+type. Each of them is able to learn cooperatively on generic streaming data using a generic model, while also
+running predictions on the samples of that data stream at every step.
 
-    Author: Fabian Hofmann
-    Modified: 17.01.24
+Author: Fabian Hofmann
+Modified: 17.01.24
 
-    TODO Future Work: Defining granularity of logging in inits
-    TODO Future Work: Args for client-side ports in init
+TODO Future Work: Defining granularity of logging in inits
+TODO Future Work: Args for client-side ports in init
 """
 
 import logging
@@ -52,6 +52,7 @@ class FederatedOnlineNode(ABC):
 
         * create_async_fed_learner(): Continuous, asynchronous federated update loop.
     """
+
     _logger: logging.Logger
 
     _data_source: DataSource
@@ -80,11 +81,21 @@ class FederatedOnlineNode(ABC):
     _fed_updater: threading.Thread
     _started: bool
 
-    def __init__(self, data_source: DataSource, batch_size: int, model: FederatedModel,
-                 name: str = "",
-                 label_split: int = 2 ** 32, supervised: bool = False, metrics: list[tf.metrics.Metric] = None,
-                 eval_server: tuple[str, int] = None, aggr_server: tuple[str, int] = None,
-                 sync_mode: bool = True, update_interval_s: int = None, update_interval_t: int = None):
+    def __init__(
+        self,
+        data_source: DataSource,
+        batch_size: int,
+        model: FederatedModel,
+        name: str = "",
+        label_split: int = 2**32,
+        supervised: bool = False,
+        metrics: list[tf.metrics.Metric] = None,
+        eval_server: tuple[str, int] = None,
+        aggr_server: tuple[str, int] = None,
+        sync_mode: bool = True,
+        update_interval_s: int = None,
+        update_interval_t: int = None,
+    ):
         """Creates a new federated online node. Note that by default, the node never performs a federated update step;
         one of the intervals has to be set for that.
 
@@ -112,7 +123,7 @@ class FederatedOnlineNode(ABC):
         self._model = model
         self._m_lock = threading.Lock()
 
-        if label_split == 2 ** 32 and (supervised or len(metrics) == 0):
+        if label_split == 2**32 and (supervised or len(metrics) == 0):
             raise ValueError("Supervised and/or evaluation mode requires labels!")
         self._label_split = label_split
         self._supervised = supervised
@@ -120,12 +131,20 @@ class FederatedOnlineNode(ABC):
 
         self._eval_serv = None
         if eval_server is not None:
-            self._eval_serv = StreamEndpoint(name="EvalServer", remote_addr=eval_server,
-                                             acceptor=False, multithreading=True)
+            self._eval_serv = StreamEndpoint(
+                name="EvalServer",
+                remote_addr=eval_server,
+                acceptor=False,
+                multithreading=True,
+            )
         self._aggr_serv = None
         if aggr_server is not None:
-            self._aggr_serv = StreamEndpoint(name="AggrServer", remote_addr=aggr_server,
-                                             acceptor=False, multithreading=True)
+            self._aggr_serv = StreamEndpoint(
+                name="AggrServer",
+                remote_addr=aggr_server,
+                acceptor=False,
+                multithreading=True,
+            )
 
         self._sync_mode = sync_mode
         self._update_interval_s = update_interval_s
@@ -151,16 +170,20 @@ class FederatedOnlineNode(ABC):
             lambda: self._data_source.open(),
             lambda: self._eval_serv.start(),
             lambda: self._aggr_serv.start(),
-            logger=self._logger
+            logger=self._logger,
         )
         self._logger.info("Performing further setup...")
         self.setup()
 
-        self._loc_learner = threading.Thread(target=self._create_loc_learner, daemon=True)
+        self._loc_learner = threading.Thread(
+            target=self._create_loc_learner, daemon=True
+        )
         self._loc_learner.start()
         if not self._sync_mode:
             self._logger.info("Async learning detected, starting fed learner thread...")
-            self._fed_updater = threading.Thread(target=self.create_async_fed_learner, daemon=True)
+            self._fed_updater = threading.Thread(
+                target=self.create_async_fed_learner, daemon=True
+            )
             self._fed_updater.start()
         self._logger.info("Federated online node started.")
 
@@ -187,14 +210,16 @@ class FederatedOnlineNode(ABC):
             lambda: self._data_source.close(),
             lambda: self._eval_serv.stop(shutdown=True),
             lambda: self._aggr_serv.stop(shutdown=True),
-            logger=self._logger
+            logger=self._logger,
         )
         self._logger.info("Performing further cleanup...")
         self.cleanup()
 
         self._loc_learner.join()
         if not self._sync_mode:
-            self._logger.info("Async learning detected, waiting for fed learner thread to stop...")
+            self._logger.info(
+                "Async learning detected, waiting for fed learner thread to stop..."
+            )
             self._fed_updater.join()
         self._logger.info("Federated online node stopped.")
 
@@ -213,9 +238,11 @@ class FederatedOnlineNode(ABC):
         self._logger.info("AsyncLearner: Starting...")
         try:
             for sample in self._data_source:
-                self._logger.debug("AsyncLearner: Appending sample to current minibatch...")
-                self._minibatch_inputs.append(sample[:self._label_split])
-                self._minibatch_labels.append(sample[self._label_split:])
+                self._logger.debug(
+                    "AsyncLearner: Appending sample to current minibatch..."
+                )
+                self._minibatch_inputs.append(sample[: self._label_split])
+                self._minibatch_labels.append(sample[self._label_split :])
 
                 if len(self._minibatch_inputs) > self._batch_size:
                     self._logger.debug("AsyncLearner: Processing full minibatch...")
@@ -237,16 +264,23 @@ class FederatedOnlineNode(ABC):
         before flushing the minibatch window.
         """
         self._logger.debug("AsyncLearner: Arranging full minibatch for processing...")
-        x_data, y_true = np.array(self._minibatch_inputs), np.array(self._minibatch_labels)
+        x_data, y_true = (
+            np.array(self._minibatch_inputs),
+            np.array(self._minibatch_labels),
+        )
 
         self._logger.debug("AsyncLearner: Processing minibatch...")
         y_pred = self._model.predict(x_data)
-        self._logger.debug(f"AsyncLearner: Prediction results for minibatch: {(x_data, y_pred)}")
+        self._logger.debug(
+            f"AsyncLearner: Prediction results for minibatch: {(x_data, y_pred)}"
+        )
         if self._aggr_serv is not None:
             self._aggr_serv.send((x_data, y_pred))
         if len(self._metrics) > 0:
             eval_res = {metric.name: metric(y_true, y_pred) for metric in self._metrics}
-            self._logger.debug(f"AsyncLearner: Evaluation results for minibatch: {eval_res}")
+            self._logger.debug(
+                f"AsyncLearner: Evaluation results for minibatch: {eval_res}"
+            )
             if self._eval_serv is not None:
                 self._eval_serv.send(eval_res)
 
@@ -255,12 +289,16 @@ class FederatedOnlineNode(ABC):
         self._minibatch_inputs, self._minibatch_labels = [], []
 
     def sync_fed_update_check(self):
-        """Checks whether the conditions for a synchronous federated update step are met and performs it.
-        """
-        if (self._update_interval_s is not None and self._s_since_update > self._update_interval_s
-                or self._update_interval_t is not None
-                and time() - self._t_last_update > self._update_interval_t):
-            self._logger.debug("AsyncLearner: Initiating synchronous federated update step...")
+        """Checks whether the conditions for a synchronous federated update step are met and performs it."""
+        if (
+            self._update_interval_s is not None
+            and self._s_since_update > self._update_interval_s
+            or self._update_interval_t is not None
+            and time() - self._t_last_update > self._update_interval_t
+        ):
+            self._logger.debug(
+                "AsyncLearner: Initiating synchronous federated update step..."
+            )
             self.fed_update()
             self._s_since_update = 0
             self._t_last_update = time()
@@ -315,14 +353,27 @@ class FederatedOnlineClient(FederatedOnlineNode):
     the model aggregation server decides how the different models get aggregated; whether it happens in synchronized
     fashion or for each reporting client individually (see aggregator.py)
     """
+
     _m_aggr_server: StreamEndpoint
     _timeout: int
 
-    def __init__(self, data_source: DataSource, batch_size: int, model: FederatedModel, m_aggr_server: tuple[str, int],
-                 timeout: int = 10, name: str = "",
-                 label_split: int = 2 ** 32, supervised: bool = False, metrics: list[tf.metrics.Metric] = None,
-                 eval_server: tuple[str, int] = None, aggr_server: tuple[str, int] = None,
-                 sync_mode: bool = True, update_interval_s: int = None, update_interval_t: int = None):
+    def __init__(
+        self,
+        data_source: DataSource,
+        batch_size: int,
+        model: FederatedModel,
+        m_aggr_server: tuple[str, int],
+        timeout: int = 10,
+        name: str = "",
+        label_split: int = 2**32,
+        supervised: bool = False,
+        metrics: list[tf.metrics.Metric] = None,
+        eval_server: tuple[str, int] = None,
+        aggr_server: tuple[str, int] = None,
+        sync_mode: bool = True,
+        update_interval_s: int = None,
+        update_interval_t: int = None,
+    ):
         """Creates a new federated online client.
 
         :param data_source: Data source of data stream to draw data points (in order) from.
@@ -341,26 +392,34 @@ class FederatedOnlineClient(FederatedOnlineNode):
         :param update_interval_s: Federated updating interval, defined by samples; every X samples, do an update step.
         :param update_interval_t: Federated updating interval, defined by time; every X seconds, do an update step.
         """
-        super().__init__(data_source=data_source, batch_size=batch_size, model=model, name=name,
-                         label_split=label_split, supervised=supervised, metrics=metrics,
-                         eval_server=eval_server, aggr_server=aggr_server,
-                         sync_mode=sync_mode, update_interval_s=update_interval_s, update_interval_t=update_interval_t)
+        super().__init__(
+            data_source=data_source,
+            batch_size=batch_size,
+            model=model,
+            name=name,
+            label_split=label_split,
+            supervised=supervised,
+            metrics=metrics,
+            eval_server=eval_server,
+            aggr_server=aggr_server,
+            sync_mode=sync_mode,
+            update_interval_s=update_interval_s,
+            update_interval_t=update_interval_t,
+        )
 
-        self._m_aggr_server = StreamEndpoint(name="MAggrServer", remote_addr=m_aggr_server,
-                                             acceptor=False, multithreading=True)
+        self._m_aggr_server = StreamEndpoint(
+            name="MAggrServer",
+            remote_addr=m_aggr_server,
+            acceptor=False,
+            multithreading=True,
+        )
         self._timeout = timeout
 
     def setup(self):
-        _try_ops(
-            lambda: self._m_aggr_server.start(),
-            logger=self._logger
-        )
+        _try_ops(lambda: self._m_aggr_server.start(), logger=self._logger)
 
     def cleanup(self):
-        _try_ops(
-            lambda: self._m_aggr_server.stop(shutdown=True),
-            logger=self._logger
-        )
+        _try_ops(lambda: self._m_aggr_server.stop(shutdown=True), logger=self._logger)
 
     def fed_update(self):
         """Sends the client's local model's parameters to the model aggregation server, before receiving the global
@@ -374,17 +433,25 @@ class FederatedOnlineClient(FederatedOnlineNode):
         """
         with self._m_lock:
             current_params = self._model.get_parameters()
-            self._logger.debug("Sending local model parameters to model aggregation server...")
+            self._logger.debug(
+                "Sending local model parameters to model aggregation server..."
+            )
             self._m_aggr_server.send(current_params)
 
-            self._logger.debug("Receiving global model parameters from model aggregation server...")
+            self._logger.debug(
+                "Receiving global model parameters from model aggregation server..."
+            )
             try:
                 m_aggr_msg = self._m_aggr_server.receive(timeout=self._timeout)
                 if not isinstance(m_aggr_msg, list):
-                    self._logger.warning("Received message from model aggregation server does not contain parameters!")
+                    self._logger.warning(
+                        "Received message from model aggregation server does not contain parameters!"
+                    )
                     return
             except TimeoutError:
-                self._logger.warning("Timeout triggered. No message received from model aggregation server!")
+                self._logger.warning(
+                    "Timeout triggered. No message received from model aggregation server!"
+                )
                 return
 
             self._logger.debug("Updating local model with global parameters...")
@@ -398,21 +465,29 @@ class FederatedOnlineClient(FederatedOnlineNode):
         """
         self._logger.info("AsyncUpdater: Starting...")
         while self._started:
-            self._logger.debug("AsyncUpdater: Performing federated update step checks...")
+            self._logger.debug(
+                "AsyncUpdater: Performing federated update step checks..."
+            )
             try:
                 if self._update_interval_t is not None:
-                    self._logger.debug("AsyncUpdater: Time-based federated updating initiated...")
+                    self._logger.debug(
+                        "AsyncUpdater: Time-based federated updating initiated..."
+                    )
                     self.fed_update()
                     sleep(self._update_interval_t)
                 elif self._update_interval_s is not None:
                     with self._u_lock:
                         if self._s_since_update > self._update_interval_s:
-                            self._logger.debug("AsyncUpdater: Sample-based federated updating initiated...")
+                            self._logger.debug(
+                                "AsyncUpdater: Sample-based federated updating initiated..."
+                            )
                             self.fed_update()
                             self._s_since_update = 0
                     sleep(1)
                 else:
-                    self._logger.debug("AsyncUpdater: Sampled federated updating initiated...")
+                    self._logger.debug(
+                        "AsyncUpdater: Sampled federated updating initiated..."
+                    )
                     self.sampled_fed_update()
             except RuntimeError:
                 # stop() was called
@@ -424,19 +499,27 @@ class FederatedOnlineClient(FederatedOnlineNode):
         (client) node, before either updating the model with the parameters received directly or initiating the updating
         step.
         """
-        self._logger.debug("AsyncUpdater: Receiving message from model aggregation server...")
+        self._logger.debug(
+            "AsyncUpdater: Receiving message from model aggregation server..."
+        )
         try:
             m_aggr_msg = self._m_aggr_server.receive(timeout=self._timeout)
         except TimeoutError:
-            self._logger.warning("AsyncUpdater: Timeout triggered. No message received from model aggregation server!")
+            self._logger.warning(
+                "AsyncUpdater: Timeout triggered. No message received from model aggregation server!"
+            )
             return
         if isinstance(m_aggr_msg, list):
             with self._m_lock:
-                self._logger.debug("AsyncUpdater: Updating local model with received global parameters...")
+                self._logger.debug(
+                    "AsyncUpdater: Updating local model with received global parameters..."
+                )
                 new_params = cast(np.array, m_aggr_msg)
                 self._model.set_parameters(new_params)
         else:
-            self._logger.debug("AsyncUpdater: Request for sampled federated update received...")
+            self._logger.debug(
+                "AsyncUpdater: Request for sampled federated update received..."
+            )
             self.fed_update()
 
 
@@ -446,15 +529,27 @@ class FederatedOnlinePeer(FederatedOnlineNode):
     :var _peers: TBD
     :var _topology: TBD
     """
+
     _peers: list[StreamEndpoint]
     _topology: object
     _m_aggr: ModelAggregator
 
-    def __init__(self, data_source: DataSource, batch_size: int, model: FederatedModel, m_aggr: ModelAggregator,
-                 name: str = "",
-                 label_split: int = 2 ** 32, supervised: bool = False, metrics: list[tf.metrics] = None,
-                 eval_server: tuple[str, int] = None, aggr_server: tuple[str, int] = None,
-                 sync_mode: bool = True, update_interval_s: int = None, update_interval_t: int = None):
+    def __init__(
+        self,
+        data_source: DataSource,
+        batch_size: int,
+        model: FederatedModel,
+        m_aggr: ModelAggregator,
+        name: str = "",
+        label_split: int = 2**32,
+        supervised: bool = False,
+        metrics: list[tf.metrics] = None,
+        eval_server: tuple[str, int] = None,
+        aggr_server: tuple[str, int] = None,
+        sync_mode: bool = True,
+        update_interval_s: int = None,
+        update_interval_t: int = None,
+    ):
         """Creates a new federated online peer.
 
         :param data_source: Data source of data stream to draw data points (in order) from.
@@ -471,31 +566,37 @@ class FederatedOnlinePeer(FederatedOnlineNode):
         :param update_interval_s: Federated updating interval, defined by samples; every X samples, do a sync update.
         :param update_interval_t: Federated updating interval, defined by time; every X seconds, do a sync update.
         """
-        super().__init__(data_source=data_source, batch_size=batch_size, model=model, name=name,
-                         label_split=label_split, supervised=supervised, metrics=metrics,
-                         eval_server=eval_server, aggr_server=aggr_server,
-                         sync_mode=sync_mode, update_interval_s=update_interval_s, update_interval_t=update_interval_t)
+        super().__init__(
+            data_source=data_source,
+            batch_size=batch_size,
+            model=model,
+            name=name,
+            label_split=label_split,
+            supervised=supervised,
+            metrics=metrics,
+            eval_server=eval_server,
+            aggr_server=aggr_server,
+            sync_mode=sync_mode,
+            update_interval_s=update_interval_s,
+            update_interval_t=update_interval_t,
+        )
 
         self._m_aggr = m_aggr
 
     def setup(self):
-        """
-        """
+        """ """
         raise NotImplementedError
 
     def cleanup(self):
-        """
-        """
+        """ """
         raise NotImplementedError
 
     def fed_update(self):
-        """
-        """
+        """ """
         raise NotImplementedError
 
     def create_async_fed_learner(self):
-        """
-        """
+        """ """
         raise NotImplementedError
 
 
@@ -511,4 +612,6 @@ def _try_ops(*operations: Callable, logger: logging.Logger):
         try:
             op()
         except (AttributeError, RuntimeError) as e:
-            logger.warning(f"{e.__class__.__name__}({e}) while trying to execute {op}: {e}")
+            logger.warning(
+                f"{e.__class__.__name__}({e}) while trying to execute {op}: {e}"
+            )

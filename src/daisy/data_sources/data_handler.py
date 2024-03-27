@@ -2,18 +2,18 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """
-    A collection of interfaces and base classes for data stream generation and preprocessing for further (ML) tasks.
-    Supports generic generators, but also remote communication endpoints that hand over generic data points in
-    streaming-manner, and any other implementations of the SourceHandler class. Note each different kind of data needs
-    its own implementation of the DataProcessor class.
+A collection of interfaces and base classes for data stream generation and preprocessing for further (ML) tasks.
+Supports generic generators, but also remote communication endpoints that hand over generic data points in
+streaming-manner, and any other implementations of the SourceHandler class. Note each different kind of data needs
+its own implementation of the DataProcessor class.
 
-    TODO REFVIEW COMENTS @Fabian
+TODO REFVIEW COMENTS @Fabian
 
-    Author: Fabian Hofmann, Jonathan Ackerschewski
-    Modified: 28.07.23
+Author: Fabian Hofmann, Jonathan Ackerschewski
+Modified: 28.07.23
 
-    TODO Future Work: Defining granularity of logging in inits
-    TODO Future Work: Cleanup of inits to eliminate overlap of classes
+TODO Future Work: Defining granularity of logging in inits
+TODO Future Work: Cleanup of inits to eliminate overlap of classes
 """
 
 import logging
@@ -37,6 +37,7 @@ class SourceHandler(ABC):
     called when the source handler has been opened already. At the same time, __iter__() must be exhausted after close()
     has been called.
     """
+
     _logger: logging.Logger
 
     def __init__(self, name: str = ""):
@@ -56,8 +57,7 @@ class SourceHandler(ABC):
 
     @abstractmethod
     def close(self):
-        """Closes the handler after which data point generation is no longer available until opened again.
-        """
+        """Closes the handler after which data point generation is no longer available until opened again."""
         raise NotImplementedError
 
     @abstractmethod
@@ -75,6 +75,7 @@ class SimpleSourceHandler(SourceHandler):
     closed, yielding data points as objects as they are yielded. Can be infinite or finite; no matter, no control over
     the generator is natively supported.
     """
+
     _generator: Iterator[object]
 
     def __init__(self, generator: Iterator[object], name: str = ""):
@@ -106,6 +107,7 @@ class SimpleRemoteSourceHandler(SourceHandler):
     sources. Considered infinite in nature, as it allows the generation of data point objects from a connected
     endpoint, until the client closes the handler.
     """
+
     _endpoint: StreamEndpoint
 
     def __init__(self, endpoint: StreamEndpoint, name: str = ""):
@@ -122,8 +124,7 @@ class SimpleRemoteSourceHandler(SourceHandler):
         self._logger.info("Remote source handler initialized.")
 
     def open(self):
-        """Starts and opens/connects the endpoint of the source handler.
-        """
+        """Starts and opens/connects the endpoint of the source handler."""
         self._logger.info("Starting remote data source...")
         try:
             self._endpoint.start()
@@ -132,8 +133,7 @@ class SimpleRemoteSourceHandler(SourceHandler):
         self._logger.info("Remote data source started.")
 
     def close(self):
-        """Stops and closes the endpoint of the source handler.
-        """
+        """Stops and closes the endpoint of the source handler."""
         self._logger.info("Stopping remote data source...")
         try:
             self._endpoint.stop()

@@ -2,14 +2,15 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """
-    A collection of various types of model wrappers, implementing the same interface for each federated model type, thus
-    enabling their inter-compatibility for different aggregation strategies and federated system components.
+A collection of various types of model wrappers, implementing the same interface for each federated model type, thus
+enabling their inter-compatibility for different aggregation strategies and federated system components.
 
-    Author: Fabian Hofmann
-    Modified: 09.09.23
+Author: Fabian Hofmann
+Modified: 09.09.23
 
-    TODO Future Work: Should be the implementation of Open Source Interfaces (e.g. Keras Model API)
+TODO Future Work: Should be the implementation of Open Source Interfaces (e.g. Keras Model API)
 """
+
 from abc import ABC, abstractmethod
 from typing import Callable, Optional, Self
 
@@ -65,13 +66,20 @@ class TFFederatedModel(FederatedModel):
     """The standard federated model wrapper for tensorflow models. Can be used for both online and offline training/
     prediction, by default online, however.
     """
+
     _model: keras.Model
     _batch_size: int
     _epochs: int
 
-    def __init__(self, model: keras.Model, optimizer: str | keras.optimizers.Optimizer, loss: str | keras.losses.Loss,
-                 metrics: list[str | Callable | keras.metrics.Metric] = None,
-                 batch_size: int = 32, epochs: int = 1):
+    def __init__(
+        self,
+        model: keras.Model,
+        optimizer: str | keras.optimizers.Optimizer,
+        loss: str | keras.losses.Loss,
+        metrics: list[str | Callable | keras.metrics.Metric] = None,
+        batch_size: int = 32,
+        epochs: int = 1,
+    ):
         """Creates a new tensorflow federated model from a given model. Since this also compiles the given model,
         there are set of additional arguments, for more information on those see:
         https://www.tensorflow.org/api_docs/python/tf/keras/Model#compile
@@ -110,7 +118,9 @@ class TFFederatedModel(FederatedModel):
         :param x_data: Input data.
         :param y_data: Expected output.
         """
-        self._model.fit(x=x_data, y=y_data, batch_size=self._batch_size, epochs=self._epochs)
+        self._model.fit(
+            x=x_data, y=y_data, batch_size=self._batch_size, epochs=self._epochs
+        )
 
     def predict(self, x_data) -> Tensor:
         """Makes a prediction on the given data and returns it by calling the wrapped model. Uses the call() tensorflow
@@ -125,10 +135,15 @@ class TFFederatedModel(FederatedModel):
         return self._model(x_data, training=False).numpy()
 
     @classmethod
-    def get_fae(cls, input_size: int,
-                optimizer: str | keras.optimizers.Optimizer = "Adam", loss: str | keras.losses.Loss = "mse",
-                metrics: list[str | Callable | keras.metrics.Metric] = None,
-                batch_size: int = 32, epochs: int = 1) -> Self:
+    def get_fae(
+        cls,
+        input_size: int,
+        optimizer: str | keras.optimizers.Optimizer = "Adam",
+        loss: str | keras.losses.Loss = "mse",
+        metrics: list[str | Callable | keras.metrics.Metric] = None,
+        batch_size: int = 32,
+        epochs: int = 1,
+    ) -> Self:
         """Factory class method to create a simple federated autoencoder model of a fixed depth but with variable input
         size.
 
@@ -175,6 +190,7 @@ class FederatedIFTM(FederatedModel):
     Note this kind of model *absolutely requires* a time series in most cases and therefore data passed to it, must be
     in order!
     """
+
     _if: FederatedModel
     _tm: FederatedModel
     _ef: Callable[[Tensor, Tensor], Tensor]
@@ -185,8 +201,14 @@ class FederatedIFTM(FederatedModel):
     _prev_fit_sample: Optional[Tensor]
     _prev_pred_sample: Optional[Tensor]
 
-    def __init__(self, identify_fn: FederatedModel, threshold_m: FederatedModel,
-                 error_fn: Callable[[Tensor, Tensor], Tensor], param_split: int, pf_mode: bool = False):
+    def __init__(
+        self,
+        identify_fn: FederatedModel,
+        threshold_m: FederatedModel,
+        error_fn: Callable[[Tensor, Tensor], Tensor],
+        param_split: int,
+        pf_mode: bool = False,
+    ):
         """Creates a new federated IFTM anomaly detection model.
 
         :param identify_fn: Federated identity function model.
@@ -211,8 +233,8 @@ class FederatedIFTM(FederatedModel):
 
         :param parameters: Parameters to update the IFTM model with.
         """
-        self._if.set_parameters(parameters[:self._param_split])
-        self._tm.set_parameters(parameters[self._param_split:])
+        self._if.set_parameters(parameters[: self._param_split])
+        self._tm.set_parameters(parameters[self._param_split :])
 
     def get_parameters(self) -> list[np.ndarray]:
         """Retrieves the weights of the underlying models.
@@ -281,7 +303,9 @@ class FederatedIFTM(FederatedModel):
         pred_errs = self._ef(y_true, y_pred)
         return self._tm.predict(pred_errs)
 
-    def _shift_batch_window(self, x_data, fit: bool) -> tuple[Optional[Tensor], Optional[Tensor]]:
+    def _shift_batch_window(
+        self, x_data, fit: bool
+    ) -> tuple[Optional[Tensor], Optional[Tensor]]:
         """Shifts a given input batch one step in the past, discarding the last sample from the batch and storing it for
         later user, but adding the last sample from the previous batch to the beginning of the batch. This is necessary
         for fitting and prediction of prediction-based IFs (see fit and predict function).
@@ -312,7 +336,9 @@ class FederatedIFTM(FederatedModel):
         return x_data, y_true
 
     @staticmethod
-    def get_tf_error_fn(tf_metric: keras.metrics.Metric) -> Callable[[Tensor, Tensor], Tensor]:
+    def get_tf_error_fn(
+        tf_metric: keras.metrics.Metric,
+    ) -> Callable[[Tensor, Tensor], Tensor]:
         """Quick wrapper for tensorflow metric objects as error function for IFTM models.
 
         :param tf_metric: Tensorflow metric object to be wrapped.

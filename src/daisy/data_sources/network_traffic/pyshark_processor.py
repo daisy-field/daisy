@@ -1,16 +1,16 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-""" TODO REVIEW COMMETNS
-    Implementations of the data source helper interface that allows the processing and provisioning of pyshark packets,
-    either via file inputs, live capture, or a remote source that generates packets in either fashion.
+"""TODO REVIEW COMMETNS
+Implementations of the data source helper interface that allows the processing and provisioning of pyshark packets,
+either via file inputs, live capture, or a remote source that generates packets in either fashion.
 
-    Author: Jonathan Ackerschewski, Fabian Hofmann
-    Modified: 28.02.24
+Author: Jonathan Ackerschewski, Fabian Hofmann
+Modified: 28.02.24
 
-    # TODO Future Work: Encoding/mapping of string/non-numerical values into numerical features
-    # TODO - Flattening of Lists instead of encoding them into singular numerical features
-    # TODO - NaN values also need to converted to something useful (that does not break the prediction/training)
+# TODO Future Work: Encoding/mapping of string/non-numerical values into numerical features
+# TODO - Flattening of Lists instead of encoding them into singular numerical features
+# TODO - NaN values also need to converted to something useful (that does not break the prediction/training)
 """
 
 import json
@@ -31,71 +31,71 @@ from daisy.data_sources import SimpleDataProcessor
 
 # Exemplary network feature filter, supporting cohda-box (V2x) messages, besides TCP/IP and ETH.
 default_f_features = (
-    'meta.len',
-    'meta.time',
-    'meta.protocols',
-    'ip.addr',
-    'sll.halen',
-    'sll.pkttype',
-    'sll.eth',
-    'sll.hatype',
-    'sll.unused',
-    'ipv6.tclass',
-    'ipv6.flow',
-    'ipv6.nxt',
-    'ipv6.src_host',
-    'ipv6.host',
-    'ipv6.hlim',
-    'sll.ltype',
-    'cohda.Type',
-    'cohda.Ret',
-    'cohda.llc.MKxIFMsg.Ret',
-    'ipv6.addr',
-    'ipv6.dst',
-    'ipv6.plen',
-    'tcp.stream',
-    'tcp.payload',
-    'tcp.urgent_pointer',
-    'tcp.port',
-    'tcp.options.nop',
-    'tcp.options.timestamp',
-    'tcp.flags',
-    'tcp.window_size_scalefactor',
-    'tcp.dstport',
-    'tcp.len',
-    'tcp.checksum',
-    'tcp.window_size',
-    'tcp.srcport',
-    'tcp.checksum.status',
-    'tcp.nxtseq',
-    'tcp.status',
-    'tcp.analysis.bytes_in_flight',
-    'tcp.analysis.push_bytes_sent',
-    'tcp.ack',
-    'tcp.hdr_len',
-    'tcp.seq',
-    'tcp.window_size_value',
-    'data.data',
-    'data.len',
-    'tcp.analysis.acks_frame',
-    'tcp.analysis.ack_rtt',
-    'eth.src.addr',
-    'eth.src.eth.src_resolved',
-    'eth.src.ig',
-    'eth.src.src_resolved',
-    'eth.src.addr_resolved',
-    'ip.proto',
-    'ip.dst_host',
-    'ip.flags',
-    'ip.len',
-    'ip.checksum',
-    'ip.checksum.status',
-    'ip.version',
-    'ip.host',
-    'ip.status',
-    'ip.id',
-    'ip.hdr_len',
-    'ip.ttl'
+    "meta.len",
+    "meta.time",
+    "meta.protocols",
+    "ip.addr",
+    "sll.halen",
+    "sll.pkttype",
+    "sll.eth",
+    "sll.hatype",
+    "sll.unused",
+    "ipv6.tclass",
+    "ipv6.flow",
+    "ipv6.nxt",
+    "ipv6.src_host",
+    "ipv6.host",
+    "ipv6.hlim",
+    "sll.ltype",
+    "cohda.Type",
+    "cohda.Ret",
+    "cohda.llc.MKxIFMsg.Ret",
+    "ipv6.addr",
+    "ipv6.dst",
+    "ipv6.plen",
+    "tcp.stream",
+    "tcp.payload",
+    "tcp.urgent_pointer",
+    "tcp.port",
+    "tcp.options.nop",
+    "tcp.options.timestamp",
+    "tcp.flags",
+    "tcp.window_size_scalefactor",
+    "tcp.dstport",
+    "tcp.len",
+    "tcp.checksum",
+    "tcp.window_size",
+    "tcp.srcport",
+    "tcp.checksum.status",
+    "tcp.nxtseq",
+    "tcp.status",
+    "tcp.analysis.bytes_in_flight",
+    "tcp.analysis.push_bytes_sent",
+    "tcp.ack",
+    "tcp.hdr_len",
+    "tcp.seq",
+    "tcp.window_size_value",
+    "data.data",
+    "data.len",
+    "tcp.analysis.acks_frame",
+    "tcp.analysis.ack_rtt",
+    "eth.src.addr",
+    "eth.src.eth.src_resolved",
+    "eth.src.ig",
+    "eth.src.src_resolved",
+    "eth.src.addr_resolved",
+    "ip.proto",
+    "ip.dst_host",
+    "ip.flags",
+    "ip.len",
+    "ip.checksum",
+    "ip.checksum.status",
+    "ip.version",
+    "ip.host",
+    "ip.status",
+    "ip.id",
+    "ip.hdr_len",
+    "ip.ttl",
 )
 
 
@@ -130,15 +130,23 @@ def default_nn_aggregator(key: str, value: object) -> int:
     raise ValueError(f"Unable to aggregate non-numerical item: {key, value}")
 
 
-def create_pyshark_processor(name: str = "", f_features: tuple[str, ...] = default_f_features,
-                             nn_aggregator: Callable[[str, object], object] = default_nn_aggregator):
+def create_pyshark_processor(
+    name: str = "",
+    f_features: tuple[str, ...] = default_f_features,
+    nn_aggregator: Callable[[str, object], object] = default_nn_aggregator,
+):
     """Creates a SimpleDataProcessor using functions specifically for pyshark packets.
 
     :param name: The name for logging purposes
     :param f_features: The features to extract from the packets
     :param nn_aggregator: The aggregator, which should map features to integers
     """
-    return SimpleDataProcessor(pyshark_map_fn(), pyshark_filter_fn(f_features), pyshark_reduce_fn(nn_aggregator), name)
+    return SimpleDataProcessor(
+        pyshark_map_fn(),
+        pyshark_filter_fn(f_features),
+        pyshark_reduce_fn(nn_aggregator),
+        name,
+    )
 
 
 def pyshark_map_fn() -> Callable[[object], dict]:
@@ -150,7 +158,9 @@ def pyshark_map_fn() -> Callable[[object], dict]:
     return lambda o_point: packet_to_dict(o_point)
 
 
-def pyshark_filter_fn(f_features: tuple[str, ...] = default_f_features) -> Callable[[dict], dict]:
+def pyshark_filter_fn(
+    f_features: tuple[str, ...] = default_f_features,
+) -> Callable[[dict], dict]:
     """Filters the pyshark packet according to a pre-defined filter which is applied to every dictionary in order of
     the selected features in the filter. Features that do not exist are set to None. Can be used in a
     SimpleDataProcessor as the filter function.
@@ -170,8 +180,9 @@ def _pyshark_filter_fn(d_point: dict, f_features: tuple[str, ...]) -> dict:
     return {f_feature: d_point.pop(f_feature, np.nan) for f_feature in f_features}
 
 
-def pyshark_reduce_fn(nn_aggregator: Callable[[str, object], object] = default_nn_aggregator) \
-        -> Callable[[dict], np.ndarray]:
+def pyshark_reduce_fn(
+    nn_aggregator: Callable[[str, object], object] = default_nn_aggregator,
+) -> Callable[[dict], np.ndarray]:
     """Transform the pyshark data point directly into a numpy array without further processing, aggregating any
     value that is list into a singular value. Can be used in a SimpleDataProcessor as the reduce function.
 
@@ -181,7 +192,9 @@ def pyshark_reduce_fn(nn_aggregator: Callable[[str, object], object] = default_n
     return lambda d_point: _pyshark_reduce_fn(d_point, nn_aggregator)
 
 
-def _pyshark_reduce_fn(d_point: dict, nn_aggregator: Callable[[str, object], object]) -> np.ndarray:
+def _pyshark_reduce_fn(
+    d_point: dict, nn_aggregator: Callable[[str, object], object]
+) -> np.ndarray:
     """Transform the pyshark data point directly into a numpy array without further processing, aggregating any
     value that is list into a singular value.
 
@@ -211,7 +224,7 @@ def packet_to_dict(p: Packet) -> dict:
         "len": p.length,
         "protocols": [x.layer_name for x in p.layers],
         "time_epoch": p.sniff_timestamp,
-        "time": str(p.sniff_time)
+        "time": str(p.sniff_time),
     }
     p_dict.update({"meta": meta_dict})
 
@@ -269,7 +282,9 @@ def _add_xml_layer_to_dict(layer: (XmlLayer, JsonLayer)) -> dict:
     return layer_dictionary
 
 
-def _add_list_to_dict(layer: (XmlLayer, JsonLayer), field_name: str, value_list: list) -> dict:
+def _add_list_to_dict(
+    layer: (XmlLayer, JsonLayer), field_name: str, value_list: list
+) -> dict:
     """Creates a dictionary out of the given parameters. This function is called by _add_xml_layer_to_dict. Only
     necessary for JSON-mode.
     This is part of a recursive function. For the entrypoint see _add_layer_to_dict.
@@ -284,12 +299,15 @@ def _add_list_to_dict(layer: (XmlLayer, JsonLayer), field_name: str, value_list:
         dictionary[layer.get_field(field_name).layer_name] = value_list
 
     else:
-        dictionary[next(iter(value_list[0].keys()))] = \
-            [res[next(iter(value_list[0].keys()))] for res in value_list]
+        dictionary[next(iter(value_list[0].keys()))] = [
+            res[next(iter(value_list[0].keys()))] for res in value_list
+        ]
     return dictionary
 
 
-def _add_layer_field_container_to_dict(layer_field_container: LayerFieldsContainer) -> dict:
+def _add_layer_field_container_to_dict(
+    layer_field_container: LayerFieldsContainer,
+) -> dict:
     """Creates a dictionary out of a layerFieldContainer from a pyshark packet. A file in JSON-mode always has a length
     of one, while XML can contain a list of fields.
     This is part of a recursive function. For the entrypoint see _add_layer_to_dict.
@@ -312,7 +330,9 @@ def _add_layer_field_container_to_dict(layer_field_container: LayerFieldsContain
     return dictionary
 
 
-def flatten_dict(dictionary: (dict, list), seperator: str = ".", par_key: str = "") -> dict:
+def flatten_dict(
+    dictionary: (dict, list), seperator: str = ".", par_key: str = ""
+) -> dict:
     """Creates a flat dictionary (a dictionary without sub-dictionaries) from the given dictionary. The keys of
     sub-dictionaries are merged into the parent dictionary by combining the keys and adding a seperator:
     {a: {b: c, d: e}, f: g} becomes {a.b: c, a.d: e, f: g} assuming the seperator as '.'. However, redundant parent keys
@@ -326,17 +346,25 @@ def flatten_dict(dictionary: (dict, list), seperator: str = ".", par_key: str = 
     """
     items = {}
     for key, val in dictionary.items():
-        cur_key = par_key + seperator + key if par_key != "" and not key.startswith(par_key + seperator) else key
+        cur_key = (
+            par_key + seperator + key
+            if par_key != "" and not key.startswith(par_key + seperator)
+            else key
+        )
         if isinstance(val, MutableMapping):
             sub_items = flatten_dict(val, par_key=cur_key, seperator=seperator)
             for subkey in sub_items.keys():
                 if subkey in items:
-                    raise ValueError(f"Key collision in dictionary "
-                                     f"({subkey, sub_items[subkey]} vs {subkey, items[subkey]})!")
+                    raise ValueError(
+                        f"Key collision in dictionary "
+                        f"({subkey, sub_items[subkey]} vs {subkey, items[subkey]})!"
+                    )
             items.update(sub_items)
         else:
             if cur_key in items:
-                raise ValueError(f"Key collision in dictionary ({cur_key, val} vs {cur_key, items[cur_key]})!")
+                raise ValueError(
+                    f"Key collision in dictionary ({cur_key, val} vs {cur_key, items[cur_key]})!"
+                )
             items.update({cur_key: val})
     return items
 

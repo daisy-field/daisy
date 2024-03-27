@@ -4,34 +4,41 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('api', '0008_rename_adress_node_address_and_more'),
+        ("api", "0008_rename_adress_node_address_and_more"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Metrics',
+            name="Metrics",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('address', models.CharField(max_length=255)),
-                ('accuracy', models.FloatField()),
-                ('f1', models.FloatField()),
-                ('recall', models.FloatField()),
-                ('precision', models.FloatField()),
-                ('timestamp', models.DateTimeField(auto_now_add=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("address", models.CharField(max_length=255)),
+                ("accuracy", models.FloatField()),
+                ("f1", models.FloatField()),
+                ("recall", models.FloatField()),
+                ("precision", models.FloatField()),
+                ("timestamp", models.DateTimeField(auto_now_add=True)),
             ],
         ),
         migrations.DeleteModel(
-            name='Accuracy',
+            name="Accuracy",
         ),
         migrations.DeleteModel(
-            name='F1',
+            name="F1",
         ),
         migrations.DeleteModel(
-            name='Precision',
+            name="Precision",
         ),
         migrations.DeleteModel(
-            name='Recall',
+            name="Recall",
         ),
     ]

@@ -2,16 +2,17 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """
-    A collection of various types of federated aggregators, implementing the same interface for each federated
-    aggregator type. Each of them receives and aggregates data from federated nodes at runtime in a client-server-based
-    exchange, continuously.
+A collection of various types of federated aggregators, implementing the same interface for each federated
+aggregator type. Each of them receives and aggregates data from federated nodes at runtime in a client-server-based
+exchange, continuously.
 
-    Author: Fabian Hofmann
-    Modified: 22.01.24
+Author: Fabian Hofmann
+Modified: 22.01.24
 
-    TODO: Integrate Evaluator into ValueAggregator (i.e. inherit from it)
-    TODO Future Work: Defining granularity of logging in inits
+TODO: Integrate Evaluator into ValueAggregator (i.e. inherit from it)
+TODO Future Work: Defining granularity of logging in inits
 """
+
 import logging
 import threading
 from abc import ABC, abstractmethod
@@ -41,6 +42,7 @@ class FederatedOnlineAggregator(ABC):
 
         * create_fed_aggr(): Encapsulates the aggregation loop for the entire life-cycle of the aggregator.
     """
+
     _logger: logging.Logger
 
     _aggr_serv: EndpointServer
@@ -51,8 +53,13 @@ class FederatedOnlineAggregator(ABC):
     _fed_aggr: threading.Thread
     _started: bool
 
-    def __init__(self, addr: tuple[str, int], name: str = "", timeout: int = 10,
-                 dashboard: str = None):
+    def __init__(
+        self,
+        addr: tuple[str, int],
+        name: str = "",
+        timeout: int = 10,
+        dashboard: str = None,
+    ):
         """Creates a new federated online aggregator.
 
         :param addr: Address of aggregation server for federated nodes to report to.
@@ -63,7 +70,9 @@ class FederatedOnlineAggregator(ABC):
         self._logger = logging.getLogger(name)
         self._logger.info("Initializing federated online aggregator...")
 
-        self._aggr_serv = EndpointServer(name="Server", addr=addr, c_timeout=timeout, multithreading=True)
+        self._aggr_serv = EndpointServer(
+            name="Server", addr=addr, c_timeout=timeout, multithreading=True
+        )
         self._timeout = timeout
 
         self._dashboard = dashboard
@@ -79,10 +88,10 @@ class FederatedOnlineAggregator(ABC):
         """
         self._logger.info("Starting federated online aggregator...")
         if self._started:
-            raise RuntimeError(f"Federated online aggregator has already been started!")
+            raise RuntimeError("Federated online aggregator has already been started!")
         self._started = True
         try:
-            self._aggr_serv.start(),
+            (self._aggr_serv.start(),)
         except RuntimeError:
             pass
         self._logger.info("Performing further setup...")
@@ -109,10 +118,10 @@ class FederatedOnlineAggregator(ABC):
         """
         self._logger.info("Stopping federated online aggregator...")
         if not self._started:
-            raise RuntimeError(f"Federated online aggregator has not been started!")
+            raise RuntimeError("Federated online aggregator has not been started!")
         self._started = False
         try:
-            self._aggr_serv.stop(timeout=self._timeout),
+            (self._aggr_serv.stop(timeout=self._timeout),)
         except RuntimeError:
             pass
         self._logger.info("Performing further cleanup...")
@@ -140,13 +149,11 @@ class FederatedOnlineAggregator(ABC):
         raise NotImplementedError
 
     def _update_dashboard(self, ressource: str, data: dict):
-        """TODO
-
-        """
+        """TODO"""
         try:
             _ = requests.post(url=self._dashboard + ressource, data=data)
         except requests.exceptions.RequestException:
-            self._logger.warning(f"Dashboard server not available")
+            self._logger.warning("Dashboard server not available")
 
     def __del__(self):
         if self._started:
@@ -165,15 +172,24 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
     models with the current global one and sending them back to the respective client. Note that the latter only works
     if the model aggregator has an internal state for the global model.
     """
+
     _m_aggr: ModelAggregator
 
     _update_interval: int
     _num_clients: int
     _min_clients: float
 
-    def __init__(self, m_aggr: ModelAggregator, addr: tuple[str, int], name: str = "",
-                 timeout: int = 10, update_interval: int = None, num_clients: int = None, min_clients: float = 0.5,
-                 dashboard_serv: str = "http://127.0.0.1:8000/"):
+    def __init__(
+        self,
+        m_aggr: ModelAggregator,
+        addr: tuple[str, int],
+        name: str = "",
+        timeout: int = 10,
+        update_interval: int = None,
+        num_clients: int = None,
+        min_clients: float = 0.5,
+        dashboard_serv: str = "http://127.0.0.1:8000/",
+    ):
         """Creates a new federated model aggregator. If update_interval is not set, defaults to asynchronous federated
         model aggregation, i.e. waiting for individual clients to report their local models in unspecified/unset
         intervals, before sending them the freshly aggregated global model back.
@@ -191,7 +207,9 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
         aggregation step, aborts aggr step if not satisfied. If none provided, tolerates a 50% failure rate.
         :param dashboard_serv: TODO
         """
-        super().__init__(addr=addr, name=name, timeout=timeout, dashboard=dashboard_serv)
+        super().__init__(
+            addr=addr, name=name, timeout=timeout, dashboard=dashboard_serv
+        )
 
         self._m_aggr = m_aggr
 
@@ -214,11 +232,15 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
             # TODO insert heartbeat here (optional), inkl connection count
             try:
                 if self._update_interval is not None:
-                    self._logger.debug("Initiating interval-based synchronous aggregation step...")
+                    self._logger.debug(
+                        "Initiating interval-based synchronous aggregation step..."
+                    )
                     self._sync_aggr()
                     sleep(self._update_interval)
                 else:
-                    self._logger.debug("Checking federated clients for asynchronous aggregation requests...")
+                    self._logger.debug(
+                        "Checking federated clients for asynchronous aggregation requests..."
+                    )
                     self._async_aggr()
             except RuntimeError:
                 # stop() was called
@@ -234,38 +256,57 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
         clients = self._aggr_serv.poll_connections()[1].values()
         if self._num_clients is not None:
             if len(clients) < self._num_clients:
-                self._logger.info(f"Insufficient write-ready clients available for aggregation step [{len(clients)}]!")
+                self._logger.info(
+                    f"Insufficient write-ready clients available for aggregation step [{len(clients)}]!"
+                )
                 return
             clients = sample(cast(Sequence, clients), self._num_clients)
         num_clients = len(clients)
 
-        self._logger.debug(f"Requesting local models from sampled clients [{len(clients)}]...")
+        self._logger.debug(
+            f"Requesting local models from sampled clients [{len(clients)}]..."
+        )
         for client in clients:
             client.send(None)
         sleep(self._timeout)
 
         clients = ep_select(clients)[0]
-        self._logger.debug(f"Receiving local models from available requested clients [{len(clients)}]...")
-        client_models = [model for model
-                         in cast(list[list[np.ndarray]], receive_latest_ep_objs(clients, list).values())
-                         if model is not None]
+        self._logger.debug(
+            f"Receiving local models from available requested clients [{len(clients)}]..."
+        )
+        client_models = [
+            model
+            for model in cast(
+                list[list[np.ndarray]], receive_latest_ep_objs(clients, list).values()
+            )
+            if model is not None
+        ]
 
         if len(client_models) < min(1, int(num_clients * self._min_clients)):
-            self._logger.info(f"Insufficient number of client models for aggregation received [{len(client_models)}]!")
+            self._logger.info(
+                f"Insufficient number of client models for aggregation received [{len(client_models)}]!"
+            )
             return
-        self._logger.debug(f"Aggregating client models [{len(client_models)}] into global model...")
+        self._logger.debug(
+            f"Aggregating client models [{len(client_models)}] into global model..."
+        )
         global_model = self._m_aggr.aggregate(client_models)
 
         clients = self._aggr_serv.poll_connections()[1].values()
-        self._logger.debug(f"Sending aggregated global model to all available clients [{len(clients)}]...")
+        self._logger.debug(
+            f"Sending aggregated global model to all available clients [{len(clients)}]..."
+        )
         for client in clients:
             client.send(global_model)
 
         # TODO formatting, number of clients that the model was sent to @seraphin, use client model len
-        self._update_dashboard("/aggregation/",
-                               {
-                                   'agg_status': "operational", # TODO TO BE REMOVED
-                                   'agg_count': len(client_models)})
+        self._update_dashboard(
+            "/aggregation/",
+            {
+                "agg_status": "operational",  # TODO TO BE REMOVED
+                "agg_count": len(client_models),
+            },
+        )
 
     def _async_aggr(self):
         """Performs an asynchronous federated aggregation step, i.e. checking whether a sufficient number of clients
@@ -275,30 +316,50 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
         """
         clients = self._aggr_serv.poll_connections()[0].values()
         if self._num_clients is not None and len(clients) < self._num_clients:
-            self._logger.info(f"Insufficient read-ready clients available for aggregation step [{len(clients)}]!")
+            self._logger.info(
+                f"Insufficient read-ready clients available for aggregation step [{len(clients)}]!"
+            )
             sleep(1)
             return
 
-        self._logger.debug(f"Receiving local models from requesting clients [{len(clients)}]...")
-        client_models = [model for model
-                         in cast(list[list[np.ndarray]], receive_latest_ep_objs(clients, list).values())
-                         if model is not None]
+        self._logger.debug(
+            f"Receiving local models from requesting clients [{len(clients)}]..."
+        )
+        client_models = [
+            model
+            for model in cast(
+                list[list[np.ndarray]], receive_latest_ep_objs(clients, list).values()
+            )
+            if model is not None
+        ]
 
-        if len(client_models) == 0 or self._num_clients is not None and len(client_models) < self._num_clients:
-            self._logger.info(f"Insufficient number of client models for aggregation received [{len(client_models)}]!")
+        if (
+            len(client_models) == 0
+            or self._num_clients is not None
+            and len(client_models) < self._num_clients
+        ):
+            self._logger.info(
+                f"Insufficient number of client models for aggregation received [{len(client_models)}]!"
+            )
             sleep(1)
             return
-        self._logger.debug(f"Aggregating client models [{len(client_models)}] into global model...")
+        self._logger.debug(
+            f"Aggregating client models [{len(client_models)}] into global model..."
+        )
         global_model = self._m_aggr.aggregate(client_models)
 
         clients = ep_select(clients)[1]
-        self._logger.debug(f"Sending aggregated global model to available requesting clients [{len(clients)}]...")
+        self._logger.debug(
+            f"Sending aggregated global model to available requesting clients [{len(clients)}]..."
+        )
         for client in clients:
             client.send(global_model)
 
         # TODO formatting, number of clients that were used to aggregate a model @seraphin, use .poll_connections()[1]
         # TODO differentiate between time of last update and heartbeat of server *SEE ABOVE*
-        self._update_dashboard("/aggregation/", {'agg_status': "operational", 'agg_count': len(clients)})
+        self._update_dashboard(
+            "/aggregation/", {"agg_status": "operational", "agg_count": len(clients)}
+        )
 
 
 class FederatedValueAggregator(FederatedOnlineAggregator):
@@ -316,10 +377,17 @@ class FederatedValueAggregator(FederatedOnlineAggregator):
     Note that the base class could be extended in various other ways as well (for example adding a dashboard), it is
     recommended to put such functionality into the setup() and cleanup() methods.
     """
+
     _aggr_values: dict[tuple[str, int], deque]
     _window_size: int
 
-    def __init__(self, addr: tuple[str, int], name: str = "", timeout: int = 10, window_size: int = None):
+    def __init__(
+        self,
+        addr: tuple[str, int],
+        name: str = "",
+        timeout: int = 10,
+        window_size: int = None,
+    ):
         """Creates a new federated value aggregator.
 
         :param addr: Address of aggregation server for federated nodes to report to.
@@ -355,7 +423,9 @@ class FederatedValueAggregator(FederatedOnlineAggregator):
                         self._aggr_values[node] = deque(maxlen=self._window_size)
                     try:
                         while True:
-                            new_values = self.process_node_msg(node, node_ep.receive(timeout=0))
+                            new_values = self.process_node_msg(
+                                node, node_ep.receive(timeout=0)
+                            )
                             self._aggr_values[node].extend(new_values)
                     except (RuntimeError, TimeoutError):
                         pass
@@ -384,7 +454,13 @@ class FederatedPredictionAggregator(FederatedValueAggregator):
     TODO @Seraphin New dashboard for IDS predictions
     """
 
-    def __init__(self, addr: tuple[str, int], name: str = "", timeout: int = 10, window_size: int = None):
+    def __init__(
+        self,
+        addr: tuple[str, int],
+        name: str = "",
+        timeout: int = 10,
+        window_size: int = None,
+    ):
         """Creates a new federated prediction aggregator.
 
         :param addr: Address of aggregation server for federated nodes to report to.
@@ -395,18 +471,16 @@ class FederatedPredictionAggregator(FederatedValueAggregator):
         super().__init__(addr=addr, name=name, timeout=timeout, window_size=window_size)
 
     def setup(self):
-        """
-
-        """
+        """ """
         pass
 
     def cleanup(self):
-        """
-
-        """
+        """ """
         pass
 
-    def process_node_msg(self, node: tuple[str, int], msg: tuple[np.ndarray, np.ndarray]) -> list:
+    def process_node_msg(
+        self, node: tuple[str, int], msg: tuple[np.ndarray, np.ndarray]
+    ) -> list:
         """Converts a received message from a federated node containing a minibatch of predictions into a list of tuples
         that each contain a datapoint and its respective prediction.
 
@@ -422,17 +496,23 @@ class FederatedPredictionAggregator(FederatedValueAggregator):
             values.append(t)
 
             if y_pred[i]:
-                self._update_dashboard("/alert/",
-                                       {'category': "alert", 'active': True, 'message': "Alert raised!"})
+                self._update_dashboard(
+                    "/alert/",
+                    {"category": "alert", "active": True, "message": "Alert raised!"},
+                )
         return values
 
 
 class FederatedEvaluationAggregator(FederatedValueAggregator):
-    """TODO @Seraphin Evaluator Integration
+    """TODO @Seraphin Evaluator Integration"""
 
-    """
-
-    def __init__(self, addr: tuple[str, int], name: str = "", timeout: int = 10, window_size: int = None):
+    def __init__(
+        self,
+        addr: tuple[str, int],
+        name: str = "",
+        timeout: int = 10,
+        window_size: int = None,
+    ):
         """Creates a new federated evaluator.
 
         :param addr: Address of aggregation server for federated nodes to report to.
@@ -443,32 +523,30 @@ class FederatedEvaluationAggregator(FederatedValueAggregator):
         super().__init__(addr=addr, name=name, timeout=timeout, window_size=window_size)
 
     def setup(self):
-        """
-
-        """
+        """ """
         pass
 
     def cleanup(self):
-        """
-
-        """
+        """ """
         pass
 
     def process_node_msg(self, node: tuple[str, int], msg):
         """TODO
-{metric.name: metric(y_true, y_pred) for metric in self._metrics}
-{"accuracy": accuracy, "recall": recall, "true negative rate": tnr,
-                   "precision": precision, "negative predictive value": npv,
-                   "false negative rate": fnr, "false positive rate": fpr, "f1 measure": f1}
+        {metric.name: metric(y_true, y_pred) for metric in self._metrics}
+        {"accuracy": accuracy, "recall": recall, "true negative rate": tnr,
+                           "precision": precision, "negative predictive value": npv,
+                           "false negative rate": fnr, "false positive rate": fpr, "f1 measure": f1}
         """
         if "conf_matrix_online_evaluation" in msg:
             conf_matrix = msg["conf_matrix_online_evaluation"]
-            self._update_dashboard("/metrics/",
-                                   {
-                                       'address': node[0],
-                                       'accuracy': conf_matrix["accuracy"],
-                                       'recall': conf_matrix["recall"],
-                                       'precision': conf_matrix["precision"],
-                                       'f1': conf_matrix["f1 measure"]
-                                   })
+            self._update_dashboard(
+                "/metrics/",
+                {
+                    "address": node[0],
+                    "accuracy": conf_matrix["accuracy"],
+                    "recall": conf_matrix["recall"],
+                    "precision": conf_matrix["precision"],
+                    "f1": conf_matrix["f1 measure"],
+                },
+            )
         return msg

@@ -8,43 +8,55 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('view', '0001_initial'),
+        ("view", "0001_initial"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='node',
-            name='accuracy',
+            model_name="node",
+            name="accuracy",
         ),
         migrations.RemoveField(
-            model_name='node',
-            name='f1',
+            model_name="node",
+            name="f1",
         ),
         migrations.RemoveField(
-            model_name='node',
-            name='precision',
+            model_name="node",
+            name="precision",
         ),
         migrations.RemoveField(
-            model_name='node',
-            name='recall',
+            model_name="node",
+            name="recall",
         ),
         migrations.AlterField(
-            model_name='node',
-            name='adress',
+            model_name="node",
+            name="adress",
             field=models.CharField(max_length=255, unique=True),
         ),
         migrations.CreateModel(
-            name='SensorData',
+            name="SensorData",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('accuracy', models.FloatField()),
-                ('f1', models.FloatField()),
-                ('precision', models.FloatField()),
-                ('recall', models.FloatField()),
-                ('timestamp', models.DateTimeField(auto_now_add=True)),
-                ('address', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='view.node')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("accuracy", models.FloatField()),
+                ("f1", models.FloatField()),
+                ("precision", models.FloatField()),
+                ("recall", models.FloatField()),
+                ("timestamp", models.DateTimeField(auto_now_add=True)),
+                (
+                    "address",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="view.node"
+                    ),
+                ),
             ],
         ),
     ]

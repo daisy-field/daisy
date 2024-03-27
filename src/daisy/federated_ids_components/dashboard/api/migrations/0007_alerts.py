@@ -4,20 +4,37 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('api', '0006_evaluation_node_last_connection'),
+        ("api", "0006_evaluation_node_last_connection"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Alerts',
+            name="Alerts",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('category', models.CharField(choices=[('info', 'Info'), ('warning', 'Warning'), ('alert', 'Alert')], max_length=10)),
-                ('active', models.BooleanField(default=True)),
-                ('message', models.CharField(max_length=255, unique=True)),
-                ('timestamp', models.DateTimeField(auto_now_add=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "category",
+                    models.CharField(
+                        choices=[
+                            ("info", "Info"),
+                            ("warning", "Warning"),
+                            ("alert", "Alert"),
+                        ],
+                        max_length=10,
+                    ),
+                ),
+                ("active", models.BooleanField(default=True)),
+                ("message", models.CharField(max_length=255, unique=True)),
+                ("timestamp", models.DateTimeField(auto_now_add=True)),
             ],
         ),
     ]

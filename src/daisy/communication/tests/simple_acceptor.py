@@ -10,9 +10,14 @@ from daisy.communication import StreamEndpoint
 
 
 def threaded_acceptor(t_id: int):
-    endpoint = StreamEndpoint(name=f"Acceptor-{t_id}", addr=("127.0.0.1", 32000 + t_id),
-                              remote_addr=("127.0.0.1", 13000 + t_id),
-                              acceptor=True, multithreading=True, buffer_size=10000)
+    endpoint = StreamEndpoint(
+        name=f"Acceptor-{t_id}",
+        addr=("127.0.0.1", 32000 + t_id),
+        remote_addr=("127.0.0.1", 13000 + t_id),
+        acceptor=True,
+        multithreading=True,
+        buffer_size=10000,
+    )
     endpoint.start()
 
     i = 0
@@ -30,9 +35,14 @@ def threaded_acceptor(t_id: int):
                 endpoint.stop(shutdown=True)
                 sleep(random.randrange(3))
 
-                endpoint = StreamEndpoint(name=f"Acceptor-{t_id}", addr=("127.0.0.1", 32000 + t_id),
-                                          remote_addr=("127.0.0.1", 13000 + t_id),
-                                          acceptor=True, multithreading=True, buffer_size=10000)
+                endpoint = StreamEndpoint(
+                    name=f"Acceptor-{t_id}",
+                    addr=("127.0.0.1", 32000 + t_id),
+                    remote_addr=("127.0.0.1", 13000 + t_id),
+                    acceptor=True,
+                    multithreading=True,
+                    buffer_size=10000,
+                )
                 endpoint.start()
             else:
                 endpoint.stop()
@@ -47,18 +57,34 @@ def multithreaded_acceptor(num_threads: int):
 
 
 def clashing_acceptor():
-    endpoint_1 = StreamEndpoint(name=f"Acceptor-{1}", addr=("127.0.0.1", 13000),
-                                remote_addr=("127.0.0.1", 32000),
-                                acceptor=True, multithreading=True, buffer_size=10000)
+    endpoint_1 = StreamEndpoint(
+        name=f"Acceptor-{1}",
+        addr=("127.0.0.1", 13000),
+        remote_addr=("127.0.0.1", 32000),
+        acceptor=True,
+        multithreading=True,
+        buffer_size=10000,
+    )
 
-    endpoint_2 = StreamEndpoint(name=f"Acceptor-{2}", addr=("127.0.0.1", 13000),
-                                remote_addr=("127.0.0.1", 32000),
-                                acceptor=True, multithreading=True, buffer_size=10000)
+    endpoint_2 = StreamEndpoint(
+        name=f"Acceptor-{2}",
+        addr=("127.0.0.1", 13000),
+        remote_addr=("127.0.0.1", 32000),
+        acceptor=True,
+        multithreading=True,
+        buffer_size=10000,
+    )
 
 
 def single_message_acceptor():
-    endpoint = StreamEndpoint(name="Acceptor", addr=("127.0.0.1", 32000), remote_addr=("127.0.0.1", 13000),
-                              acceptor=True, multithreading=True, buffer_size=10000)
+    endpoint = StreamEndpoint(
+        name="Acceptor",
+        addr=("127.0.0.1", 32000),
+        remote_addr=("127.0.0.1", 13000),
+        acceptor=True,
+        multithreading=True,
+        buffer_size=10000,
+    )
     endpoint.start()
 
     print(endpoint.receive())
@@ -67,8 +93,14 @@ def single_message_acceptor():
 
 
 def simple_acceptor():
-    endpoint = StreamEndpoint(name="Acceptor", addr=("127.0.0.1", 32000), remote_addr=("127.0.0.1", 13000),
-                              acceptor=True, multithreading=True, buffer_size=10000)
+    endpoint = StreamEndpoint(
+        name="Acceptor",
+        addr=("127.0.0.1", 32000),
+        remote_addr=("127.0.0.1", 13000),
+        acceptor=True,
+        multithreading=True,
+        buffer_size=10000,
+    )
     endpoint.start()
 
     i = 0
@@ -82,8 +114,11 @@ def simple_acceptor():
 
 
 if __name__ == "__main__":
-    logging.basicConfig(format="%(asctime)s %(levelname)-8s %(name)-10s %(message)s", datefmt="%Y-%m-%d %H:%M:%S",
-                        level=logging.DEBUG)
+    logging.basicConfig(
+        format="%(asctime)s %(levelname)-8s %(name)-10s %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+        level=logging.DEBUG,
+    )
 
     simple_acceptor()
     # single_message_acceptor()
