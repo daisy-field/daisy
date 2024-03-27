@@ -19,9 +19,8 @@ Author: Fabian Hofmann, Jonathan Ackerschewski, Seraphin Zunzer
 Modified: 28.02.24
 """
 
-from .data_processor import DataProcessor, SimpleDataProcessor
 from .data_handler import SourceHandler, SimpleSourceHandler, SimpleRemoteSourceHandler
-from .data_source import DataSource
+from .data_processor import DataProcessor, SimpleDataProcessor
 from .data_relay import DataSourceRelay, CSVFileRelay
-
+from .data_source import DataSource
 from .network_traffic import *

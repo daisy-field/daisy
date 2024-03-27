@@ -13,7 +13,6 @@ router.register(r"evaluation", views.EvaluationSerializerView)
 router.register(r"alert", views.AlertsSerializerView)
 router.register(r"node", views.NodeSerializerView)
 
-
 # Wire up our API using automatic URL routing.
 # Additionally, we include login URLs for the browsable API.
 urlpatterns = [

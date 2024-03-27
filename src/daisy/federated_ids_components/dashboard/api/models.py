@@ -3,6 +3,7 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 from django.db import models
 
+
 # Create your models here.
 
 

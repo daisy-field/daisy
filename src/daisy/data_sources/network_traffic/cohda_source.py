@@ -16,6 +16,7 @@ from typing import Callable
 
 import numpy as np
 
+from ...data_sources.data_processor import SimpleDataProcessor
 from ...data_sources.network_traffic.pyshark_processor import (
     default_f_features,
     default_nn_aggregator,
@@ -23,7 +24,6 @@ from ...data_sources.network_traffic.pyshark_processor import (
     pyshark_filter_fn,
     pyshark_reduce_fn,
 )
-from ...data_sources.data_processor import SimpleDataProcessor
 
 
 class CohdaProcessor(SimpleDataProcessor):

@@ -13,15 +13,15 @@ Modified: 28.02.24
 # TODO - NaN values also need to converted to something useful (that does not break the prediction/training)
 """
 
+import ipaddress
 import json
 import logging
-import ipaddress
-from typing import Callable
-from ipaddress import AddressValueError
-import numpy as np
 from collections import defaultdict
 from collections.abc import MutableMapping
+from ipaddress import AddressValueError
+from typing import Callable
 
+import numpy as np
 from pyshark.packet.fields import LayerField, LayerFieldsContainer
 from pyshark.packet.layers.json_layer import JsonLayer
 from pyshark.packet.layers.xml_layer import XmlLayer

@@ -28,12 +28,12 @@ Modified: 27.11.23
 """
 
 from .aggregator import FederatedModelAggregator
+from .aggregator import FederatedOnlineAggregator
 from .aggregator import (
     FederatedValueAggregator,
     FederatedPredictionAggregator,
     FederatedEvaluationAggregator,
 )
-from .aggregator import FederatedOnlineAggregator
 
 # from .evaluator import FederatedOnlineEvaluator
 from .node import FederatedOnlineClient, FederatedOnlinePeer

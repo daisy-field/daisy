@@ -2,8 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """
-An efficient, persistent, and stateless communications stream between two endpoints over BSD sockets. Supports SSL
-and LZ4 compression.
+An efficient, persistent, and stateless communications stream between two endpoints over
+BSD sockets. Supports SSL (soon) and LZ4 compression.
 
 Author: Fabian Hofmann
 Modified: 12.11.23
@@ -29,17 +29,21 @@ from lz4.frame import compress, decompress
 
 
 class EndpointSocket:
-    """A bundle of up to two sockets, that is used to communicate with another endpoint over a persistent TCP
-    connection in synchronous manner. Supports authentication and encryption over SSL, and stream compression using
-    LZ4. Thread-safe for both access to the same endpoint socket and using multiple threads using endpoint sockets
-    set to the same address (this is organized through an array of class variables, see below for more info).
+    """A bundle of up to two sockets, that is used to communicate with another endpoint
+    over a persistent TCP connection in synchronous manner. Supports authentication and
+    encryption over SSL, and stream compression using LZ4. Thread-safe for both access
+    to the same endpoint socket and using multiple threads using endpoint sockets set to
+    the same address (this is organized through an array of class variables, see below
+    for more info).
 
-    :cvar _listen_socks: Active listen sockets, along with a respective lock to access each safely.
+    :cvar _listen_socks: Active listen sockets, along with a respective lock to access
+    each safely.
     :cvar _acc_r_socks: Pending registered connection cache for each listen socket.
     :cvar _acc_p_socks: Pending unregistered connection queue for each listen socket.
     :cvar _reg_r_addrs: Registered remote addresses.
     :cvar _addr_map: Mapping between registered remote addresses and their aliases.
-    :cvar _act_l_counts: Active thread counter for each listen socket. Socket closes if counter reaches zero.
+    :cvar _act_l_counts: Active thread counter for each listen socket. Socket closes if
+    counter reaches zero.
     :cvar _lock: General purpose lock to ensure safe access to class variables.
     :cvar _cls_logger: General purpose logger for class methods.
     """
@@ -80,21 +84,24 @@ class EndpointSocket:
         send_b_size: int = 65536,
         recv_b_size: int = 65536,
     ):
-        """Creates a new endpoint socket. Implementation note: A pre-defined remote address is not a guarantee that this
-        endpoint will successfully be allowed to initialize for this remote address --- for example if another endpoint
-        sock with the same remote address (be it generic or pre-defined) has already been registered, then the current
-        one will throw an error.
+        """Creates a new endpoint socket. Implementation note: A pre-defined remote
+        address is not a guarantee that this endpoint will successfully be allowed to
+        initialize for this remote address --- for example if another endpoint sock with
+        the same remote address (be it generic or pre-defined) has already been
+        registered, then the current one will throw an error.
 
         :param name: Name of endpoint for logging purposes.
-        :param addr: Address of endpoint. Mandatory in acceptor mode (acceptor set to True), for initiators this fixes
-        the address the endpoint is bound to.
-        :param remote_addr: Address of remote endpoint to be connected to. Mandatory in initiator mode (acceptor set to
-        false), for acceptors this fixes the remote endpoint that is allowed to be connected to this endpoint.
-        :param acceptor: Determines whether the endpoint accepts or initiates connections to/from other endpoints.
+        :param addr: Address of endpoint. Mandatory in acceptor mode (acceptor set to
+        True), for initiators this fixes the address the endpoint is bound to.
+        :param remote_addr: Address of remote endpoint to be connected to. Mandatory in
+        initiator mode (acceptor set to false), for acceptors this fixes the remote
+        endpoint that is allowed to be connected to this endpoint.
+        :param acceptor: Determines whether the endpoint accepts or initiates
+        connections to/from other endpoints.
         :param send_b_size: Underlying send buffer size of socket.
         :param recv_b_size: Underlying receive buffer size of socket.
-        :raises ValueError: If the remote address is already taken for the acceptor, or if the address/remote address is
-        not provided for acceptor/initiator, respectively.
+        :raises ValueError: If the remote address is already taken for the acceptor,
+        or if the address/remote address is not provided for acceptor/initiator.
         """
         self._logger = logging.getLogger(name + "-Socket")
         self._logger.info(f"Initializing endpoint socket {addr, remote_addr}...")
@@ -234,7 +241,8 @@ class EndpointSocket:
             while self._opened:
                 try:
                     self._logger.info(
-                        f"Trying to (re-)establish connection {self._addr, self._remote_addr}..."
+                        f"Trying to (re-)establish connection "
+                        f"{self._addr, self._remote_addr}..."
                     )
                     _close_socket(self._sock)
                     self._sock = None
@@ -261,20 +269,23 @@ class EndpointSocket:
                     break
                 except (OSError, ValueError, AttributeError, RuntimeError) as e:
                     self._logger.info(
-                        f"{e.__class__.__name__}({e}) while trying to (re-)establish connection "
-                        f"{self._addr, self._remote_addr}. Retrying..."
+                        f"{e.__class__.__name__}({e}) while trying to (re-)establish "
+                        f"connection {self._addr, self._remote_addr}. Retrying..."
                     )
                     sleep(10)
         self._conn_lock.release()
 
     @classmethod
     def _reg_remote(cls, remote_addr: tuple[str, int]):
-        """Registers a remote address into the class datastructures, notifying other endpoints of its existence. Tries
-        to both resolve the address and finds its fully qualified hostname to reserve all its aliases. If only a single
-        alias is already registered, aborts the whole registration process and registers none of the aliases.
+        """Registers a remote address into the class datastructures, notifying other
+        endpoints of its existence. Tries to both resolve the address and finds its
+        fully qualified hostname to reserve all its aliases. If only a single alias is
+        already registered, aborts the whole registration process and registers none of
+        the aliases.
 
         :param remote_addr: Remote address to register.
-        :raises ValueError: If remote address is already registered (possibly by another caller).
+        :raises ValueError: If remote address is already registered (possibly by another
+        caller).
         """
         cls._cls_logger.info(f"Registering remote address ({remote_addr})...")
         addr_mapping = set()
@@ -295,7 +306,8 @@ class EndpointSocket:
             for addr in addr_mapping:
                 if addr in cls._reg_r_addrs:
                     raise ValueError(
-                        f"Remote address ({addr}) (resolved from {remote_addr}) is already registered!"
+                        f"Remote address ({addr}) (resolved from {remote_addr})"
+                        " is already registered!"
                     )
 
             cls._addr_map[remote_addr] = addr_mapping
@@ -320,7 +332,8 @@ class EndpointSocket:
         :param remote_addr: Remote address that was registered.
         """
         cls._cls_logger.info(
-            f"Fixing registered and pending connection caches for address pair {addr, remote_addr}..."
+            f"Fixing registered and pending connection caches for address pair "
+            f"{addr, remote_addr}..."
         )
         l_addr, _, _ = cls._get_l_socket(addr)
         with cls._lock:
@@ -684,14 +697,18 @@ class StreamEndpoint:
 
         :param name: Name of endpoint for logging purposes.
         :param addr: Address of endpoint.
-        :param remote_addr: Address of remote endpoint to be connected to. Optional in acceptor mode.
-        :param acceptor: Determines whether the endpoint accepts or initiates connections to/from other endpoints.
+        :param remote_addr: Address of remote endpoint to be connected to. Optional in
+        acceptor mode.
+        :param acceptor: Determines whether the endpoint accepts or initiates
+        connections to/from other endpoints.
         :param send_b_size: Underlying send buffer size of socket.
         :param recv_b_size: Underlying receive buffer size of socket.
         :param compression: Enables lz4 stream compression for bandwidth optimization.
         :param marshal_f: Marshal function to serialize objects to send into bytes.
-        :param unmarshal_f: Unmarshal function to deserialize received bytes into objects.
-        :param multithreading: Enables transparent multithreading (i.e. asynchronous object processing) for speedup.
+        :param unmarshal_f: Unmarshal function to deserialize received bytes into
+        objects.
+        :param multithreading: Enables transparent multithreading (i.e. asynchronous
+        object processing) for speedup.
         :param buffer_size: Size of shared buffer in multithreading mode.
         """
         self._logger = logging.getLogger(name)
@@ -723,12 +740,14 @@ class StreamEndpoint:
         self._logger.info(f"Endpoint {addr, remote_addr} initialized.")
 
     def start(self, blocking=True) -> threading.Event:
-        """Starts the endpoint, either in threaded fashion or as part of the main thread. By doing so, the two endpoints
-        are connected and the datastream is opened. This method is blocking until a connection is established by default
-        if multithreading is not enabled or the respective flag is not set. If either is the case, the caller can check
-        the readiness of the connection via the returned event object. Note that in multithreading mode, objects can
-        already be sent/received, however they will only be stored in internal buffers until the connection is
-        established!
+        """Starts the endpoint, either in threaded fashion or as part of the main
+        thread. By doing so, the two endpoints are connected and the datastream is
+        opened. This method is blocking until a connection is established by default
+        if multithreading is not enabled or the respective flag is not set. If either
+        is the case, the caller can check the readiness of the connection via the
+        returned event object. Note that in multithreading mode, objects can already
+        be sent/received, however they will only be stored in internal buffers until
+        the connection is established!
 
         :param blocking: Whether to wait for a connection to be established in non-multithreading (sync) mode.
         :return: Event object to check endpoint's readiness to send/receive. Always true if start() was called blocking.
