@@ -40,7 +40,7 @@ def _parse_args() -> argparse.Namespace:
                         metavar="", help="Show debug outputs")
     parser.add_argument("--serv", required=True,
                         help="IP or hostname of model aggregation server")
-    parser.add_argument("--servPort", type=int, default=8001, choices=range(1, 65535),
+    parser.add_argument("--servPort", type=int, default=8000, choices=range(1, 65535),
                         metavar="", help="Port of model aggregation server")
 
     aggr_options = parser.add_argument_group("Aggregator Options")
@@ -70,7 +70,7 @@ def create_server():
     # Aggregator
     aggr = FedAvgAggregator()
     FederatedModelAggregator(m_aggr=aggr, addr=(args.serv, args.servPort),
-                             timeout=args.timeout, update_interval=args.update_interval, num_clients=2).start()
+                             timeout=args.timeout, update_interval=args.updateInterval, num_clients=2).start()
 
 
 if __name__ == "__main__":

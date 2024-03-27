@@ -120,6 +120,10 @@ dependencies = [
 [project.optional-dependencies] # Optional
 cuda = ["tensorflow[and-cuda]~=2.15.0"]
 direct-ml = ["tensorflow-directml-plugin"]
+dev = [
+    "pre-commit",
+    "ruff"
+]
 #dev = ["check-manifest"]
 #test = ["coverage"]
 

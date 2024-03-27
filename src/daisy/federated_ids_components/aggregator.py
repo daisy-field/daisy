@@ -174,7 +174,7 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
     def __init__(self, m_aggr: ModelAggregator, addr: tuple[str, int], name: str = "",
                  timeout: int = 10, update_interval: int = None, num_clients: int = None, min_clients: float = 0.5,
                  dashboard_serv: str = "http://127.0.0.1:8000/"):
-        """Creates a new federated model aggregator. If update_interval_t is not set, defaults to asynchronous federated
+        """Creates a new federated model aggregator. If update_interval is not set, defaults to asynchronous federated
         model aggregation, i.e. waiting for individual clients to report their local models in unspecified/unset
         intervals, before sending them the freshly aggregated global model back.
 

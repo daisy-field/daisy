@@ -28,6 +28,7 @@
 import argparse
 import logging
 import pathlib
+import time
 
 import tensorflow as tf
 
@@ -115,10 +116,16 @@ def create_client():
     # Eval Metrics
     metrics = [ConfMatrSlidingWindowEvaluation(window_size=args.batchSize*8)]
 
-    FederatedOnlineClient(data_source=data_source, batch_size=args.batchSize, model=model,
+    client = FederatedOnlineClient(data_source=data_source, batch_size=args.batchSize, model=model,
                           label_split=65, metrics=metrics,
                           m_aggr_server=m_aggr_serv, eval_server=eval_serv, aggr_server=aggr_serv,
-                          update_interval_t=args.updateInterval).start()
+                          update_interval_t=args.updateInterval)
+    client.start()
+    # TODO this is not blocking and exits all threads after main threads completion
+    # FIXME check for previous correct but actually wrong behavior
+    client.stop()
+
+
 
 
 if __name__ == "__main__":
