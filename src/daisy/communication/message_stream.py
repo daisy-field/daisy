@@ -1,17 +1,18 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""
-An efficient, persistent, and stateless communications stream between two endpoints over
-BSD sockets. Supports SSL (soon) and LZ4 compression.
+"""An efficient, persistent, and stateless communications stream between two
+endpoints over BSD sockets. Supports SSL (soon) and LZ4 compression.
 
 Author: Fabian Hofmann
 Modified: 12.11.23
 
 TODO Future Work: SSL https://docs.python.org/3/library/ssl.html
-TODO Future Work: Potential race conditions during rapid start/stop | open/close of endpoints/endpoint sockets
+TODO Future Work: Potential race conditions during rapid start/stop |
+open/close of endpoints/endpoint sockets
 TODO Future Work: Defining granularity of logging in inits
-FIXME: (Potential Bug) Sender/Receiver Threads racing for re-establishing connection leading to inefficiencies
+FIXME: (Potential Bug) Sender/Receiver Threads racing for re-establishing connection
+leading to inefficiencies
 """
 
 import ctypes
@@ -29,12 +30,12 @@ from lz4.frame import compress, decompress
 
 
 class EndpointSocket:
-    """A bundle of up to two sockets, that is used to communicate with another endpoint
-    over a persistent TCP connection in synchronous manner. Supports authentication and
-    encryption over SSL, and stream compression using LZ4. Thread-safe for both access
-    to the same endpoint socket and using multiple threads using endpoint sockets set to
-    the same address (this is organized through an array of class variables, see below
-    for more info).
+    """A bundle of up to two sockets, that is used to communicate with another
+    endpoint over a persistent TCP connection in synchronous manner. Supports
+    authentication and encryption over SSL, and stream compression using LZ4.
+    Thread-safe for both access to the same endpoint socket and using multiple
+    threads using endpoint sockets set to the same address (this is organized through
+    an array of class variables, see below for more info).
 
     :cvar _listen_socks: Active listen sockets, along with a respective lock to access
     each safely.
@@ -42,8 +43,8 @@ class EndpointSocket:
     :cvar _acc_p_socks: Pending unregistered connection queue for each listen socket.
     :cvar _reg_r_addrs: Registered remote addresses.
     :cvar _addr_map: Mapping between registered remote addresses and their aliases.
-    :cvar _act_l_counts: Active thread counter for each listen socket. Socket closes if
-    counter reaches zero.
+    :cvar _act_l_counts: Active thread counter for each listen socket. Socket closes
+    if counter reaches zero.
     :cvar _lock: General purpose lock to ensure safe access to class variables.
     :cvar _cls_logger: General purpose logger for class methods.
     """
@@ -86,8 +87,8 @@ class EndpointSocket:
     ):
         """Creates a new endpoint socket. Implementation note: A pre-defined remote
         address is not a guarantee that this endpoint will successfully be allowed to
-        initialize for this remote address --- for example if another endpoint sock with
-        the same remote address (be it generic or pre-defined) has already been
+        initialize for this remote address --- for example if another endpoint sock
+        with the same remote address (be it generic or pre-defined) has already been
         registered, then the current one will throw an error.
 
         :param name: Name of endpoint for logging purposes.
@@ -128,8 +129,9 @@ class EndpointSocket:
         self._logger.info(f"Endpoint socket {addr, remote_addr} initialized.")
 
     def open(self):
-        """Opens the endpoint socket along with its underlying socket(s) and its connection to a/the remote endpoint
-        socket. Blocking until the connection is established.
+        """Opens the endpoint socket along with its underlying socket(s) and its
+        connection to a/the remote endpoint socket. Blocking until the connection is
+        established.
         """
         self._logger.info("Opening endpoint socket...")
         self._opened = True
@@ -139,8 +141,9 @@ class EndpointSocket:
         self._logger.info("Endpoint socket opened.")
 
     def close(self, shutdown: bool = False):
-        """Closes the endpoint socket, cleaning up any underlying datastructures if acceptor. If already closed, allows
-        the cleanup of just the datastructures incase a shutdown is requested.
+        """Closes the endpoint socket, cleaning up any underlying datastructures if
+        acceptor. If already closed, allows the cleanup of just the datastructures
+        incase a shutdown is requested.
         """
         if (
             not self._opened
@@ -163,8 +166,9 @@ class EndpointSocket:
         self._logger.info("Endpoint socket closed.")
 
     def send(self, p_data: bytes):
-        """Sends the given bytes of a single object over the connection, performing simple marshalling (size is
-        sent first, then the bytes of the object). Fault-tolerant for breakdowns and resets in the connection. Blocking.
+        """Sends the given bytes of a single object over the connection, performing
+        simple marshalling (size is sent first, then the bytes of the object).
+        Fault-tolerant for breakdowns and resets in the connection. Blocking.
 
         :param p_data: Bytes to send.
         """
@@ -177,14 +181,16 @@ class EndpointSocket:
                 sleep(1)
             except (OSError, ValueError, RuntimeError) as e:
                 self._logger.warning(
-                    f"{e.__class__.__name__}({e}) while trying to send data. Retrying..."
+                    f"{e.__class__.__name__}({e}) "
+                    "while trying to send data. Retrying..."
                 )
                 self._connect()
 
     def recv(self, timeout: int = None) -> Optional[bytes]:
-        """Receives the bytes of a single object sent over the connection, performing simple marshalling (size is
-        received first, then the bytes of the object). Fault-tolerant for breakdowns and resets in the connection.
-        Blocking in default-mode if timeout not set.
+        """Receives the bytes of a single object sent over the connection, performing
+        simple marshalling (size is received first, then the bytes of the object).
+        Fault-tolerant for breakdowns and resets in the connection. Blocking in
+        default-mode if timeout not set.
 
         :param timeout: Timeout (seconds) to receive an object to return.
         :return: Received bytes or None of end point socket has been closed.
@@ -201,7 +207,8 @@ class EndpointSocket:
                 if timeout is not None and type(e) is TimeoutError:
                     raise e
                 self._logger.warning(
-                    f"{e.__class__.__name__}({e}) while trying to receive data. Retrying..."
+                    f"{e.__class__.__name__}({e}) "
+                    "while trying to receive data. Retrying..."
                 )
                 self._connect()
         return None
@@ -215,11 +222,14 @@ class EndpointSocket:
             * 0,2: Whether one is able to write on the underlying socket.
             + 1,0: Address of endpoint socket, else None
             + 1,1: Address of remote endpoint socket, else None.
-        Note this does not necessarily guarantee that the underlying socket is actually connected and available for
-        reading/writing; e.g. the connection could have broken down since then and is currently being re-established.
+        Note this does not necessarily guarantee that the underlying socket is
+        actually connected and available for reading/writing; e.g. the connection
+        could have broken down since then and is currently being re-established.
 
-        :param lazy: Whether to lazily skip the actual state of the underlying socket and just check for connectivity.
-        :return: Tuple of boolean states (connectivity, readability, writability) and address-pair of endpoint socket.
+        :param lazy: Whether to lazily skip the actual state of the underlying socket
+        and just check for connectivity.
+        :return: Tuple of boolean states (connectivity, readability, writability) and
+        address-pair of endpoint socket.
         """
         states = [self._sock is not None] + [False] * 2
         if not lazy:
@@ -231,9 +241,10 @@ class EndpointSocket:
         return states, (self._addr, self._remote_addr)
 
     def _connect(self):
-        """(Re-)Establishes a connection to a/the remote endpoint socket, first performing any necessary cleanup of the
-        underlying socket, before opening it again and trying to connect/accept a remote endpoint socket. Fault-tolerant
-        for breakdowns and resets in the connection. Blocking.
+        """(Re-)Establishes a connection to a/the remote endpoint socket,
+        first performing any necessary cleanup of the underlying socket,
+        before opening it again and trying to connect/accept a remote endpoint
+        socket. Fault-tolerant for breakdowns and resets in the connection. Blocking.
         """
         if not self._conn_lock.acquire(blocking=False):
             return
@@ -279,13 +290,13 @@ class EndpointSocket:
     def _reg_remote(cls, remote_addr: tuple[str, int]):
         """Registers a remote address into the class datastructures, notifying other
         endpoints of its existence. Tries to both resolve the address and finds its
-        fully qualified hostname to reserve all its aliases. If only a single alias is
-        already registered, aborts the whole registration process and registers none of
-        the aliases.
+        fully qualified hostname to reserve all its aliases. If only a single alias
+        is already registered, aborts the whole registration process and registers
+        none of the aliases.
 
         :param remote_addr: Remote address to register.
-        :raises ValueError: If remote address is already registered (possibly by another
-        caller).
+        :raises ValueError: If remote address is already registered (possibly by
+        another caller).
         """
         cls._cls_logger.info(f"Registering remote address ({remote_addr})...")
         addr_mapping = set()
@@ -317,16 +328,19 @@ class EndpointSocket:
 
     @classmethod
     def _fix_rp_acc_socks(cls, addr: tuple[str, int], remote_addr: tuple[str, int]):
-        """After a remote address has been registered, cycles the waiting connections of that remote address to the
-        registered socket dictionary from the pending socket queue. Necessary, as new endpoint sockets may be created
-        while the listening socket is already opened and connections are already getting accepted.
+        """After a remote address has been registered, cycles the waiting connections
+        of that remote address to the registered socket dictionary from the pending
+        socket queue. Necessary, as new endpoint sockets may be created while the
+        listening socket is already opened and connections are already getting accepted.
 
-        Note this method merely helps in speeding up the sorting of connections to the correct endpoint socket and
-        operates in best-effort manner, as the whole method is not considered a critical section, i.e. during the
-        cycling of connections, the registered connection could be accepted by another thread and be put into the
-        pending connection cache, where it will be dequeued by another thread --- which will result in a ValueError
-        since the remote peer is obviously registered. However, no much of an issue, as the error handling is done in
-        the background during the handling of existing connections.
+        Note this method merely helps in speeding up the sorting of connections to
+        the correct endpoint socket and operates in best-effort manner, as the whole
+        method is not considered a critical section, i.e. during the cycling of
+        connections, the registered connection could be accepted by another thread
+        and be put into the pending connection cache, where it will be dequeued by
+        another thread --- which will result in a ValueError since the remote peer is
+        obviously registered. However, no much of an issue, as the error handling is
+        done in the background during the handling of existing connections.
 
         :param addr: Address of endpoint.
         :param remote_addr: Remote address that was registered.
@@ -359,7 +373,8 @@ class EndpointSocket:
             except queue.Full:
                 _close_socket(a_sock)
         cls._cls_logger.info(
-            f"Registered and pending connection caches for address pair {addr, remote_addr} fixed."
+            "Registered and pending connection caches for "
+            f"address pair {addr, remote_addr} fixed."
         )
 
     @classmethod
@@ -394,8 +409,8 @@ class EndpointSocket:
 
     @classmethod
     def _open_l_socket(cls, addr: tuple[str, int]):
-        """Opens the socket listening to a given address, iff there are no further endpoint sockets listening on the
-        same socket as well.
+        """Opens the socket listening to a given address, iff there are no further
+        endpoint sockets listening on the same socket as well.
 
         :param addr: Address of listen socket to open.
         """
