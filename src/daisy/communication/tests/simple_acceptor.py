@@ -1,6 +1,8 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
+"""TODO"""
+
 import logging
 import random
 import threading
@@ -57,7 +59,7 @@ def multithreaded_acceptor(num_threads: int):
 
 
 def clashing_acceptor():
-    endpoint_1 = StreamEndpoint(
+    endpoint_1 = StreamEndpoint(  # noqa: F841
         name=f"Acceptor-{1}",
         addr=("127.0.0.1", 13000),
         remote_addr=("127.0.0.1", 32000),
@@ -66,7 +68,7 @@ def clashing_acceptor():
         buffer_size=10000,
     )
 
-    endpoint_2 = StreamEndpoint(
+    endpoint_2 = StreamEndpoint(  # noqa: F841
         name=f"Acceptor-{2}",
         addr=("127.0.0.1", 13000),
         remote_addr=("127.0.0.1", 32000),
