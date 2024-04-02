@@ -1,11 +1,9 @@
 import argparse
-import random
 import threading
 import typing
-from time import sleep, time
-from typing import Optional, List, Any
-from uuid import uuid4
 from enum import Enum
+from time import sleep
+from uuid import uuid4
 
 from daisy.communication import EndpointServer, StreamEndpoint
 
@@ -50,8 +48,8 @@ class Chordmessage:
 
 
 def send(send_addr: tuple[str, int], message: Chordmessage):
-    endpoint = StreamEndpoint(name=f"join", remote_addr=send_addr,
-                              acceptor=False, multithreading=True, buffer_size=10000)
+    endpoint: StreamEndpoint = StreamEndpoint(name=f"tmp", remote_addr=send_addr,
+                                              acceptor=False, multithreading=True, buffer_size=10000)
     endpoint.start()
     endpoint.send(message)
     threading.Thread(target=lambda: close_tmp_ep(endpoint, 10, 10), daemon=True).start()
@@ -68,27 +66,21 @@ class Peer:
 
     _endpoint_server: EndpointServer
 
-    def __init__(self, p_id: int, addr: tuple[str, int], successor: tuple[int, tuple[str, int]],
-                 predecessor: tuple[int, tuple[str, int]]):
+    def __init__(self, p_id: int, addr: tuple[str, int], successor: tuple[int, tuple[str, int]] = None,
+                 predecessor: tuple[int, tuple[str, int]] = None):
         self._id = p_id
         self._addr = addr
         self._successor = successor
         self._successor_endpoint = None
         self._predecessor = predecessor
         self._predecessor_endpoint = None
-        self._endpoint_server = EndpointServer(f"{id}-EpS", addr=addr, multithreading=True, c_timeout=30)
+        self._endpoint_server = EndpointServer(f"{id}-Server", addr=addr, multithreading=True, c_timeout=30)
 
     def _create(self):
         self._endpoint_server.start()
         # self._successor = (self._id, self._addr)
-        self._predecessor_endpoint = StreamEndpoint(name=f"pred-ep-{self._id}", remote_addr=self._predecessor[1],
-                                                    acceptor=False, multithreading=True,
-                                                    buffer_size=10000)
-        self._predecessor_endpoint.start()
-        self._successor_endpoint = StreamEndpoint(name=f"succ-ep-{self._id}", remote_addr=self._successor[1],
-                                                  acceptor=False, multithreading=True,
-                                                  buffer_size=10000)
-        self._successor_endpoint.start()
+        self._set_predecessor(self._predecessor)
+        self._set_successor(self._successor)
 
     def _join(self, join_addr: tuple[str, int]):
         self._endpoint_server.start()
@@ -96,10 +88,12 @@ class Peer:
         send(join_addr, message)
 
     def _check_is_predecessor(self, check_id: int) -> bool:
-        # check_id in [pred, n[
+        # check_id in ]pred, n[
+        if self._predecessor is None:
+            return True
         pred_id = self._predecessor[0]
-        return ((self._id < pred_id) and (check_id not in range(self._id + 1, pred_id + 1))) or (
-                check_id in range(pred_id + 1, self._id + 1))
+        return ((self._id < pred_id) and (check_id not in range(self._id, pred_id + 1))) or (
+                check_id in range(pred_id + 1, self._id))
 
     def _check_is_successor(self, check_id: int) -> bool:
         # check_id in ]n, succ]
@@ -128,7 +122,15 @@ class Peer:
         message = Chordmessage(type=MessageType.LOOKUP_RES, peer_tuple=result, message_id=1)
         send(response_addr, message)
 
-    def _get_r_ready_eps(self) -> set[StreamEndpoint]:
+    def _stabilize(self):
+        stabilize_message = Chordmessage(type=MessageType.STABILIZE, peer_tuple=(self._id, self._addr), message_id=1)
+        self._successor_endpoint.send(stabilize_message)
+
+    def _notify(self, peer: tuple[int, tuple[str, int]]):
+        notify_message = Chordmessage(type=MessageType.NOTIFY, peer_tuple=self._predecessor, message_id=1)
+        send(peer[1], notify_message)
+
+    def _get_read_ready_endpoints(self) -> set[StreamEndpoint]:
         r_ready_eps = set()
         if self._successor_endpoint and self._successor_endpoint.poll()[0][1]:
             r_ready_eps.add(self._successor_endpoint)
@@ -147,28 +149,50 @@ class Peer:
             self._join(join_addr=join_addr)
 
         while True:
-            r_ready = self._get_r_ready_eps()
+            r_ready = self._get_read_ready_endpoints()
+            if self._successor is not None:
+                self._stabilize()
+            sleep(1)
             for ep in r_ready:
                 message = typing.cast(Chordmessage, ep.receive(timeout=0))
                 print(message.peer_tuple, message.origin, message.type)
                 match message.type:
                     case MessageType.LOOKUP_REQ:
-                        print(f"starting lookup for {message.peer_tuple}")
                         self._lookup(*message.peer_tuple)
                     case MessageType.LOOKUP_RES:
-                        print(f"Received lookup result {message.peer_tuple}")
-                        self._successor = message.peer_tuple
-                        self._successor_endpoint = StreamEndpoint(name=f"succ-ep-{self._id}",
-                                                                  remote_addr=self._successor[1],
-                                                                  acceptor=False, multithreading=True,
-                                                                  buffer_size=10000)
-                        print(self._successor)
+                        self._set_successor(message.peer_tuple)
                     case MessageType.JOIN:
-                        print(f"sending join lookup for {message.peer_tuple}")
                         self._lookup(*message.peer_tuple)
+                    case MessageType.STABILIZE:
+                        print(f"received stabilize with {message.peer_tuple}")
+                        if self._check_is_predecessor(message.peer_tuple[0]):
+                            self._set_predecessor(message.peer_tuple)
+                        self._notify(message.peer_tuple)
+                    case MessageType.NOTIFY:
+                        print(f"received notify with {message.peer_tuple}")
+                        if self._check_is_successor(message.peer_tuple[0]):
+                            self._set_successor(message.peer_tuple)
 
-    def get_id(self): # only for testing
+    def get_id(self):  # only for testing
         return self._id
+
+    def _set_successor(self, successor: tuple[int, tuple[str, int]]):
+        self._successor = successor
+        if self._successor_endpoint is not None:
+            self._successor_endpoint.stop(shutdown=True)
+        self._successor_endpoint = StreamEndpoint(name=f"succ-ep-{self._id}", remote_addr=successor[1],
+                                                  acceptor=False, multithreading=False,
+                                                  buffer_size=10000)
+        self._successor_endpoint.start()
+
+    def _set_predecessor(self, predecessor: tuple[int, tuple[str, int]]):
+        self._predecessor = predecessor
+        if self._predecessor_endpoint is not None:
+            self._predecessor_endpoint.stop(shutdown=True)
+        self._predecessor_endpoint = StreamEndpoint(name=f"pred-ep-{self._id}", remote_addr=predecessor[1],
+                                                    acceptor=False, multithreading=False,
+                                                    buffer_size=10000)
+        self._predecessor_endpoint.start()
 
 
 if __name__ == "__main__":
@@ -184,9 +208,10 @@ if __name__ == "__main__":
 
     localhost = "127.0.0.1"
 
-    peer = Peer(p_id=args.id, addr=(localhost, args.port), successor=(args.succId, (localhost, args.succPort)),
-                predecessor=(args.predId, (localhost, args.predPort)))
-    if peer.get_id() == 2:
+    if args.id == 675 or args.id == 2:
+        peer = Peer(p_id=args.id, addr=(localhost, args.port))
         peer.run((localhost, 10050))  # start as first chord peer
     else:
+        peer = Peer(p_id=args.id, addr=(localhost, args.port), successor=(args.succId, (localhost, args.succPort)),
+                    predecessor=(args.predId, (localhost, args.predPort)))
         peer.run()  # join existing chord
