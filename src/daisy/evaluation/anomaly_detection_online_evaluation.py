@@ -1,10 +1,9 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""
-Extensions to the tensorflow metric set, to measure the quality of online anomaly detection approaches. For now,
-only a sliding-window-based solution is realized, as this works for any kind of metric (not every metric can be
-computed online).
+"""Extensions to the tensorflow metric set, to measure the quality of online anomaly
+detection approaches. For now, only a sliding-window-based solution is realized,
+as this works for any kind of metric (not every metric can be computed online).
 
 Author: Fabian Hofmann
 Modified: 17.08.23
@@ -19,11 +18,12 @@ from tensorflow import keras
 
 
 class SlidingWindowEvaluation(keras.metrics.Metric, ABC):
-    """Abstract evaluation metric class that extends the existing tensorflow metric base class, with a sliding window
-    to collect the k most recent predicted labels to evaluate the model's recent performance on them in point-wise
-    manner.
+    """Abstract evaluation metric class that extends the existing tensorflow metric
+    base class, with a sliding window to collect the k most recent predicted labels
+    to evaluate the model's recent performance on them in point-wise manner.
 
-    Note that depending on the metric, non-abstract methods must be extended with a new metric's own functionality.
+    Note that depending on the metric, non-abstract methods must be extended with a
+    new metric's own functionality.
     """
 
     true_labels: deque
@@ -34,7 +34,8 @@ class SlidingWindowEvaluation(keras.metrics.Metric, ABC):
         """Creates a new sliding window evaluation metric.
 
         :param name: Name of metric.
-        :param window_size: Size of sliding window. If not provided, assume infinite window size.
+        :param window_size: Size of sliding window. If not provided, assume infinite
+        window size.
         :param kwargs: Additional metric/layer keywords arguments.
         """
         super().__init__(name=name, **kwargs)
@@ -44,8 +45,9 @@ class SlidingWindowEvaluation(keras.metrics.Metric, ABC):
         self._window_size = window_size
 
     def update_state(self, y_true, y_pred, *args, **kwargs):
-        """Adds a mini-batch of inputs to the metric, removing old ones if the window is full, and adjusting statistics
-        accordingly. Converts any tensors into numpy arrays as data points/pairs are processed in element-wise fashion
+        """Adds a mini-batch of inputs to the metric, removing old ones if the window
+        is full, and adjusting statistics accordingly. Converts any tensors into
+        numpy arrays as data points/pairs are processed in element-wise fashion
         anyway and this makes it easier for generic handling.
 
         :param y_true: Vector/Tensor containing true labels of inputs.
@@ -68,20 +70,22 @@ class SlidingWindowEvaluation(keras.metrics.Metric, ABC):
 
     @abstractmethod
     def _update(self, t_label, p_label, remove: bool = False):
-        """Update function that must be implemented for each metric individually, called during update_state(), able
-        to update the state variables for a singular data point/pair, for both its addition and its removal from the
-        window.
+        """Update function that must be implemented for each metric individually,
+        called during update_state(), able to update the state variables for a
+        singular data point/pair, for both its addition and its removal from the window.
 
         :param t_label: True label of single input.
         :param p_label: Predicted label of single input.
-        :param remove: Whether the input pair is to be removed from the sliding window or added.
+        :param remove: Whether the input pair is to be removed from the sliding window
+        or added.
         """
         raise NotImplementedError
 
     def merge_state(self, metrics: Self):
         """Merges the state from one or more metrics, by merging their sliding windows.
 
-        Note this is only possible if the sliding window of the current instance is able to encompass all other windows.
+        Note this is only possible if the sliding window of the current instance is
+        able to encompass all other windows.
 
         :param metrics: An iterable of sliding window metrics of the same type.
         """
@@ -96,15 +100,16 @@ class SlidingWindowEvaluation(keras.metrics.Metric, ABC):
 
     @abstractmethod
     def _reset(self):
-        """Reset function that must be implemented for each metric individually, called during reset_state(), resets all
-        underlying statistics to their original state.
+        """Reset function that must be implemented for each metric individually,
+        called during reset_state(), resets all underlying statistics to their
+        original state.
         """
         raise NotImplementedError
 
     @abstractmethod
     def result(self):
-        """Computes and returns the scalar value(s) of the metric. Idempotent operation based on the underlying state
-        variables and the sliding window.
+        """Computes and returns the scalar value(s) of the metric. Idempotent operation
+        based on the underlying state variables and the sliding window.
 
         :return: A scalar tensor, or a dictionary of scalar tensors.
         """
@@ -112,9 +117,9 @@ class SlidingWindowEvaluation(keras.metrics.Metric, ABC):
 
 
 class ConfMatrSlidingWindowEvaluation(SlidingWindowEvaluation):
-    """Sliding window evaluation metric that computes the entire confusion matrix along with most(*) its metrics over
-    the k most recent predicted binary labels to evaluate the model's recent performance on them in point-wise
-    manner.
+    """Sliding window evaluation metric that computes the entire confusion matrix
+    along with most(*) its metrics over the k most recent predicted binary labels to
+    evaluate the model's recent performance on them in point-wise manner.
     """
 
     _fp: int
@@ -128,7 +133,8 @@ class ConfMatrSlidingWindowEvaluation(SlidingWindowEvaluation):
         """Creates a new confusion matrix sliding window evaluation metric.
 
         :param name: Name of metric.
-        :param window_size: Size of sliding window. If not provided, assume infinite window size.
+        :param window_size: Size of sliding window. If not provided, assume infinite
+        window size.
         :param kwargs: Additional metric/layer keywords arguments.
         """
         super().__init__(name=name, window_size=window_size, **kwargs)
@@ -139,12 +145,13 @@ class ConfMatrSlidingWindowEvaluation(SlidingWindowEvaluation):
         self._tn = 0
 
     def _update(self, t_label: bool, p_label: bool, remove: bool = False):
-        """Updates the confusion matrix based on a single data point/pair, for both its addition and its removal from
-        the window.
+        """Updates the confusion matrix based on a single data point/pair, for both
+        its addition and its removal from the window.
 
         :param t_label: True label of single input.
         :param p_label: Predicted label of single input.
-        :param remove: Whether the input pair is to be removed from the sliding window confusion matrix or added.
+        :param remove: Whether the input pair is to be removed from the sliding
+        window confusion matrix or added.
         """
         mod = 1 if not remove else -1
         if t_label:
@@ -167,7 +174,8 @@ class ConfMatrSlidingWindowEvaluation(SlidingWindowEvaluation):
 
     # noinspection DuplicatedCode
     def result(self) -> dict[str, float]:
-        """Based on the accumulated confusion matrix, computes its derived scalar metrics and returns them.
+        """Based on the accumulated confusion matrix, computes its derived scalar
+        metrics and returns them.
 
         :return: Dictionary of all derived scalar (tensor) confusion matrix metrics.
         """
@@ -195,10 +203,12 @@ class ConfMatrSlidingWindowEvaluation(SlidingWindowEvaluation):
 
 
 class TFMetricSlidingWindowEvaluation(SlidingWindowEvaluation):
-    """Wrapper class for all kinds of tensorflow evaluation metrics that operate on true-predicted label comparisons.
-    Uses the provided sliding window to accumulate a subset of the overall data points and evaluates them using the
-    tensorflow metric when called upon. Not very computational efficient since cumulative aggregation cannot be
-    supported as not every metric can be computed in sliding window manner.
+    """Wrapper class for all kinds of tensorflow evaluation metrics that operate on
+    true-predicted label comparisons. Uses the provided sliding window to accumulate
+    a subset of the overall data points and evaluates them using the tensorflow
+    metric when called upon. Not very computational efficient since cumulative
+    aggregation cannot be supported as not every metric can be computed in sliding
+    window manner.
     """
 
     _tf_metric: keras.metrics.Metric
@@ -208,7 +218,8 @@ class TFMetricSlidingWindowEvaluation(SlidingWindowEvaluation):
 
 
         :param tf_metric: Tensorflow metric to be wrapped.
-        :param window_size: Size of sliding window. If not provided, assume infinite window size.
+        :param window_size: Size of sliding window. If not provided, assume infinite
+        window size.
         :param kwargs: Additional metric/layer keywords arguments.
         """
         super().__init__(
@@ -220,16 +231,18 @@ class TFMetricSlidingWindowEvaluation(SlidingWindowEvaluation):
         self._tf_metric = tf_metric
 
     def _update(self, t_label, p_label, remove: bool = False):
-        """Method is skipped as the entire metric is computed during every result() call."""
+        """Method is skipped as the entire metric is computed during every result()
+        call."""
         pass
 
     def _reset(self):
-        """As the metrics are reset every result() call, there is no reason to reset more."""
+        """As the metrics are reset every result() call, there is no reason to reset
+        more."""
         pass
 
     def result(self):
-        """Based on the current window, computes and returns the scalar metric value tensor or a dict of scalars, after
-        resetting the metric once more.
+        """Based on the current window, computes and returns the scalar metric value
+        tensor or a dict of scalars, after resetting the metric once more.
 
         :return: Tensorflow metric result.
         """
