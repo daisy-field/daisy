@@ -3,4 +3,6 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """TODO"""
 
+__all__ = ["model_aggr_server"]
+
 from .model_aggr_server import create_server as model_aggr_server

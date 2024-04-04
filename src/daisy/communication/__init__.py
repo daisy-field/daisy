@@ -14,7 +14,7 @@ BSD sockets. Supports SSL and LZ4 compression.
     list of endpoints.
 
 Author: Fabian Hofmann
-Modified: 16.11.23
+Modified: 03.04.24
 """
 
 __all__ = ["StreamEndpoint", "EndpointServer", "ep_select", "receive_latest_ep_objs"]

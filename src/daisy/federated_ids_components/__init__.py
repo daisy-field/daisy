@@ -30,7 +30,7 @@ For the aggregation servers, the following interfaces and implementations is pro
     nodes. Dashboard enabled.
 
 Author: Fabian Hofmann, Seraphin Zunzer
-Modified: 27.11.23
+Modified: 03.04.24
 """
 
 __all__ = [

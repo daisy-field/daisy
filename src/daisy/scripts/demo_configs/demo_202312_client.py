@@ -1,25 +1,29 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""TODO: Docstring for demo_202312_client
-Pre-configured demonstration client for a simple federated intrusion detection system (IDS), that learns
-cooperatively with another clients through a centralized model aggregation server using the federated averaging
-(FedAvg) technique. In this example, the client is configured to process network traffic data from the road-side
-infrastructure (BeIntelli) on Cohda boxes 2 and 5 on March 6th 2023, which must be available in (raw) pcap files for
-each client.
+"""TODO: Docstring for demo_202312_client Pre-configured demonstration client for a
+simple federated intrusion detection system (IDS), that learns cooperatively with
+another clients through a centralized model aggregation server using the federated
+averaging (FedAvg) technique. In this example, the client is configured to process
+network traffic data from the road-side infrastructure (BeIntelli) on Cohda boxes 2
+and 5 on March 6th 2023, which must be available in (raw) pcap files for each client.
 
-The processing is done in online manner (as is the general nature of all current federated processing nodes), with
-the underlying model running predictions on a minibatch, before training a single epoch on that batch. The model
-itself is a hybrid approach for anomaly detection, using a simple autoencoder paired with a dynamic threshold to map
-the anomaly score to a binary label. Finally, the prediction results are evaluated using a sliding window confusion
-matrix along its anomaly detection evaluation metrics (e.g. Precision, Recall, F1-score, etc.).
+The processing is done in online manner (as is the general nature of all current
+federated processing nodes), with the underlying model running predictions on a
+minibatch, before training a single epoch on that batch. The model itself is a hybrid
+approach for anomaly detection, using a simple autoencoder paired with a dynamic
+threshold to map the anomaly score to a binary label. Finally, the prediction results
+are evaluated using a sliding window confusion matrix along its anomaly detection
+evaluation metrics (e.g. Precision, Recall, F1-score, etc.).
 
-Note that this demonstration client can also be launched as a standalone detection component, if no additional
-client is run along with the model aggregation server. However, the full demonstration topology consists of two
-federated IDS detection clients along the model aggregation server ('pred_aggr_server') and two additional
-aggregation servers, one for the prediction results ('pred_aggr_server') and a second one for the evaluation results
-('eval_aggr_server'). These components can also be found in the general_fids_components subpackage, to be launched
-directly through python, beside the command line option.
+Note that this demonstration client can also be launched as a standalone detection
+component, if no additional client is run along with the model aggregation server.
+However, the full demonstration topology consists of two federated IDS detection
+clients along the model aggregation server ('pred_aggr_server') and two additional
+aggregation servers, one for the prediction results ('pred_aggr_server') and a second
+one for the evaluation results ('eval_aggr_server'). These components can also be
+found in the general_fids_components subpackage, to be launched directly through
+python, beside the command line option.
 
 Author: Fabian Hofmann
 Modified: 27.02.24
@@ -130,10 +134,12 @@ def _parse_args() -> argparse.Namespace:
 
 
 def create_client():
-    """Creates a pre-configured federated client with preset components that runs on either of the two subsets of the
-    March 6th 2023 network traffic data set. Entry point of this module's functionality.
+    """Creates a pre-configured federated client with preset components that runs on
+    either of the two subsets of the March 6th 2023 network traffic data set. Entry
+    point of this module's functionality.
 
-    See the header doc string of this module for more details about the preset client's configuration.
+    See the header doc string of this module for more details about the preset
+    client's configuration.
     """
     # Args parsing
     args = _parse_args()

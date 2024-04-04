@@ -17,7 +17,7 @@ anomaly detection approaches using customized extensions of the keras metric API
     over a sliding window.
 
 Author: Fabian Hofmann
-Modified: 31.08.23
+Modified: 03.04.24
 """
 
 __all__ = [
