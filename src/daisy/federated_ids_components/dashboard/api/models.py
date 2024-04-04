@@ -3,7 +3,9 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 from django.db import models
 
+
 # Create your models here.
+
 
 class Node(models.Model):
     address = models.CharField(max_length=255, unique=True)
@@ -12,18 +14,19 @@ class Node(models.Model):
 class Alerts(models.Model):
     category = models.CharField(
         max_length=10,
-        choices = (
-        ("info", 'Info'),
-        ("warning", 'Warning'),
-        ("alert", 'Alert'),
-        ))
+        choices=(
+            ("info", "Info"),
+            ("warning", "Warning"),
+            ("alert", "Alert"),
+        ),
+    )
     active = models.BooleanField(default=True)
     message = models.CharField(max_length=255, unique=True)
     timestamp = models.DateTimeField(auto_now_add=True)
 
 
 class Metrics(models.Model):
-    address =  models.CharField(max_length=255)
+    address = models.CharField(max_length=255)
     accuracy = models.FloatField()
     f1 = models.FloatField()
     recall = models.FloatField()
@@ -33,8 +36,7 @@ class Metrics(models.Model):
     def save(self, *args, **kwargs):
         total_records = Metrics.objects.count()
         while total_records >= 50:
-            pks = (Metrics.objects
-                   .values_list('pk')[:1])
+            pks = Metrics.objects.values_list("pk")[:1]
             Metrics.objects.filter(pk__in=pks).delete()
             print("delete")
             total_records = Metrics.objects.count()
@@ -47,11 +49,11 @@ class Aggregation(models.Model):
     agg_status = models.CharField(max_length=255)
     agg_count = models.IntegerField()
     agg_time = models.DateTimeField(auto_now_add=True)
+
     def save(self, *args, **kwargs):
         total_records = Aggregation.objects.count()
         while total_records >= 100:
-            pks = (Aggregation.objects
-                   .values_list('pk')[:1])
+            pks = Aggregation.objects.values_list("pk")[:1]
             Aggregation.objects.filter(pk__in=pks).delete()
             total_records = Aggregation.objects.count()
         else:
@@ -62,25 +64,23 @@ class Evaluation(models.Model):
     eval_status = models.CharField(max_length=255)
     eval_count = models.IntegerField()
     eval_time = models.DateTimeField(auto_now_add=True)
+
     def save(self, *args, **kwargs):
         total_records = Aggregation.objects.count()
         while total_records >= 100:
-            pks = (Aggregation.objects
-                   .values_list('pk')[:1])
+            pks = Aggregation.objects.values_list("pk")[:1]
             Aggregation.objects.filter(pk__in=pks).delete()
             total_records = Aggregation.objects.count()
         else:
             super().save(*args, **kwargs)
 
 
-
-
-#/alert
+# /alert
 # - NodeID
 # - Message
 # - Timestamp
 
-#/metrics
+# /metrics
 # - NodeID
 # - Timestamp
 # - Accuracy
@@ -88,12 +88,12 @@ class Evaluation(models.Model):
 # - Precision
 # - Recall
 
-#/aggregation
+# /aggregation
 # -
 
-#/evaluation
+# /evaluation
 # -
 
-#/nodes
+# /nodes
 # - NodeID
 # - Timestamp

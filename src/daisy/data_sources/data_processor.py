@@ -2,19 +2,19 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """
-    A collection of interfaces and base classes for data stream generation and preprocessing for further (ML) tasks.
-    Supports generic generators, but also remote communication endpoints that hand over generic data points in
-    streaming-manner, and any other implementations of the SourceHandler class. Note each different kind of data needs
-    its own implementation of the DataProcessor class.
+A collection of interfaces and base classes for data stream generation and preprocessing for further (ML) tasks.
+Supports generic generators, but also remote communication endpoints that hand over generic data points in
+streaming-manner, and any other implementations of the SourceHandler class. Note each different kind of data needs
+its own implementation of the DataProcessor class.
 
-    TODO REFVIEW COMENTS @Fabian
-    TODO noop default processor?
+TODO REFVIEW COMENTS @Fabian
+TODO noop default processor?
 
-    Author: Fabian Hofmann, Jonathan Ackerschewski
-    Modified: 28.07.23
+Author: Fabian Hofmann, Jonathan Ackerschewski
+Modified: 28.07.23
 
-    TODO Future Work: Defining granularity of logging in inits
-    TODO Future Work: Cleanup of inits to eliminate overlap of classes
+TODO Future Work: Defining granularity of logging in inits
+TODO Future Work: Cleanup of inits to eliminate overlap of classes
 """
 
 import logging
@@ -36,6 +36,7 @@ class DataProcessor(ABC):
     Any implementation has to funnel all its functionalities through these three methods (besides __init__), as they are
     called through process() by the DataSource.
     """
+
     _logger: logging.Logger
 
     def __init__(self, name: str = ""):
@@ -95,8 +96,13 @@ class SimpleDataProcessor(DataProcessor):
     _filter_fn: Callable[[dict], dict]
     _reduce_fn: Callable[[dict], np.ndarray]
 
-    def __init__(self, map_fn: Callable[[object], dict], filter_fn: Callable[[dict], dict],
-                 reduce_fn: Callable[[dict], np.ndarray], name: str = ""):
+    def __init__(
+        self,
+        map_fn: Callable[[object], dict],
+        filter_fn: Callable[[dict], dict],
+        reduce_fn: Callable[[dict], np.ndarray],
+        name: str = "",
+    ):
         """Creates the SimpleDataProcessor
 
         :param map_fn: The map function, which receives a data point and should map it to a dictionary

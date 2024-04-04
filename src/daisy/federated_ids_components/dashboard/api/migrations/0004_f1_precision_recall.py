@@ -7,31 +7,54 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('api', '0003_remove_accuracy_address_remove_accuracy_timestamp_and_more'),
+        ("api", "0003_remove_accuracy_address_remove_accuracy_timestamp_and_more"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='F1',
+            name="F1",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('f1', models.FloatField()),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("f1", models.FloatField()),
             ],
         ),
         migrations.CreateModel(
-            name='Precision',
+            name="Precision",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('precision', models.FloatField()),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("precision", models.FloatField()),
             ],
         ),
         migrations.CreateModel(
-            name='Recall',
+            name="Recall",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('recall', models.FloatField()),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("recall", models.FloatField()),
             ],
         ),
     ]

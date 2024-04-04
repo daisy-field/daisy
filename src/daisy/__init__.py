@@ -2,5 +2,5 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """
-TODO Future Fork: refactor subpackage to support generalized DAISY framework with IDS and Federated subpackages
+TODO Short Description from New Readme
 """

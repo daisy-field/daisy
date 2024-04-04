@@ -4,19 +4,26 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('api', '0004_f1_precision_recall'),
+        ("api", "0004_f1_precision_recall"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Aggregation',
+            name="Aggregation",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('agg_status', models.CharField(max_length=255)),
-                ('agg_count', models.IntegerField()),
-                ('agg_time', models.DateTimeField(auto_now_add=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("agg_status", models.CharField(max_length=255)),
+                ("agg_count", models.IntegerField()),
+                ("agg_time", models.DateTimeField(auto_now_add=True)),
             ],
         ),
     ]

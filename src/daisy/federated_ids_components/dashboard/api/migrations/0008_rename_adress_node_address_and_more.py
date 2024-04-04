@@ -4,19 +4,18 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('api', '0007_alerts'),
+        ("api", "0007_alerts"),
     ]
 
     operations = [
         migrations.RenameField(
-            model_name='node',
-            old_name='adress',
-            new_name='address',
+            model_name="node",
+            old_name="adress",
+            new_name="address",
         ),
         migrations.RemoveField(
-            model_name='node',
-            name='last_connection',
+            model_name="node",
+            name="last_connection",
         ),
     ]

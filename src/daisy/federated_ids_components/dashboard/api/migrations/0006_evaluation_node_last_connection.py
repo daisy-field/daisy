@@ -4,24 +4,31 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('api', '0005_aggregation'),
+        ("api", "0005_aggregation"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Evaluation',
+            name="Evaluation",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('eval_status', models.CharField(max_length=255)),
-                ('eval_count', models.IntegerField()),
-                ('eval_time', models.DateTimeField(auto_now_add=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("eval_status", models.CharField(max_length=255)),
+                ("eval_count", models.IntegerField()),
+                ("eval_time", models.DateTimeField(auto_now_add=True)),
             ],
         ),
         migrations.AddField(
-            model_name='node',
-            name='last_connection',
+            model_name="node",
+            name="last_connection",
             field=models.FloatField(default=0),
             preserve_default=False,
         ),
