@@ -2,7 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 from rest_framework import permissions, viewsets
-from .models import *
+
 from .serializers import *
 
 
@@ -14,6 +14,7 @@ class MetricsSerializerView(viewsets.ModelViewSet):
     queryset = Metrics.objects.all()
     serializer_class = MetricsSerializer
     permission_classes = [permissions.AllowAny]
+
 
 class AggregationSerializerView(viewsets.ModelViewSet):
     """
@@ -44,6 +45,7 @@ class AlertsSerializerView(viewsets.ModelViewSet):
     serializer_class = AlertsSerializer
     permission_classes = [permissions.AllowAny]
 
+
 class NodeSerializerView(viewsets.ModelViewSet):
     """
     API endpoint that allows users to be viewed or edited.
@@ -52,6 +54,3 @@ class NodeSerializerView(viewsets.ModelViewSet):
     queryset = Node.objects.all()
     serializer_class = NodeSerializer
     permission_classes = [permissions.AllowAny]
-
-
-

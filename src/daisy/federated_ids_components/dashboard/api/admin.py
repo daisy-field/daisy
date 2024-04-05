@@ -2,8 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 from django.contrib import admin
-from .models import *
 
+from .models import *
 
 admin.site.register(Metrics)
 admin.site.register(Aggregation)

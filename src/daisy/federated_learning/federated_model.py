@@ -1,15 +1,17 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""
-    A collection of various types of model wrappers, implementing the same interface for each federated model type, thus
-    enabling their inter-compatibility for different aggregation strategies and federated system components.
+"""A collection of various types of model wrappers, implementing the same interface
+for each federated model type, thus enabling their inter-compatibility for different
+aggregation strategies and federated system components.
 
-    Author: Fabian Hofmann
-    Modified: 09.09.23
+Author: Fabian Hofmann
+Modified: 04.04.24
 
-    TODO Future Work: Should be the implementation of Open Source Interfaces (e.g. Keras Model API)
+TODO Future Work: Could be refactored to be the implementation of Open Source Interfaces
+(e.g. Keras Model API)
 """
+
 from abc import ABC, abstractmethod
 from typing import Callable, Optional, Self
 
@@ -20,8 +22,9 @@ from tensorflow import keras
 
 
 class FederatedModel(ABC):
-    """An abstract model wrapper that offers the same methods, no matter the type of underlying model. Must always be
-    implemented if a new model type is to be used in the federated system.
+    """An abstract model wrapper that offers the same methods, no matter the type of
+    underlying model. Must always be implemented if a new model type is to be used in
+    the federated system.
     """
 
     @abstractmethod
@@ -42,7 +45,8 @@ class FederatedModel(ABC):
 
     @abstractmethod
     def fit(self, x_data, y_data):
-        """Trains the model with the given data, which must be compatible with the tensorflow API
+        """Trains the model with the given data, which must be compatible with the
+        tensorflow API
         (see: https://www.tensorflow.org/api_docs/python/tf/keras/Model#fit).
 
         :param x_data: Input data.
@@ -52,7 +56,8 @@ class FederatedModel(ABC):
 
     @abstractmethod
     def predict(self, x_data) -> Tensor:
-        """Makes a prediction on the given data and returns it, which must be compatible with the tensorflow API
+        """Makes a prediction on the given data and returns it, which must be
+        compatible with the tensorflow API
         (see: https://www.tensorflow.org/api_docs/python/tf/keras/Model#fit).
 
         :param x_data: Input data.
@@ -62,19 +67,26 @@ class FederatedModel(ABC):
 
 
 class TFFederatedModel(FederatedModel):
-    """The standard federated model wrapper for tensorflow models. Can be used for both online and offline training/
-    prediction, by default online, however.
+    """The standard federated model wrapper for tensorflow models. Can be used for
+    both online and offline training/ prediction, by default online, however.
     """
+
     _model: keras.Model
     _batch_size: int
     _epochs: int
 
-    def __init__(self, model: keras.Model, optimizer: str | keras.optimizers.Optimizer, loss: str | keras.losses.Loss,
-                 metrics: list[str | Callable | keras.metrics.Metric] = None,
-                 batch_size: int = 32, epochs: int = 1):
-        """Creates a new tensorflow federated model from a given model. Since this also compiles the given model,
-        there are set of additional arguments, for more information on those see:
-        https://www.tensorflow.org/api_docs/python/tf/keras/Model#compile
+    def __init__(
+        self,
+        model: keras.Model,
+        optimizer: str | keras.optimizers.Optimizer,
+        loss: str | keras.losses.Loss,
+        metrics: list[str | Callable | keras.metrics.Metric] = None,
+        batch_size: int = 32,
+        epochs: int = 1,
+    ):
+        """Creates a new tensorflow federated model from a given model. This also
+        compiles the given model, requiring a set of additional arguments
+        (see: https://www.tensorflow.org/api_docs/python/tf/keras/Model#compile).
 
         :param model: Underlying model to be wrapped around.
         :param optimizer: Optimizer to use during training.
@@ -104,18 +116,22 @@ class TFFederatedModel(FederatedModel):
         return self._model.get_weights()
 
     def fit(self, x_data, y_data):
-        """Trains the model with the given data by calling the wrapped model, which must be compatible with the
-        tensorflow API (see: https://www.tensorflow.org/api_docs/python/tf/keras/Model#fit).
+        """Trains the model with the given data by calling the wrapped model,
+        which must be compatible with the tensorflow API
+        (see: https://www.tensorflow.org/api_docs/python/tf/keras/Model#fit).
 
         :param x_data: Input data.
         :param y_data: Expected output.
         """
-        self._model.fit(x=x_data, y=y_data, batch_size=self._batch_size, epochs=self._epochs)
+        self._model.fit(
+            x=x_data, y=y_data, batch_size=self._batch_size, epochs=self._epochs
+        )
 
     def predict(self, x_data) -> Tensor:
-        """Makes a prediction on the given data and returns it by calling the wrapped model. Uses the call() tensorflow
-        model interface for small numbers of data points, which must be compatible with the tensorflow API
-        (see: https://www.tensorflow.org/api_docs/python/tf/keras/Model#fit).
+        """Makes a prediction on the given data and returns it by calling the wrapped
+        model. Uses the call() tensorflow model interface for small numbers of data
+        points, which must be compatible with the tensorflow API (see:
+        https://www.tensorflow.org/api_docs/python/tf/keras/Model#fit).
 
         :param x_data: Input data.
         :return: Predicted output tensor.
@@ -125,16 +141,21 @@ class TFFederatedModel(FederatedModel):
         return self._model(x_data, training=False).numpy()
 
     @classmethod
-    def get_fae(cls, input_size: int,
-                optimizer: str | keras.optimizers.Optimizer = "Adam", loss: str | keras.losses.Loss = "mse",
-                metrics: list[str | Callable | keras.metrics.Metric] = None,
-                batch_size: int = 32, epochs: int = 1) -> Self:
-        """Factory class method to create a simple federated autoencoder model of a fixed depth but with variable input
-        size.
+    def get_fae(
+        cls,
+        input_size: int,
+        optimizer: str | keras.optimizers.Optimizer = "Adam",
+        loss: str | keras.losses.Loss = "mse",
+        metrics: list[str | Callable | keras.metrics.Metric] = None,
+        batch_size: int = 32,
+        epochs: int = 1,
+    ) -> Self:
+        """Factory class method to create a simple federated autoencoder model of a
+        fixed depth but with variable input size.
 
         Should only serve as a quick and basic setup for a model.
 
-        :param input_size: Dimensionality of input (and therefore output) of autoencoder.
+        :param input_size: Dimensionality of input/output of autoencoder.
         :param optimizer: Optimizer to use during training.
         :param loss: Loss function to use during training.
         :param metrics: Evaluation metrics to be displayed during training and testing.
@@ -162,19 +183,24 @@ class TFFederatedModel(FederatedModel):
 
 
 class FederatedIFTM(FederatedModel):
-    """Double union of two federated models, following the IFTM hybrid  model approach --- identify function threshold
-    model principle by Schmidt et al. (https://ieeexplore.ieee.org/document/8456348): One for the computation of the
-    identity of a given sample (alternatively prediction of the next sample), while the other maps the error/loss using
-    a threshold(-model) to the binary class labels for anomaly detection. Both are generic federated models, so any
-    approach can be used for them, as long as they abide by the required properties:
+    """Double union of two federated models, following the IFTM hybrid  model
+    approach --- identify function threshold model principle by Schmidt et al.
+    (https://ieeexplore.ieee.org/document/8456348): One for the computation of the
+    identity of a given sample (alternatively prediction of the next sample),
+    while the other maps the error/loss using a threshold(-model) to the binary class
+    labels for anomaly detection. Both are generic federated models, so any approach
+    can be used for them, as long as they abide by the required properties:
 
-        * Identity Function: Computes the identities of given data points. Can be replaced with a prediction function.
-        * Error Function: Computes the reconstruction/prediction error of one or multiple samples to a scalar (each).
+        * Identity Function: Computes the identities of given data points. Can be
+        replaced with a prediction function.
+        * Error Function: Computes the reconstruction/prediction error of one or
+        multiple samples to a scalar (each).
         * Threshold Model: Maps the scalar to binary class labels.
 
-    Note this kind of model *absolutely requires* a time series in most cases and therefore data passed to it, must be
-    in order!
+    Note this kind of model *absolutely requires* a time series in most cases and
+    therefore data passed to it, must be in order!
     """
+
     _if: FederatedModel
     _tm: FederatedModel
     _ef: Callable[[Tensor, Tensor], Tensor]
@@ -185,15 +211,22 @@ class FederatedIFTM(FederatedModel):
     _prev_fit_sample: Optional[Tensor]
     _prev_pred_sample: Optional[Tensor]
 
-    def __init__(self, identify_fn: FederatedModel, threshold_m: FederatedModel,
-                 error_fn: Callable[[Tensor, Tensor], Tensor], param_split: int, pf_mode: bool = False):
+    def __init__(
+        self,
+        identify_fn: FederatedModel,
+        threshold_m: FederatedModel,
+        error_fn: Callable[[Tensor, Tensor], Tensor],
+        param_split: int,
+        pf_mode: bool = False,
+    ):
         """Creates a new federated IFTM anomaly detection model.
 
         :param identify_fn: Federated identity function model.
         :param threshold_m: Federated threshold model.
         :param error_fn: Reconstruction/Prediction error function.
-        :param param_split: Length of IF parameters to efficiently merge the two lists of params.
-        :param pf_mode: Whether IFTM uses an identity function as IF or a prediction function.
+        :param param_split: Length of IF parameters to efficiently merge the two
+        lists of params.
+        :param pf_mode: Whether IFTM uses an identity function or a prediction function.
         """
         self._if = identify_fn
         self._tm = threshold_m
@@ -206,13 +239,13 @@ class FederatedIFTM(FederatedModel):
         self._prev_pred_sample = None
 
     def set_parameters(self, parameters: list[np.ndarray]):
-        """Updates the internal parameters of the two underlying models by splitting the parameter lists as previously
-        defined.
+        """Updates the internal parameters of the two underlying models by splitting
+        the parameter lists as previously defined.
 
         :param parameters: Parameters to update the IFTM model with.
         """
-        self._if.set_parameters(parameters[:self._param_split])
-        self._tm.set_parameters(parameters[self._param_split:])
+        self._if.set_parameters(parameters[: self._param_split])
+        self._tm.set_parameters(parameters[self._param_split :])
 
     def get_parameters(self) -> list[np.ndarray]:
         """Retrieves the weights of the underlying models.
@@ -224,21 +257,25 @@ class FederatedIFTM(FederatedModel):
         return params
 
     def fit(self, x_data, y_data=None):
-        """Trains the IFTM model with the given data by calling the wrapped models; first the IF to make a prediction,
-        after which the error can be computed for the fitting of the TM. Afterward, the IF is fitted. Note that one can
-        run IFTM in supervised mode by providing the true classes of each sample --- however most TMs require only the
-        input data.
+        """Trains the IFTM model with the given data by calling the wrapped models;
+        first the IF to make a prediction, after which the error can be computed for
+        the fitting of the TM. Afterward, the IF is fitted. Note that one can run
+        IFTM in supervised mode by providing the true classes of each sample ---
+        however most TMs require only the input data.
 
-        Note that in case of an underlying prediction function (instead of a regular IF), the window is shifted by one
-        step into the past, i.e. the final sample is only used to compute a prediction error, but not make a prediction,
+        Note that in case of an underlying prediction function (instead of a regular
+        IF), the window is shifted by one step into the past, i.e. the final sample
+        is only used to compute a prediction error, but not make a prediction,
         and it is stored for the next fitting step.
 
-        Note this kind of model *absolutely requires* a time series in most cases and therefore data passed to it, must
-        be in order! Also for the first step in a time series, it is impossible to compute a prediction error, since
-        there is no previous sample to compare it to.
+        Note this kind of model *absolutely requires* a time series in most cases and
+        therefore data passed to it, must be in order! Also for the first step in a
+        time series, it is impossible to compute a prediction error, since there is
+        no previous sample to compare it to.
 
         :param x_data: Input data.
-        :param y_data: Expected output, optional since default IFTM is fully unsupervised.
+        :param y_data: Expected output, optional since default IFTM is fully
+        unsupervised.
         """
         # Adjust input data depending on mode
         if self._pf_mode:
@@ -255,16 +292,19 @@ class FederatedIFTM(FederatedModel):
         self._if.fit(x_data, y_true)
 
     def predict(self, x_data) -> Optional[Tensor]:
-        """Makes a prediction on the given data and returns it bby calling the wrapped models; first the IF to make a
-        prediction, after which the error can be computed for the final prediction step using the TM.
+        """Makes a prediction on the given data and returns it by calling the wrapped
+        models; first the IF to make a prediction, after which the error can be
+        computed for the final prediction step using the TM.
 
-        Note that in case of an underlying prediction function (instead of a regular IF), the window is shifted by one
-        step into the past, i.e. the final sample is only used to compute a prediction error, but not make a prediction,
+        Note that in case of an underlying prediction function (instead of a regular
+        IF), the window is shifted by one step into the past, i.e. the final sample
+        is only used to compute a prediction error, but not make a prediction,
         and it is stored for the next prediction step.
 
-        Note this kind of model *absolutely requires* a time series in most cases and therefore data passed to it, must
-        be in order! Also for the first step in a time series, there is no previous sample to compare it to, therefore
-        the sample is automatically classified as the default class (0, i.e. normal)
+        Note this kind of model *absolutely requires* a time series in most cases and
+        therefore data passed to it, must be in order! Also for the first step in a
+        time series, there is no previous sample to compare it to, therefore the
+        sample is automatically classified as the default class (0, i.e. normal)
 
         :param x_data: Input data.
         :return: Predicted output tensor consisting of bools (0: normal, 1: abnormal).
@@ -281,10 +321,14 @@ class FederatedIFTM(FederatedModel):
         pred_errs = self._ef(y_true, y_pred)
         return self._tm.predict(pred_errs)
 
-    def _shift_batch_window(self, x_data, fit: bool) -> tuple[Optional[Tensor], Optional[Tensor]]:
-        """Shifts a given input batch one step in the past, discarding the last sample from the batch and storing it for
-        later user, but adding the last sample from the previous batch to the beginning of the batch. This is necessary
-        for fitting and prediction of prediction-based IFs (see fit and predict function).
+    def _shift_batch_window(
+        self, x_data, fit: bool
+    ) -> tuple[Optional[Tensor], Optional[Tensor]]:
+        """Shifts a given input batch one step in the past, discarding the last
+        sample from the batch and storing it for later user, but adding the last
+        sample from the previous batch to the beginning of the batch. This is
+        necessary for fitting and prediction of prediction-based IFs (see fit and
+        predict function).
 
         :param x_data: Input data.
         :param fit: Whether the window is shifted for fitting or prediction purposes.
@@ -312,8 +356,11 @@ class FederatedIFTM(FederatedModel):
         return x_data, y_true
 
     @staticmethod
-    def get_tf_error_fn(tf_metric: keras.metrics.Metric) -> Callable[[Tensor, Tensor], Tensor]:
-        """Quick wrapper for tensorflow metric objects as error function for IFTM models.
+    def get_tf_error_fn(
+        tf_metric: keras.metrics.Metric,
+    ) -> Callable[[Tensor, Tensor], Tensor]:
+        """Quick wrapper for tensorflow metric objects as error functions for IFTM
+        models.
 
         :param tf_metric: Tensorflow metric object to be wrapped.
         :return: Wrapped tensorflow metric object as callable function.

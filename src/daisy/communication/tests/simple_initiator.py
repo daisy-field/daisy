@@ -1,6 +1,8 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
+"""TODO"""
+
 import logging
 import random
 import threading
@@ -10,9 +12,14 @@ from daisy.communication import StreamEndpoint
 
 
 def threaded_initiator(t_id: int):
-    endpoint = StreamEndpoint(name=f"Initiator-{t_id}", addr=("127.0.0.1", 32000 + t_id),
-                              remote_addr=("127.0.0.1", 13000),
-                              acceptor=False, multithreading=True, buffer_size=10000)
+    endpoint = StreamEndpoint(
+        name=f"Initiator-{t_id}",
+        addr=("127.0.0.1", 32000 + t_id),
+        remote_addr=("127.0.0.1", 13000),
+        acceptor=False,
+        multithreading=True,
+        buffer_size=10000,
+    )
     endpoint.start()
 
     i = 0
@@ -30,9 +37,14 @@ def threaded_initiator(t_id: int):
                 endpoint.stop(shutdown=True)
                 sleep(random.randrange(3))
 
-                endpoint = StreamEndpoint(name=f"Initiator-{t_id}", addr=("127.0.0.1", 32000 + t_id),
-                                          remote_addr=("127.0.0.1", 13000),
-                                          acceptor=False, multithreading=True, buffer_size=10000)
+                endpoint = StreamEndpoint(
+                    name=f"Initiator-{t_id}",
+                    addr=("127.0.0.1", 32000 + t_id),
+                    remote_addr=("127.0.0.1", 13000),
+                    acceptor=False,
+                    multithreading=True,
+                    buffer_size=10000,
+                )
                 endpoint.start()
             else:
                 logging.warning("Stopping")
@@ -50,16 +62,28 @@ def multithreaded_initiator(num_threads: int):
 
 
 def single_message_initiator():
-    endpoint = StreamEndpoint(name="Initiator", addr=("127.0.0.1", 13000), remote_addr=("127.0.0.1", 32000),
-                              acceptor=False, multithreading=True, buffer_size=10000)
+    endpoint = StreamEndpoint(
+        name="Initiator",
+        addr=("127.0.0.1", 13000),
+        remote_addr=("127.0.0.1", 32000),
+        acceptor=False,
+        multithreading=True,
+        buffer_size=10000,
+    )
     endpoint.start()
 
-    endpoint.send(f"ping")
+    endpoint.send("ping")
 
 
 def simple_initiator():
-    endpoint = StreamEndpoint(name="Initiator", addr=("127.0.0.1", 13000), remote_addr=("127.0.0.1", 32000),
-                              acceptor=False, multithreading=True, buffer_size=10000)
+    endpoint = StreamEndpoint(
+        name="Initiator",
+        addr=("127.0.0.1", 13000),
+        remote_addr=("127.0.0.1", 32000),
+        acceptor=False,
+        multithreading=True,
+        buffer_size=10000,
+    )
     endpoint.start()
 
     i = 0
@@ -74,8 +98,11 @@ def simple_initiator():
 
 
 if __name__ == "__main__":
-    logging.basicConfig(format="%(asctime)s %(levelname)-8s %(name)-10s %(message)s", datefmt="%Y-%m-%d %H:%M:%S",
-                        level=logging.INFO)
+    logging.basicConfig(
+        format="%(asctime)s %(levelname)-8s %(name)-10s %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+        level=logging.INFO,
+    )
 
     # simple_initiator()
     # single_message_initiator()
