@@ -1,12 +1,12 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""TODO: Docstring for demo_202312_client Pre-configured demonstration client for a
-simple federated intrusion detection system (IDS), that learns cooperatively with
-another clients through a centralized model aggregation server using the federated
-averaging (FedAvg) technique. In this example, the client is configured to process
-network traffic data from the road-side infrastructure (BeIntelli) on Cohda boxes 2
-and 5 on March 6th 2023, which must be available in (raw) pcap files for each client.
+"""Pre-configured demonstration client for a simple federated intrusion detection
+system (IDS), that learns cooperatively with another clients through a centralized
+model aggregation server using the federated averaging (FedAvg) technique. In this
+example, the client is configured to process network traffic data from the road-side
+infrastructure (BeIntelli) on Cohda boxes 2 and 5 on March 6th 2023, which must be
+available in (raw) pcap files for each client.
 
 The processing is done in online manner (as is the general nature of all current
 federated processing nodes), with the underlying model running predictions on a
@@ -18,15 +18,23 @@ evaluation metrics (e.g. Precision, Recall, F1-score, etc.).
 
 Note that this demonstration client can also be launched as a standalone detection
 component, if no additional client is run along with the model aggregation server.
+The same is the case for additional prediction and evaluation result aggregation
+using centralize servers (see -h for more information).
 However, the full demonstration topology consists of two federated IDS detection
-clients along the model aggregation server ('pred_aggr_server') and two additional
-aggregation servers, one for the prediction results ('pred_aggr_server') and a second
-one for the evaluation results ('eval_aggr_server'). These components can also be
-found in the general_fids_components subpackage, to be launched directly through
-python, beside the command line option.
+clients along three servers (from the 'generic_fids_components' scripts subpackage):
+
+    * model_aggr_server - Model aggregation server to aggregate the clients' models.
+    * pred_aggr_server - Value aggregation server for (client) prediction results.
+    * eval_aggr_server - Value aggregation server for (client) evaluation results.
+
+ALl of these components, like with this client, can be found in the
+'generic_fids_components' subpackage, to be launched directly through python,
+beside the command line option. Note that one does not need to launch all three,
+depending on the type of demo, one can select one, two, or all three additional
+components.
 
 Author: Fabian Hofmann
-Modified: 27.02.24
+Modified: 10.04.24
 """
 
 import argparse
@@ -184,9 +192,9 @@ def create_client():
         identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn, param_split=65
     )
 
-    # Eval Metrics
     metrics = [ConfMatrSlidingWindowEvaluation(window_size=args.batchSize * 8)]
 
+    # Client
     client = FederatedOnlineClient(
         data_source=data_source,
         batch_size=args.batchSize,
@@ -199,8 +207,7 @@ def create_client():
         update_interval_t=args.updateInterval,
     )
     client.start()
-    # TODO this is not blocking and exits all threads after main threads completion
-    # FIXME check for previous correct but actually wrong behavior
+    input("Press Enter to stop client...")
     client.stop()
 
 
