@@ -1,7 +1,14 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""TODO"""
+"""Collection of various functions to test the initiator-side (client) of the endpoint
+class. These test-functions can be called directly, with the main on the bottom
+adjusted for each test case.
+
+Author: Fabian Hofmann
+Modified: 10.04.24
+
+"""
 
 import logging
 import random
@@ -12,6 +19,13 @@ from daisy.communication import StreamEndpoint
 
 
 def threaded_initiator(t_id: int):
+    """Creates and starts an initiator with a specific ID to perform an endless
+    ping-pong tests with the opposing acceptor, sending out "ping" and receiving
+    "pong" messages. In addition, at random intervals, stops or even shutdowns the
+    endpoint to start or create it anew to test the resilience of the two endpoints.
+
+    :param t_id: ID of thread.
+    """
     endpoint = StreamEndpoint(
         name=f"Initiator-{t_id}",
         addr=("127.0.0.1", 32000 + t_id),
@@ -56,12 +70,21 @@ def threaded_initiator(t_id: int):
 
 
 def multithreaded_initiator(num_threads: int):
+    """Starts n initiator endpoints as separate threads, to test if endpoints can work
+    in tandem using the shared underlying class attributes of the endpoint socket.
+
+    :param num_threads: Number of acceptor threads to start.
+    """
     for i in range(num_threads):
         threading.Thread(target=threaded_initiator, args=(i,)).start()
         sleep(random.randrange(2))
 
 
 def single_message_initiator():
+    """Creates and starts an initiator to perform a single send before stopping the
+    endpoint, to test if endpoints can be stopped while they are about to send a
+    message. This test is not deterministic due to scheduling.
+    """
     endpoint = StreamEndpoint(
         name="Initiator",
         addr=("127.0.0.1", 13000),
@@ -74,8 +97,13 @@ def single_message_initiator():
 
     endpoint.send("ping")
 
+    endpoint.stop()
+
 
 def simple_initiator():
+    """Creates and starts an initiator to perform an endless ping-pong tests with the
+    opposing initiator, sending out "ping" and receiving "pong" messages.
+    """
     endpoint = StreamEndpoint(
         name="Initiator",
         addr=("127.0.0.1", 13000),
