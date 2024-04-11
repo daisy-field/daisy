@@ -1,4 +1,4 @@
-name: Linter Checks
+name: Linting
 
 on: [ push ]
 
