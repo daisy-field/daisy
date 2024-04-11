@@ -1,3 +1,5 @@
+name: Pre-Commit Checks
+
 on:
   pull_request:
     branches: [ main ]

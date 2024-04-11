@@ -1,4 +1,4 @@
-name: Ruff
+name: Linter Checks
 
 on: [ push, pull_request ]
 
