@@ -1,25 +1,51 @@
 repos:
+  - repo: https://github.com/jorisroovers/gitlint
+    rev:  v0.19.1
+    hooks:
+      - id: gitlint
+        name: Check commit message style
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v2.3.0
     hooks:
       - id: check-added-large-files
-      - id: check-ast
-      - id: check-case-conflict
   - repo: https://github.com/Lucas-C/pre-commit-hooks
     rev: v1.5.5
     hooks:
       - id: insert-license
-        files: \.py$
+        name: Insert license header in python files
+        types_or: [ python ]
         args:
           - --license-filepath
           - LICENSE-header.txt
+          - --use-current-year
+          - --no-extra-eol
+      - id: insert-license
+        name: Insert license header in javascript and css files
+        types_or: [ javascript, css ]
+        args:
+          - --license-filepath
+          - LICENSE-header.txt
+          - --comment-style
+          - /*!| *| */
+          - --use-current-year
+          - --no-extra-eol
+      - id: insert-license
+        name: Insert license header in html files
+        types_or: [ html ]
+        args:
+          - --license-filepath
+          - LICENSE-header.txt
+          - --comment-style
+          - <!--|  ~|  -->
           - --use-current-year
           - --no-extra-eol
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.3.4
     hooks:
       - id: ruff
+        name: Run python linter
         types_or: [ python, pyi, jupyter ]
         args: [ --fix ]
       - id: ruff-format
-        types_or: [ python, pyi, jupyter ]
+        name: Run python formatter
+        types_or:   [ python, pyi, jupyter ]
