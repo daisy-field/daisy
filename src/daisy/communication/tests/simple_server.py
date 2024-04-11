@@ -1,7 +1,15 @@
+# Copyright (C) 2024 DAI-Labor and others
+#
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""TODO"""
+"""Simple addition to the Acceptor/Initiator ping-pong tests, that creates a server
+to regularly polls its (acceptor) endpoint connections to receive "pings" and respond
+with "pongs", to test the behavior of handling concurrent connections.
+
+Author: Fabian Hofmann
+Modified: 10.04.24
+"""
 
 import logging
 from time import sleep
@@ -10,6 +18,7 @@ from daisy.communication import EndpointServer
 
 
 def simple_server():
+    """Setup and start of ping-pong server (see module docstring)."""
     with EndpointServer(
         name="Testserver", addr=("127.0.0.1", 13000), c_timeout=60, multithreading=True
     ) as server:

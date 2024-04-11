@@ -162,8 +162,9 @@ cython_debug/
 
 # Git
 .git/
+.github/
 .gitignore
-.gitlab-ci.yml
+.pre-commit-config.yaml
 
 # Docker
 Dockerfile
