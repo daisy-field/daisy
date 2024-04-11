@@ -1,6 +1,6 @@
 name: Linter Checks
 
-on: [ push, pull_request ]
+on: [ push ]
 
 jobs:
   ruff:
