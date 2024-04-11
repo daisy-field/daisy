@@ -1,17 +1,25 @@
+# Copyright (C) 2024 DAI-Labor and others
+#
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""TODO Collection of executable scripts to start up the various components of the
-package, more or less pre-configured by the respective script for ease of use and
-demonstration purposes. Each subpackage contains a bundled demo, i.e. a set of
-scripts to be started, either in separate python instances or via threads.
-Alternatively one can also launch these scripts directly via the command line.
+"""Collection of executable scripts to start up the various components of the daisy
+package (as a framework), more or less pre-configured by the respective script for
+ease of use. Some of the scripts and entrypoints inside the respective subpackages
+function as generic components (see below) served by the framework, while other are
+more narrow configurations/implementations of said components to be run a demo
+examples to work as a functioning setup. Most likely, for a full demo, one requires
+scripts from different packages, as demo setups may require generic components as
+well. See the docstrings of the respective demos. No matter the subpackage,
+the scripts can be started either in separate python instances or via threads. For
+convenience, one can also launch these scripts directly via the command line.
 
-Currently, the following (sub-)packaged script-demos are provided:
+Currently, the following (sub-)packaged scripts are provided:
 
-    * demo_202312 - Basic F-IDS component demo using a client-server topology,
-    along with the march23 dataset.
+    * demo_components - Pre-configured demo components for specific inputs/scenarios.
+    * generic_fids_components - General federated IDS components required for
+    different (demo-)scenarios
 
-Author: Fabian Hofmann
-Modified: 04.04.24
+Author: Fabian Hofmann, Seraphin Zunzer
+Modified: 10.04.24
 """

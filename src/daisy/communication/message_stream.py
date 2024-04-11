@@ -1,3 +1,5 @@
+# Copyright (C) 2024 DAI-Labor and others
+#
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -8,11 +10,9 @@ Author: Fabian Hofmann
 Modified: 02.04.24
 
 TODO Future Work: SSL https://docs.python.org/3/library/ssl.html
-TODO Future Work: Potential race conditions during rapid start/stop |
-open/close of endpoints/endpoint sockets
+TODO Future Work: Potential race conditions during rapid start/stop | open/close
 TODO Future Work: Defining granularity of logging in inits
-FIXME: (Potential Bug) Sender/Receiver Threads racing for re-establishing connection
-leading to inefficiencies
+FIXME: Sender/Receiver Threads (inefficient) racing for re-establishing connection
 """
 
 import ctypes
