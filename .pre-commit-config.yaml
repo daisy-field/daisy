@@ -16,7 +16,7 @@ repos:
         types_or: [ python ]
         args:
           - --license-filepath
-          - LICENSE-header.txt
+          - license_header.txt
           - --use-current-year
           - --no-extra-eol
       - id: insert-license
@@ -24,7 +24,7 @@ repos:
         types_or: [ javascript, css ]
         args:
           - --license-filepath
-          - LICENSE-header.txt
+          - license_header.txt
           - --comment-style
           - /*!| *| */
           - --use-current-year
@@ -34,7 +34,7 @@ repos:
         types_or: [ html ]
         args:
           - --license-filepath
-          - LICENSE-header.txt
+          - license_header.txt
           - --comment-style
           - <!--|  ~|  -->
           - --use-current-year
