@@ -5,7 +5,7 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 from rest_framework import permissions, viewsets
 
-from .serializers import *
+from .serializers import MetricsSerializer, AggregationSerializer,EvaluationSerializer, AlertsSerializer, NodeSerializer, Metrics, Aggregation, Alerts, Evaluation, Node
 
 
 class MetricsSerializerView(viewsets.ModelViewSet):

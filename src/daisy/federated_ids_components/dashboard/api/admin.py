@@ -5,7 +5,7 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 from django.contrib import admin
 
-from .models import *
+from .models import Metrics, Aggregation, Evaluation, Alerts, Node
 
 admin.site.register(Metrics)
 admin.site.register(Aggregation)
