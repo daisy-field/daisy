@@ -143,8 +143,8 @@ dev = ["pre-commit", "ruff"]
 # The following would provide a command line executable called `sample`
 # which executes the function `main` from this package when invoked.
 [project.scripts]
-model_aggr_server = "daisy.scripts.general_fids_components:model_aggr_server"
-demo_202312_client = "daisy.scripts.demo_configs:demo_202312_client"
+model_aggr_server = "daisy.scripts.generic_fids_components:model_aggr_server"
+demo_202312_client = "daisy.scripts.demo_components:demo_202312_client"
 
 # This is configuration specific to the `setuptools` build backend.
 # If you are using a different build backend, you will need to change this.

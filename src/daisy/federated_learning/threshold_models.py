@@ -91,7 +91,7 @@ class FederatedTM(FederatedModel, ABC):
     def predict(self, x_data) -> Tensor:
         """Makes a prediction on the given data and returns it, which must be
         compatible with the tensorflow API (see:
-        https://www.tensorflow.org/api_docs/python/tf/keras/Model#fit).
+        https://www.tensorflow.org/api_docs/python/tf/keras/Model#predict.
 
         :param x_data: Input data.
         :return: Predicted output tensor consisting of bools (0: normal, 1: abnormal).
@@ -141,10 +141,12 @@ class AvgTM(FederatedTM, ABC):
     ):
         """Creates a new average-based threshold model.
 
-        :param mean: Init mean value. :param var: Init variance value. :param
-        var_weight: Weight of the variance compared to the mean value for the
-        threshold value. :param reduce_fn: Function to reduce a batch of samples into
-        a scalar for training. Defaults to NOP.
+        :param mean: Init mean value.
+        :param var: Init variance value.
+        :param var_weight: Weight of the variance compared to the mean value for the
+        threshold value.
+        :param reduce_fn: Function to reduce a batch of samples into a scalar for
+        training. Defaults to NOP.
         """
         self._mean = mean
         self._var = var

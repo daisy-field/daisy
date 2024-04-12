@@ -26,7 +26,8 @@ FROM python:3.11-slim AS base
 WORKDIR /app
 EXPOSE 8000-8003
 # installtion of additional (non-python/venv) dependencies
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y tshark \
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive  \
+    apt-get install --no-install-recommends -y tshark \
     && rm -rf /var/cache/apt/archives /var/lib/apt/lists
 
 # Import of CPU Dependencies:
