@@ -3,19 +3,11 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-import plotly.graph_objs as go
 
-# Create your views here.
-import plotly.offline as opy
 from api.models import Aggregation
 from dash_bootstrap_templates import load_figure_template
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
-
-
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 
 def index(request):
