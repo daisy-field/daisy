@@ -19,4 +19,4 @@ jobs:
         uses: pre-commit/action@v3.0.1
       - name: Apply Changes
         uses: pre-commit-ci/lite-action@v1.0.2
-        if: always()
+        if: success() || failure()

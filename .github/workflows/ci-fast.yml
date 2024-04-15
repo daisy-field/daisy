@@ -21,3 +21,4 @@ jobs:
         run: ruff check --output-format=github .
       - name: Run Ruff Format
         run: ruff format --check .
+        if: success() || failure()
