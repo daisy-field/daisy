@@ -1,29 +1,22 @@
+# Copyright (C) 2024 DAI-Labor and others
+#
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""TODO Docstring for server
+"""Pre-configured model aggregation server for a centralized federated system,
+whose clients learn cooperatively with each other through this centralized model
+aggregation server using the federated averaging (FedAvg) technique. This processing
+is done in online manner (as is the general nature of all current federated
+processing nodes) and in synchronous fashion, as the server calls upon the clients'
+models in periodic manner.
 
-Pre-configured demonstration client for a federated intrusion detection system (IDS),
-that learns cooperatively with another clients through a centralized model
-aggregation server using the federated averaging (FedAvg) technique. In this example,
-the client is configured to process network traffic data from the road-side
-infrastructure (BeIntelli) on Cohda boxes 2 and 5 on March 6th 2023.
-
-This processing is done in online manner (as is the general nature of all current
-federated processing nodes), with the underlying model running predictions on a
-minibatch, before training a single epoch on that batch. The model itself is a hybrid
-approach for anomaly detection, using a simple autoencoder paired with a dynamic
-threshold to map the anomaly score to a binary label. Finally, the prediction results
-are evaluated using a sliding window confusion matrix along its anomaly detection
-evaluation metrics (e.g. Precision, Recall, F1-score, etc.).
-
-Note that this demonstration client can also be launched as a standalone detection
-component, if no additional client is run along with the model aggregation server.
-The same is the case for additional prediction and evaluation result aggregation
-using centralize servers (see -h for more information).
+Note this server does nothing on its own --- it requires at least one (in
+practicality two) active client to be run in tandem with it, whose set to
+asynchronous federated updating, since the server does the initial requests for model
+updates.
 
 Author: Fabian Hofmann
-Modified: 04.04.24
+Modified: 10.04.24
 """
 
 import argparse
@@ -77,7 +70,7 @@ def _parse_args() -> argparse.Namespace:
 
 
 def create_server():
-    """TODO Creates a pre-configured federated server node for two the federated demo
+    """Creates a pre-configured federated server node for two the federated demo
     clients. Entry point of this module's functionality.
 
     See the header doc string of this module for more details about the preset
@@ -98,15 +91,19 @@ def create_server():
             level=logging.INFO,
         )
 
-    # Aggregator
     aggr = FedAvgAggregator()
-    FederatedModelAggregator(
+
+    # Server
+    server = FederatedModelAggregator(
         m_aggr=aggr,
         addr=(args.serv, args.servPort),
         timeout=args.timeout,
         update_interval=args.updateInterval,
         num_clients=2,
-    ).start()
+    )
+    server.start()
+    input("Press Enter to stop client...")
+    server.stop()
 
 
 if __name__ == "__main__":
