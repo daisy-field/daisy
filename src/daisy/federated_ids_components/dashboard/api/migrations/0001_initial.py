@@ -1,3 +1,5 @@
+# Copyright (C) 2024 DAI-Labor and others
+#
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -8,30 +10,49 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='Node',
+            name="Node",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('adress', models.CharField(max_length=255, unique=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("adress", models.CharField(max_length=255, unique=True)),
             ],
         ),
         migrations.CreateModel(
-            name='NodeData',
+            name="NodeData",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('accuracy', models.FloatField()),
-                ('f1', models.FloatField()),
-                ('precision', models.FloatField()),
-                ('recall', models.FloatField()),
-                ('timestamp', models.DateTimeField(auto_now_add=True)),
-                ('address', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='api.node')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("accuracy", models.FloatField()),
+                ("f1", models.FloatField()),
+                ("precision", models.FloatField()),
+                ("recall", models.FloatField()),
+                ("timestamp", models.DateTimeField(auto_now_add=True)),
+                (
+                    "address",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="api.node"
+                    ),
+                ),
             ],
         ),
     ]

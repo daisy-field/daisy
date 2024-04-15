@@ -1,3 +1,5 @@
+# Copyright (C) 2024 DAI-Labor and others
+#
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -7,20 +9,19 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('view', '0003_rename_sensordata_nodedata'),
+        ("view", "0003_rename_sensordata_nodedata"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='nodedata',
-            name='address',
+            model_name="nodedata",
+            name="address",
         ),
         migrations.DeleteModel(
-            name='Node',
+            name="Node",
         ),
         migrations.DeleteModel(
-            name='NodeData',
+            name="NodeData",
         ),
     ]

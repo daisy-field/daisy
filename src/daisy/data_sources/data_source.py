@@ -1,19 +1,21 @@
+# Copyright (C) 2024 DAI-Labor and others
+#
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """
-    A collection of interfaces and base classes for data stream generation and preprocessing for further (ML) tasks.
-    Supports generic generators, but also remote communication endpoints that hand over generic data points in
-    streaming-manner, and any other implementations of the SourceHandler class. Note each different kind of data needs
-    its own implementation of the DataProcessor class.
+A collection of interfaces and base classes for data stream generation and preprocessing for further (ML) tasks.
+Supports generic generators, but also remote communication endpoints that hand over generic data points in
+streaming-manner, and any other implementations of the SourceHandler class. Note each different kind of data needs
+its own implementation of the DataProcessor class.
 
-    TODO REFVIEW COMENTS @Fabian
+TODO REFVIEW COMENTS @Fabian
 
-    Author: Fabian Hofmann, Jonathan Ackerschewski
-    Modified: 28.07.23
+Author: Fabian Hofmann, Jonathan Ackerschewski
+Modified: 28.07.23
 
-    TODO Future Work: Defining granularity of logging in inits
-    TODO Future Work: Cleanup of inits to eliminate overlap of classes
+TODO Future Work: Defining granularity of logging in inits
+TODO Future Work: Cleanup of inits to eliminate overlap of classes
 """
 
 import logging
@@ -33,6 +35,7 @@ class DataSource:
 
     Supports the processing of data points in both synchronous and asynchronous fashion by default.
     """
+
     _logger: logging.Logger
 
     _source_handler: SourceHandler
@@ -43,8 +46,14 @@ class DataSource:
     _buffer: queue.Queue
     _opened: bool
 
-    def __init__(self, source_handler: SourceHandler, data_processor: DataProcessor, name: str = "",
-                 multithreading: bool = False, buffer_size: int = 1024):
+    def __init__(
+        self,
+        source_handler: SourceHandler,
+        data_processor: DataProcessor,
+        name: str = "",
+        multithreading: bool = False,
+        buffer_size: int = 1024,
+    ):
         """Creates a new data source.
 
         :param source_handler: Actual source that provisions data points to data source.
@@ -71,7 +80,7 @@ class DataSource:
         """
         self._logger.info("Starting data source...")
         if self._opened:
-            raise RuntimeError(f"Data source has already been opened!")
+            raise RuntimeError("Data source has already been opened!")
         self._opened = True
         self._source_handler.open()
 
@@ -86,7 +95,7 @@ class DataSource:
         """
         self._logger.info("Stopping data source...")
         if not self._opened:
-            raise RuntimeError(f"Data source has not been opened!")
+            raise RuntimeError("Data source has not been opened!")
         self._opened = False
         self._source_handler.close()
 
@@ -98,19 +107,24 @@ class DataSource:
         """Data loader for multithreading mode, loads data from source handlers and processes it to store it in the
         shared buffer.
         """
-        self._logger.info(f"AsyncLoader: Starting to process data points in asynchronous mode...")
+        self._logger.info(
+            "AsyncLoader: Starting to process data points in asynchronous mode..."
+        )
         for o_point in self._source_handler:
             while self._opened:
                 try:
                     self._logger.debug(
                         f"AsyncLoader: Storing processed data point in buffer "
-                        f"(length: {self._buffer.qsize()})...")
+                        f"(length: {self._buffer.qsize()})..."
+                    )
                     self._buffer.put(self._data_processor.process(o_point), timeout=10)
                 except queue.Full:
-                    self._logger.warning(f"AsyncLoader: Timeout triggered: Buffer full. Retrying...")
+                    self._logger.warning(
+                        "AsyncLoader: Timeout triggered: Buffer full. Retrying..."
+                    )
             if not self._opened:
                 break
-        self._logger.info(f"AsyncLoader: Stopping...")
+        self._logger.info("AsyncLoader: Stopping...")
 
     def __iter__(self) -> Iterator[np.ndarray]:
         """Generator that supports multithreading to retrieve processed data points.
@@ -124,11 +138,12 @@ class DataSource:
         if self._multithreading:
             while self._opened:
                 self._logger.debug(
-                    f"Multithreading detected, retrieving data point from buffer (size={self._buffer.qsize()})...")
+                    f"Multithreading detected, retrieving data point from buffer (size={self._buffer.qsize()})..."
+                )
                 try:
                     yield self._buffer.get(timeout=10)
                 except queue.Empty:
-                    self._logger.warning(f"Timeout triggered: Buffer empty. Retrying...")
+                    self._logger.warning("Timeout triggered: Buffer empty. Retrying...")
         else:
             for o_point in self._source_handler:
                 yield self._data_processor.process(o_point)

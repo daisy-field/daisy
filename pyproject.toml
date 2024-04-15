@@ -57,7 +57,7 @@ license = { file = "LICENSE.txt" }
 # authored the project, and a valid email address corresponding to the name
 # listed.
 authors = [
-    { name = "Fabian Hofmann", email = "fabian@alberts-hofmann.de" },
+    { name = "Fabian Hofmann", email = "fabian.hofmann@dai-labor.de" },
     { name = "Jonathan Ackerschewski", email = "jonathan.ackerschewski@dai-labor.de" },
     { name = "Seraphin Zunzer", email = "SeraphinJasper.Zunzer@gt-arc.com" },
     { name = "Lotta Hareja Fejzula", email = "Lotta.Fejzula@outlook.de" }
@@ -67,7 +67,7 @@ authors = [
 # maintains the project, and a valid email address corresponding to the name
 # listed.
 maintainers = [
-    { name = "Fabian Hofmann", email = "fabian@alberts-hofmann.de" }
+    { name = "Fabian Hofmann", email = "fabian.hofmann@dai-labor.de" }
 ]
 
 # Classifiers help users find your project by categorizing it.
@@ -81,12 +81,12 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     # Indicate who your project is intended for
     "Intended Audience :: Developers",
-    "Topic :: Software Development :: Build Tools",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
     # Pick your license as you wish
     "License :: OSI Approved :: MPL-2.0 License",
     # Specify the Python versions you support here. In particular, ensure
     # that you indicate you support Python 3. These classifiers are *not*
-    # checked by "pip install". See instead "python_requires" below.
+    # checked by "pip install". See instead "requires-python" key in this file.
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3 :: Only",
@@ -105,7 +105,7 @@ dependencies = [
     "lz4~=4.3.2",
     "dash~=2.9.2",
     "plotly~=5.14.1",
-    "django~=5.0.1", 
+    "django~=5.0.1",
     "djangorestframework~=3.14.0"
 ]
 
@@ -119,7 +119,7 @@ dependencies = [
 # projects.
 [project.optional-dependencies] # Optional
 cuda = ["tensorflow[and-cuda]~=2.15.0"]
-direct-ml = ["tensorflow-directml-plugin"]
+dev = ["pre-commit", "ruff"]
 #dev = ["check-manifest"]
 #test = ["coverage"]
 
@@ -153,8 +153,10 @@ demo_202312_client = "daisy.scripts.demo_configs:demo_202312_client"
 # installed, specify them here.
 #package-data = {"sample" = ["*.dat"]}
 
+# Choosing a build backend:
+# https://packaging.python.org/en/latest/tutorials/packaging-projects/#choosing-a-build-backend
 [build-system]
-# These are the assumed default build requirements from pip:
-# https://pip.pypa.io/en/stable/reference/pip/#pep-517-and-518-support
-requires = ["setuptools>=43.0.0", "wheel"]
-build-backend = "setuptools.build_meta"
+# A list of packages that are needed to build your package:
+requires = ["setuptools"]  # REQUIRED if [build-system] table is used
+# The name of the Python object that frontends will use to perform the build:
+build-backend = "setuptools.build_meta"  # If not defined, then legacy behavior can happen.

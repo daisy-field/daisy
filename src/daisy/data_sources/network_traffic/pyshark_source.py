@@ -1,18 +1,20 @@
+# Copyright (C) 2024 DAI-Labor and others
+#
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """
-    Implementations of the data source helper interface that allows the processing and provisioning of pyshark packets,
-    either via file inputs, live capture, or a remote source that generates packets in either fashion.
+Implementations of the data source helper interface that allows the processing and provisioning of pyshark packets,
+either via file inputs, live capture, or a remote source that generates packets in either fashion.
 
-    TODO REVIEW COMMENTS
+TODO REVIEW COMMENTS
 
-    Author: Jonathan Ackerschewski, Fabian Hofmann
-    Modified: 28.02.24
+Author: Jonathan Ackerschewski, Fabian Hofmann
+Modified: 28.02.24
 
-    # TODO Future Work: Encoding/mapping of string/non-numerical values into numerical features
-    # TODO - Flattening of Lists instead of encoding them into singular numerical features
-    # TODO - NaN values also need to converted to something useful (that does not break the prediction/training)
+# TODO Future Work: Encoding/mapping of string/non-numerical values into numerical features
+# TODO - Flattening of Lists instead of encoding them into singular numerical features
+# TODO - NaN values also need to converted to something useful (that does not break the prediction/training)
 """
 
 import ipaddress
@@ -38,71 +40,71 @@ from ...data_sources.data_source import DataProcessor, SourceHandler
 
 # Exemplary network feature filter, supporting cohda-box (V2x) messages, besides TCP/IP and ETH.
 default_f = (
-    'meta.len',
-    'meta.time',
-    'meta.protocols',
-    'ip.addr',
-    'sll.halen',
-    'sll.pkttype',
-    'sll.eth',
-    'sll.hatype',
-    'sll.unused',
-    'ipv6.tclass',
-    'ipv6.flow',
-    'ipv6.nxt',
-    'ipv6.src_host',
-    'ipv6.host',
-    'ipv6.hlim',
-    'sll.ltype',
-    'cohda.Type',
-    'cohda.Ret',
-    'cohda.llc.MKxIFMsg.Ret',
-    'ipv6.addr',
-    'ipv6.dst',
-    'ipv6.plen',
-    'tcp.stream',
-    'tcp.payload',
-    'tcp.urgent_pointer',
-    'tcp.port',
-    'tcp.options.nop',
-    'tcp.options.timestamp',
-    'tcp.flags',
-    'tcp.window_size_scalefactor',
-    'tcp.dstport',
-    'tcp.len',
-    'tcp.checksum',
-    'tcp.window_size',
-    'tcp.srcport',
-    'tcp.checksum.status',
-    'tcp.nxtseq',
-    'tcp.status',
-    'tcp.analysis.bytes_in_flight',
-    'tcp.analysis.push_bytes_sent',
-    'tcp.ack',
-    'tcp.hdr_len',
-    'tcp.seq',
-    'tcp.window_size_value',
-    'data.data',
-    'data.len',
-    'tcp.analysis.acks_frame',
-    'tcp.analysis.ack_rtt',
-    'eth.src.addr',
-    'eth.src.eth.src_resolved',
-    'eth.src.ig',
-    'eth.src.src_resolved',
-    'eth.src.addr_resolved',
-    'ip.proto',
-    'ip.dst_host',
-    'ip.flags',
-    'ip.len',
-    'ip.checksum',
-    'ip.checksum.status',
-    'ip.version',
-    'ip.host',
-    'ip.status',
-    'ip.id',
-    'ip.hdr_len',
-    'ip.ttl'
+    "meta.len",
+    "meta.time",
+    "meta.protocols",
+    "ip.addr",
+    "sll.halen",
+    "sll.pkttype",
+    "sll.eth",
+    "sll.hatype",
+    "sll.unused",
+    "ipv6.tclass",
+    "ipv6.flow",
+    "ipv6.nxt",
+    "ipv6.src_host",
+    "ipv6.host",
+    "ipv6.hlim",
+    "sll.ltype",
+    "cohda.Type",
+    "cohda.Ret",
+    "cohda.llc.MKxIFMsg.Ret",
+    "ipv6.addr",
+    "ipv6.dst",
+    "ipv6.plen",
+    "tcp.stream",
+    "tcp.payload",
+    "tcp.urgent_pointer",
+    "tcp.port",
+    "tcp.options.nop",
+    "tcp.options.timestamp",
+    "tcp.flags",
+    "tcp.window_size_scalefactor",
+    "tcp.dstport",
+    "tcp.len",
+    "tcp.checksum",
+    "tcp.window_size",
+    "tcp.srcport",
+    "tcp.checksum.status",
+    "tcp.nxtseq",
+    "tcp.status",
+    "tcp.analysis.bytes_in_flight",
+    "tcp.analysis.push_bytes_sent",
+    "tcp.ack",
+    "tcp.hdr_len",
+    "tcp.seq",
+    "tcp.window_size_value",
+    "data.data",
+    "data.len",
+    "tcp.analysis.acks_frame",
+    "tcp.analysis.ack_rtt",
+    "eth.src.addr",
+    "eth.src.eth.src_resolved",
+    "eth.src.ig",
+    "eth.src.src_resolved",
+    "eth.src.addr_resolved",
+    "ip.proto",
+    "ip.dst_host",
+    "ip.flags",
+    "ip.len",
+    "ip.checksum",
+    "ip.checksum.status",
+    "ip.version",
+    "ip.host",
+    "ip.status",
+    "ip.id",
+    "ip.hdr_len",
+    "ip.ttl",
 )
 
 
@@ -138,13 +140,17 @@ def default_nn_aggregator(key: str, value: object) -> int:
 
 
 class PysharkProcessor(DataProcessor):
-    """A simple data processor implementation supporting the processing of pyshark packets.
-    """
+    """A simple data processor implementation supporting the processing of pyshark packets."""
+
     f_features: tuple[str, ...]
     nn_aggregator: Callable[[str, object], object]
 
-    def __init__(self, name: str = "", f_features: tuple[str, ...] = default_f,
-                 nn_aggregator: Callable[[str, object], object] = default_nn_aggregator):
+    def __init__(
+        self,
+        name: str = "",
+        f_features: tuple[str, ...] = default_f,
+        nn_aggregator: Callable[[str, object], object] = default_nn_aggregator,
+    ):
         """Creates a new pyshark processor.
 
         :param name: Name of processor for logging purposes.
@@ -172,7 +178,9 @@ class PysharkProcessor(DataProcessor):
         :param d_point: Data point as dictionary.
         :return: Data point as dictionary, ordered.
         """
-        return {f_feature: d_point.pop(f_feature, np.nan) for f_feature in self.f_features}
+        return {
+            f_feature: d_point.pop(f_feature, np.nan) for f_feature in self.f_features
+        }
 
     def reduce(self, d_point: dict) -> np.ndarray:
         """Transform the pyshark data point directly into a numpy array without further processing, aggregating any
@@ -195,10 +203,11 @@ class LivePysharkHandler(SourceHandler):
     """The wrapper implementation to support and handle pyshark live captures as data sources. Considered infinite in
     nature, as it allows the generation of pyshark packets, until the capture is stopped.
     """
+
     _capture: LiveCapture
     _generator: Iterator[Packet]
 
-    def __init__(self, name: str = "", interfaces: list = 'any', bpf_filter: str = ""):
+    def __init__(self, name: str = "", interfaces: list = "any", bpf_filter: str = ""):
         """Creates a new basic pyshark live capture handler on the given interfaces.
 
         :param name: Name of handler for logging purposes.
@@ -212,8 +221,7 @@ class LivePysharkHandler(SourceHandler):
         self._logger.info("Live pyshark handler initialized.")
 
     def open(self):
-        """Starts the pyshark live caption, initializing the wrapped generator.
-        """
+        """Starts the pyshark live caption, initializing the wrapped generator."""
         self._logger.info("Beginning live pyshark capture...")
         self._generator = self._capture.sniff_continuously()
 
@@ -239,6 +247,7 @@ class PcapHandler(SourceHandler):
     fully thread safe, nor does its __iter__() method shut down after close() has been called. Due to its finite nature
     acceptable however, as this handler is nearly always only closed ones all data points have been retrieved.
     """
+
     _pcap_files: list[str]
 
     _cur_file_counter: int
@@ -262,10 +271,16 @@ class PcapHandler(SourceHandler):
             if os.path.isdir(path):
                 # Variables in following line are: file_tuple[0] = <sub>-directories; file_tuple[2] = files in directory
                 dirs = [(file_tuple[0], file_tuple[2]) for file_tuple in os.walk(path)]
-                files = [os.path.join(file_tuple[0], file_name) for file_tuple in dirs for file_name in file_tuple[1]
-                         if file_name.endswith(".pcap")]
+                files = [
+                    os.path.join(file_tuple[0], file_name)
+                    for file_tuple in dirs
+                    for file_name in file_tuple[1]
+                    if file_name.endswith(".pcap")
+                ]
                 if files is None:
-                    raise ValueError(f"Directory '{path}' does not contain any .pcap files!")
+                    raise ValueError(
+                        f"Directory '{path}' does not contain any .pcap files!"
+                    )
                 self._pcap_files += files
             elif os.path.isfile(path) and path.endswith(".pcap"):
                 self._pcap_files.append(path)
@@ -278,16 +293,14 @@ class PcapHandler(SourceHandler):
         self._logger.info("Pcap file handler initialized.")
 
     def open(self):
-        """Opens and resets the pcap file handler to the very beginning of the file list.
-        """
+        """Opens and resets the pcap file handler to the very beginning of the file list."""
         self._logger.info("Opening pcap file source...")
         self._cur_file_counter = 0
         self._cur_file_handle = None
         self._logger.info("Pcap file source opened.")
 
     def close(self):
-        """Closes any file of the pcap file handler.
-        """
+        """Closes any file of the pcap file handler."""
         self._logger.info("Closing pcap file source...")
         if self._cur_file_handle is not None:
             self._cur_file_handle.close()
@@ -301,13 +314,17 @@ class PcapHandler(SourceHandler):
         try_counter = 0
         while try_counter < self._try_counter:
             try:
-                self._cur_file_handle = pyshark.FileCapture(self._pcap_files[self._cur_file_counter])
+                self._cur_file_handle = pyshark.FileCapture(
+                    self._pcap_files[self._cur_file_counter]
+                )
                 break
             except TSharkCrashException:
                 try_counter += 1
                 continue
         if try_counter == self._try_counter:
-            raise RuntimeError(f"Could not open File '{self._pcap_files[self._cur_file_counter]}'")
+            raise RuntimeError(
+                f"Could not open File '{self._pcap_files[self._cur_file_counter]}'"
+            )
         self._cur_file_counter += 1
         self._logger.info("Next pcap file opened.")
 
@@ -337,7 +354,7 @@ def packet_to_dict(p: Packet) -> dict:
         "len": p.length,
         "protocols": [x.layer_name for x in p.layers],
         "time_epoch": p.sniff_timestamp,
-        "time": str(p.sniff_time)
+        "time": str(p.sniff_time),
     }
     p_dict.update({"meta": meta_dict})
 
@@ -395,7 +412,9 @@ def _add_xml_layer_to_dict(layer: (XmlLayer, JsonLayer)) -> dict:
     return layer_dictionary
 
 
-def _add_list_to_dict(layer: (XmlLayer, JsonLayer), field_name: str, value_list: list) -> dict:
+def _add_list_to_dict(
+    layer: (XmlLayer, JsonLayer), field_name: str, value_list: list
+) -> dict:
     """Creates a dictionary out of the given parameters. This function is called by _add_xml_layer_to_dict. Only
     necessary for JSON-mode.
     This is part of a recursive function. For the entrypoint see _add_layer_to_dict.
@@ -410,12 +429,15 @@ def _add_list_to_dict(layer: (XmlLayer, JsonLayer), field_name: str, value_list:
         dictionary[layer.get_field(field_name).layer_name] = value_list
 
     else:
-        dictionary[next(iter(value_list[0].keys()))] = \
-            [res[next(iter(value_list[0].keys()))] for res in value_list]
+        dictionary[next(iter(value_list[0].keys()))] = [
+            res[next(iter(value_list[0].keys()))] for res in value_list
+        ]
     return dictionary
 
 
-def _add_layer_field_container_to_dict(layer_field_container: LayerFieldsContainer) -> dict:
+def _add_layer_field_container_to_dict(
+    layer_field_container: LayerFieldsContainer,
+) -> dict:
     """Creates a dictionary out of a layerFieldContainer from a pyshark packet. A file in JSON-mode always has a length
     of one, while XML can contain a list of fields.
     This is part of a recursive function. For the entrypoint see _add_layer_to_dict.
@@ -438,7 +460,9 @@ def _add_layer_field_container_to_dict(layer_field_container: LayerFieldsContain
     return dictionary
 
 
-def flatten_dict(dictionary: (dict, list), seperator: str = ".", par_key: str = "") -> dict:
+def flatten_dict(
+    dictionary: (dict, list), seperator: str = ".", par_key: str = ""
+) -> dict:
     """Creates a flat dictionary (a dictionary without sub-dictionaries) from the given dictionary. The keys of
     sub-dictionaries are merged into the parent dictionary by combining the keys and adding a seperator:
     {a: {b: c, d: e}, f: g} becomes {a.b: c, a.d: e, f: g} assuming the seperator as '.'. However, redundant parent keys
@@ -452,17 +476,25 @@ def flatten_dict(dictionary: (dict, list), seperator: str = ".", par_key: str = 
     """
     items = {}
     for key, val in dictionary.items():
-        cur_key = par_key + seperator + key if par_key != "" and not key.startswith(par_key + seperator) else key
+        cur_key = (
+            par_key + seperator + key
+            if par_key != "" and not key.startswith(par_key + seperator)
+            else key
+        )
         if isinstance(val, MutableMapping):
             sub_items = flatten_dict(val, par_key=cur_key, seperator=seperator)
             for subkey in sub_items.keys():
                 if subkey in items:
-                    raise ValueError(f"Key collision in dictionary "
-                                     f"({subkey, sub_items[subkey]} vs {subkey, items[subkey]})!")
+                    raise ValueError(
+                        f"Key collision in dictionary "
+                        f"({subkey, sub_items[subkey]} vs {subkey, items[subkey]})!"
+                    )
             items.update(sub_items)
         else:
             if cur_key in items:
-                raise ValueError(f"Key collision in dictionary ({cur_key, val} vs {cur_key, items[cur_key]})!")
+                raise ValueError(
+                    f"Key collision in dictionary ({cur_key, val} vs {cur_key, items[cur_key]})!"
+                )
             items.update({cur_key: val})
     return items
 

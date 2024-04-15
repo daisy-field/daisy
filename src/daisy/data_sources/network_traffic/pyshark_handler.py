@@ -1,18 +1,20 @@
+# Copyright (C) 2024 DAI-Labor and others
+#
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """
-    Implementations of the data source helper interface that allows the processing and provisioning of pyshark packets,
-    either via file inputs, live capture, or a remote source that generates packets in either fashion.
+Implementations of the data source helper interface that allows the processing and provisioning of pyshark packets,
+either via file inputs, live capture, or a remote source that generates packets in either fashion.
 
-    TODO REVIEW COMMENTS
+TODO REVIEW COMMENTS
 
-    Author: Jonathan Ackerschewski, Fabian Hofmann
-    Modified: 28.02.24
+Author: Jonathan Ackerschewski, Fabian Hofmann
+Modified: 28.02.24
 
-    # TODO Future Work: Encoding/mapping of string/non-numerical values into numerical features
-    # TODO - Flattening of Lists instead of encoding them into singular numerical features
-    # TODO - NaN values also need to converted to something useful (that does not break the prediction/training)
+# TODO Future Work: Encoding/mapping of string/non-numerical values into numerical features
+# TODO - Flattening of Lists instead of encoding them into singular numerical features
+# TODO - NaN values also need to converted to something useful (that does not break the prediction/training)
 """
 
 import os
@@ -31,10 +33,11 @@ class LivePysharkHandler(SourceHandler):
     """The wrapper implementation to support and handle pyshark live captures as data sources. Considered infinite in
     nature, as it allows the generation of pyshark packets, until the capture is stopped.
     """
+
     _capture: LiveCapture
     _generator: Iterator[Packet]
 
-    def __init__(self, name: str = "", interfaces: list = 'any', bpf_filter: str = ""):
+    def __init__(self, name: str = "", interfaces: list = "any", bpf_filter: str = ""):
         """Creates a new basic pyshark live capture handler on the given interfaces.
 
         :param name: Name of handler for logging purposes.
@@ -48,8 +51,7 @@ class LivePysharkHandler(SourceHandler):
         self._logger.info("Live pyshark handler initialized.")
 
     def open(self):
-        """Starts the pyshark live caption, initializing the wrapped generator.
-        """
+        """Starts the pyshark live caption, initializing the wrapped generator."""
         self._logger.info("Beginning live pyshark capture...")
         self._generator = self._capture.sniff_continuously()
 
@@ -75,6 +77,7 @@ class PcapHandler(SourceHandler):
     fully thread safe, nor does its __iter__() method shut down after close() has been called. Due to its finite nature
     acceptable however, as this handler is nearly always only closed ones all data points have been retrieved.
     """
+
     _pcap_files: list[str]
 
     _cur_file_counter: int
@@ -98,10 +101,16 @@ class PcapHandler(SourceHandler):
             if os.path.isdir(path):
                 # Variables in following line are: file_tuple[0] = <sub>-directories; file_tuple[2] = files in directory
                 dirs = [(file_tuple[0], file_tuple[2]) for file_tuple in os.walk(path)]
-                files = [os.path.join(file_tuple[0], file_name) for file_tuple in dirs for file_name in file_tuple[1]
-                         if file_name.endswith(".pcap")]
+                files = [
+                    os.path.join(file_tuple[0], file_name)
+                    for file_tuple in dirs
+                    for file_name in file_tuple[1]
+                    if file_name.endswith(".pcap")
+                ]
                 if files is None:
-                    raise ValueError(f"Directory '{path}' does not contain any .pcap files!")
+                    raise ValueError(
+                        f"Directory '{path}' does not contain any .pcap files!"
+                    )
                 self._pcap_files += files
             elif os.path.isfile(path) and path.endswith(".pcap"):
                 self._pcap_files.append(path)
@@ -114,19 +123,18 @@ class PcapHandler(SourceHandler):
         self._logger.info("Pcap file handler initialized.")
 
     def open(self):
-        """Opens and resets the pcap file handler to the very beginning of the file list.
-        """
+        """Opens and resets the pcap file handler to the very beginning of the file list."""
         self._logger.info("Opening pcap file source...")
         self._cur_file_counter = 0
         self._cur_file_handle = None
         self._logger.info("Pcap file source opened.")
 
     def close(self):
-        """Closes any file of the pcap file handler.
-        """
+        """Closes any file of the pcap file handler."""
         self._logger.info("Closing pcap file source...")
         if self._cur_file_handle is not None:
             self._cur_file_handle.close()
+            self._cur_file_handle = None
         self._logger.info("Pcap file source closed.")
 
     def _open(self):
@@ -137,13 +145,17 @@ class PcapHandler(SourceHandler):
         try_counter = 0
         while try_counter < self._try_counter:
             try:
-                self._cur_file_handle = pyshark.FileCapture(self._pcap_files[self._cur_file_counter])
+                self._cur_file_handle = pyshark.FileCapture(
+                    self._pcap_files[self._cur_file_counter]
+                )
                 break
             except TSharkCrashException:
                 try_counter += 1
                 continue
         if try_counter == self._try_counter:
-            raise RuntimeError(f"Could not open File '{self._pcap_files[self._cur_file_counter]}'")
+            raise RuntimeError(
+                f"Could not open File '{self._pcap_files[self._cur_file_counter]}'"
+            )
         self._cur_file_counter += 1
         self._logger.info("Next pcap file opened.")
 

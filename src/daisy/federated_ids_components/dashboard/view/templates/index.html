@@ -1,3 +1,10 @@
+<!--
+  ~ Copyright (C) 2024 DAI-Labor and others
+  ~
+  ~ This Source Code Form is subject to the terms of the Mozilla Public
+  ~ License, v. 2.0. If a copy of the MPL was not distributed with this
+  ~ file, You can obtain one at https://mozilla.org/MPL/2.0/.
+  -->
 {% extends "./base.html" %}
 {% block body_theme %}
 {% if dark_theme %}
@@ -25,7 +32,7 @@
 
 {% block main %}
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
-<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+<script src="https://www.gstatic.com/charts/loader.js" type="text/javascript"></script>
 
 <script type="text/javascript">
     google.charts.load('current', {'packages': ['corechart']});
@@ -37,14 +44,17 @@
             ['2004', 1000],
         ]);
 
-        {%if not dark_theme %}
+        {%
+            if not dark_theme %
+        }
         var options = {
             curveType: 'function',
             backgroundColor: {fill: 'transparent'},
             legend: 'bottom',
 
         };
-        {% else %}
+        {% else %
+        }
         var options = {
             backgroundColor: 'transparent', // Set background color to transparent
             curveType: 'function',
@@ -76,7 +86,9 @@
                 color: '#FFFFFF' // Set text color for chart title
             }
         };
-        {%endif %}
+        {%
+            endif %
+        }
 
         var accuracy_chart = new google.visualization.LineChart(document.getElementById('accuracy_chart'));
         var f1_chart = new google.visualization.LineChart(document.getElementById('f1_chart'));
@@ -181,46 +193,47 @@
 
             })
         }
+
         function getAlerts() {
-             $.ajax({
-                 url: "http://127.0.0.1:8000/alert/",
-                 type: "GET",
-                 dataType: "json",
-                 success: (response) => {
+            $.ajax({
+                url: "http://127.0.0.1:8000/alert/",
+                type: "GET",
+                dataType: "json",
+                success: (response) => {
 
-                     var alerts = 0
-                     var warnings = 0
+                    var alerts = 0
+                    var warnings = 0
 
-                     for (let i = 0; i < response.length; i++) {        //type = danger, warning, info
-                          if (response[i].active == true && response[i].category == "alert"){
-                                    alerts = alerts+1
-                               var element = document.getElementById("alert-card");
-                                     element.classList.add("bg-danger");
-                          }
-                         if (response[i].active == true & response[i].category == "warning"){
-                                 warnings = warnings+1
-                                  var element = document.getElementById("warning-card");
-                                     element.classList.add("bg-warning");
-                         }
-                     }
-                     if(alerts == 0){
+                    for (let i = 0; i < response.length; i++) {        //type = danger, warning, info
+                        if (response[i].active == true && response[i].category == "alert") {
+                            alerts = alerts + 1
                             var element = document.getElementById("alert-card");
-                                     element.classList.remove("bg-danger");
-                     }
-                      if(warnings == 0){
+                            element.classList.add("bg-danger");
+                        }
+                        if (response[i].active == true & response[i].category == "warning") {
+                            warnings = warnings + 1
                             var element = document.getElementById("warning-card");
-                                     element.classList.remove("bg-warning");
-                     }
+                            element.classList.add("bg-warning");
+                        }
+                    }
+                    if (alerts == 0) {
+                        var element = document.getElementById("alert-card");
+                        element.classList.remove("bg-danger");
+                    }
+                    if (warnings == 0) {
+                        var element = document.getElementById("warning-card");
+                        element.classList.remove("bg-warning");
+                    }
 
-                    document.getElementById('alert_box').innerText   = alerts
-                    document.getElementById('warning_box').innerText   = warnings
-                 },
-                 error: (error) => {
-                     console.log(error);
-                 }
+                    document.getElementById('alert_box').innerText = alerts
+                    document.getElementById('warning_box').innerText = warnings
+                },
+                error: (error) => {
+                    console.log(error);
+                }
 
-             })
-         }
+            })
+        }
 
         sendRequest();
         setInterval(sendRequest, 3000);
@@ -236,153 +249,177 @@
 
 <br>
 <br>
-<div class={% if dark_theme %}"card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
+<div %} class={% dark_theme
+     if"card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
+<div class="card-header">
+    <i class="fa-solid fa-signal"></i>
+    Operational Status
+</div>
+<div class="card-body">
+    <div class="row">
+
+        <div class="col-xl-4 col-md-4">
+            <div class="card bg-success text-white mb-4"
+                 style="height:6cm;  display:flex">
+                <div class="card-header"><i class="fa-solid fa-server"></i> Model
+                    Aggregation:
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-xl-8 col-md-6">
+                            Status: {{agg_status}} <br>
+                            Last connection: <br>{{agg_time}}
+                        </div>
+                        <div class="col-xl-4 col-md-6">
+                            Connections:
+                            <p style="font-size:40px;">{{agg_count}}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" href={% url "aggregate"
+                    %} >View Details</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4 col-md-4">
+            <div class="card bg-success text-white mb-4"
+                 style="height:6cm;  display:flex">
+                <div class="card-header"><i class="fa-solid fa-chart-line"></i>
+                    Performance Evaluation:
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-xl-8 col-md-6">
+                            Status: {{eval_status}} <br>
+                            Last connection: {{eval_time}}
+                        </div>
+                        <div class="col-xl-4 col-md-6">
+                            Connections:
+                            <p style="font-size:40px;">{{eval_count}}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" href={% url "evaluate" %}
+                    >View Details</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="col-xl-2 col-md-2">
+            <div class="card bg-secondary text-white mb-4" id="warning-card"
+                 style="height:6cm;  display:flex">
+                <div class="card-header"><i
+                        class="fa-solid fa-triangle-exclamation"></i> Warnings:
+                </div>
+                <div class="card-body">
+                    <p id="warning_box" style="font-size:40px;"></p>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" href={% url "alerts" %}
+                    >View Details</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-2 col-md-2">
+            <div class="card bg-secondary text-white mb-4" id="alert-card"
+                 style="height:6cm; display:flex">
+                <div class="card-header"><i class="fa-solid fa-skull-crossbones"></i>
+                    Alerts:
+                </div>
+                <div class="card-body">
+                    <p id="alert_box" style="font-size:40px;"></p>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" href={% url "alerts" %}
+                    >View Details</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+<div class="card-footer small text-muted" id="updated"></div>
+
+</div>
+
+
+<div class="row">
+    <div class="col-xl-6 col-md-6">
+        <div %} class={% dark_theme if
+        "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %} >
+        <div class="card-header">
+            <i class="fas fa-chart-area me-1"></i>
+            F1-Score
+        </div>
+        <div class="card-body" id="f1_chart"></div>
+        <div class="card-footer small text-muted" id="updated4">
+            <a class="small text-secondary stretched-link" href={% url "f1-score" %}
+            >View Details</a>
+        </div>
+    </div>
+</div>
+
+<div class="col-xl-6 col-md-6">
+    <div %} class={% dark_theme if
+    "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
     <div class="card-header">
-        <i class="fa-solid fa-signal"></i>
-        Operational Status
+        <i class="fas fa-chart-area me-1"></i>
+        Precision
     </div>
-    <div class="card-body">
-        <div class="row">
-
-            <div class="col-xl-4 col-md-4">
-                <div class="card bg-success text-white mb-4" style="height:6cm;  display:flex">
-                    <div class="card-header"><i class="fa-solid fa-server"></i> Model Aggregation:</div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-xl-8 col-md-6">
-                                Status: {{agg_status}} <br>
-                                Last connection: <br>{{agg_time}}
-                            </div>
-                            <div class="col-xl-4 col-md-6">
-                                Connections:
-                                <p style="font-size:40px;">{{agg_count}}</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card-footer d-flex align-items-center justify-content-between">
-                        <a class="small text-white stretched-link" href={% url "aggregate" %} >View Details</a>
-                        <div class="small text-white"><i class="fas fa-angle-right"></i></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-xl-4 col-md-4">
-                <div class="card bg-success text-white mb-4" style="height:6cm;  display:flex">
-                    <div class="card-header"><i class="fa-solid fa-chart-line"></i> Performance Evaluation:</div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-xl-8 col-md-6">
-                                Status: {{eval_status}} <br>
-                                Last connection: {{eval_time}}
-                            </div>
-                            <div class="col-xl-4 col-md-6">
-                                Connections:
-                                <p style="font-size:40px;">{{eval_count}}</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card-footer d-flex align-items-center justify-content-between">
-                        <a class="small text-white stretched-link" href={% url "evaluate" %} >View Details</a>
-                        <div class="small text-white"><i class="fas fa-angle-right"></i></div>
-                    </div>
-                </div>
-            </div>
-
-
-            <div class="col-xl-2 col-md-2">
-                <div id="warning-card" class="card bg-secondary text-white mb-4" style="height:6cm;  display:flex">
-                    <div class="card-header"><i class="fa-solid fa-triangle-exclamation"></i> Warnings:</div>
-                    <div class="card-body">
-                        <p id ="warning_box" style="font-size:40px;"></p>
-                    </div>
-                    <div class="card-footer d-flex align-items-center justify-content-between">
-                        <a class="small text-white stretched-link" href={% url "alerts" %} >View Details</a>
-                        <div class="small text-white"><i class="fas fa-angle-right"></i></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-xl-2 col-md-2">
-                <div  id="alert-card" class="card bg-secondary text-white mb-4" style="height:6cm; display:flex">
-                    <div class="card-header"><i class="fa-solid fa-skull-crossbones"></i> Alerts:
-                    </div>
-                    <div class="card-body">
-                        <p id ="alert_box"  style="font-size:40px;"></p>
-                    </div>
-                    <div class="card-footer d-flex align-items-center justify-content-between">
-                        <a class="small text-white stretched-link" href={% url "alerts" %} >View Details</a>
-                        <div class="small text-white"><i class="fas fa-angle-right"></i></div>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-
+    <div class="card-body" id="precision_chart"></div>
+    <div class="card-footer small text-muted" id="updated1">
+        <a class="small text-secondary stretched-link" href={% url "precision" %} >View
+        Details</a>
     </div>
-    <div id="updated" class="card-footer small text-muted"></div>
-
 </div>
-
-
-<div class="row">
-    <div class="col-xl-6 col-md-6">
-        <div class={% if dark_theme %}
-            "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %} >
-            <div class="card-header">
-                <i class="fas fa-chart-area me-1"></i>
-                F1-Score
-            </div>
-            <div id="f1_chart" class="card-body"></div>
-            <div id="updated4" class="card-footer small text-muted">
-                <a class="small text-secondary stretched-link" href={% url "f1-score" %} >View Details</a>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-xl-6 col-md-6">
-        <div class={% if dark_theme %}
-            "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
-            <div class="card-header">
-                <i class="fas fa-chart-area me-1"></i>
-                Precision
-            </div>
-            <div id="precision_chart" class="card-body"></div>
-            <div id="updated1" class="card-footer small text-muted">
-                <a class="small text-secondary stretched-link" href={% url "precision" %} >View Details</a>
-            </div>
-        </div>
-    </div>
+</div>
 </div>
 
 <div class="row">
     <div class="col-xl-6 col-md-6">
-        <div class={% if dark_theme %}
+        <div %} class={% dark_theme if
         "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
-            <div class="card-header">
-                <i class="fas fa-chart-area me-1"></i>
-                Recall
-            </div>
-            <div id="recall_chart" class="card-body"></div>
-            <div id="updated2" class="card-footer small text-muted">
-                <a class="small text-secondary stretched-link" href={% url "recall" %} >View Details</a>
-            </div>
+        <div class="card-header">
+            <i class="fas fa-chart-area me-1"></i>
+            Recall
+        </div>
+        <div class="card-body" id="recall_chart"></div>
+        <div class="card-footer small text-muted" id="updated2">
+            <a class="small text-secondary stretched-link" href={% url "recall" %} >View
+            Details</a>
         </div>
     </div>
+</div>
 
-    <div class="col-xl-6 col-md-6">
-        <div class={% if dark_theme %}
-        "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
-            <div class="card-header">
-                <i class="fas fa-chart-area me-1"></i>
-                Accuracy
-            </div>
-            <div id="accuracy_chart" class="card-body">
-            </div>
-            <div id="updated3" class="card-footer small text-muted">
-                <a class="small text-secondary stretched-link" href={% url "accuracy" %} >View Details</a>
-            </div>
-        </div>
+<div class="col-xl-6 col-md-6">
+    <div %} class={% dark_theme if
+    "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
+    <div class="card-header">
+        <i class="fas fa-chart-area me-1"></i>
+        Accuracy
     </div>
+    <div class="card-body" id="accuracy_chart">
+    </div>
+    <div class="card-footer small text-muted" id="updated3">
+        <a class="small text-secondary stretched-link" href={% url "accuracy" %} >View
+        Details</a>
+    </div>
+</div>
+</div>
 
 </div>
 
