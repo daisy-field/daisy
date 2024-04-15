@@ -62,10 +62,11 @@ class Aggregation(models.Model):
             super().save(*args, **kwargs)
 
 
-class Evaluation(models.Model):
-    eval_status = models.CharField(max_length=255)
-    eval_count = models.IntegerField()
-    eval_time = models.DateTimeField(auto_now_add=True)
+
+class Prediction(models.Model):
+    pred_status = models.CharField(max_length=255)
+    pred_count = models.IntegerField()
+    pred_time = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
         total_records = Aggregation.objects.count()

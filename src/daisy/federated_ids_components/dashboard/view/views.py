@@ -4,7 +4,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-from api.models import Aggregation
+from daisy.federated_ids_components.dashboard.api.models import Aggregation, Prediction
 from dash_bootstrap_templates import load_figure_template
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
@@ -22,6 +22,15 @@ def index(request):
         agg_count = 0
         agg_time = "None"
 
+    try:
+        prediction_status = getattr(Prediction.objects.last(), "pred_status")
+        prediction_count = getattr(Prediction.objects.last(), "pred_count")
+        prediction_time = getattr(Prediction.objects.last(), "pred_time")
+    except AttributeError:
+        prediction_status = "None"
+        prediction_count = 0
+        prediction_time = "None"
+
     return render(
         request,
         "index.html",
@@ -30,9 +39,9 @@ def index(request):
             "agg_status": agg_status,
             "agg_count": agg_count,
             "agg_time": agg_time,
-            "eval_status": "Operational",
-            "eval_count": "9",
-            "eval_time": "02.03.2024",
+            "prediction_status": prediction_status,
+            "prediction_count": prediction_count,
+            "prediction_time": prediction_time,
         },
     )
 
@@ -59,12 +68,12 @@ def alerts(request):
 
 def aggregate(request):
     theme = request.session.get("is_dark_theme")
-    return render(request, "aggregation.html", {"dark_theme": theme})
+    return render(request, "model_aggregation.html", {"dark_theme": theme})
 
 
 def evaluate(request):
     theme = request.session.get("is_dark_theme")
-    return render(request, "evaluation.html", {"dark_theme": theme})
+    return render(request, "evaluation_aggregation.html", {"dark_theme": theme})
 
 
 def nodes(request):

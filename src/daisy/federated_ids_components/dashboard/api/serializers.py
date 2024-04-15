@@ -5,7 +5,7 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 from rest_framework import serializers
 
-from .models import Metrics, Aggregation, Alerts, Evaluation, Node
+from .models import Metrics, Aggregation, Alerts, Prediction, Node
 
 
 class MetricsSerializer(serializers.HyperlinkedModelSerializer):
@@ -20,10 +20,10 @@ class AggregationSerializer(serializers.HyperlinkedModelSerializer):
         fields = ["agg_status", "agg_count", "agg_time"]
 
 
-class EvaluationSerializer(serializers.HyperlinkedModelSerializer):
+class PredictionSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
-        model = Evaluation
-        fields = ["eval_status", "eval_count", "eval_time"]
+        model = Prediction
+        fields = ["pred_status", "pred_count", "pred_time"]
 
 
 class AlertsSerializer(serializers.HyperlinkedModelSerializer):

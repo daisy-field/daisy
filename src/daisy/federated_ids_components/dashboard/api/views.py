@@ -5,10 +5,10 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 from rest_framework import permissions, viewsets
 
-from .serializers import (
+from daisy.federated_ids_components.dashboard.api.serializers import (
     MetricsSerializer,
     AggregationSerializer,
-    EvaluationSerializer,
+    PredictionSerializer,
     AlertsSerializer,
     NodeSerializer,
     Metrics,
@@ -39,13 +39,13 @@ class AggregationSerializerView(viewsets.ModelViewSet):
     permission_classes = [permissions.AllowAny]
 
 
-class EvaluationSerializerView(viewsets.ModelViewSet):
+class PredictionSerializerView(viewsets.ModelViewSet):
     """
     API endpoint that allows users to be viewed or edited.
     """
 
-    queryset = Evaluation.objects.all()
-    serializer_class = EvaluationSerializer
+    queryset = Prediction.objects.all()
+    serializer_class = PredictionSerializer
     permission_classes = [permissions.AllowAny]
 
 
