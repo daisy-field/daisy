@@ -2,7 +2,7 @@
 
 ## Federating 
 
-[![CI](https://github.com/daisy-field/daisy/actions/workflows/Ruff/badge.svg?branch=main)](https://github.com/daisy-field/daisy/actions)
+[![CI](https://github.com/daisy-field/daisy/actions/workflows/linting/badge.svg?branch=main)](https://github.com/daisy-field/daisy/actions)
 
 [![License: MPL 2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](https://github.com/daisy-field/daisy/blob/main/LICENSE.txt)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
