@@ -11,7 +11,6 @@ from django.shortcuts import render
 
 
 def index(request):
-
     theme = request.session.get("is_dark_theme")
 
     try:
@@ -41,7 +40,6 @@ def index(request):
 _dark_template = "bootstrap_dark"  # "slate"
 _light_template = "bootstrap"  # pulse"
 load_figure_template([_light_template, _dark_template])
-
 
 
 def change_theme(request):
