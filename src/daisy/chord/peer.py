@@ -95,9 +95,9 @@ class Peer:
 
     def _create(self):
         self._endpoint_server.start()
-        # self._successor = (self._id, self._addr)
-        self._set_predecessor(self._predecessor)
-        self._set_successor(self._successor)
+        self._successor = (self._id, self._addr)
+        # self._set_predecessor(self._predecessor)
+        # self._set_successor(self._successor)
 
     def _join(self, join_addr: tuple[str, int]):
         self._endpoint_server.start()
@@ -211,10 +211,15 @@ class Peer:
                         if self._check_is_successor(message.peer_tuple[0]):
                             self._set_successor(message.peer_tuple)
 
-    def get_id(self):  # only for testing
+    def get_id(self):  # only for testing, to be removed
         return self._id
 
     def _set_successor(self, successor: tuple[int, tuple[str, int]]):
+        """Setter method for a node's successor. Assigns new successor and
+        establishes new endpoint.
+
+        :param successor: id and address of new successor
+        """
         self._successor = successor
         if self._successor_endpoint is not None:
             self._successor_endpoint.stop(shutdown=True)
@@ -228,6 +233,11 @@ class Peer:
         self._successor_endpoint.start()
 
     def _set_predecessor(self, predecessor: tuple[int, tuple[str, int]]):
+        """Setter method for a node's predecessor. Assigns new predecessor and
+        establishes new endpoint.
+
+        :param predecessor: id and address of new predecessor
+        """
         self._predecessor = predecessor
         if self._predecessor_endpoint is not None:
             self._predecessor_endpoint.stop(shutdown=True)
