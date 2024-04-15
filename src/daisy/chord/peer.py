@@ -31,6 +31,7 @@ class Chordmessage:
 
     id: uuid4
     type: MessageType
+    sender: tuple[int, tuple[str, int]]
     peer_tuple: tuple[int, tuple[str, int]]
     origin: MessageOrigin
 
@@ -38,6 +39,7 @@ class Chordmessage:
         self,
         message_id: uuid4,
         message_type: MessageType,
+        sender: tuple[int, tuple[str, int]] = None,
         peer_tuple: tuple[int, tuple[str, int]] = None,
         origin: MessageOrigin = None,
     ):
@@ -48,6 +50,7 @@ class Chordmessage:
         """
         self.id = message_id
         self.type = message_type
+        self.sender = sender
         self.peer_tuple = peer_tuple
         self.origin = origin
 
@@ -95,9 +98,10 @@ class Peer:
 
     def _create(self):
         self._endpoint_server.start()
-        self._successor = (self._id, self._addr)
-        # self._set_predecessor(self._predecessor)
-        # self._set_successor(self._successor)
+        self._successor = (
+            self._id,
+            self._addr,
+        )  # self._set_predecessor(self._predecessor)  # self._set_successor(self._successor)
 
     def _join(self, join_addr: tuple[str, int]):
         self._endpoint_server.start()
@@ -118,8 +122,12 @@ class Peer:
         ) or (check_id in range(pred_id + 1, self._id))
 
     def _check_is_successor(self, check_id: int) -> bool:
-        # check_id in ]n, succ]
+        # check_id in [n, succ]
         succ_id = self._successor[0]
+        if succ_id == self._id:
+            # edge case: first join right after create ->
+            # pred is still nil, and succ is inited to self
+            return True
         return (
             (self._id > succ_id) and (check_id not in range(succ_id + 1, self._id + 1))
         ) or (check_id in range(self._id + 1, succ_id + 1))
@@ -127,9 +135,16 @@ class Peer:
     def _try_to_find_lookup_result_locally(
         self, lookup_id
     ) -> tuple[int, tuple[str, int]] | None:
-        if lookup_id == self._predecessor[0]:
+        """Searches through a peers local data(-structures) to find whether
+        the successor of a given peer is known locally.
+
+        :param lookup_id: ID of a peer on the chord ring
+        """
+        if self._predecessor and lookup_id == self._predecessor[0]:
             return self._predecessor
-        elif lookup_id == self._successor[0] or self._check_is_successor(lookup_id):
+        elif self._successor and (
+            self._check_is_successor(lookup_id) or lookup_id == self._successor[0]
+        ):
             return self._successor
         elif self._check_is_predecessor(lookup_id):
             return self._id, self._addr
@@ -137,10 +152,15 @@ class Peer:
             return None
 
     def _lookup(self, lookup_id: int, response_addr: tuple[str, int]):
+        """Initiaes local lookup of a peer's successor and attempts to
+        send the found result back. If no maching peer is found locally,
+        a new lookup request will  be made to the succeeding peer.
+
+        :param lookup_id: ID of a peer whose successor shouöd be loooked up
+        :param response_addr: Address of the peer who should receive the lookup response
+        """
         result = self._try_to_find_lookup_result_locally(lookup_id)
-        print(result)
-        if result is None:  # relay request to successor
-            print(self._successor_endpoint.poll())
+        if result is None:
             self._successor_endpoint.send(
                 Chordmessage(
                     message_type=MessageType.LOOKUP_REQ,
@@ -155,6 +175,7 @@ class Peer:
         send(response_addr, message)
 
     def _stabilize(self):
+        """Wrappermethod that creates and send a stabilize message to a peers successor"""
         stabilize_message = Chordmessage(
             message_type=MessageType.STABILIZE,
             peer_tuple=(self._id, self._addr),
@@ -163,8 +184,15 @@ class Peer:
         self._successor_endpoint.send(stabilize_message)
 
     def _notify(self, notify_peer: tuple[int, tuple[str, int]]):
+        """Wrappermethod that creates and initiates a notify message
+
+        :param notify_peer: recipient of the notify message
+        """
         notify_message = Chordmessage(
-            message_type=MessageType.NOTIFY, peer_tuple=self._predecessor, message_id=1
+            sender=(self._id, self._addr),
+            message_type=MessageType.NOTIFY,
+            peer_tuple=self._predecessor,
+            message_id=1,
         )
         send(notify_peer[1], notify_message)
 
@@ -188,12 +216,20 @@ class Peer:
 
         while True:
             r_ready = self._get_read_ready_endpoints()
-            if self._successor is not None:
+            if (
+                self._successor == (self._id, self._addr)
+                and self._predecessor is not None
+            ):
+                self._set_successor(self._predecessor)
+            if self._successor is not None and self._successor != (
+                self._id,
+                self._addr,
+            ):
                 self._stabilize()
+
             sleep(1)
             for ep in r_ready:
                 message = typing.cast(Chordmessage, ep.receive(timeout=0))
-                print(message.peer_tuple, message.origin, message.type)
                 match message.type:
                     case MessageType.LOOKUP_REQ:
                         self._lookup(*message.peer_tuple)
@@ -202,12 +238,10 @@ class Peer:
                     case MessageType.JOIN:
                         self._lookup(*message.peer_tuple)
                     case MessageType.STABILIZE:
-                        print(f"received stabilize with {message.peer_tuple}")
                         if self._check_is_predecessor(message.peer_tuple[0]):
                             self._set_predecessor(message.peer_tuple)
                         self._notify(message.peer_tuple)
                     case MessageType.NOTIFY:
-                        print(f"received notify with {message.peer_tuple}")
                         if self._check_is_successor(message.peer_tuple[0]):
                             self._set_successor(message.peer_tuple)
 
@@ -215,7 +249,7 @@ class Peer:
         return self._id
 
     def _set_successor(self, successor: tuple[int, tuple[str, int]]):
-        """Setter method for a node's successor. Assigns new successor and
+        """Setter method for a peer's successor. Assigns new successor and
         establishes new endpoint.
 
         :param successor: id and address of new successor
@@ -233,7 +267,7 @@ class Peer:
         self._successor_endpoint.start()
 
     def _set_predecessor(self, predecessor: tuple[int, tuple[str, int]]):
-        """Setter method for a node's predecessor. Assigns new predecessor and
+        """Setter method for a peer's predecessor. Assigns new predecessor and
         establishes new endpoint.
 
         :param predecessor: id and address of new predecessor
@@ -250,6 +284,13 @@ class Peer:
         )
         self._predecessor_endpoint.start()
 
+    def __str__(self):
+        return (
+            f"id: {self._id}, \n"
+            + f"predecessor: {self._predecessor}, \n"
+            + f"successor: {self._successor}, \n"
+        )
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -261,19 +302,14 @@ if __name__ == "__main__":
     parser.add_argument("--succPort", type=int, default=None, help="successor port")
     parser.add_argument("--predId", type=int, default=None, help="predecessor tuple")
     parser.add_argument("--predPort", type=int, default=None, help="predecessor port")
+    parser.add_argument("--joinPort", type=int, default=None, help="join port")
 
     args = parser.parse_args()
 
     localhost = "127.0.0.1"
 
-    if args.id == 675 or args.id == 2:
-        peer = Peer(p_id=args.id, addr=(localhost, args.port))
-        peer.run((localhost, 10050))  # start as first chord peer
+    peer = Peer(p_id=args.id, addr=(localhost, args.port))
+    if args.joinPort:
+        peer.run((localhost, args.joinPort))  # start as first chord peer
     else:
-        peer = Peer(
-            p_id=args.id,
-            addr=(localhost, args.port),
-            successor=(args.succId, (localhost, args.succPort)),
-            predecessor=(args.predId, (localhost, args.predPort)),
-        )
-        peer.run()  # join existing chord
+        peer.run()
