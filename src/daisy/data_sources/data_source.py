@@ -47,12 +47,12 @@ class DataSource:
     _opened: bool
 
     def __init__(
-        self,
-        source_handler: SourceHandler,
-        data_processor: DataProcessor,
-        name: str = "",
-        multithreading: bool = False,
-        buffer_size: int = 1024,
+            self,
+            source_handler: SourceHandler,
+            data_processor: DataProcessor,
+            name: str = "",
+            multithreading: bool = False,
+            buffer_size: int = 1024,
     ):
         """Creates a new data source.
 

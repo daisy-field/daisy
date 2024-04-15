@@ -37,12 +37,12 @@ class CohdaProcessor(SimpleDataProcessor):
     _events: list[tuple[int, tuple[datetime, datetime], list[str], list[str], int]]
 
     def __init__(
-        self,
-        client_id: int,
-        events: list[tuple[int, tuple[datetime, datetime], list[str], list[str], int]],
-        name: str = "",
-        f_features: tuple[str, ...] = default_f_features,
-        nn_aggregator: Callable[[str, object], object] = default_nn_aggregator,
+            self,
+            client_id: int,
+            events: list[tuple[int, tuple[datetime, datetime], list[str], list[str], int]],
+            name: str = "",
+            f_features: tuple[str, ...] = default_f_features,
+            nn_aggregator: Callable[[str, object], object] = default_nn_aggregator,
     ):
         """Creates a new cohda processor for a specific client.
 
@@ -74,12 +74,12 @@ class CohdaProcessor(SimpleDataProcessor):
         for event in self._events:
             client, (start_time, end_time), protocols, addresses, label = event
             if (
-                client == self._client_id
-                and start_time
-                <= datetime.strptime(d_point["meta.time"], "%Y-%m-%d %H:%M:%S.%f")
-                <= end_time
-                and any([x in d_point["meta.protocols"] for x in protocols])
-                and all([x in d_point["ip.addr"] for x in addresses])
+                    client == self._client_id
+                    and start_time
+                    <= datetime.strptime(d_point["meta.time"], "%Y-%m-%d %H:%M:%S.%f")
+                    <= end_time
+                    and any([x in d_point["meta.protocols"] for x in protocols])
+                    and all([x in d_point["ip.addr"] for x in addresses])
             ):
                 d_point["label"] = label
                 break

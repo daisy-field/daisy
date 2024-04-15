@@ -43,7 +43,7 @@ class DataSourceRelay:
     _started: bool
 
     def __init__(
-        self, data_source: DataSource, endpoint: StreamEndpoint, name: str = ""
+            self, data_source: DataSource, endpoint: StreamEndpoint, name: str = ""
     ):
         """Creates a new data source relay.
 
@@ -240,7 +240,8 @@ class CSVFileRelay:
                     else:
                         if do_buffer:
                             self._headers = tuple(header_buffer)
-                            self._logger.info(f"Headers found with buffer size of {self._header_buffer_size}: {self._headers}")
+                            self._logger.info(
+                                f"Headers found with buffer size of {self._header_buffer_size}: {self._headers}")
                             file.write(f"{self._separator.join(self._headers)}\n")
 
                             for d_point_in_buffer in d_point_buffer:
