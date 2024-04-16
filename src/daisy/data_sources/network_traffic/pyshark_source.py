@@ -146,10 +146,10 @@ class PysharkProcessor(DataProcessor):
     nn_aggregator: Callable[[str, object], object]
 
     def __init__(
-            self,
-            name: str = "",
-            f_features: tuple[str, ...] = default_f,
-            nn_aggregator: Callable[[str, object], object] = default_nn_aggregator,
+        self,
+        name: str = "",
+        f_features: tuple[str, ...] = default_f,
+        nn_aggregator: Callable[[str, object], object] = default_nn_aggregator,
     ):
         """Creates a new pyshark processor.
 
@@ -413,7 +413,7 @@ def _add_xml_layer_to_dict(layer: (XmlLayer, JsonLayer)) -> dict:
 
 
 def _add_list_to_dict(
-        layer: (XmlLayer, JsonLayer), field_name: str, value_list: list
+    layer: (XmlLayer, JsonLayer), field_name: str, value_list: list
 ) -> dict:
     """Creates a dictionary out of the given parameters. This function is called by _add_xml_layer_to_dict. Only
     necessary for JSON-mode.
@@ -436,7 +436,7 @@ def _add_list_to_dict(
 
 
 def _add_layer_field_container_to_dict(
-        layer_field_container: LayerFieldsContainer,
+    layer_field_container: LayerFieldsContainer,
 ) -> dict:
     """Creates a dictionary out of a layerFieldContainer from a pyshark packet. A file in JSON-mode always has a length
     of one, while XML can contain a list of fields.
@@ -461,7 +461,7 @@ def _add_layer_field_container_to_dict(
 
 
 def flatten_dict(
-        dictionary: (dict, list), seperator: str = ".", par_key: str = ""
+    dictionary: (dict, list), seperator: str = ".", par_key: str = ""
 ) -> dict:
     """Creates a flat dictionary (a dictionary without sub-dictionaries) from the given dictionary. The keys of
     sub-dictionaries are merged into the parent dictionary by combining the keys and adding a seperator:

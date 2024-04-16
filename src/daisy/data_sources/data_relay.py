@@ -1,3 +1,8 @@
+# Copyright (C) 2024 DAI-Labor and others
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -19,8 +24,8 @@ TODO Future Work: Cleanup of inits to eliminate overlap of classes
 
 import logging
 import threading
-from pathlib import Path
 from collections import OrderedDict
+from pathlib import Path
 
 from daisy.communication import StreamEndpoint
 from daisy.data_sources import DataSource
@@ -43,7 +48,7 @@ class DataSourceRelay:
     _started: bool
 
     def __init__(
-            self, data_source: DataSource, endpoint: StreamEndpoint, name: str = ""
+        self, data_source: DataSource, endpoint: StreamEndpoint, name: str = ""
     ):
         """Creates a new data source relay.
 
@@ -135,8 +140,16 @@ class CSVFileRelay:
     _relay: threading.Thread
     _started: bool
 
-    def __init__(self, target_file: str, data_source: DataSource, name: str = "", header_buffer_size: int = 1000,
-                 overwrite_file: bool = False, separator: str = ",", default_missing_value: object = ""):
+    def __init__(
+        self,
+        target_file: str,
+        data_source: DataSource,
+        name: str = "",
+        header_buffer_size: int = 1000,
+        overwrite_file: bool = False,
+        separator: str = ",",
+        default_missing_value: object = "",
+    ):
         """Creates a new CSV relay instance
 
         :param target_file: The path to the CSV file. The parent directories will be created if not existent.
@@ -232,8 +245,10 @@ class CSVFileRelay:
         with open(self._file, "w") as file:
             for d_point in self._data_source:
                 try:
-                    if type(d_point) is not dict:
-                        raise TypeError(f"CSVFileRelay received data points, which aren't of type dictionary")
+                    if not isinstance(d_point, dict):
+                        raise TypeError(
+                            "CSVFileRelay received data points, which aren't of type dictionary"
+                        )
                     if d_point_counter < self._header_buffer_size:
                         header_buffer.update(OrderedDict.fromkeys(d_point.keys()))
                         d_point_buffer += [d_point]
@@ -241,16 +256,24 @@ class CSVFileRelay:
                         if do_buffer:
                             self._headers = tuple(header_buffer)
                             self._logger.info(
-                                f"Headers found with buffer size of {self._header_buffer_size}: {self._headers}")
+                                f"Headers found with buffer size of {self._header_buffer_size}: {self._headers}"
+                            )
                             file.write(f"{self._separator.join(self._headers)}\n")
 
                             for d_point_in_buffer in d_point_buffer:
-                                values = map(lambda topic: self._get_value(d_point_in_buffer, topic), self._headers)
+                                values = map(
+                                    lambda topic: self._get_value(
+                                        d_point_in_buffer, topic
+                                    ),
+                                    self._headers,
+                                )
                                 line = self._separator.join(values)
                                 file.write(f"{line}\n")
                             do_buffer = False
 
-                        values = map(lambda topic: self._get_value(d_point, topic), self._headers)
+                        values = map(
+                            lambda topic: self._get_value(d_point, topic), self._headers
+                        )
                         line = self._separator.join(values)
                         file.write(f"{line}\n")
                     d_point_counter += 1

@@ -133,9 +133,9 @@ def default_nn_aggregator(key: str, value: object) -> int:
 
 
 def create_pyshark_processor(
-        name: str = "",
-        f_features: tuple[str, ...] = default_f_features,
-        nn_aggregator: Callable[[str, object], object] = default_nn_aggregator,
+    name: str = "",
+    f_features: tuple[str, ...] = default_f_features,
+    nn_aggregator: Callable[[str, object], object] = default_nn_aggregator,
 ):
     """Creates a SimpleDataProcessor using functions specifically for pyshark packets.
 
@@ -161,7 +161,7 @@ def pyshark_map_fn() -> Callable[[object], dict]:
 
 
 def pyshark_filter_fn(
-        f_features: tuple[str, ...] = default_f_features,
+    f_features: tuple[str, ...] = default_f_features,
 ) -> Callable[[dict], dict]:
     """Filters the pyshark packet according to a pre-defined filter which is applied to every dictionary in order of
     the selected features in the filter. Features that do not exist are set to None. Can be used in a
@@ -183,7 +183,7 @@ def _pyshark_filter_fn(d_point: dict, f_features: tuple[str, ...]) -> dict:
 
 
 def pyshark_reduce_fn(
-        nn_aggregator: Callable[[str, object], object] = default_nn_aggregator,
+    nn_aggregator: Callable[[str, object], object] = default_nn_aggregator,
 ) -> Callable[[dict], np.ndarray]:
     """Transform the pyshark data point directly into a numpy array without further processing, aggregating any
     value that is list into a singular value. Can be used in a SimpleDataProcessor as the reduce function.
@@ -195,7 +195,7 @@ def pyshark_reduce_fn(
 
 
 def _pyshark_reduce_fn(
-        d_point: dict, nn_aggregator: Callable[[str, object], object]
+    d_point: dict, nn_aggregator: Callable[[str, object], object]
 ) -> np.ndarray:
     """Transform the pyshark data point directly into a numpy array without further processing, aggregating any
     value that is list into a singular value.
@@ -285,7 +285,7 @@ def _add_xml_layer_to_dict(layer: (XmlLayer, JsonLayer)) -> dict:
 
 
 def _add_list_to_dict(
-        layer: (XmlLayer, JsonLayer), field_name: str, value_list: list
+    layer: (XmlLayer, JsonLayer), field_name: str, value_list: list
 ) -> dict:
     """Creates a dictionary out of the given parameters. This function is called by _add_xml_layer_to_dict. Only
     necessary for JSON-mode.
@@ -308,7 +308,7 @@ def _add_list_to_dict(
 
 
 def _add_layer_field_container_to_dict(
-        layer_field_container: LayerFieldsContainer,
+    layer_field_container: LayerFieldsContainer,
 ) -> dict:
     """Creates a dictionary out of a layerFieldContainer from a pyshark packet. A file in JSON-mode always has a length
     of one, while XML can contain a list of fields.
@@ -333,7 +333,7 @@ def _add_layer_field_container_to_dict(
 
 
 def flatten_dict(
-        dictionary: (dict, list), seperator: str = ".", par_key: str = ""
+    dictionary: (dict, list), seperator: str = ".", par_key: str = ""
 ) -> dict:
     """Creates a flat dictionary (a dictionary without sub-dictionaries) from the given dictionary. The keys of
     sub-dictionaries are merged into the parent dictionary by combining the keys and adding a seperator:

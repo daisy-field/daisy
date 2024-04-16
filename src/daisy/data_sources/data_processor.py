@@ -99,11 +99,11 @@ class SimpleDataProcessor(DataProcessor):
     _reduce_fn: Callable[[dict], np.ndarray]
 
     def __init__(
-            self,
-            map_fn: Callable[[object], dict],
-            filter_fn: Callable[[dict], dict],
-            reduce_fn: Callable[[dict], np.ndarray],
-            name: str = "",
+        self,
+        map_fn: Callable[[object], dict],
+        filter_fn: Callable[[dict], dict],
+        reduce_fn: Callable[[dict], np.ndarray],
+        name: str = "",
     ):
         """Creates the SimpleDataProcessor
 
