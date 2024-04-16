@@ -31,7 +31,8 @@ from pyshark.packet.packet import Packet
 
 from daisy.data_sources import SimpleDataProcessor
 
-# Exemplary network feature filter, supporting cohda-box (V2x) messages, besides TCP/IP and ETH.
+# Exemplary network feature filter, supporting cohda-box (V2x) messages, besides
+# TCP/IP and ETH.
 default_f_features = (
     "meta.len",
     "meta.time",

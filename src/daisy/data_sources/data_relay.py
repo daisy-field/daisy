@@ -19,7 +19,6 @@ Author: Fabian Hofmann, Jonathan Ackerschewski
 Modified: 28.07.23
 
 TODO Future Work: Defining granularity of logging in inits
-TODO Future Work: Cleanup of inits to eliminate overlap of classes
 """
 
 import logging
