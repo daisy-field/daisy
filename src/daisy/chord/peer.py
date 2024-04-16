@@ -1,3 +1,8 @@
+# Copyright (C) 2024 DAI-Labor and others
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
 import argparse
 import threading
 import typing
@@ -38,7 +43,7 @@ class Chordmessage:
     def __init__(
         self,
         message_id: uuid4,
-        message_type: MessageType,
+        message_type: MessageType = None,
         sender: tuple[int, tuple[str, int]] = None,
         peer_tuple: tuple[int, tuple[str, int]] = None,
         origin: MessageOrigin = None,
@@ -101,12 +106,13 @@ class Peer:
         self._successor = (
             self._id,
             self._addr,
-        )  # self._set_predecessor(self._predecessor)  # self._set_successor(self._successor)
+        )
 
     def _join(self, join_addr: tuple[str, int]):
         self._endpoint_server.start()
         message = Chordmessage(
             message_type=MessageType.JOIN,
+            sender=(self._id, self._addr),
             peer_tuple=(self._id, self._addr),
             message_id=1,
         )
@@ -128,9 +134,12 @@ class Peer:
             # edge case: first join right after create ->
             # pred is still nil, and succ is inited to self
             return True
-        return (
+
+        val = (
             (self._id > succ_id) and (check_id not in range(succ_id + 1, self._id + 1))
         ) or (check_id in range(self._id + 1, succ_id + 1))
+
+        return val
 
     def _try_to_find_lookup_result_locally(
         self, lookup_id
@@ -140,10 +149,10 @@ class Peer:
 
         :param lookup_id: ID of a peer on the chord ring
         """
-        if self._predecessor and lookup_id == self._predecessor[0]:
+        if self._predecessor is not None and lookup_id == self._predecessor[0]:
             return self._predecessor
-        elif self._successor and (
-            self._check_is_successor(lookup_id) or lookup_id == self._successor[0]
+        elif self._successor is not None and (
+            self._check_is_successor(lookup_id) or (lookup_id == self._successor[0])
         ):
             return self._successor
         elif self._check_is_predecessor(lookup_id):
@@ -164,20 +173,25 @@ class Peer:
             self._successor_endpoint.send(
                 Chordmessage(
                     message_type=MessageType.LOOKUP_REQ,
+                    sender=(self._id, self._addr),
                     peer_tuple=(lookup_id, response_addr),
                     message_id=1,
                 )
             )
             return
         message = Chordmessage(
-            message_type=MessageType.LOOKUP_RES, peer_tuple=result, message_id=1
+            message_type=MessageType.LOOKUP_RES,
+            sender=(self._id, self._addr),
+            peer_tuple=result,
+            message_id=1,
         )
         send(response_addr, message)
 
     def _stabilize(self):
-        """Wrappermethod that creates and send a stabilize message to a peers successor"""
+        """Creates and sends a stabilize message to a peer's successor"""
         stabilize_message = Chordmessage(
             message_type=MessageType.STABILIZE,
+            sender=(self._id, self._addr),
             peer_tuple=(self._id, self._addr),
             message_id=1,
         )
@@ -189,8 +203,8 @@ class Peer:
         :param notify_peer: recipient of the notify message
         """
         notify_message = Chordmessage(
-            sender=(self._id, self._addr),
             message_type=MessageType.NOTIFY,
+            sender=(self._id, self._addr),
             peer_tuple=self._predecessor,
             message_id=1,
         )
@@ -232,6 +246,7 @@ class Peer:
                 message = typing.cast(Chordmessage, ep.receive(timeout=0))
                 match message.type:
                     case MessageType.LOOKUP_REQ:
+                        print(f"Lookup request for: {message.peer_tuple}")
                         self._lookup(*message.peer_tuple)
                     case MessageType.LOOKUP_RES:
                         self._set_successor(message.peer_tuple)
@@ -244,6 +259,7 @@ class Peer:
                     case MessageType.NOTIFY:
                         if self._check_is_successor(message.peer_tuple[0]):
                             self._set_successor(message.peer_tuple)
+            print(self.__str__())
 
     def get_id(self):  # only for testing, to be removed
         return self._id

@@ -1,10 +1,19 @@
+# Copyright (C) 2024 DAI-Labor and others
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+from enum import Enum
 from time import time
 from typing import Optional
 from uuid import uuid4
 
-from communication import StreamEndpoint, EndpointServer
+from daisy.communication import StreamEndpoint, EndpointServer
 
-from daisy.chord.chord_peer import MessageOrigin
+
+class MessageOrigin(Enum):
+    JOIN = 1
+    FIX_FINGERS = 2
 
 
 def check_if_peer_is_predecessor(pred_id: int, peer_id: int, new_pred_id: int) -> bool:
