@@ -125,7 +125,7 @@ class DataSource:
                 break
         self._logger.info("AsyncLoader: Stopping...")
 
-    def __iter__(self) -> Iterator[np.ndarray]:
+    def __iter__(self) -> Iterator[np.ndarray | dict | object]:
         """Generator that supports multithreading to retrieve processed data points.
 
         :return: Generator object for data points as numpy arrays.

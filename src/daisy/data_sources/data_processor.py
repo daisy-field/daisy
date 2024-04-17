@@ -76,16 +76,19 @@ class DataProcessor(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def reduce(self, d_point: dict) -> np.ndarray:
+    def reduce(self, d_point: dict) -> np.ndarray | dict:
         """Reduces the data point dictionary into a numpy array/vector, stripped from
         any feature names and redundant information.
+
+        Note this transformation into a numpy array is only necessary if this processor
+        is the immediate step before any (ML) tasks requiring such data format.
 
         :param d_point: Data point as dictionary.
         :return: Data point as numpy array.
         """
         raise NotImplementedError
 
-    def process(self, o_point: object) -> np.ndarray:
+    def process(self, o_point: object) -> np.ndarray | dict:
         """Converts and processes a data point object into a feature vector (numpy
         array).
 
@@ -106,13 +109,13 @@ class SimpleDataProcessor(DataProcessor):
 
     _map_fn: Callable[[object], dict]
     _filter_fn: Callable[[dict], dict]
-    _reduce_fn: Callable[[dict], np.ndarray]
+    _reduce_fn: Callable[[dict], np.ndarray | dict]
 
     def __init__(
         self,
         map_fn: Callable[[object], dict] = lambda o_point: o_point,
         filter_fn: Callable[[dict], dict] = lambda o_point: o_point,
-        reduce_fn: Callable[[dict], np.ndarray] = lambda o_point: o_point,
+        reduce_fn: Callable[[dict], np.ndarray | dict] = lambda o_point: o_point,
         name: str = "",
     ):
         """Creates a SimpleDataProcessor from the given map/filter/reduce functions. Any
@@ -123,7 +126,7 @@ class SimpleDataProcessor(DataProcessor):
         :param filter_fn: The filter function, which receives the map output and
         filters/selects its features.
         :param reduce_fn: The reduce function, which receives the filter output and
-        transforms into a numpy array.
+        transforms into a numpy array (if serving as input for ML tasks).
         :param name: The name for logging purposes.
         """
         super().__init__(name)
@@ -137,5 +140,5 @@ class SimpleDataProcessor(DataProcessor):
     def filter(self, d_point: dict) -> dict:
         return self._filter_fn(d_point)
 
-    def reduce(self, d_point: dict) -> np.ndarray:
+    def reduce(self, d_point: dict) -> np.ndarray | dict:
         return self._reduce_fn(d_point)
