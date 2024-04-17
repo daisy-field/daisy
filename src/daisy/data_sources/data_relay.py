@@ -3,20 +3,11 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""
-
-
-A collection of interfaces and base classes for data stream generation and
-preprocessing for further (ML) tasks. Supports generic generators, but also remote
-communication endpoints that hand over generic data points in streaming-manner,
-and any other implementations of the SourceHandler class. Note each different kind of
-data needs its own implementation of the DataProcessor class.
-
-TODO REFVIEW COMENTS @Fabian
-TODO interfacing?
+"""A number of useful tools tht build on top of the data source module, to provide
+relays of data points, either over a network over communication endpoints or directly
+to a local file(s) on disk. Both wrap around DataSource and thus process the data
+stream as it yields data points. Can be used for arbitrarily large arbitrary data
+streams.
 
 Author: Fabian Hofmann, Jonathan Ackerschewski
 Modified: 17.04.23
@@ -115,7 +106,8 @@ class DataSourceRelay:
 
     def _create_relay(self):
         """Actual relay, directly forwards data points from its data source to its
-        endpoint (both might be async)."""
+        endpoint (both might be async).
+        """
         self._logger.info("Starting to relay data points from data source...")
         for d_point in self._data_source:
             try:
@@ -131,9 +123,13 @@ class DataSourceRelay:
 
 
 class CSVFileRelay:
-    """A relay allowing data points to be stored in a CSV file. For this to work,
-    the processor is expected to return a dictionary containing values for all fields
-    in the headers parameter.
+    """A union of a data source and a (csv) file handler to retrieve data points form
+    the former and storing them in the file. This allows the pre-processing of data
+    points from a stream and re-using them at a later time by replaying the file.
+
+    Note that such a relay requires an intact dictionary containing values for all
+    fields of the data point header's parameters, i.e. the reduce() function of any
+    DataProcessor of the DataSource must not transform it into a numpy vector.
     """
 
     _logger: logging.Logger
@@ -150,40 +146,35 @@ class CSVFileRelay:
 
     def __init__(
         self,
-        target_file: str,
         data_source: DataSource,
+        target_file: str,
         name: str = "",
         header_buffer_size: int = 1000,
         overwrite_file: bool = False,
         separator: str = ",",
         default_missing_value: object = "",
     ):
-        """Creates a new CSV relay instance
+        """Creates a new CSV file relay.
 
-        :param target_file: The path to the CSV file. The parent directories will be created if not existent.
-
-        :param data_source: The data source providing the data to store. The processor used by the data source is
-
-        expected to return a dictionary containing all values for all fields in the headers parameter
-
-        :param headers: The headers of the CSV file. The order is preserved in the CSV file
-
-        :param name: Name of the relay for logging purposes
-
-        :param header_buffer_size: The headers will be discovered from the data. This size determines how many packets
-
-        will be buffered and headers combined. Note that it can never be guaranteed that all features/headers of the
-
-        packets will be discovered, if for example a packet with new features arrives after the discovery is completed.
-
-        :param overwrite_file: Whether the CSV file should be overwritten if it exists
-
-        :param separator: The separator used in the CSV file
-
-        :param default_missing_value: The value that will be used, if a feature isn't present in a packet
-
-        :raises TypeError: If a data point arrives, that isn't of type dictionary.
-        Only dictionaries are supported.
+        :param data_source: The data source providing the data points to write to
+        file. The processor used by the data source is expected to return data points
+        as a dictionary containing all values for all fields in the header's parameter.
+        :param target_file: The path to the (new) CSV file. The parent directories
+        will be created if not existent.
+        :param name: Name of the relay for logging purposes.
+        :param header_buffer_size: Number of packets to buffer to generate a common
+        header via auto-detection. Note it is not guaranteed that all
+        features/headers of all data points in the (possible infinite) stream will be
+        discovered, if for example a data point with new features could arrive after
+        the discovery is completed.
+        :param overwrite_file: Whether the file should be overwritten if it exists.
+        :param separator: Separator used in the CSV file.
+        :param default_missing_value: Default value if a feature is not present in a
+        data point.
+        :raises ValueError:
+            * If no buffer size is negative or 0.
+            * If an invalid CSV separator is provided.
+            * If file path provided is not valid.
         """
         self._logger = logging.getLogger(name)
         self._logger.info("Initializing file relay...")
@@ -191,7 +182,7 @@ class CSVFileRelay:
         self._started = False
 
         if header_buffer_size <= 0:
-            raise ValueError("header_buffer_size must be greater 0")
+            raise ValueError("Header buffer size must be greater 0")
 
         if separator == '"':
             raise ValueError(f"'{separator}' is not allowed as a separator")
@@ -208,7 +199,7 @@ class CSVFileRelay:
         try:
             self._file.touch(exist_ok=False)
         except FileNotFoundError:
-            raise ValueError("File points at an invalid path.")
+            raise ValueError("File points to an invalid path.")
         except FileExistsError:
             if not overwrite_file:
                 raise ValueError("File already exists and should not be overwritten.")
@@ -222,9 +213,8 @@ class CSVFileRelay:
         self._logger.info("File relay initialized.")
 
     def start(self):
-        """Starts the data source relay along any other objects in this union.
-        Non-blocking, as the relay is started in the background to allow the stopping
-        of it afterward.
+        """Starts the data source relay along the data source itself. Non-blocking,
+        as the relay is started in the background to allow the stopping of it afterward.
         """
         self._logger.info("Starting file relay...")
         if self._started:
@@ -242,6 +232,9 @@ class CSVFileRelay:
     def stop(self):
         """Closes and stops the data source and joins the relay thread into the
         current thread. Can be restarted (and stopped) and arbitrary amount of times.
+
+        Note that stopping the relay will not reset the csv file, only recreating it
+        will do that.
         """
         self._logger.info("Stopping file relay...")
         if not self._started:
@@ -256,7 +249,12 @@ class CSVFileRelay:
         self._logger.info("File relay stopped.")
 
     def _create_relay(self):
-        """Writes the data points to a file in a csv style"""
+        """Actual relay, directly writes data points from its data source to its
+        filehandle in csv style.
+
+        :raises TypeError: Retrieved data point is not of type dictionary. Only
+        dictionaries are supported.
+        """
         self._logger.info("Starting to relay data points from data source...")
         d_point_counter = 0
         d_point_buffer = []
@@ -268,8 +266,7 @@ class CSVFileRelay:
                 try:
                     if not isinstance(d_point, dict):
                         raise TypeError(
-                            "CSVFileRelay received data points, "
-                            "which aren't of type dictionary"
+                            "Received data point that is not  of type dictionary."
                         )
                     if d_point_counter < self._header_buffer_size:
                         header_buffer.update(OrderedDict.fromkeys(d_point.keys()))
@@ -306,6 +303,14 @@ class CSVFileRelay:
         self._logger.info("Data source exhausted, or relay closing...")
 
     def _get_value(self, d_point: dict, topic: str) -> str:
+        """Retrieves a value from a data point, transforming it into a string to
+        prepare it for writing. If it contains csv separators, puts it into quotation
+        marks to escape these characters, to make sure it stays a single entry.
+
+        :param d_point: Data point to retrieve value from.
+        :param topic: Topic to retrieve from data point.
+        :return: Value of data point.
+        """
         string_value = str(d_point.get(topic, self._default_missing_value))
         if self._separator in string_value:
             string_value = f'"{string_value}"'
