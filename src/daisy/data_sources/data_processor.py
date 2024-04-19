@@ -12,10 +12,9 @@ DataProcessor class.
 
 Author: Fabian Hofmann, Jonathan Ackerschewski
 Modified: 16.04.24
-
-TODO Future Work: General purpose data processor for arbitrary processing steps
-TODO Future Work: Defining granularity of logging in inits
 """
+# TODO Future Work: General purpose data processor for arbitrary processing steps
+# TODO Future Work: Defining granularity of logging in inits
 
 import logging
 from abc import ABC, abstractmethod

@@ -11,13 +11,13 @@ aggregators to be used.
 
 Author: Fabian Hofmann
 Modified: 04.04.24
-
-TODO Future Work: weighted moving average based on significance of data point
-TODO - in that case requires serious consideration whether a list of model parameters
-can even work
-TODO - should be done with a custom weighting interface that computes the importance
-of model to the set (0-1)
 """
+# TODO: Future Work:
+#   - weighted moving average based on significance of data point
+#   - in that case requires serious consideration whether a list of model parameters
+#     can even work
+#   - should be done with a custom weighting interface that computes the importance
+#     of model to the set (0-1)
 
 from abc import ABC, abstractmethod
 from collections import deque

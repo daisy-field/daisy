@@ -8,12 +8,11 @@ endpoints over BSD sockets. Supports SSL (soon) and LZ4 compression.
 
 Author: Fabian Hofmann
 Modified: 02.04.24
-
-TODO Future Work: SSL https://docs.python.org/3/library/ssl.html
-TODO Future Work: Potential race conditions during rapid start/stop | open/close
-TODO Future Work: Defining granularity of logging in inits
-FIXME: Sender/Receiver Threads (inefficient) racing for re-establishing connection
 """
+# TODO Future Work: SSL https://docs.python.org/3/library/ssl.html
+# TODO Future Work: Potential race conditions during rapid start/stop | open/close
+# TODO Future Work: Defining granularity of logging in inits
+# FIXME: Sender/Receiver Threads (inefficient) racing for re-establishing connection
 
 import ctypes
 import logging

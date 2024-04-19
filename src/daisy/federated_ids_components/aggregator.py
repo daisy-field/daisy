@@ -11,9 +11,8 @@ which follows a simple REST API (see the dashboard subpackage).
 
 Author: Fabian Hofmann, Seraphin Zunzer
 Modified: 04.04.24
-
-TODO Future Work: Defining granularity of logging in inits
 """
+# TODO Future Work: Defining granularity of logging in inits
 
 import logging
 import threading
