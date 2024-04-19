@@ -261,9 +261,6 @@ class Peer:
                             self._set_successor(message.peer_tuple)
             print(self.__str__())
 
-    def get_id(self):  # only for testing, to be removed
-        return self._id
-
     def _set_successor(self, successor: tuple[int, tuple[str, int]]):
         """Setter method for a peer's successor. Assigns new successor and
         establishes new endpoint.
