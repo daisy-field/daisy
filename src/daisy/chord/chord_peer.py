@@ -1,3 +1,8 @@
+# Copyright (C) 2024 DAI-Labor and others
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """
 Class for Federated Peer that implements a fault-tolerant version of the Chord Protocol
 
@@ -11,9 +16,9 @@ import logging
 import random
 import threading
 import typing
-from typing import Optional
 from enum import Enum
 from time import sleep, time
+from typing import Optional
 from uuid import uuid4
 
 import numpy as np
@@ -74,7 +79,6 @@ def close_tmp_ep(ep: StreamEndpoint, sleep_time: int = 10, stop_timeout: int = 1
 
 
 class Chordpeer:
-    # TODO: have succ in finger table and not external
     """Class for Chordpeers."""
 
     _id: int
@@ -429,8 +433,7 @@ class Chordpeer:
                             message_type=MessageType.LOOKUP_SUCC_REQ,
                             peer_tuple=(peer_id, peer_addr),
                         )
-                    )
-                # print("hello")
+                    )  # print("hello")
             except AttributeError as e:
                 self._logger.error(
                     f"{e.__class__.__name__} ({e}) :: in find_succ: failed to relay "

@@ -13,7 +13,9 @@ from uuid import uuid4
 from daisy.communication import EndpointServer, StreamEndpoint
 
 
-def close_tmp_ep(ep: StreamEndpoint, sleep_time: int = 10, stop_timeout: int = 10):
+def shutdown_temporary_endpoint(
+    ep: StreamEndpoint, sleep_time: int = 10, stop_timeout: int = 10
+):
     sleep(sleep_time)
     ep.stop(shutdown=True, timeout=stop_timeout)
 
@@ -70,7 +72,9 @@ def send(send_addr: tuple[str, int], message: Chordmessage):
     )
     endpoint.start()
     endpoint.send(message)
-    threading.Thread(target=lambda: close_tmp_ep(endpoint, 10, 10), daemon=True).start()
+    threading.Thread(
+        target=lambda: shutdown_temporary_endpoint(endpoint, 10, 10), daemon=True
+    ).start()
 
 
 class Peer:
@@ -84,12 +88,15 @@ class Peer:
 
     _endpoint_server: EndpointServer
 
+    _max_fingers: int
+
     def __init__(
         self,
         p_id: int,
         addr: tuple[str, int],
         successor: tuple[int, tuple[str, int]] = None,
         predecessor: tuple[int, tuple[str, int]] = None,
+        max_fingers: int = 16,
     ):
         self._id = p_id
         self._addr = addr
@@ -100,6 +107,7 @@ class Peer:
         self._endpoint_server = EndpointServer(
             f"{id}-Server", addr=addr, multithreading=True, c_timeout=30
         )
+        self._max_fingers = max_fingers
 
     def _create(self):
         self._endpoint_server.start()
@@ -151,16 +159,19 @@ class Peer:
         """
         if self._predecessor is not None and lookup_id == self._predecessor[0]:
             return self._predecessor
-        elif self._successor is not None and (
-            self._check_is_successor(lookup_id) or (lookup_id == self._successor[0])
-        ):
+        elif self._successor is not None and self._check_is_successor(lookup_id):
             return self._successor
         elif self._check_is_predecessor(lookup_id):
             return self._id, self._addr
         else:
             return None
 
-    def _lookup(self, lookup_id: int, response_addr: tuple[str, int]):
+    def _lookup(
+        self,
+        lookup_id: int,
+        response_addr: tuple[str, int],
+        lookup_origin: MessageOrigin,
+    ):
         """Initiaes local lookup of a peer's successor and attempts to
         send the found result back. If no maching peer is found locally,
         a new lookup request will  be made to the succeeding peer.
@@ -176,6 +187,7 @@ class Peer:
                     sender=(self._id, self._addr),
                     peer_tuple=(lookup_id, response_addr),
                     message_id=1,
+                    origin=lookup_origin,
                 )
             )
             return
@@ -184,6 +196,7 @@ class Peer:
             sender=(self._id, self._addr),
             peer_tuple=result,
             message_id=1,
+            origin=lookup_origin,
         )
         send(response_addr, message)
 
@@ -209,6 +222,13 @@ class Peer:
             message_id=1,
         )
         send(notify_peer[1], notify_message)
+
+    def _fix_fingers(self):
+        for i in range(self._max_fingers):
+            finger = self._id + (1 << i) % (1 << self._max_fingers)
+            self._lookup(
+                finger, self._addr, MessageOrigin.FIX_FINGERS
+            )  # dict(sorted(x.items(), key=lambda item: item[1])) TODO sort fingers
 
     def _get_read_ready_endpoints(self) -> set[StreamEndpoint]:
         r_ready_eps = set()
@@ -247,11 +267,14 @@ class Peer:
                 match message.type:
                     case MessageType.LOOKUP_REQ:
                         print(f"Lookup request for: {message.peer_tuple}")
-                        self._lookup(*message.peer_tuple)
+                        self._lookup(*message.peer_tuple, lookup_origin=message.origin)
                     case MessageType.LOOKUP_RES:
-                        self._set_successor(message.peer_tuple)
+                        if message.origin == MessageOrigin.JOIN:
+                            self._set_successor(message.peer_tuple)
+                        if message.origin == MessageOrigin.FIX_FINGERS:
+                            pass  # TODO implement
                     case MessageType.JOIN:
-                        self._lookup(*message.peer_tuple)
+                        self._lookup(*message.peer_tuple, lookup_origin=message.origin)
                     case MessageType.STABILIZE:
                         if self._check_is_predecessor(message.peer_tuple[0]):
                             self._set_predecessor(message.peer_tuple)
