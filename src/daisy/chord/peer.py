@@ -5,6 +5,7 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 import argparse
 import threading
+import time
 import typing
 from enum import Enum
 from time import sleep
@@ -44,18 +45,18 @@ class Chordmessage:
 
     def __init__(
         self,
-        message_id: uuid4,
+        request_id: uuid4 = None,
         message_type: MessageType = None,
         sender: tuple[int, tuple[str, int]] = None,
         peer_tuple: tuple[int, tuple[str, int]] = None,
         origin: MessageOrigin = None,
     ):
         """Creates a new Chordmessage.
-        :param message_id: Message identifier
+        :param request_id: Message identifier
         :param message_type: Type of message for processing in receive function.
         :param peer_tuple: ID and address of the peer sent whithin the Chordmessage.
         """
-        self.id = message_id
+        self.id = request_id
         self.type = message_type
         self.sender = sender
         self.peer_tuple = peer_tuple
@@ -83,12 +84,17 @@ class Peer:
 
     _successor: tuple[int, tuple[str, int]] | None
     _successor_endpoint: StreamEndpoint | None
+    _pending_requests: dict[uuid4, tuple[int, float, int]]
+
+    _max_fingers: int
+    _fingers: dict[int, tuple[int, tuple[str, int], StreamEndpoint]]
+    # i: id, addr, ep
     _predecessor: tuple[int, tuple[str, int]] | None
     _predecessor_endpoint: StreamEndpoint | None
 
     _endpoint_server: EndpointServer
 
-    _max_fingers: int
+    # message id: ttl, send time, for fingers: i
 
     def __init__(
         self,
@@ -98,6 +104,7 @@ class Peer:
         predecessor: tuple[int, tuple[str, int]] = None,
         max_fingers: int = 16,
     ):
+        self._pending_requests = {}
         self._id = p_id
         self._addr = addr
         self._successor = successor
@@ -108,6 +115,7 @@ class Peer:
             f"{id}-Server", addr=addr, multithreading=True, c_timeout=30
         )
         self._max_fingers = max_fingers
+        self._fingers = {}
 
     def _create(self):
         self._endpoint_server.start()
@@ -118,12 +126,15 @@ class Peer:
 
     def _join(self, join_addr: tuple[str, int]):
         self._endpoint_server.start()
+        request_id = uuid4()  # TODO evaluate if necessary -> for retry?
         message = Chordmessage(
             message_type=MessageType.JOIN,
             sender=(self._id, self._addr),
             peer_tuple=(self._id, self._addr),
-            message_id=1,
+            origin=MessageOrigin.JOIN,
+            request_id=request_id,
         )
+        self._pending_requests[request_id] = (10, time.time(), -1)
         send(join_addr, message)
 
     def _check_is_predecessor(self, check_id: int) -> bool:
@@ -143,11 +154,9 @@ class Peer:
             # pred is still nil, and succ is inited to self
             return True
 
-        val = (
+        return (
             (self._id > succ_id) and (check_id not in range(succ_id + 1, self._id + 1))
         ) or (check_id in range(self._id + 1, succ_id + 1))
-
-        return val
 
     def _try_to_find_lookup_result_locally(
         self, lookup_id
@@ -171,6 +180,7 @@ class Peer:
         lookup_id: int,
         response_addr: tuple[str, int],
         lookup_origin: MessageOrigin,
+        request_id: uuid4,
     ):
         """Initiaes local lookup of a peer's successor and attempts to
         send the found result back. If no maching peer is found locally,
@@ -186,7 +196,7 @@ class Peer:
                     message_type=MessageType.LOOKUP_REQ,
                     sender=(self._id, self._addr),
                     peer_tuple=(lookup_id, response_addr),
-                    message_id=1,
+                    request_id=request_id,
                     origin=lookup_origin,
                 )
             )
@@ -195,7 +205,7 @@ class Peer:
             message_type=MessageType.LOOKUP_RES,
             sender=(self._id, self._addr),
             peer_tuple=result,
-            message_id=1,
+            request_id=request_id,
             origin=lookup_origin,
         )
         send(response_addr, message)
@@ -206,12 +216,11 @@ class Peer:
             message_type=MessageType.STABILIZE,
             sender=(self._id, self._addr),
             peer_tuple=(self._id, self._addr),
-            message_id=1,
         )
         self._successor_endpoint.send(stabilize_message)
 
     def _notify(self, notify_peer: tuple[int, tuple[str, int]]):
-        """Wrappermethod that creates and initiates a notify message
+        """Creates and initiates a notify message
 
         :param notify_peer: recipient of the notify message
         """
@@ -219,16 +228,44 @@ class Peer:
             message_type=MessageType.NOTIFY,
             sender=(self._id, self._addr),
             peer_tuple=self._predecessor,
-            message_id=1,
         )
         send(notify_peer[1], notify_message)
 
     def _fix_fingers(self):
         for i in range(self._max_fingers):
             finger = self._id + (1 << i) % (1 << self._max_fingers)
-            self._lookup(
-                finger, self._addr, MessageOrigin.FIX_FINGERS
-            )  # dict(sorted(x.items(), key=lambda item: item[1])) TODO sort fingers
+            request_id = uuid4()
+            self._pending_requests[request_id] = (10, time.time(), i)
+            self._lookup(finger, self._addr, MessageOrigin.FIX_FINGERS, request_id)
+
+    def _set_finger(self, index: int, new_finger_tuple: tuple[int, tuple[str, int]]):
+        finger = self._fingers.get(index)
+        if finger is not None:
+            if finger[0] != new_finger_tuple[0]:
+                finger[2].stop(shutdown=True)
+            self._fingers[index] = (
+                new_finger_tuple[0],
+                new_finger_tuple[1],
+                StreamEndpoint(
+                    name=f"FINGER-{index}",
+                    remote_addr=new_finger_tuple[1],
+                    acceptor=False,
+                    multithreading=False,
+                    buffer_size=10000,
+                ),
+            )
+        else:
+            self._fingers[index] = (
+                new_finger_tuple[0],
+                new_finger_tuple[1],
+                StreamEndpoint(
+                    name=f"FINGER-{index}",
+                    remote_addr=new_finger_tuple[1],
+                    acceptor=False,
+                    multithreading=False,
+                    buffer_size=10000,
+                ),
+            )
 
     def _get_read_ready_endpoints(self) -> set[StreamEndpoint]:
         r_ready_eps = set()
@@ -260,6 +297,7 @@ class Peer:
                 self._addr,
             ):
                 self._stabilize()
+                self._fix_fingers()
 
             sleep(1)
             for ep in r_ready:
@@ -267,14 +305,26 @@ class Peer:
                 match message.type:
                     case MessageType.LOOKUP_REQ:
                         print(f"Lookup request for: {message.peer_tuple}")
-                        self._lookup(*message.peer_tuple, lookup_origin=message.origin)
+                        self._lookup(
+                            *message.peer_tuple,
+                            lookup_origin=message.origin,
+                            request_id=message.id,
+                        )
                     case MessageType.LOOKUP_RES:
                         if message.origin == MessageOrigin.JOIN:
                             self._set_successor(message.peer_tuple)
+                            self._pending_requests.pop(message.id)
                         if message.origin == MessageOrigin.FIX_FINGERS:
-                            pass  # TODO implement
+                            i = self._pending_requests[message.id][2]
+                            self._set_finger(i, message.peer_tuple)
+                            self._pending_requests.pop(message.id)
                     case MessageType.JOIN:
-                        self._lookup(*message.peer_tuple, lookup_origin=message.origin)
+                        self._lookup(
+                            *message.peer_tuple,
+                            lookup_origin=message.origin,
+                            request_id=message.id,
+                        )
+
                     case MessageType.STABILIZE:
                         if self._check_is_predecessor(message.peer_tuple[0]):
                             self._set_predecessor(message.peer_tuple)
@@ -282,6 +332,17 @@ class Peer:
                     case MessageType.NOTIFY:
                         if self._check_is_successor(message.peer_tuple[0]):
                             self._set_successor(message.peer_tuple)
+
+            print(
+                [
+                    (
+                        finger,
+                        self._id + (1 << finger) % (1 << self._max_fingers),
+                        self._fingers[finger][0],
+                    )
+                    for finger in self._fingers
+                ]
+            )
             print(self.__str__())
 
     def _set_successor(self, successor: tuple[int, tuple[str, int]]):
