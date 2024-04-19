@@ -3,14 +3,11 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""
-Implementations of the data source processor interface that allows the processing and provisioning of pyshark
-packets that are captured from cohda boxes.
-
-TODO REVIEW COMMENTS
+"""Implementations of the data source processor interface that allows the processing
+and provisioning of pyshark packets that are captured from cohda boxes.
 
 Author: Seraphin Zunzer, Fabian Hofmann
-Modified: 27.02.24
+Modified: 19.04.24
 """
 
 from datetime import datetime
@@ -29,8 +26,9 @@ from ...data_sources.network_traffic.pyshark_processor import (
 
 
 class CohdaProcessor(SimpleDataProcessor):
-    """An extension of the pyshark processor to support the labeling of the data stream for evaluation purposes. Labels
-    are appended according to the used protocol, timestamps, source and destination ip addresses.
+    """An extension of the pyshark processor to support the labeling of the data
+    stream for evaluation purposes. Labels are appended according to the used
+    protocol, timestamps, source and destination ip addresses.
     """
 
     _client_id: int
@@ -47,11 +45,14 @@ class CohdaProcessor(SimpleDataProcessor):
         """Creates a new cohda processor for a specific client.
 
         :param client_id: ID of client.
-        :param events: List of labeled, self-descriptive, events by which one can label individual data points with.
+        :param events: List of labeled, self-descriptive, events by which one can
+        label individual data points with.
         :param name: Name of processor for logging purposes.
-        :param f_features: Selection of features that every data point will have after processing.
-        :param nn_aggregator: List aggregator that is able to aggregator dictionary values that are lists into singleton
-        values, depending on the key they are sorted under.
+        :param f_features: Selection of features that every data point will have
+        after processing.
+        :param nn_aggregator: List aggregator that is able to aggregator dictionary
+        values that are lists into singleton values, depending on the key they are
+        sorted under.
         """
         super().__init__(
             pyshark_map_fn(),
@@ -64,8 +65,8 @@ class CohdaProcessor(SimpleDataProcessor):
         self._events = events
 
     def reduce(self, d_point: dict) -> np.ndarray:
-        """Transform the pyshark data point directly into a numpy array after also adding the true label to the
-        observation based on the provided (labeled) events.
+        """Transform the pyshark data point directly into a numpy array after also
+        adding the true label to the observation based on the provided (labeled) events.
 
         :param d_point: Data point as dictionary.
         :return: Labeled data point as vector.
@@ -86,7 +87,8 @@ class CohdaProcessor(SimpleDataProcessor):
         return super().reduce(d_point)
 
 
-# Existing datasets captured on Cohda boxes 2 and 5 on March 6th (2023) contains attacks in the following:
+# Existing datasets captured on Cohda boxes 2 and 5 on March 6th (2023)
+# contains attacks in the following:
 # 1: "Installation Attack Tool"
 # 2: "SSH Brute Force"
 # 3: "SSH Privilege Escalation"
