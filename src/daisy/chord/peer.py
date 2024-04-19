@@ -280,6 +280,10 @@ class Peer:
         return r_ready_eps
 
     def run(self, join_addr: tuple[str, int] = None):
+        # TODO wo werden finger genutzt?
+        # TODO wie wird ttl von nachrichten gesetzt und geprüft?
+        # TODO retry von verlorenen anfragen
+
         if join_addr is None:
             self._create()
         else:
@@ -304,20 +308,13 @@ class Peer:
                 message = typing.cast(Chordmessage, ep.receive(timeout=0))
                 match message.type:
                     case MessageType.LOOKUP_REQ:
-                        print(f"Lookup request for: {message.peer_tuple}")
                         self._lookup(
                             *message.peer_tuple,
                             lookup_origin=message.origin,
                             request_id=message.id,
                         )
                     case MessageType.LOOKUP_RES:
-                        if message.origin == MessageOrigin.JOIN:
-                            self._set_successor(message.peer_tuple)
-                            self._pending_requests.pop(message.id)
-                        if message.origin == MessageOrigin.FIX_FINGERS:
-                            i = self._pending_requests[message.id][2]
-                            self._set_finger(i, message.peer_tuple)
-                            self._pending_requests.pop(message.id)
+                        self.lookup_response_handler(message)
                     case MessageType.JOIN:
                         self._lookup(
                             *message.peer_tuple,
@@ -331,19 +328,18 @@ class Peer:
                         self._notify(message.peer_tuple)
                     case MessageType.NOTIFY:
                         if self._check_is_successor(message.peer_tuple[0]):
-                            self._set_successor(message.peer_tuple)
+                            self._set_successor(
+                                message.peer_tuple
+                            )  # print([          (              finger,              self._id + (1 << finger) % (1 << self._max_fingers),              self._fingers[finger][0],          )          for finger in self._fingers      ]   )   print(self.__str__())
 
-            print(
-                [
-                    (
-                        finger,
-                        self._id + (1 << finger) % (1 << self._max_fingers),
-                        self._fingers[finger][0],
-                    )
-                    for finger in self._fingers
-                ]
-            )
-            print(self.__str__())
+    def lookup_response_handler(self, message):
+        if message.origin == MessageOrigin.JOIN:
+            self._set_successor(message.peer_tuple)
+            self._pending_requests.pop(message.id)
+        if message.origin == MessageOrigin.FIX_FINGERS:
+            i = self._pending_requests[message.id][2]
+            self._set_finger(i, message.peer_tuple)
+            self._pending_requests.pop(message.id)
 
     def _set_successor(self, successor: tuple[int, tuple[str, int]]):
         """Setter method for a peer's successor. Assigns new successor and
