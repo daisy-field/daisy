@@ -1,6 +1,6 @@
 # DAISY
 
-## Federating 
+### A toolset for fully Distributed Anomaly-based Intrusion detection in Security-oriented edge computing environments.
 
 [![CI](https://github.com/daisy-field/daisy/actions/workflows/ci.yml/badge.svg)](https://github.com/daisy-field/daisy/actions/workflows/ci.yml)
 [![License: MPL 2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](https://github.com/daisy-field/daisy/blob/main/LICENSE.txt)
