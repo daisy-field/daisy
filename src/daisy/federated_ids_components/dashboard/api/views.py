@@ -14,7 +14,7 @@ from daisy.federated_ids_components.dashboard.api.serializers import (
     Metrics,
     Aggregation,
     Alerts,
-    Evaluation,
+    Prediction,
     Node,
 )
 
