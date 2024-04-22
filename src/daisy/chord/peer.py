@@ -4,6 +4,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 import argparse
+import logging
 import threading
 import time
 import typing
@@ -84,15 +85,17 @@ class Peer:
 
     _successor: tuple[int, tuple[str, int]] | None
     _successor_endpoint: StreamEndpoint | None
-    _pending_requests: dict[uuid4, tuple[int, float, int]]
+    _predecessor: tuple[int, tuple[str, int]] | None
+    _predecessor_endpoint: StreamEndpoint | None
 
     _max_fingers: int
     _fingers: dict[int, tuple[int, tuple[str, int], StreamEndpoint]]
     # i: id, addr, ep
-    _predecessor: tuple[int, tuple[str, int]] | None
-    _predecessor_endpoint: StreamEndpoint | None
 
     _endpoint_server: EndpointServer
+    _pending_requests: dict[uuid4, tuple[int, float, int]]
+
+    _logger: logging.Logger
 
     # message id: ttl, send time, for fingers: i
 
@@ -104,18 +107,23 @@ class Peer:
         predecessor: tuple[int, tuple[str, int]] = None,
         max_fingers: int = 16,
     ):
-        self._pending_requests = {}
         self._id = p_id
         self._addr = addr
+
         self._successor = successor
         self._successor_endpoint = None
         self._predecessor = predecessor
         self._predecessor_endpoint = None
+
+        self._max_fingers = max_fingers
+        self._fingers = {}
+
         self._endpoint_server = EndpointServer(
             f"{id}-Server", addr=addr, multithreading=True, c_timeout=30
         )
-        self._max_fingers = max_fingers
-        self._fingers = {}
+        self._pending_requests = {}
+
+        self._logger = logging.getLogger(f"{id}-LOGGER")
 
     def _create(self):
         self._endpoint_server.start()
@@ -126,7 +134,7 @@ class Peer:
 
     def _join(self, join_addr: tuple[str, int]):
         self._endpoint_server.start()
-        request_id = uuid4()  # TODO evaluate if necessary -> for retry?
+        request_id = uuid4()
         message = Chordmessage(
             message_type=MessageType.JOIN,
             sender=(self._id, self._addr),
