@@ -3,17 +3,18 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""TODO REVIEW COMMETNS
-Implementations of the data source helper interface that allows the processing and provisioning of pyshark packets,
-either via file inputs, live capture, or a remote source that generates packets in either fashion.
+"""Implementations of the data source helper interface that allows the processing and
+provisioning of pyshark packets, either via file inputs, live capture, or a remote
+source that generates packets in either fashion.
 
 Author: Jonathan Ackerschewski, Fabian Hofmann
-Modified: 28.02.24
-
-# TODO Future Work: Encoding/mapping of string/non-numerical values into numerical features
-# TODO - Flattening of Lists instead of encoding them into singular numerical features
-# TODO - NaN values also need to converted to something useful (that does not break the prediction/training)
+Modified: 19.04.24
 """
+# TODO: Future Work:
+#   - Encoding/mapping of string/non-numerical values into numerical features
+#   - Flattening of Lists instead of encoding them into singular numerical features
+#   - NaN values also need to converted to something useful
+#     (that does not break the prediction/training)
 
 import ipaddress
 import json
@@ -31,7 +32,8 @@ from pyshark.packet.packet import Packet
 
 from daisy.data_sources import SimpleDataProcessor
 
-# Exemplary network feature filter, supporting cohda-box (V2x) messages, besides TCP/IP and ETH.
+# Exemplary network feature filter, supporting cohda-box (V2x) messages, besides
+# TCP/IP and ETH.
 default_f_features = (
     "meta.len",
     "meta.time",
@@ -102,8 +104,9 @@ default_f_features = (
 
 
 def default_nn_aggregator(key: str, value: object) -> int:
-    """Simple, exemplary value aggregator. Takes a non-numerical key-value pair and attempts to converted it into an
-    integer. This example does not take the key into account, but only checks the types of the value to proceed.
+    """Simple, exemplary value aggregator. Takes a non-numerical key-value pair and
+    attempts to converted it into an integer. This example does not take the key into
+    account, but only checks the types of the value to proceed.
 
     :param key: Name of pair, which always a string.
     :param value: Arbitrary non-numerical value to be converted.
@@ -152,8 +155,8 @@ def create_pyshark_processor(
 
 
 def pyshark_map_fn() -> Callable[[object], dict]:
-    """Wrapper around the pyshark packet deserialization functions. Can be used in a SimpleDataProcessor as the map
-    function.
+    """Wrapper around the pyshark packet deserialization functions. Can be used in a
+    SimpleDataProcessor as the map function.
 
     :return: A function, which converts a packet into a flattened dictionary.
     """
@@ -163,9 +166,10 @@ def pyshark_map_fn() -> Callable[[object], dict]:
 def pyshark_filter_fn(
     f_features: tuple[str, ...] = default_f_features,
 ) -> Callable[[dict], dict]:
-    """Filters the pyshark packet according to a pre-defined filter which is applied to every dictionary in order of
-    the selected features in the filter. Features that do not exist are set to None. Can be used in a
-    SimpleDataProcessor as the filter function.
+    """Filters the pyshark packet according to a pre-defined filter which is applied
+    to every dictionary in order of the selected features in the filter. Features
+    that do not exist are set to None. Can be used in a SimpleDataProcessor as the
+    filter function.
 
     :param f_features: A list of features
     :return: A function, that filters each data point as a dictionary, ordered.
@@ -185,8 +189,9 @@ def _pyshark_filter_fn(d_point: dict, f_features: tuple[str, ...]) -> dict:
 def pyshark_reduce_fn(
     nn_aggregator: Callable[[str, object], object] = default_nn_aggregator,
 ) -> Callable[[dict], np.ndarray]:
-    """Transform the pyshark data point directly into a numpy array without further processing, aggregating any
-    value that is list into a singular value. Can be used in a SimpleDataProcessor as the reduce function.
+    """Transform the pyshark data point directly into a numpy array without further
+    processing, aggregating any value that is list into a singular value. Can be used
+    in a SimpleDataProcessor as the reduce function.
 
     :param nn_aggregator: The aggregator
     :return: A function for reducing a data point to a single value
@@ -197,8 +202,8 @@ def pyshark_reduce_fn(
 def _pyshark_reduce_fn(
     d_point: dict, nn_aggregator: Callable[[str, object], object]
 ) -> np.ndarray:
-    """Transform the pyshark data point directly into a numpy array without further processing, aggregating any
-    value that is list into a singular value.
+    """Transform the pyshark data point directly into a numpy array without further
+    processing, aggregating any value that is list into a singular value.
 
     :param d_point: Data point as dictionary.
     :return: Data point as vector.
@@ -237,7 +242,8 @@ def packet_to_dict(p: Packet) -> dict:
 
 
 def _add_layer_to_dict(layer: (XmlLayer, JsonLayer)) -> (dict, list):
-    """Creates a dictionary out of a packet captured by pyshark. This is the entrypoint for a recursive process.
+    """Creates a dictionary out of a packet captured by pyshark. This is the
+    entrypoint for a recursive process.
 
     :param layer: The base layer of the packet.
     :return: A dictionary containing dictionaries for the sub-layers.
@@ -264,6 +270,7 @@ def _add_layer_to_dict(layer: (XmlLayer, JsonLayer)) -> (dict, list):
 
 def _add_xml_layer_to_dict(layer: (XmlLayer, JsonLayer)) -> dict:
     """Creates a dictionary out of a xml layer or json layer and returns it.
+
     This is part of a recursive function. For the entrypoint see _add_layer_to_dict.
 
     :param layer: An XML or Json layer from a pyshark packet.
@@ -287,8 +294,9 @@ def _add_xml_layer_to_dict(layer: (XmlLayer, JsonLayer)) -> dict:
 def _add_list_to_dict(
     layer: (XmlLayer, JsonLayer), field_name: str, value_list: list
 ) -> dict:
-    """Creates a dictionary out of the given parameters. This function is called by _add_xml_layer_to_dict. Only
-    necessary for JSON-mode.
+    """Creates a dictionary out of the given parameters. This function is called by
+    _add_xml_layer_to_dict. Only necessary for JSON-mode.
+
     This is part of a recursive function. For the entrypoint see _add_layer_to_dict.
 
     :param layer: The XML or JSON layer the value_list is part of.
@@ -310,11 +318,14 @@ def _add_list_to_dict(
 def _add_layer_field_container_to_dict(
     layer_field_container: LayerFieldsContainer,
 ) -> dict:
-    """Creates a dictionary out of a layerFieldContainer from a pyshark packet. A file in JSON-mode always has a length
-    of one, while XML can contain a list of fields.
+    """Creates a dictionary out of a layerFieldContainer from a pyshark packet. A
+    file in JSON-mode always has a length of one, while XML can contain a list of
+    fields.
+
     This is part of a recursive function. For the entrypoint see _add_layer_to_dict.
 
-    :param layer_field_container: The LayerFieldContainer encountered in the pyshark packet.
+    :param layer_field_container: The LayerFieldContainer encountered in the pyshark
+    packet.
     :return: A dictionary for the LayerFieldContainer.
     """
     if len(layer_field_container.fields) == 1:
@@ -335,16 +346,18 @@ def _add_layer_field_container_to_dict(
 def flatten_dict(
     dictionary: (dict, list), seperator: str = ".", par_key: str = ""
 ) -> dict:
-    """Creates a flat dictionary (a dictionary without sub-dictionaries) from the given dictionary. The keys of
-    sub-dictionaries are merged into the parent dictionary by combining the keys and adding a seperator:
-    {a: {b: c, d: e}, f: g} becomes {a.b: c, a.d: e, f: g} assuming the seperator as '.'. However, redundant parent keys
-    are greedily eliminated from the dictionary.
+    """Creates a flat dictionary (a dictionary without sub-dictionaries) from the
+    given dictionary. The keys of sub-dictionaries are merged into the parent
+    dictionary by combining the keys and adding a seperator: {a: {b: c, d: e}, f: g}
+    becomes {a.b: c, a.d: e, f: g} assuming the seperator as '.'. However,
+    redundant parent keys are greedily eliminated from the dictionary.
 
     :param dictionary: The dictionary to flatten.
     :param seperator: The seperator to use.
     :param par_key: The key of the parent dictionary.
     :return: A flat dictionary with keys merged and seperated using the seperator.
-    :raises ValueError: If there are key-collisions by greedily flattening the dictionary.
+    :raises ValueError: If there are key-collisions by greedily flattening the
+    dictionary.
     """
     items = {}
     for key, val in dictionary.items():
@@ -365,7 +378,8 @@ def flatten_dict(
         else:
             if cur_key in items:
                 raise ValueError(
-                    f"Key collision in dictionary ({cur_key, val} vs {cur_key, items[cur_key]})!"
+                    f"Key collision in dictionary ({cur_key, val} "
+                    f"vs {cur_key, items[cur_key]})!"
                 )
             items.update({cur_key: val})
     return items

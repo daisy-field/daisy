@@ -3,20 +3,13 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""
-A collection of interfaces and base classes for data stream generation and preprocessing for further (ML) tasks.
-Supports generic generators, but also remote communication endpoints that hand over generic data points in
-streaming-manner, and any other implementations of the SourceHandler class. Note each different kind of data needs
-its own implementation of the DataProcessor class.
-
-TODO REFVIEW COMENTS @Fabian
+"""A generic wrapper for stream processing both finite and infinite data sources into
+sample-wise data points, each being passed to further (ML) tasks once and in order.
 
 Author: Fabian Hofmann, Jonathan Ackerschewski
-Modified: 28.07.23
-
-TODO Future Work: Defining granularity of logging in inits
-TODO Future Work: Cleanup of inits to eliminate overlap of classes
+Modified: 19.04.24
 """
+# TODO Future Work: Defining granularity of logging in inits
 
 import logging
 import queue
@@ -29,11 +22,13 @@ from daisy.data_sources import SourceHandler, DataProcessor
 
 
 class DataSource:
-    """A wrapper around a customizable SourceHandler that yields data points as objects as they come, before stream
-    processing using another, customizable DataProcessor. Data points, which can be from arbitrary sources, are thus
+    """A wrapper around a customizable SourceHandler that yields data points as
+    objects as they come, before stream processing using another, customizable
+    DataProcessor. Data points, which can be from arbitrary sources, are thus
     processed and converted into numpy vectors/arrays.
 
-    Supports the processing of data points in both synchronous and asynchronous fashion by default.
+    Supports the processing of data points in both synchronous and asynchronous
+    fashion by default.
     """
 
     _logger: logging.Logger
@@ -57,7 +52,8 @@ class DataSource:
         """Creates a new data source.
 
         :param source_handler: Actual source that provisions data points to data source.
-        :param data_processor: Processor containing the methods on how to process individual data points.
+        :param data_processor: Processor containing the methods on how to process
+        individual data points.
         :param name: Name of data source relay for logging purposes.
         :param multithreading: Enables transparent multithreading for speedup.
         :param buffer_size: Size of shared buffer in multithreading mode.
@@ -75,8 +71,9 @@ class DataSource:
         self._logger.info("Data source initialized.")
 
     def open(self):
-        """Opens the data source for data point retrieval. Must be called before data can be retrieved; in
-        multithreading mode also starts the loader thread as daemon.
+        """Opens the data source for data point retrieval. Must be called before data
+        can be retrieved; in multithreading mode also starts the loader thread as
+        daemon.
         """
         self._logger.info("Starting data source...")
         if self._opened:
@@ -90,8 +87,9 @@ class DataSource:
         self._logger.info("Data source started.")
 
     def close(self):
-        """Shuts down any thread running in the background to load data into the data source iff in multithreading mode.
-        Can be reopened (and closed) and arbitrary amount of times.
+        """Shuts down any thread running in the background to load data into the data
+        source iff in multithreading mode. Can be reopened (and closed) and arbitrary
+        amount of times.
         """
         self._logger.info("Stopping data source...")
         if not self._opened:
@@ -104,8 +102,8 @@ class DataSource:
         self._logger.info("Data source stopped.")
 
     def _create_loader(self):
-        """Data loader for multithreading mode, loads data from source handlers and processes it to store it in the
-        shared buffer.
+        """Data loader for multithreading mode, loads data from source handlers and
+        processes it to store it in the shared buffer.
         """
         self._logger.info(
             "AsyncLoader: Starting to process data points in asynchronous mode..."
@@ -126,10 +124,11 @@ class DataSource:
                 break
         self._logger.info("AsyncLoader: Stopping...")
 
-    def __iter__(self) -> Iterator[np.ndarray]:
+    def __iter__(self) -> Iterator[np.ndarray | dict | object]:
         """Generator that supports multithreading to retrieve processed data points.
 
-        :return: Generator object for data points as numpy arrays.
+        :return: Generator object for data points as numpy arrays. Note that for some
+        use cases, data processor might keep the object or dictionary structure.
         """
         self._logger.info("Retrieving data points from data source...")
         if not self._opened:
@@ -138,7 +137,8 @@ class DataSource:
         if self._multithreading:
             while self._opened:
                 self._logger.debug(
-                    f"Multithreading detected, retrieving data point from buffer (size={self._buffer.qsize()})..."
+                    "Multithreading detected, retrieving data point from "
+                    f"buffer (size={self._buffer.qsize()})..."
                 )
                 try:
                     yield self._buffer.get(timeout=10)
