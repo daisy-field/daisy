@@ -460,7 +460,7 @@ if __name__ == "__main__":
         level=logging.INFO,
         handlers=[
             logging.FileHandler(
-                filename=f"/home/doris/Projects/daisy/src/daisy/chord/logging/peer-{args.id}.log",
+                filename=f"./logging/peer-{args.id}.log",
                 mode="w",
                 encoding="utf8",
             ),
