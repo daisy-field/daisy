@@ -13,6 +13,8 @@ Modified: 02.04.24
 # TODO Future Work: Potential race conditions during rapid start/stop | open/close
 # TODO Future Work: Defining granularity of logging in inits
 # FIXME: Sender/Receiver Threads (inefficient) racing for re-establishing connection
+# FIXME: Race Conditions: Diff between select and check_r_sock
+# FIXME: Double Shutdowns of Socks (Unreg is called twice)
 
 import ctypes
 import logging
