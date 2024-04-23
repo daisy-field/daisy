@@ -62,7 +62,6 @@ class Aggregation(models.Model):
             super().save(*args, **kwargs)
 
 
-
 class Prediction(models.Model):
     pred_status = models.CharField(max_length=255)
     pred_count = models.IntegerField()
