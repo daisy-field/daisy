@@ -262,11 +262,12 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
         """
         self._logger.info("Starting model aggregation loop...")
         while self._started:
-            # TODO @seraphin report heartbeat (agg status?), incl. active connections
-            self._update_dashboard(
-                "/aggregation/",
-                {"agg_status": "operational"},
-            )
+            # TODO Not needed as these values are logged in sync and async function
+            # self._update_dashboard(
+            #    "/aggregation/",
+            #    {"agg_status": "operational",
+            #          "agg_count": 1},
+            # )
 
             try:
                 if self._update_interval is not None:
@@ -477,9 +478,10 @@ class FederatedValueAggregator(FederatedOnlineAggregator):
         self._logger.info("Starting result aggregation loop...")
         while self._started:
             # TODO @seraphin report heartbeat (agg status?), incl. active connections
+            # TODO add client number
             self._update_dashboard(
-                "/TODO_PATH/",  # ADD CORRECT PATH
-                {"TODO_TYPE_status": "operational"},
+                "/prediction/",  # ADD CORRECT PATH
+                {"pred_status": "Operational", "pred_cunt": 1},
             )
 
             try:
