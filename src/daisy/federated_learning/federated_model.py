@@ -9,10 +9,10 @@ aggregation strategies and federated system components.
 
 Author: Fabian Hofmann
 Modified: 04.04.24
-
-TODO Future Work: Could be refactored to be the implementation of Open Source Interfaces
-(e.g. Keras Model API)
 """
+# TODO: Future Work:
+#   - Could be refactored to be the implementation of Open Source Interfaces
+#     (e.g. Keras Model API)
 
 from abc import ABC, abstractmethod
 from typing import Callable, Optional, Self

@@ -10,10 +10,9 @@ the samples of that data stream at every step.
 
 Author: Fabian Hofmann
 Modified: 04.04.24
-
-TODO Future Work: Defining granularity of logging in inits
-TODO Future Work: Args for client-side ports in init
 """
+# TODO Future Work: Defining granularity of logging in inits
+# TODO Future Work: Args for client-side ports in init
 
 import logging
 import threading
