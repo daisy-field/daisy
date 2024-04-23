@@ -266,7 +266,8 @@ class Peer:
             "Initiating Fingertable updates, prepare for logging spam..."
         )
         for i in range(self._max_fingers):
-            finger = self._id + (1 << i) % (1 << self._max_fingers)
+            # FIXME this formula does not work correctly
+            finger = (self._id + (1 << i)) % (1 << self._max_fingers)
             request_id = uuid4()
             self._pending_requests[request_id] = (10, time.time(), i)
             self._lookup(finger, self._addr, MessageOrigin.FIX_FINGERS, request_id)
