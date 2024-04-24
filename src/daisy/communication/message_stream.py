@@ -10,9 +10,8 @@ Author: Fabian Hofmann
 Modified: 02.04.24
 """
 # TODO Future Work: SSL https://docs.python.org/3/library/ssl.html
-# TODO Future Work: Potential race conditions during rapid start/stop | open/close
 # TODO Future Work: Defining granularity of logging in inits
-# FIXME: Sender/Receiver Threads (inefficient) racing for re-establishing connection
+# TODO Future Work: Async Stop of Endpoints
 # FIXME: Race Conditions: Diff between select and check_r_sock
 # FIXME: Double Shutdowns of Socks (Unreg is called twice)
 
@@ -61,7 +60,7 @@ class EndpointSocket:
     _addr_map: dict[tuple[str, int], set[tuple[str, int]]] = {}
     _act_l_counts: dict[tuple[str, int], int] = {}
     _lock = threading.Lock()
-    _cls_logger: logging.Logger = logging.getLogger("EndpointSocket")
+    _cls_logger: logging.Logger = logging.getLogger("EndpointSocketCLS")
 
     _logger: logging.Logger
 
@@ -73,8 +72,8 @@ class EndpointSocket:
     _recv_b_size: int
     _sock: Optional[socket.socket]
     _sock_lock: threading.Lock
-    _conn_lock: threading.Lock
 
+    _conn_rdy: threading.Event
     _opened: bool
 
     def __init__(
@@ -124,8 +123,8 @@ class EndpointSocket:
         self._recv_b_size = recv_b_size
         self._sock = None
         self._sock_lock = threading.Lock()
-        self._conn_lock = threading.Lock()
 
+        self._conn_rdy = threading.Event()
         self._opened = False
         self._logger.info(f"Endpoint socket {addr, remote_addr} initialized.")
 
@@ -138,6 +137,7 @@ class EndpointSocket:
         self._opened = True
         if self._acceptor:
             self._open_l_socket(self._addr)
+        self._conn_rdy.set()
         self._connect()
         self._logger.info("Endpoint socket opened.")
 
@@ -175,16 +175,19 @@ class EndpointSocket:
         """
         while self._opened:
             try:
-                with self._sock_lock:
-                    if _check_w_socket(self._sock):
-                        _send_payload(self._sock, p_data)
-                        return
+                self._sock_lock.acquire()
+                if _check_w_socket(self._sock):
+                    _send_payload(self._sock, p_data)
+                    self._sock_lock.release()
+                    return
+                self._sock_lock.release()
                 sleep(1)
             except (OSError, ValueError, RuntimeError) as e:
                 self._logger.warning(
                     f"{e.__class__.__name__}({e}) "
                     "while trying to send data. Retrying..."
                 )
+                # unlock is done in connect()
                 self._connect()
 
     def recv(self, timeout: int = None) -> Optional[bytes]:
@@ -199,10 +202,12 @@ class EndpointSocket:
         """
         while self._opened:
             try:
-                with self._sock_lock:
-                    if _check_r_socket(self._sock, timeout=timeout):
-                        p_data = _recv_payload(self._sock)
-                        return p_data
+                self._sock_lock.acquire()
+                if _check_r_socket(self._sock, timeout=timeout):
+                    p_data = _recv_payload(self._sock)
+                    self._sock_lock.release()
+                    return p_data
+                self._sock_lock.release()
                 sleep(1)
             except (OSError, ValueError, RuntimeError) as e:
                 if timeout is not None and type(e) is TimeoutError:
@@ -211,6 +216,7 @@ class EndpointSocket:
                     f"{e.__class__.__name__}({e}) "
                     "while trying to receive data. Retrying..."
                 )
+                # unlock is done in connect()
                 self._connect()
         return None
 
@@ -242,50 +248,57 @@ class EndpointSocket:
         return states, (self._addr, self._remote_addr)
 
     def _connect(self):
-        """(Re-)Establishes a connection to a/the remote endpoint socket,
+        """TODO(Re-)Establishes a connection to a/the remote endpoint socket,
         first performing any necessary cleanup of the underlying socket,
         before opening it again and trying to connect/accept a remote endpoint
         socket. Fault-tolerant for breakdowns and resets in the connection. Blocking.
         """
-        if not self._conn_lock.acquire(blocking=False):
+        if not self._conn_rdy.is_set():
+            self._sock_lock.release()
+            self._conn_rdy.wait()
             return
-        with self._sock_lock:
-            while self._opened:
-                try:
-                    self._logger.info(
-                        f"Trying to (re-)establish connection "
-                        f"{self._addr, self._remote_addr}..."
-                    )
-                    _close_socket(self._sock)
-                    self._sock = None
-                    if self._acceptor:
-                        remote_addr = self._remote_addr
-                        while self._opened and self._sock is None:
-                            self._sock, remote_addr = self._get_a_socket(
-                                self._addr, self._remote_addr
-                            )
-                        self._remote_addr = remote_addr
-                    else:
-                        self._sock, self._addr = self._get_c_socket(
-                            self._addr, self._remote_addr
-                        )
-                    self._sock.setsockopt(
-                        socket.SOL_SOCKET, socket.SO_SNDBUF, self._send_b_size
-                    )
-                    self._sock.setsockopt(
-                        socket.SOL_SOCKET, socket.SO_RCVBUF, self._recv_b_size
-                    )
-                    self._logger.info(
-                        f"Connection {self._addr, self._remote_addr} (re-)established."
-                    )
-                    break
-                except (OSError, ValueError, AttributeError, RuntimeError) as e:
-                    self._logger.info(
-                        f"{e.__class__.__name__}({e}) while trying to (re-)establish "
-                        f"connection {self._addr, self._remote_addr}. Retrying..."
-                    )
-                    sleep(10)
-        self._conn_lock.release()
+        self._conn_rdy.clear()
+
+        while self._opened:
+            try:
+                self._logger.info(
+                    f"Trying to (re-)establish connection "
+                    f"{self._addr, self._remote_addr}..."
+                )
+                self._setup()
+                self._logger.info(
+                    f"Connection {self._addr, self._remote_addr} (re-)established."
+                )
+                break
+            except (OSError, ValueError, AttributeError, RuntimeError) as e:
+                self._logger.info(
+                    f"{e.__class__.__name__}({e}) while trying to (re-)establish "
+                    f"connection {self._addr, self._remote_addr}. Retrying..."
+                )
+                self._sock_lock.release()
+                sleep(10)
+                self._sock_lock.acquire()
+        self._conn_rdy.set()
+        self._sock_lock.release()
+
+    def _setup(self):
+        """TODO
+
+        :return:
+        """
+        _close_socket(self._sock)
+        self._sock = None
+        if self._acceptor:
+            remote_addr = self._remote_addr
+            while self._opened and self._sock is None:
+                self._sock, remote_addr = self._get_a_socket(
+                    self._addr, self._remote_addr
+                )
+            self._remote_addr = remote_addr
+        else:
+            self._sock, self._addr = self._get_c_socket(self._addr, self._remote_addr)
+        self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, self._send_b_size)
+        self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, self._recv_b_size)
 
     @classmethod
     def _reg_remote(cls, remote_addr: tuple[str, int]):
@@ -1543,3 +1556,13 @@ def _close_socket(sock: socket.socket):
     except OSError:
         pass
     sock.close()
+
+
+def _release_rlock(rlock: threading.RLock):
+    """Releases a given rlock if current thread is also currently owner of rlock.
+
+    :param rlock: RLock to release.
+    """
+    if rlock.acquire(blocking=False):
+        rlock.release()
+        rlock.release()
