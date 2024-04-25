@@ -11,9 +11,20 @@ Modified: 02.04.24
 """
 # TODO Future Work: SSL https://docs.python.org/3/library/ssl.html
 # TODO Future Work: Defining granularity of logging in inits
-# TODO Future Work: Async Stop of Endpoints
-# FIXME: Race Conditions: Diff between select and check_r_sock
-# FIXME: Double Shutdowns of Socks (Unreg is called twice)
+# TODO Future Work: Endpoint socket spam may result in re-use of wrong "old" connection
+#   1. acceptor accepts connection of generic initiator, registers its address
+#   2. initiator crashes/shut downs, acceptor keeps trying to re-establish
+#   3. another initiator from same host (or nat) gets recycled address IP and connects
+#   4. acceptor accepts this "wrong" endpoint, believing it is still the old one
+#   - Should be fixed from the ground up (possible through two-way, cert-based identity)
+# TODO Future Work: Allow finite communication sessions (keep-alive vs graceful close)
+# FIXME: Race Conditions:
+#   - Diff between select and check_r_sock
+#   - Double Shutdowns of Socks (Unreg is called twice)
+# FIXME: Rapid single-use endpoints clog system, especially ep-server (+multithreading)
+# FIXME: Cleanup Thread in ep-server clogs up due to threading spam + sleeps + locks
+# TODO Future Work: Async Stop of Endpoints (both for endpoints and ep-servers)
+# TODO Future Work: Single-use Endpoints as class method
 
 import ctypes
 import logging
@@ -1301,7 +1312,7 @@ class EndpointServer:
                 multithreading=self._multithreading,
                 buffer_size=self._buffer_size,
             )
-            n_connection_rdy = new_connection.start()
+            n_connection_rdy = new_connection.start(blocking=False)
             while self._started and not n_connection_rdy.wait(10):
                 self._logger.debug(
                     logging_prefix + "Waiting for endpoint to establish a connection..."
@@ -1556,13 +1567,3 @@ def _close_socket(sock: socket.socket):
     except OSError:
         pass
     sock.close()
-
-
-def _release_rlock(rlock: threading.RLock):
-    """Releases a given rlock if current thread is also currently owner of rlock.
-
-    :param rlock: RLock to release.
-    """
-    if rlock.acquire(blocking=False):
-        rlock.release()
-        rlock.release()
