@@ -20,10 +20,8 @@ Modified: 02.04.24
 # TODO Future Work: Allow finite communication sessions (keep-alive vs graceful close)
 # FIXME: Race Conditions:
 #   - Diff between select and check_r_sock
-#   - Double Shutdowns of Socks (Unreg is called twice)
 # FIXME: Rapid single-use endpoints clog system, especially ep-server (+multithreading)
 # FIXME: Cleanup Thread in ep-server clogs up due to threading spam + sleeps + locks
-# TODO Future Work: Async Stop of Endpoints (both for endpoints and ep-servers)
 
 import ctypes
 import logging
@@ -737,6 +735,7 @@ class StreamEndpoint:
 
     _started: bool
     _ready: threading.Event
+    _stopped: threading.Event
     _shutdown: bool
 
     def __init__(
@@ -796,6 +795,7 @@ class StreamEndpoint:
 
         self._started = False
         self._ready = threading.Event()
+        self._stopped = threading.Event()
         self._shutdown = False
         self._logger.info(f"Endpoint {addr, remote_addr} initialized.")
 
@@ -807,7 +807,8 @@ class StreamEndpoint:
         is the case, the caller can check the readiness of the connection via the
         returned event object. Note that in multithreading mode, objects can already
         be sent/received, however they will only be stored in internal buffers until
-        the connection is established!
+        the connection is established (and the semaphore is set accordingly to allow
+        async sender and receiver to proceed).
 
         :param blocking: Whether to wait for a connection to be established in
         non-multithreading (sync) mode.
@@ -815,18 +816,24 @@ class StreamEndpoint:
         true if start() was called blocking.
         :raises RuntimeError: If endpoint has already been started or shut down.
         """
+
+        def start_ep_socket():
+            self._endpoint_socket.open()
+            self._ready.set()
+
         self._logger.info("Starting endpoint...")
         if self._shutdown:
             raise RuntimeError("Endpoint has already been shut down!")
         if self._started:
             raise RuntimeError("Endpoint has already been started!")
         self._started = True
+        self._stopped.clear()
 
         if not blocking or self._multithreading:
             self._logger.info("Starting endpoint socket starter thread...")
-            threading.Thread(target=self._create_socket_starter, daemon=True).start()
+            threading.Thread(target=start_ep_socket, daemon=True).start()
         else:
-            self._create_socket_starter()
+            start_ep_socket()
 
         if self._multithreading:
             self._logger.info(
@@ -839,13 +846,16 @@ class StreamEndpoint:
         self._logger.info("Endpoint started.")
         return self._ready
 
-    def stop(self, shutdown=False, timeout=10):
+    def stop(self, shutdown=False, timeout=10, blocking=True):
         """Stops the endpoint and closes the stream, cleaning up underlying
         datastructures. If multithreading is enabled, waits for both endpoint threads
         to stop before finishing. Note this does not guarantee the sending and
         receiving of all objects still pending --- they may still be in internal
         buffers and will be processed if the endpoint is opened again,
-        or get discarded by the underlying socket.
+        or get discarded by the underlying socket. This method is blocking until the
+        endpoint is fully closed / shutdown if multithreading is not enabled or the
+        respective flag is not set. If either is the case, the caller can check the
+        progress via the returned event object.
 
         Also note if the endpoint has not been started or has already been closed,
         a set shutdown flag still results in the full cleanup of the underlying
@@ -855,8 +865,32 @@ class StreamEndpoint:
         socket communication.
         :param timeout: Allows the sender thread to process remaining messages until
         timeout.
+        :param blocking: Whether to wait for the endpoint to be closed in
+        non-multithreading (sync) mode.
+        :return: Event object to check whether endpoint is closed. Always true if
+        stop() was called blocking.
         :raises RuntimeError: If endpoint has not been started or already shut down.
         """
+
+        def stop_ep_sock():
+            if self._multithreading:
+                start = time()
+                while not self._send_buffer.empty() and time() - start < timeout:
+                    sleep(1)
+            self._started = False
+            self._ready.set()
+            self._endpoint_socket.close(shutdown)
+            self._shutdown = shutdown
+            if self._multithreading:
+                self._logger.info(
+                    "Multithreading detected, waiting for "
+                    "endpoint sender/receiver threads to stop..."
+                )
+                self._sender.join()
+                self._receiver.join()
+            self._ready.clear()
+            self._stopped.set()
+
         self._logger.info("Stopping endpoint...")
         if not self._started:
             if not self._shutdown and shutdown:
@@ -871,23 +905,13 @@ class StreamEndpoint:
                     "Endpoint has not been started or already shut down!"
                 )
 
-        if self._multithreading:
-            start = time()
-            while not self._send_buffer.empty() and time() - start < timeout:
-                sleep(1)
-        self._started = False
-        self._ready.set()
-        self._endpoint_socket.close(shutdown)
-
-        if self._multithreading:
-            self._logger.info(
-                "Multithreading detected, waiting for "
-                "endpoint sender/receiver threads to stop..."
-            )
-            self._sender.join()
-            self._receiver.join()
-        self._ready.clear()
+        if not blocking or self._multithreading:
+            self._logger.info("Starting endpoint socket stopping thread...")
+            threading.Thread(target=stop_ep_sock, daemon=True).start()
+        else:
+            stop_ep_sock()
         self._logger.info("Endpoint stopped.")
+        return self._stopped
 
     def send(self, obj: object):
         """Generic send function that sends any object as a pickle over the
@@ -975,13 +999,6 @@ class StreamEndpoint:
             states[1] = not self._recv_buffer.empty()
             states[2] = not self._send_buffer.full() and states[0]
         return states, addrs
-
-    def _create_socket_starter(self):
-        """Starts and connects the endpoint socket to the remote endpoint, before
-        setting the semaphore to allow async sender and receiver threads to fully start.
-        """
-        self._endpoint_socket.open()
-        self._ready.set()
 
     def _create_sender(self):
         """Starts the loop to send objects over the socket retrieved from the sending
