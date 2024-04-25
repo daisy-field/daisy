@@ -13,6 +13,8 @@ Currently, the following generic model classes are supported:
     * FederatedModel - Interface class. Any model that is provided to the federated
     system must implement this.
     * TFFederatedModel - Generic class wrapper for generic tensorflow models for FL.
+        * get_fae() - Factory method to create a sample federated autoencoder model of
+        a fixed depth but with variable input size.
     * FederatedIFTM - IFTM (i.e., hybrid) model class for federated anomaly detection.
 
 For the IFTM model classes, there is also a set of base-case threshold models (TMs)
