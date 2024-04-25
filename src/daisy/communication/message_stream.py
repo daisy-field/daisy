@@ -24,7 +24,6 @@ Modified: 02.04.24
 # FIXME: Rapid single-use endpoints clog system, especially ep-server (+multithreading)
 # FIXME: Cleanup Thread in ep-server clogs up due to threading spam + sleeps + locks
 # TODO Future Work: Async Stop of Endpoints (both for endpoints and ep-servers)
-# TODO Future Work: Single-use Endpoints as class method
 
 import ctypes
 import logging
@@ -742,7 +741,7 @@ class StreamEndpoint:
 
     def __init__(
         self,
-        name: str,
+        name: str = "StreamEndpoint",
         addr: tuple[str, int] = None,
         remote_addr: tuple[str, int] = None,
         acceptor: bool = True,
@@ -1054,18 +1053,52 @@ class StreamEndpoint:
             self.stop(shutdown=True)
 
     @classmethod
-    def select_eps(cls, endpoints: Iterable[Self]) -> tuple[list[Self], list[Self]]:
-        """Endpoint select helper function to check a number of endpoints whether
-        objects can be read from or written to them. For simplicity's sake, does not
-        mirror the actual UNIX select function (supporting separate lists).
+    def create_quick_sender_ep(
+        cls,
+        objects: Iterable,
+        remote_addr: tuple[str, int],
+        name: str = "QuickSenderEndpoint",
+        addr: tuple[str, int] = None,
+        send_b_size: int = 65536,
+        compression: bool = False,
+        marshal_f: Callable[[object], bytes] = pickle.dumps,
+        blocking=True,
+    ):
+        """Creates a (simplified) one-time endpoint to send a number of objects to a
+        remote endpoint before shutting down. May be called non-blocking to handle
+        endpoint in background entirely.
 
-        :param endpoints: Iterable of endpoints to check for readiness.
-        :return: Tuple of lists of endpoints that are read/write ready:
+        :param objects: Iterable of objects to send to remote endpoint.
+        :param remote_addr: Address of remote endpoint to send messages to.
+        :param name: Name of endpoint for logging purposes.
+        :param addr: Address of endpoint.
+        :param send_b_size: Underlying send buffer size of socket.
+        :param compression: Enables lz4 stream compression for bandwidth optimization.
+        :param marshal_f: Marshal function to serialize objects to send into byte
+        :param blocking: Whether endpoint and message handling is to be done
+        synchronously or asynchronously (using threads).
         """
-        ep_states = [(endpoint, endpoint.poll()) for endpoint in endpoints]
-        r_ready = list(map(lambda t: t[0], filter(lambda t: t[1][0][1], ep_states)))
-        w_ready = list(map(lambda t: t[0], filter(lambda t: t[1][0][2], ep_states)))
-        return r_ready, w_ready
+
+        def quick_sender_ep():
+            endpoint = StreamEndpoint(
+                name=name,
+                addr=addr,
+                remote_addr=remote_addr,
+                acceptor=False,
+                send_b_size=send_b_size,
+                compression=compression,
+                marshal_f=marshal_f,
+                multithreading=False,
+            )
+            endpoint.start()
+            for obj in objects:
+                endpoint.send(obj)
+            endpoint.stop(shutdown=True)
+
+        if blocking:
+            threading.Thread(target=quick_sender_ep, daemon=True).start()
+        else:
+            quick_sender_ep()
 
     @classmethod
     def receive_latest_ep_objs(
@@ -1097,6 +1130,20 @@ class StreamEndpoint:
                 pass
             ep_objs[endpoint] = ep_obj
         return ep_objs
+
+    @classmethod
+    def select_eps(cls, endpoints: Iterable[Self]) -> tuple[list[Self], list[Self]]:
+        """Endpoint select helper function to check a number of endpoints whether
+        objects can be read from or written to them. For simplicity's sake, does not
+        mirror the actual UNIX select function (supporting separate lists).
+
+        :param endpoints: Iterable of endpoints to check for readiness.
+        :return: Tuple of lists of endpoints that are read/write ready:
+        """
+        ep_states = [(endpoint, endpoint.poll()) for endpoint in endpoints]
+        r_ready = list(map(lambda t: t[0], filter(lambda t: t[1][0][1], ep_states)))
+        w_ready = list(map(lambda t: t[0], filter(lambda t: t[1][0][2], ep_states)))
+        return r_ready, w_ready
 
 
 class EndpointServer:
@@ -1130,8 +1177,8 @@ class EndpointServer:
 
     def __init__(
         self,
-        name: str,
         addr: tuple[str, int],
+        name: str = "EndpointServer",
         c_timeout: int = None,
         send_b_size: int = 65536,
         recv_b_size: int = 65536,
@@ -1143,8 +1190,8 @@ class EndpointServer:
     ):
         """Creates a new endpoint server.
 
-        :param name: Name of endpoint server for logging purposes.
         :param addr: Address of endpoint server.
+        :param name: Name of endpoint server for logging purposes.
         :param c_timeout: Timeout (secs) for disconnected connection endpoints when
         performing periodic cleanup.
         :param send_b_size: Underlying send buffer size of all connection sockets.
