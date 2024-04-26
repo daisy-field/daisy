@@ -32,6 +32,7 @@ def threaded_initiator(t_id: int):
         name=f"Initiator-{t_id}",
         addr=("127.0.0.1", 32000 + t_id),
         remote_addr=("127.0.0.1", 13000),
+        # remote_addr=("127.0.0.1", 13000 + t_id),
         acceptor=False,
         multithreading=True,
         buffer_size=10000,
@@ -47,26 +48,26 @@ def threaded_initiator(t_id: int):
             print(f"{t_id}-" + "nothing to receive")
         # sleep(random.randrange(3))
 
-        if i % 10 == 0:
-            if random.randrange(100) % 3 == 0:
-                logging.warning("Shutting Down")
-                endpoint.stop(shutdown=True)
-                sleep(random.randrange(3))
-
-                endpoint = StreamEndpoint(
-                    name=f"Initiator-{t_id}",
-                    addr=("127.0.0.1", 32000 + t_id),
-                    remote_addr=("127.0.0.1", 13000),
-                    acceptor=False,
-                    multithreading=True,
-                    buffer_size=10000,
-                )
-                endpoint.start()
-            else:
-                logging.warning("Stopping")
-                endpoint.stop()
-                sleep(random.randrange(3))
-                endpoint.start()
+        # if i % 10 == 0:
+        #     if random.randrange(100) % 3 == 0:
+        #         logging.warning("Shutting Down")
+        #         endpoint.stop(shutdown=True)
+        #         sleep(random.randrange(3))
+        #
+        #         endpoint = StreamEndpoint(
+        #             name=f"Initiator-{t_id}",
+        #             addr=("127.0.0.1", 32000 + t_id),
+        #             remote_addr=("127.0.0.1", 13000),
+        #             acceptor=False,
+        #             multithreading=True,
+        #             buffer_size=10000,
+        #         )
+        #         endpoint.start()
+        #     else:
+        #         logging.warning("Stopping")
+        #         endpoint.stop()
+        #         sleep(random.randrange(3))
+        #         endpoint.start()
         sleep(1)
         i += 1
 
@@ -80,6 +81,18 @@ def multithreaded_initiator(num_threads: int):
     for i in range(num_threads):
         threading.Thread(target=threaded_initiator, args=(i,)).start()
         sleep(random.randrange(2))
+
+
+def one_time_initiator():
+    """Creates and starts an initiator to perform one multiple "ping" sends before
+    stopping the endpoint, all of which done through the helper class method of the
+    endpoint class.
+    """
+    StreamEndpoint.create_quick_sender_ep(
+        ["ping", "ping2", "ping3", "ping4", "ping5", "ping6", "ping7", "ping8"],
+        remote_addr=("127.0.0.1", 13000),
+        blocking=True,
+    )
 
 
 def single_message_initiator():
@@ -136,4 +149,5 @@ if __name__ == "__main__":
 
     # simple_initiator()
     # single_message_initiator()
-    multithreaded_initiator(5)
+    one_time_initiator()
+    # multithreaded_initiator(5)
