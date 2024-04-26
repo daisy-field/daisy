@@ -143,6 +143,7 @@ class EndpointSocket:
         self._opened = True
         if self._acceptor:
             self._open_l_socket(self._addr)
+        self._sock_lock.acquire()
         self._conn_rdy.set()
         self._connect()
         self._logger.info("Endpoint socket opened.")

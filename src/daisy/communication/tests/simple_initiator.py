@@ -32,6 +32,7 @@ def threaded_initiator(t_id: int):
         name=f"Initiator-{t_id}",
         addr=("127.0.0.1", 32000 + t_id),
         remote_addr=("127.0.0.1", 13000),
+        # remote_addr=("127.0.0.1", 13000 + t_id),
         acceptor=False,
         multithreading=True,
         buffer_size=10000,
@@ -47,26 +48,26 @@ def threaded_initiator(t_id: int):
             print(f"{t_id}-" + "nothing to receive")
         # sleep(random.randrange(3))
 
-        if i % 10 == 0:
-            if random.randrange(100) % 3 == 0:
-                logging.warning("Shutting Down")
-                endpoint.stop(shutdown=True)
-                sleep(random.randrange(3))
-
-                endpoint = StreamEndpoint(
-                    name=f"Initiator-{t_id}",
-                    addr=("127.0.0.1", 32000 + t_id),
-                    remote_addr=("127.0.0.1", 13000),
-                    acceptor=False,
-                    multithreading=True,
-                    buffer_size=10000,
-                )
-                endpoint.start()
-            else:
-                logging.warning("Stopping")
-                endpoint.stop()
-                sleep(random.randrange(3))
-                endpoint.start()
+        # if i % 10 == 0:
+        #     if random.randrange(100) % 3 == 0:
+        #         logging.warning("Shutting Down")
+        #         endpoint.stop(shutdown=True)
+        #         sleep(random.randrange(3))
+        #
+        #         endpoint = StreamEndpoint(
+        #             name=f"Initiator-{t_id}",
+        #             addr=("127.0.0.1", 32000 + t_id),
+        #             remote_addr=("127.0.0.1", 13000),
+        #             acceptor=False,
+        #             multithreading=True,
+        #             buffer_size=10000,
+        #         )
+        #         endpoint.start()
+        #     else:
+        #         logging.warning("Stopping")
+        #         endpoint.stop()
+        #         sleep(random.randrange(3))
+        #         endpoint.start()
         sleep(1)
         i += 1
 
