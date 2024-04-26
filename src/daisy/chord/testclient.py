@@ -35,26 +35,30 @@ class Chordmessage:
 
     id: uuid4
     type: MessageType
-    sender: tuple[int, tuple[str, int]]
     peer_tuple: tuple[int, tuple[str, int]]
     origin: MessageOrigin
+    sender: tuple[int, tuple[str, int]]
 
     def __init__(
         self,
-        message_id: uuid4,
+        request_id: uuid4 = None,
         message_type: MessageType = None,
         peer_tuple: tuple[int, tuple[str, int]] = None,
         origin: MessageOrigin = None,
+        sender: tuple[int, tuple[str, int]] = None,
     ):
         """Creates a new Chordmessage.
-        :param message_id: Message identifier
+        :param request_id: Message identifier
         :param message_type: Type of message for processing in receive function.
         :param peer_tuple: ID and address of the peer sent whithin the Chordmessage.
+        :param origin: Origin of the Chordmessage.
+        :param sender: Sender of the Chordmessage.
         """
-        self.id = message_id
+        self.id = request_id
         self.type = message_type
         self.peer_tuple = peer_tuple
         self.origin = origin
+        self.sender = sender
 
 
 class TestPeer:
@@ -83,23 +87,24 @@ class TestPeer:
     def send_lookup(self, remote_addr: tuple[str, int]):
         id = int(input("enter lookup value"))
         message = Chordmessage(
-            message_id=uuid4(),
             message_type=MessageType.LOOKUP_REQ,
             peer_tuple=(id, self._addr),
+            request_id=123,
+            origin=MessageOrigin.FIX_FINGERS,
         )
         ep_name = f"ep-{id}"
         endpoint = StreamEndpoint(
             name=ep_name,
             remote_addr=remote_addr,
             acceptor=False,
-            multithreading=True,
+            multithreading=False,
             buffer_size=10000,
         )
         endpoint.start()
         endpoint.send(message)
 
         threading.Thread(
-            target=lambda: close_tmp_ep(endpoint, 10, 10), daemon=True
+            target=lambda: close_tmp_ep(endpoint, 0, 20), daemon=True
         ).start()
         sleep(5)
         self.receive()
