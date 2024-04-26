@@ -106,7 +106,7 @@ class FederatedOnlineAggregator(ABC):
         self._logger.info("Performing further setup...")
         self.setup()
 
-        self._fed_aggr = threading.Thread(target=self.create_fed_aggr(), daemon=True)
+        self._fed_aggr = threading.Thread(target=self.create_fed_aggr, daemon=True)
         self._fed_aggr.start()
         self._logger.info("Federated online aggregator started.")
 

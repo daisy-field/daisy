@@ -1178,7 +1178,7 @@ class EndpointServer:
     _p_connections: queue.Queue[tuple[tuple[str, int], StreamEndpoint]]
     _n_connections: int
     _c_timeout: int
-    _c_lock: threading.RLock
+    _c_lock: threading.Lock
 
     _name: str
     _addr: tuple[str, int]
@@ -1229,7 +1229,7 @@ class EndpointServer:
         self._p_connections = queue.Queue(maxsize=buffer_size)
         self._n_connections = 0
         self._c_timeout = c_timeout
-        self._c_lock = threading.RLock()
+        self._c_lock = threading.Lock()
 
         self._name = name
         self._addr = addr
@@ -1269,14 +1269,15 @@ class EndpointServer:
             self._connection_cleaner.start()
         self._logger.info("Endpoint server started.")
 
-    def stop(self, timeout=10):
+    def stop(self, timeout=10, blocking=True):
         """Stops the endpoint server along all its connection endpoints, cleaning up
         underlying datastructures. This always shuts down all connection endpoints
         with a given timeout (see stop() of the Endpoint class for more information
         on this behavior).
 
         :param timeout: Allows each connection endpoint to process remaining messages
-        until timeout.
+        until timeout. This is done for each endpoint and not in parallel if blocking.
+        :param blocking: Whether to wait for endpoints to be closed before exiting.
         :raises RuntimeError: If endpoint server has not been started.
         """
         self._logger.info("Stopping endpoint server...")
@@ -1288,14 +1289,14 @@ class EndpointServer:
 
         self._logger.info("Closing connections...")
         with self._c_lock:
-            start = time()
-            for endpoint in self._connections.values():
-                threading.Thread(
-                    target=lambda: endpoint.stop(shutdown=True, timeout=timeout),
-                    daemon=True,
-                ).start()
-            sleep(max(0.0, timeout - time() - start))
+            connections = self._connections
             self._connections = {}
+        if not blocking:
+            threading.Thread(
+                target=lambda: self._close_conns(connections, timeout), daemon=True
+            ).start()
+        else:
+            self._close_conns(connections, timeout)
         self._logger.info("Endpoint server stopped.")
 
     def poll_connections(
@@ -1376,28 +1377,25 @@ class EndpointServer:
         )
         return new_connections
 
-    def close_connections(self, addrs: list[tuple[str, int]], timeout: int = 10):
+    def close_connections(
+        self, addrs: list[tuple[str, int]], timeout: int = 10, blocking=True
+    ):
         """Checks a list of given client addresses whether there is an available
         connection endpoint for each of them and closes them, shutting them also down.
 
         :param addrs: Client addresses to check and close endpoints for.
-        :param timeout: Collective timeout for shutting down connection endpoints.
+        :param timeout: Timeout for shutting down connection endpoints.
+        :param blocking: Whether to wait for endpoints to be closed before returning.
         """
-        self._logger.debug(f"Trying to close {len(addrs)} connections...")
-        n = 0
-        start = time()
-        for addr in addrs:
-            with self._c_lock:
-                endpoint = self._connections.pop(addr, None)
-            if endpoint is not None:
-                self._logger.debug(f"Shutting down connection endpoint {addr}...")
-                n += 1
-                threading.Thread(
-                    target=lambda: endpoint.stop(shutdown=True, timeout=timeout),
-                    daemon=True,
-                ).start()
-        sleep(max(0.0, timeout - time() - start))
-        self._logger.debug(f"{n} out of {len(addrs)} requested connections closed.")
+        self._logger.info("Closing connections...")
+        with self._c_lock:
+            connections = {addr: self._connections.pop(addr, None) for addr in addrs}
+        if not blocking:
+            threading.Thread(
+                target=lambda: self._close_conns(connections, timeout), daemon=True
+            ).start()
+        else:
+            self._close_conns(connections, timeout)
 
     def _create_connection_handler(self):
         """Starts the loop to create new endpoints, connect them to their remote
@@ -1471,23 +1469,48 @@ class EndpointServer:
         c_pending: dict[tuple[str, int], StreamEndpoint] = {}
         while self._started:
             with self._c_lock:
-                c_dead = [addr for addr, ep in c_pending.items() if not ep.poll()[0][0]]
-                self._logger.debug(
-                    f"AsyncCleaner: Closing {len(c_dead)} out of {len(c_pending)} "
-                    f"inactive and marked connection endpoints..."
-                )
-                self.close_connections(c_dead, timeout=0)
+                c_dead = {
+                    addr: self._connections.pop(addr, None)
+                    for addr, ep in c_pending.items()
+                    if not ep.poll()[0][0]
+                }
+            self._logger.debug(
+                f"AsyncCleaner: Closing {len(c_dead)} out of {len(c_pending)} "
+                f"inactive and marked connection endpoints..."
+            )
+            threading.Thread(
+                target=lambda: self._close_conns(c_dead, timeout=0), daemon=True
+            ).start()
+
+            with self._c_lock:
                 c_pending = {
                     addr: ep
                     for addr, ep in self._connections.items()
                     if not ep.poll()[0][0]
                 }
-                self._logger.debug(
-                    f"AsyncCleaner: {len(c_pending)} inactive connection endpoints "
-                    "found and marked."
-                )
+            self._logger.debug(
+                f"AsyncCleaner: {len(c_pending)} inactive connection endpoints "
+                "found and marked."
+            )
             sleep(self._c_timeout)
         self._logger.info("AsyncCleaner: Stopping...")
+
+    def _close_conns(
+        self, connections: dict[tuple[str, int], StreamEndpoint], timeout=10
+    ):
+        """Helper method to close and shutting down a number of endpoints.
+
+        :param connections: Connection endpoints to close.
+        :param timeout: Individual timeout for shutting down connection endpoints.
+        """
+        self._logger.debug(f"Trying to close {len(connections)} connections...")
+        n = 0
+        for addr, endpoint in connections.items():
+            if endpoint is not None:
+                self._logger.debug(f"Shutting down connection endpoint {addr}...")
+                n += 1
+                endpoint.stop(shutdown=True, timeout=timeout)
+        self._logger.debug(f"{n} out of {len(connections)} connections closed.")
 
     def __iter__(self):
         while self._started:
