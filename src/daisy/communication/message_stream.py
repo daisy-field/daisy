@@ -20,8 +20,6 @@ Modified: 02.04.24
 # TODO Future Work: Allow finite communication sessions (keep-alive vs graceful close)
 # FIXME: Race Conditions:
 #   - Diff between select and check_r_sock
-# FIXME: Rapid single-use endpoints clog system, especially ep-server (+multithreading)
-# FIXME: Cleanup Thread in ep-server clogs up due to threading spam + sleeps + locks
 
 import ctypes
 import logging
@@ -256,10 +254,14 @@ class EndpointSocket:
         return states, (self._addr, self._remote_addr)
 
     def _connect(self):
-        """TODO(Re-)Establishes a connection to a/the remote endpoint socket,
+        """(Re-)Establishes a connection to a/the remote endpoint socket,
         first performing any necessary cleanup of the underlying socket,
         before opening it again and trying to connect/accept a remote endpoint
         socket. Fault-tolerant for breakdowns and resets in the connection. Blocking.
+
+        Note if called multiple times concurrently, only one call is executed,
+        the other callers release any locks they are holding and wait until the first
+        caller has established the connection and set the semaphore accordingly.
         """
         if not self._conn_rdy.is_set():
             self._sock_lock.release()
@@ -290,9 +292,13 @@ class EndpointSocket:
         self._sock_lock.release()
 
     def _setup(self):
-        """TODO
+        """(Re-)Establishes a connection to a/the remote endpoint socket,
+        first performing any necessary cleanup of the underlying socket,
+        before attempting to open it and trying to connect/accept a remote endpoint
+        socket. In case it fails, raises the respective error. Idempotent,
+        may be called multiple times until connection is established.
 
-        :return:
+        :raises Error: Various errors when failing to establish a connection.
         """
         _close_socket(self._sock)
         self._sock = None
