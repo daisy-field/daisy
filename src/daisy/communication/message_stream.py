@@ -1436,14 +1436,6 @@ class EndpointServer:
                     )
                     self._p_connections.put((remote_addr, new_connection), timeout=10)
                     with self._c_lock:
-                        old_connection = self._connections.pop(remote_addr, None)
-                    if old_connection is not None:
-                        self._logger.debug(
-                            logging_prefix
-                            + "Shutting down existing connection endpoint..."
-                        )
-                        old_connection.stop(shutdown=True, timeout=10)
-                    with self._c_lock:
                         self._connections[remote_addr] = new_connection
                     self._logger.debug(
                         logging_prefix + "New connection endpoint handled."
