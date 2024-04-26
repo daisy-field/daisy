@@ -158,5 +158,5 @@ if __name__ == "__main__":
 
     # simple_acceptor()
     # single_message_acceptor()
-    multithreaded_acceptor(5)
+    # multithreaded_acceptor(5)
     # clashing_acceptor()

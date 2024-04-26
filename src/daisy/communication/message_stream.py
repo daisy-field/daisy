@@ -1119,7 +1119,7 @@ class StreamEndpoint:
                 endpoint.send(obj)
             endpoint.stop(shutdown=True)
 
-        if blocking:
+        if not blocking:
             threading.Thread(target=quick_sender_ep, daemon=True).start()
         else:
             quick_sender_ep()

@@ -83,6 +83,18 @@ def multithreaded_initiator(num_threads: int):
         sleep(random.randrange(2))
 
 
+def one_time_initiator():
+    """Creates and starts an initiator to perform one multiple "ping" sends before
+    stopping the endpoint, all of which done through the helper class method of the
+    endpoint class.
+    """
+    StreamEndpoint.create_quick_sender_ep(
+        ["ping", "ping2", "ping3", "ping4", "ping5", "ping6", "ping7", "ping8"],
+        remote_addr=("127.0.0.1", 13000),
+        blocking=True,
+    )
+
+
 def single_message_initiator():
     """Creates and starts an initiator to perform a single send before stopping the
     endpoint, to test if endpoints can be stopped while they are about to send a
@@ -137,4 +149,5 @@ if __name__ == "__main__":
 
     # simple_initiator()
     # single_message_initiator()
-    multithreaded_initiator(5)
+    one_time_initiator()
+    # multithreaded_initiator(5)
