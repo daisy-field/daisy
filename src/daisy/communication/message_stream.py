@@ -1441,7 +1441,7 @@ class EndpointServer:
                         logging_prefix
                         + "Storing connection endpoint in pending queue..."
                     )
-                    self._p_connections.put((remote_addr, new_connection), timeout=10)
+                    self._p_connections.put((remote_addr, new_connection), block=False)
                     with self._c_lock:
                         self._connections[remote_addr] = new_connection
                     self._logger.debug(
@@ -1451,7 +1451,7 @@ class EndpointServer:
                 except queue.Full:
                     self._logger.debug(
                         logging_prefix
-                        + "Timeout triggered: Queue full. Discarding oldest endpoint..."
+                        + "Pending queue full. Discarding oldest endpoint..."
                     )
                     try:
                         self._p_connections.get(block=False)
