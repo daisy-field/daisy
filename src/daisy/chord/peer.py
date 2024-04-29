@@ -286,56 +286,90 @@ class Peer:
             self._pending_requests[request_id] = (10, time.time(), i)
             self._lookup(finger, self._addr, MessageOrigin.FIX_FINGERS, request_id)
 
-    def _set_finger(self, index: int, new_finger_tuple: tuple[int, tuple[str, int]]):
+    def _check_finger_is_unique(
+        self, finger: tuple[int, tuple[str, int], StreamEndpoint]
+    ):
+        finger_count = 0
+        for finger_id, finger_addr, finger_ep in self._fingers.values():
+            if finger[0] == finger_id:
+                finger_count += 1
+        if finger_count > 1:
+            self._logger.critical(f"finger {finger[0]} is not unique")
+            return False
+        self._logger.critical(f"finger {finger[0]} is unique")
+        return True
+
+    def _get_endpoint_if_peer_already_in_fingers(
+        self, index: int, new_finger: tuple[int, tuple[str, int]]
+    ) -> StreamEndpoint | None:
+        """checks whether a peer is already in the fingertable of another peer and
+        returns its corresponding endpoint.
+
+        :param index: index (also called key) of the peer on the fingertable
+        :param new_finger: new finger tuple, containing a peers id and address
+        :return: endpoint or None
+        """
+        for key in self._fingers:
+            finger = self._fingers.get(key)
+            if finger[0] == new_finger[0] and index != key:
+                self._logger.critical(
+                    f"reusing endpoint of finger {key}, for finger {index}"
+                )
+                return finger[2]
+        self._logger.critical("not reusing endpoint")
+        return None
+
+    def _set_finger(self, index: int, new_finger: tuple[int, tuple[str, int]]):
         finger = self._fingers.get(index)
-        self._logger.info(
-            f"Updating Finger at Index {index} with {new_finger_tuple}..."
-        )
         if finger is not None:
-            if finger[0] != new_finger_tuple[0]:
-                finger[2].stop(shutdown=True)
-                new_endpoint = StreamEndpoint(
-                    name=f"FINGER-{index}",
-                    remote_addr=new_finger_tuple[1],
-                    acceptor=False,
-                    multithreading=False,
-                    buffer_size=10000,
+            if (
+                finger[0] != new_finger[0]
+            ):  # only change entry if finger has actally changed
+                if self._check_finger_is_unique(finger=finger):
+                    # only stop existing endpoint if its not used somewhere else
+                    finger[2].stop(shutdown=True)
+
+                finger_endpoint = self._get_endpoint_if_peer_already_in_fingers(
+                    index=index, new_finger=new_finger
                 )
-                new_endpoint.start()
+                if finger_endpoint is None:
+                    # ep does not already exist
+                    finger_endpoint = StreamEndpoint(
+                        name=f"FINGER{new_finger[0]}",
+                        remote_addr=new_finger[1],
+                        acceptor=False,
+                        multithreading=False,
+                        buffer_size=10000,
+                    )
+                    finger_endpoint.start()
+
                 self._fingers[index] = (
-                    new_finger_tuple[0],
-                    new_finger_tuple[1],
-                    new_endpoint,
+                    new_finger[0],
+                    new_finger[1],
+                    finger_endpoint,
                 )
+                self._logger.critical(
+                    f"Updated Finger at Index {index} with {new_finger}..."
+                )
+
         else:
+            # finger has not at all existed before and is created completely new
             new_endpoint = StreamEndpoint(
-                name=f"FINGER-{index}",
-                remote_addr=new_finger_tuple[1],
+                name=f"FINGER{new_finger[0]}",
+                remote_addr=new_finger[1],
                 acceptor=False,
                 multithreading=False,
                 buffer_size=10000,
             )
             new_endpoint.start()
             self._fingers[index] = (
-                new_finger_tuple[0],
-                new_finger_tuple[1],
+                new_finger[0],
+                new_finger[1],
                 new_endpoint,
             )
-
-    def _get_endpoint_if_peer_already_in_fingers(
-        self, index: int, new_finger_tuple: tuple[int, tuple[str, int]]
-    ) -> StreamEndpoint | None:
-        """checks whether a peer is already in the fingertable of another peer and
-        returns its corresponding endpoint
-
-        :param index: index of the peer on the fingertable
-        :param new_finger_tuple: new finger tuple
-        """
-        for key in self._fingers:
-            finger = self._fingers.get(key)
-            if finger[0] == new_finger_tuple[0] and index != key:
-                return finger[2]
-        return None
+            self._logger.critical(
+                f"Created Finger at Index {index} with {new_finger}..."
+            )
 
     def _get_read_ready_endpoints(self) -> set[StreamEndpoint]:
         self._logger.info("Collecting all readable Endpoints...")
@@ -355,7 +389,6 @@ class Peer:
 
     def run(self, join_addr: tuple[str, int] = None):
         # TODO wo werden finger genutzt? -> lookup
-        # TODO endpoints in fingertables nicht doppelt erstelllen
         # TODO wie wird ttl von nachrichten gesetzt und geprüft?
         #  Was ist eine sinnvolle ttl?
         # TODO nachrichten mit ttl für alle nodes, sodass lookups die zu lange dauern
@@ -429,7 +462,7 @@ class Peer:
             if request is not None and time.time() - request[1] > request[0]:
                 self._pending_requests.pop(key)
                 delete_count += 1
-        self._logger.info(
+        self._logger.critical(
             f"Deleted {delete_count} pending requests in this interation."
         )
 
@@ -529,6 +562,7 @@ class Peer:
                 finger,
                 ((self._id + (1 << finger)) % (1 << self._max_fingers)),
                 self._fingers[finger][0],
+                self._fingers[finger][2].name,
             )
             for finger in self._fingers
         ]
@@ -551,7 +585,7 @@ if __name__ == "__main__":
     logging.basicConfig(
         format="%(asctime)s %(levelname)-8s %(name)-10s %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
-        level=logging.INFO,  # handlers=[
+        level=logging.CRITICAL,  # handlers=[
         #    logging.FileHandler(
         #        filename=f"./logging/peer-{args.id}.log",
         #        mode="w",
