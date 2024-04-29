@@ -305,11 +305,19 @@ class Chordpeer:
         if self._successor_endpoint is not None and remote_id == self._successor[0]:
             return self._successor_endpoint
 
-        # ep_as_set = {finger_ep for finger_id, finger_addr, finger_ep in
-        # self._fingertable.values() if remote_id == finger_id} try: return
-        # ep_as_set.pop() except KeyError as e: self._logger.error(f"{
-        # e.__class__.__name__} ({e}) :: in get_ep_if-exists: No ep found. Creating
-        # new ep")
+        ep_as_set = {
+            finger_ep
+            for finger_id, finger_addr, finger_ep in self._fingertable.values()
+            if remote_id == finger_id
+        }
+        try:
+            ep_as_set.pop()
+        except KeyError as e:
+            (
+                self._logger.error(
+                    f"{e.__class__.__name__} ({e}) :: in get_ep_if-exists: No ep found. Creating new ep"
+                )
+            )
 
         ep = StreamEndpoint(
             name=f"get-ep-{random.randint(0, 100)}",
