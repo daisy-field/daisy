@@ -72,6 +72,20 @@ def send(send_addr: tuple[str, int], message: Chordmessage):
     endpoint.stop(shutdown=True, timeout=15)
 
 
+def receive_on_single_endpoint(endpoint: StreamEndpoint) -> list[Chordmessage]:
+    """Receives and returns the Chordmessage of an endpoint.
+    Defaults to an empty Chordmessage.
+
+    :param endpoint: Endpoint to receive on.
+    """
+    chordmessages = []
+    try:
+        while True:
+            chordmessages.append(typing.cast(Chordmessage, endpoint.receive(timeout=0)))
+    except (RuntimeError, TimeoutError):
+        return chordmessages
+
+
 class Peer:
     _id: int
     _addr: tuple[str, int]
@@ -111,7 +125,7 @@ class Peer:
         self._fingers = {}
 
         self._endpoint_server = EndpointServer(
-            "EndpointServer", addr=addr, multithreading=True, c_timeout=30
+            name="EndpointServer", addr=addr, multithreading=True, c_timeout=30
         )
         self._pending_requests = {}
 
@@ -308,6 +322,21 @@ class Peer:
                 new_endpoint,
             )
 
+    def _get_endpoint_if_peer_already_in_fingers(
+        self, index: int, new_finger_tuple: tuple[int, tuple[str, int]]
+    ) -> StreamEndpoint | None:
+        """checks whether a peer is already in the fingertable of another peer and
+        returns its corresponding endpoint
+
+        :param index: index of the peer on the fingertable
+        :param new_finger_tuple: new finger tuple
+        """
+        for key in self._fingers:
+            finger = self._fingers.get(key)
+            if finger[0] == new_finger_tuple[0] and index != key:
+                return finger[2]
+        return None
+
     def _get_read_ready_endpoints(self) -> set[StreamEndpoint]:
         self._logger.info("Collecting all readable Endpoints...")
         r_ready_eps = set()
@@ -345,21 +374,23 @@ class Peer:
             self._close_ring_at_first_peer()
             self._cleanup_pending_requests()
             period = self._maintain_chord_ring(start, period)
-            sleep(1)
             r_ready = self._get_read_ready_endpoints()
+            if len(r_ready) == 0:
+                sleep(1)
+                continue
             for ep in r_ready:
-                message = self._receive_on_single_endpoint(ep)
-                match message.type:
-                    case MessageType.LOOKUP_REQ:
-                        self._process_lookup_request(message)
-                    case MessageType.LOOKUP_RES:
-                        self._process_lookup_response(message)
-                    case MessageType.JOIN:
-                        self._process_join_request(message)
-                    case MessageType.STABILIZE:
-                        self._process_stabilize(message)
-                    case MessageType.NOTIFY:
-                        self._process_notify(message)
+                for message in receive_on_single_endpoint(ep):
+                    match message.type:
+                        case MessageType.LOOKUP_REQ:
+                            self._process_lookup_request(message)
+                        case MessageType.LOOKUP_RES:
+                            self._process_lookup_response(message)
+                        case MessageType.JOIN:
+                            self._process_join_request(message)
+                        case MessageType.STABILIZE:
+                            self._process_stabilize(message)
+                        case MessageType.NOTIFY:
+                            self._process_notify(message)
             self._logger.critical(self.__str__())
 
     def _close_ring_at_first_peer(self):
@@ -401,20 +432,6 @@ class Peer:
         self._logger.info(
             f"Deleted {delete_count} pending requests in this interation."
         )
-
-    def _receive_on_single_endpoint(
-        self, endpoint: StreamEndpoint
-    ) -> Chordmessage | None:
-        """Receives and returns the Chordmessage of an endpoint.
-        Defaults to an empty Chordmessage.
-
-        :param endpoint: Endpoint to receive on.
-        """
-        try:
-            return typing.cast(Chordmessage, endpoint.receive(timeout=0))
-        except RuntimeError:
-            self._logger.info("Endpoint has not been started!")
-        return Chordmessage()
 
     def _process_notify(self, message: Chordmessage):
         if self._check_is_successor(message.peer_tuple[0]):
