@@ -20,7 +20,10 @@ from daisy.communication import EndpointServer
 def simple_server():
     """Setup and start of ping-pong server (see module docstring)."""
     with EndpointServer(
-        name="Testserver", addr=("127.0.0.1", 13000), c_timeout=60, multithreading=True
+        name="Testserver",
+        addr=("127.0.0.1", 13000),
+        c_timeout=None,
+        multithreading=True,
     ) as server:
         i = 0
         while True:
@@ -30,9 +33,10 @@ def simple_server():
                     print(connection[1].receive(0))
                 except TimeoutError:
                     print("rip timeout")
-            for connection in w.items():
-                connection[1].send(f"pong {i}")
-            sleep(1)
+            # for connection in w.items():
+            #    connection[1].send(f"pong {i}")
+            if len(r) == 0:
+                sleep(1)
             i += 1
 
 
@@ -40,6 +44,6 @@ if __name__ == "__main__":
     logging.basicConfig(
         format="%(asctime)s %(levelname)-8s %(name)-10s %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
-        level=logging.INFO,
+        level=logging.DEBUG,
     )
     simple_server()

@@ -190,6 +190,9 @@ class EndpointSocket:
                 self._sock_lock.release()
                 sleep(1)
             except (OSError, ValueError, RuntimeError) as e:
+                # FIXME add keep-alive condition
+                # if type(e) is RuntimeError:
+                #    break
                 self._logger.warning(
                     f"{e.__class__.__name__}({e}) "
                     "while trying to send data. Retrying..."
@@ -219,6 +222,9 @@ class EndpointSocket:
             except (OSError, ValueError, RuntimeError) as e:
                 if timeout is not None and type(e) is TimeoutError:
                     raise e
+                # FIXME add keep-alive condition
+                # if type(e) is RuntimeError:
+                #    break
                 self._logger.warning(
                     f"{e.__class__.__name__}({e}) "
                     "while trying to receive data. Retrying..."
@@ -287,6 +293,7 @@ class EndpointSocket:
                     f"connection {self._addr, self._remote_addr}. Retrying..."
                 )
                 self._sock_lock.release()
+                # FIXME
                 sleep(10)
                 self._sock_lock.acquire()
         self._conn_rdy.set()
@@ -638,7 +645,9 @@ class EndpointSocket:
             acc_r_socks, acc_r_lock = cls._acc_r_socks[l_addr]
             acc_p_socks = cls._acc_p_socks[l_addr]
 
+        cls._cls_logger.info("waiting...")
         with l_sock_lock:
+            # FIXME
             if not select.select([l_sock], [], [], 0)[0]:
                 raise RuntimeError(
                     f"Could not open connection socket for {l_addr, remote_addr}!"
@@ -671,6 +680,7 @@ class EndpointSocket:
             return a_sock, a_addr
 
         # Any other connection is stored in the pending connection queue.
+        # FIXME check reachability
         try:
             cls._cls_logger.debug(
                 f"Storing accept socket {a_sock, a_addr} "
@@ -1045,6 +1055,9 @@ class StreamEndpoint:
             try:
                 p_obj = self._endpoint_socket.recv()
                 if p_obj is None:
+                    # FIXME exit handling in case connection is already dead?
+                    self._logger.debug("Test Sleep")
+                    # sleep(100)
                     continue
                 self._logger.debug(
                     f"AsyncReceiver: Storing received object (size: {len(p_obj)}) "
@@ -1565,6 +1578,7 @@ def _send_n_data(sock: socket.socket, data: bytes, size: int):
     :param sock: Sockets to send bytes over.
     :param data: Bytes to send.
     :param size: Number of bytes to send.
+    :raises RuntimeError: If connection has been closed by remote.
     """
     sent_bytes = 0
     while sent_bytes < size:
@@ -1595,6 +1609,7 @@ def _recv_n_data(sock: socket.socket, size: int, buff_size: int = 4096) -> bytes
     :param buff_size: Maximum number of bytes to receive from socket per receive
     iteration.
     :return: Received n bytes.
+    :raises RuntimeError: If connection has been closed by remote.
     """
     data = bytearray(size)
     r_size = size
