@@ -5,7 +5,6 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 import argparse
 import logging
-import threading
 import time
 import typing
 from enum import Enum
@@ -153,7 +152,7 @@ class Peer:
         )
         self._pending_requests[request_id] = (60, time.time(), -1)
         self._logger.info(f"Sending join Request to {join_addr}")
-        threading.Thread(target=lambda: send(join_addr, message), daemon=True).start()
+        StreamEndpoint.create_quick_sender_ep(objects=[message], remote_addr=join_addr)
 
     def _check_is_predecessor(self, check_id: int) -> bool:
         # check_id in ]pred, n[
@@ -249,9 +248,9 @@ class Peer:
                 request_id=request_id,
                 origin=lookup_origin,
             )
-            threading.Thread(
-                target=lambda: send(response_addr, message), daemon=True
-            ).start()
+            StreamEndpoint.create_quick_sender_ep(
+                objects=[message], remote_addr=response_addr
+            )
 
     def _stabilize(self):
         """Creates and sends a stabilize message to a peer's successor"""
@@ -268,15 +267,15 @@ class Peer:
 
         :param notify_peer: recipient of the notify message
         """
-        notify_message = Chordmessage(
+        message = Chordmessage(
             message_type=MessageType.NOTIFY,
             sender=(self._id, self._addr),
             peer_tuple=self._predecessor,
         )
         self._logger.info(f"Notifying {notify_peer}...")
-        threading.Thread(
-            target=lambda: send(notify_peer[1], notify_message), daemon=True
-        ).start()
+        StreamEndpoint.create_quick_sender_ep(
+            objects=[message], remote_addr=notify_peer[1]
+        )
 
     def _fix_fingers(self):
         self._logger.info("Initiating Fingertable updates, prepare for logging spam...")
@@ -319,7 +318,30 @@ class Peer:
         self._logger.critical("not reusing endpoint")
         return None
 
-    def _set_finger(self, index: int, new_finger: tuple[int, tuple[str, int]]):
+    def _set_finger(
+        self,
+        index: int,
+        new_finger: tuple[int, tuple[str, int]],
+        finger_endpoint: StreamEndpoint = None,
+    ):
+        if finger_endpoint is None:
+            finger_endpoint = StreamEndpoint(
+                name=f"FINGER{new_finger[0]}",
+                remote_addr=new_finger[1],
+                acceptor=False,
+                multithreading=False,
+                buffer_size=10000,
+            )
+            finger_endpoint.start()
+        self._fingers[index] = (
+            new_finger[0],
+            new_finger[1],
+            finger_endpoint,
+        )
+
+    def _process_and_set_finger(
+        self, index: int, new_finger: tuple[int, tuple[str, int]]
+    ):
         finger = self._fingers.get(index)
         if finger is not None:
             if (
@@ -332,40 +354,17 @@ class Peer:
                 finger_endpoint = self._get_endpoint_if_peer_already_in_fingers(
                     index=index, new_finger=new_finger
                 )
-                if finger_endpoint is None:
-                    # ep does not already exist
-                    finger_endpoint = StreamEndpoint(
-                        name=f"FINGER{new_finger[0]}",
-                        remote_addr=new_finger[1],
-                        acceptor=False,
-                        multithreading=False,
-                        buffer_size=10000,
-                    )
-                    finger_endpoint.start()
-
-                self._fingers[index] = (
-                    new_finger[0],
-                    new_finger[1],
-                    finger_endpoint,
+                self._set_finger(
+                    index=index, new_finger=new_finger, finger_endpoint=finger_endpoint
                 )
                 self._logger.critical(
                     f"Updated Finger at Index {index} with {new_finger}..."
                 )
-
         else:
             # finger has not at all existed before and is created completely new
-            new_endpoint = StreamEndpoint(
-                name=f"FINGER{new_finger[0]}",
-                remote_addr=new_finger[1],
-                acceptor=False,
-                multithreading=False,
-                buffer_size=10000,
-            )
-            new_endpoint.start()
-            self._fingers[index] = (
-                new_finger[0],
-                new_finger[1],
-                new_endpoint,
+            self._set_finger(
+                index=index,
+                new_finger=new_finger,
             )
             self._logger.critical(
                 f"Created Finger at Index {index} with {new_finger}..."
@@ -388,12 +387,13 @@ class Peer:
         return r_ready_eps
 
     def run(self, join_addr: tuple[str, int] = None):
-        # TODO wo werden finger genutzt? -> lookup
+        # TODO Dropout peers erkennen -> stabilize ttl & failures für successor;
+        #    aber predecessor wie?
         # TODO wie wird ttl von nachrichten gesetzt und geprüft?
-        #  Was ist eine sinnvolle ttl?
+        #    Was ist eine sinnvolle ttl?
         # TODO nachrichten mit ttl für alle nodes, sodass lookups die zu lange dauern
-        #  abgebrochen werden können und nicht bis zum ende durchlaufen nur
-        #  um dann nicht genutt zu werden
+        #    abgebrochen werden können und nicht bis zum ende durchlaufen nur
+        #    um dann nicht genutt zu werden
         # TODO retry von verlorenen anfragen
         # TODO be faster
         self._logger.info(f"Peer {self._id} started...")
@@ -501,7 +501,7 @@ class Peer:
         # handle valid requests
         if message.origin == MessageOrigin.FIX_FINGERS:
             self._logger.info("Received finger from FIx-Fingers request...")
-            self._set_finger(request[2], message.peer_tuple)
+            self._process_and_set_finger(request[2], message.peer_tuple)
         if message.origin == MessageOrigin.JOIN:
             self._logger.info("Received successor from Join...")
             self._set_successor(message.peer_tuple)
