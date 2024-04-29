@@ -45,6 +45,7 @@ class Chordmessage:
         sender: tuple[int, tuple[str, int]] = None,
     ):
         """Creates a new Chordmessage.
+
         :param request_id: Message identifier
         :param message_type: Type of message for processing in receive function.
         :param peer_tuple: ID and address of the peer sent whithin the Chordmessage.
@@ -58,24 +59,11 @@ class Chordmessage:
         self.sender = sender
 
 
-def send(send_addr: tuple[str, int], message: Chordmessage):
-    endpoint: StreamEndpoint = StreamEndpoint(
-        name=f"SEND{message.sender[0]}",
-        remote_addr=send_addr,
-        acceptor=False,
-        multithreading=False,
-        buffer_size=10000,
-    )
-    endpoint.start()
-    endpoint.send(message)
-    endpoint.stop(shutdown=True, timeout=15)
-
-
 def receive_on_single_endpoint(endpoint: StreamEndpoint) -> list[Chordmessage]:
-    """Receives and returns the Chordmessage of an endpoint.
-    Defaults to an empty Chordmessage.
+    """Receives and returns the Chordmessages in an endpoint.
 
     :param endpoint: Endpoint to receive on.
+    :return: Chordmessages in an endpoint or empty list
     """
     chordmessages = []
     try:
@@ -248,9 +236,16 @@ class Peer:
                 request_id=request_id,
                 origin=lookup_origin,
             )
-            StreamEndpoint.create_quick_sender_ep(
-                objects=[message], remote_addr=response_addr
-            )
+            try:
+                send_ep = self._get_existing_endpoint_if_possible(
+                    remote_addr=response_addr
+                )
+                send_ep.send(message)
+            except (TypeError, AttributeError):
+                self._logger.warning("Creating quick send ep in notify")
+                StreamEndpoint.create_quick_sender_ep(
+                    objects=[message], remote_addr=response_addr
+                )
 
     def _stabilize(self):
         """Creates and sends a stabilize message to a peer's successor"""
@@ -273,9 +268,16 @@ class Peer:
             peer_tuple=self._predecessor,
         )
         self._logger.info(f"Notifying {notify_peer}...")
-        StreamEndpoint.create_quick_sender_ep(
-            objects=[message], remote_addr=notify_peer[1]
-        )
+        try:
+            send_ep = self._get_existing_endpoint_if_possible(
+                remote_addr=notify_peer[1]
+            )
+            send_ep.send(message)
+        except (TypeError, AttributeError):
+            self._logger.warning("Creating quick send ep in notify")
+            StreamEndpoint.create_quick_sender_ep(
+                objects=[message], remote_addr=notify_peer[1]
+            )
 
     def _fix_fingers(self):
         self._logger.info("Initiating Fingertable updates, prepare for logging spam...")
@@ -370,6 +372,18 @@ class Peer:
                 f"Created Finger at Index {index} with {new_finger}..."
             )
 
+    def _get_existing_endpoint_if_possible(
+        self, remote_addr: tuple[str, int]
+    ) -> StreamEndpoint | None:
+        if self._predecessor[1] == remote_addr:
+            return self._predecessor_endpoint
+        if self._successor[1] == remote_addr:
+            return self._successor_endpoint
+        for finger in self._fingers.values():
+            if finger[1] == remote_addr:
+                return finger[2]
+        return None
+
     def _get_read_ready_endpoints(self) -> set[StreamEndpoint]:
         self._logger.info("Collecting all readable Endpoints...")
         r_ready_eps = set()
@@ -387,6 +401,7 @@ class Peer:
         return r_ready_eps
 
     def run(self, join_addr: tuple[str, int] = None):
+        # TODO finger endpoints mehr benutzen
         # TODO Dropout peers erkennen -> stabilize ttl & failures für successor;
         #    aber predecessor wie?
         # TODO wie wird ttl von nachrichten gesetzt und geprüft?
@@ -396,6 +411,8 @@ class Peer:
         #    um dann nicht genutt zu werden
         # TODO retry von verlorenen anfragen
         # TODO be faster
+        # fixme umgekehrte succ und pred pointer wenn alle peers zu beginn,
+        #    hintereinanderweg joinen
         self._logger.info(f"Peer {self._id} started...")
         start = time.time()
         period = start
