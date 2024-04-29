@@ -145,7 +145,7 @@ class EndpointSocket:
             self._open_l_socket(self._addr)
         self._sock_lock.acquire()
         self._conn_rdy.set()
-        self._connect()
+        self._connect(initial=True)
         self._logger.info("Endpoint socket opened.")
 
     def close(self, shutdown: bool = False):
@@ -260,7 +260,7 @@ class EndpointSocket:
                     states[2] = len(select.select([], [self._sock], [], 0)[1]) != 0
         return states, (self._addr, self._remote_addr)
 
-    def _connect(self):
+    def _connect(self, initial=False):
         """(Re-)Establishes a connection to a/the remote endpoint socket,
         first performing any necessary cleanup of the underlying socket,
         before opening it again and trying to connect/accept a remote endpoint
@@ -269,6 +269,13 @@ class EndpointSocket:
         Note if called multiple times concurrently, only one call is executed,
         the other callers release any locks they are holding and wait until the first
         caller has established the connection and set the semaphore accordingly.
+
+        Also note the longer an endpoint socket attempts to re-establish the
+        connection, the longer it will wait inbetween attempts. This is done to
+        prevent busy waiting of endpoint sockets occupying the same listening socket,
+        the exception being initial attempts to establish the connection.
+
+        :param initial: Whether this is the first time the connection is established.
         """
         if not self._conn_rdy.is_set():
             self._sock_lock.release()
@@ -276,6 +283,7 @@ class EndpointSocket:
             return
         self._conn_rdy.clear()
 
+        i = 0
         while self._opened:
             try:
                 self._logger.info(
@@ -293,8 +301,9 @@ class EndpointSocket:
                     f"connection {self._addr, self._remote_addr}. Retrying..."
                 )
                 self._sock_lock.release()
-                # FIXME
-                sleep(10)
+                sleep(min(1 << i, 128))
+                # initial attempts of an endpoint socket never do binary backoff (+0)
+                i += int(not initial)
                 self._sock_lock.acquire()
         self._conn_rdy.set()
         self._sock_lock.release()
@@ -544,6 +553,10 @@ class EndpointSocket:
         if remote_addr is not None:
             a_sock = cls._get_r_acc_sock(l_addr, remote_addr)
             if a_sock is not None:
+                cls._cls_logger.debug(
+                    f"Accept socket {l_addr, remote_addr} "
+                    "from registered connection cache retrieved."
+                )
                 return a_sock, remote_addr
 
         # Check the pending connection queue, if this thread does not care
@@ -553,6 +566,10 @@ class EndpointSocket:
             if a_sock is not None:
                 try:
                     cls._reg_remote(a_addr)
+                    cls._cls_logger.debug(
+                        f"Accept socket for {l_addr} "
+                        "from pending connection queue retrieved."
+                    )
                     return a_sock, a_addr
                 except ValueError:
                     _close_socket(a_sock)
@@ -645,9 +662,7 @@ class EndpointSocket:
             acc_r_socks, acc_r_lock = cls._acc_r_socks[l_addr]
             acc_p_socks = cls._acc_p_socks[l_addr]
 
-        cls._cls_logger.info("waiting...")
         with l_sock_lock:
-            # FIXME
             if not select.select([l_sock], [], [], 0)[0]:
                 raise RuntimeError(
                     f"Could not open connection socket for {l_addr, remote_addr}!"
@@ -680,7 +695,6 @@ class EndpointSocket:
             return a_sock, a_addr
 
         # Any other connection is stored in the pending connection queue.
-        # FIXME check reachability
         try:
             cls._cls_logger.debug(
                 f"Storing accept socket {a_sock, a_addr} "
