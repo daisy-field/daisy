@@ -24,6 +24,7 @@ def simple_server():
         addr=("127.0.0.1", 13000),
         c_timeout=None,
         multithreading=True,
+        keep_alive=False,
     ) as server:
         i = 0
         while True:
