@@ -1,17 +1,23 @@
 # DAISY
 
-### A toolset for fully Distributed Anomaly-based Intrusion detection in Security-oriented edge computing environments.
+> A Framework for Fully **D**istributed, **A**nomaly-Based **I**ntrusion Detection in 
+> **S**ecurit**y**-Oriented Edge Computing Environments.
 
 [![CI](https://github.com/daisy-field/daisy/actions/workflows/ci.yml/badge.svg)](https://github.com/daisy-field/daisy/actions/workflows/ci.yml)
 [![License: MPL 2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](https://github.com/daisy-field/daisy/blob/main/LICENSE.txt)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
+DAISY aims to be an end-to-end framework to design, develop, and execute distributed 
+intrusion detection systems (IDS) of varying topologies, in an edge-optimized fashion. 
+All of which is done in python and done generically.
 
-> Additional information or tagline
+*Basically: You provide the model and data source, plus any other customizations
+you want done following the defined interfaces, and you are set!*
 
-A brief description of your project, what it is used for and how does life get
-awesome when someone starts to use it.
+There also is a toolbox of various implementations of all these interfaces, Execution 
+of code is be done through pure python or wrapped inside one or multiple docker containers. 
+
 
 ## Installing / Getting started
 
@@ -19,9 +25,12 @@ A quick introduction of the minimal setup you need to get a hello world up &
 running.
 
 ```shell
-packagemanager install awesome-project
-awesome-project start
-awesome-project "Do something!"  # prints "Nah."
+git clone https://github.com/daisy-field/daisy.git
+pip install /path/to/daisy
+```
+
+```shell
+pip install pip install /path/to/daisy[cuda]
 ```
 
 Here you should say what actually happens when you execute the code above.
@@ -37,9 +46,9 @@ Here's a brief intro about what a developer must do in order to start developing
 the project further:
 
 ```shell
-git clone https://github.com/your/awesome-project.git
-cd awesome-project/
-packagemanager install
+git clone https://github.com/daisy-field/daisy.git
+cd daisy
+pip install -e .[dev]
 ```
 
 And state what happens step-by-step.
@@ -50,9 +59,11 @@ If your project needs some additional steps for the developer to build the
 project after some code changes, state them here:
 
 ```shell
-./configure
-make
-make install
+docker build .
+```
+
+```shell
+docker build . --build-arg BUILD_VERSION=gpu
 ```
 
 Here again you should state what actually happens when the code above gets
