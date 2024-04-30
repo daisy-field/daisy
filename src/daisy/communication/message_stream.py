@@ -7,7 +7,7 @@
 endpoints over BSD sockets. Supports SSL (soon) and LZ4 compression.
 
 Author: Fabian Hofmann
-Modified: 02.04.24
+Modified: 29.04.24
 """
 # TODO Future Work: SSL https://docs.python.org/3/library/ssl.html
 # TODO Future Work: Defining granularity of logging in inits
@@ -17,7 +17,6 @@ Modified: 02.04.24
 #   3. another initiator from same host (or nat) gets recycled address IP and connects
 #   4. acceptor accepts this "wrong" endpoint, believing it is still the old one
 #   - Should be fixed from the ground up (possible through two-way, cert-based identity)
-# TODO Future Work: Allow finite communication sessions (keep-alive vs graceful close)
 # FIXME: Race Conditions:
 #   - Diff between select and check_r_sock
 
@@ -79,6 +78,8 @@ class EndpointSocket:
     _sock: Optional[socket.socket]
     _sock_lock: threading.Lock
 
+    _keep_alive: bool
+
     _conn_rdy: threading.Event
     _opened: bool
 
@@ -90,6 +91,7 @@ class EndpointSocket:
         acceptor: bool = True,
         send_b_size: int = 65536,
         recv_b_size: int = 65536,
+        keep_alive: bool = True,
     ):
         """Creates a new endpoint socket. Implementation note: A pre-defined remote
         address is not a guarantee that this endpoint will successfully be allowed to
@@ -107,6 +109,8 @@ class EndpointSocket:
         connections to/from other endpoints.
         :param send_b_size: Underlying send buffer size of socket.
         :param recv_b_size: Underlying receive buffer size of socket.
+        :param keep_alive: Determines whether to attempt re-connects after the remote
+        endpoint has terminated the connection.
         :raises ValueError: If the remote address is already taken for the acceptor,
         or if the address/remote address is not provided for acceptor/initiator.
         """
@@ -130,6 +134,8 @@ class EndpointSocket:
         self._sock = None
         self._sock_lock = threading.Lock()
 
+        self._keep_alive = keep_alive
+
         self._conn_rdy = threading.Event()
         self._opened = False
         self._logger.info(f"Endpoint socket {addr, remote_addr} initialized.")
@@ -145,7 +151,7 @@ class EndpointSocket:
             self._open_l_socket(self._addr)
         self._sock_lock.acquire()
         self._conn_rdy.set()
-        self._connect()
+        self._connect(initial=True)
         self._logger.info("Endpoint socket opened.")
 
     def close(self, shutdown: bool = False):
@@ -179,6 +185,8 @@ class EndpointSocket:
         Fault-tolerant for breakdowns and resets in the connection. Blocking.
 
         :param p_data: Bytes to send.
+        :raises RuntimeError: If connection has been terminated by remote endpoint
+        and keep-alive is disabled.
         """
         while self._opened:
             try:
@@ -190,11 +198,14 @@ class EndpointSocket:
                 self._sock_lock.release()
                 sleep(1)
             except (OSError, ValueError, RuntimeError) as e:
+                if not self._keep_alive and type(e) is RuntimeError:
+                    self._sock_lock.release()
+                    raise e
                 self._logger.warning(
                     f"{e.__class__.__name__}({e}) "
                     "while trying to send data. Retrying..."
                 )
-                # unlock is done in connect()
+                # release() of sock_lock is done in connect()
                 self._connect()
 
     def recv(self, timeout: int = None) -> Optional[bytes]:
@@ -206,6 +217,8 @@ class EndpointSocket:
         :param timeout: Timeout (seconds) to receive an object to return.
         :return: Received bytes or None of end point socket has been closed.
         :raises TimeoutError: If timeout set and triggered.
+        :raises RuntimeError: If connection has been terminated by remote endpoint
+        and keep-alive is disabled.
         """
         while self._opened:
             try:
@@ -219,11 +232,14 @@ class EndpointSocket:
             except (OSError, ValueError, RuntimeError) as e:
                 if timeout is not None and type(e) is TimeoutError:
                     raise e
+                if not self._keep_alive and type(e) is RuntimeError:
+                    self._sock_lock.release()
+                    raise e
                 self._logger.warning(
                     f"{e.__class__.__name__}({e}) "
                     "while trying to receive data. Retrying..."
                 )
-                # unlock is done in connect()
+                # release() of sock_lock is done in connect()
                 self._connect()
         return None
 
@@ -254,7 +270,7 @@ class EndpointSocket:
                     states[2] = len(select.select([], [self._sock], [], 0)[1]) != 0
         return states, (self._addr, self._remote_addr)
 
-    def _connect(self):
+    def _connect(self, initial=False):
         """(Re-)Establishes a connection to a/the remote endpoint socket,
         first performing any necessary cleanup of the underlying socket,
         before opening it again and trying to connect/accept a remote endpoint
@@ -263,6 +279,13 @@ class EndpointSocket:
         Note if called multiple times concurrently, only one call is executed,
         the other callers release any locks they are holding and wait until the first
         caller has established the connection and set the semaphore accordingly.
+
+        Also note the longer an endpoint socket attempts to re-establish the
+        connection, the longer it will wait inbetween attempts. This is done to
+        prevent busy waiting of endpoint sockets occupying the same listening socket,
+        the exception being initial attempts to establish the connection.
+
+        :param initial: Whether this is the first time the connection is established.
         """
         if not self._conn_rdy.is_set():
             self._sock_lock.release()
@@ -270,6 +293,7 @@ class EndpointSocket:
             return
         self._conn_rdy.clear()
 
+        i = 0
         while self._opened:
             try:
                 self._logger.info(
@@ -287,7 +311,9 @@ class EndpointSocket:
                     f"connection {self._addr, self._remote_addr}. Retrying..."
                 )
                 self._sock_lock.release()
-                sleep(10)
+                sleep(min(1 << i, 128))
+                # initial attempts of an endpoint socket never do binary backoff (+0)
+                i += int(not initial)
                 self._sock_lock.acquire()
         self._conn_rdy.set()
         self._sock_lock.release()
@@ -537,6 +563,10 @@ class EndpointSocket:
         if remote_addr is not None:
             a_sock = cls._get_r_acc_sock(l_addr, remote_addr)
             if a_sock is not None:
+                cls._cls_logger.debug(
+                    f"Accept socket {l_addr, remote_addr} "
+                    "from registered connection cache retrieved."
+                )
                 return a_sock, remote_addr
 
         # Check the pending connection queue, if this thread does not care
@@ -546,6 +576,10 @@ class EndpointSocket:
             if a_sock is not None:
                 try:
                     cls._reg_remote(a_addr)
+                    cls._cls_logger.debug(
+                        f"Accept socket for {l_addr} "
+                        "from pending connection queue retrieved."
+                    )
                     return a_sock, a_addr
                 except ValueError:
                     _close_socket(a_sock)
@@ -758,6 +792,7 @@ class StreamEndpoint:
         unmarshal_f: Callable[[bytes], object] = pickle.loads,
         multithreading: bool = False,
         buffer_size: int = 1024,
+        keep_alive: bool = True,
     ):
         """Creates a new endpoint.
 
@@ -776,6 +811,12 @@ class StreamEndpoint:
         :param multithreading: Enables transparent multithreading (i.e. asynchronous
         object processing) for speedup.
         :param buffer_size: Size of shared buffer in multithreading mode.
+        :param keep_alive: Determines whether to attempt re-connects after the remote
+        endpoint has terminated the connection or to stop the endpoint. Such
+        connection endings will also result in RuntimeErrors in synchronous mode
+        (during send()/receive()) and the automatic exiting of endpoint
+        sender/receiver loops if multithreading is set. Note that the actual shut
+        down of the endpoint may still be called separately.
         """
         self._logger = logging.getLogger(name)
         self._logger.info(f"Initializing endpoint {addr, remote_addr}...")
@@ -787,6 +828,7 @@ class StreamEndpoint:
             acceptor=acceptor,
             send_b_size=send_b_size,
             recv_b_size=recv_b_size,
+            keep_alive=keep_alive,
         )
 
         if compression:
@@ -814,8 +856,8 @@ class StreamEndpoint:
         is the case, the caller can check the readiness of the connection via the
         returned event object. Note that in multithreading mode, objects can already
         be sent/received, however they will only be stored in internal buffers until
-        the connection is established (and the semaphore is set accordingly to allow
-        async sender and receiver to proceed).
+        the establishing of connection (sets the semaphore accordingly to allow async
+        sender and receiver to proceed).
 
         :param blocking: Whether to wait for a connection to be established in
         non-multithreading (sync) mode.
@@ -926,7 +968,8 @@ class StreamEndpoint:
         non-blocking.
 
         :param obj: Object to send.
-        :raises RuntimeError: If endpoint has not been started.
+        :raises RuntimeError: If endpoint has not been started or has been terminated
+        by the remote counterpart.
         """
         self._logger.debug("Sending object...")
         if not self._started:
@@ -946,16 +989,20 @@ class StreamEndpoint:
     def receive(self, timeout: int = None) -> object:
         """Generic receive function that receives data as a pickle over the
         persistent datastream, unpickles it into the respective object and returns
-        it. Blocking in default-mode if timeout not set.
+        it. Blocking in default-mode if timeout not set. Also supports receiving
+        objects past the closing of the endpoint, if multithreading is enabled and
+        the objects have already been received nad stored in the receive buffer.
 
         :param timeout: Timeout (seconds) to receive an object to return.
         :return: Received object.
-        :raises RuntimeError: If endpoint has not been started or has been stopped.
+        :raises RuntimeError: If endpoint has not been started or has been terminated
+        by the remote counterpart, and there is nothing to receive asynchronously
+        (multithreading is not enabled).
         :raises TimeoutError: If timeout set and triggered.
         """
         self._logger.debug("Receiving object...")
-        if not self._started:
-            raise RuntimeError("Endpoint has not been started!")
+        if not self._started and self._recv_buffer.empty():
+            raise RuntimeError("Endpoint has not been started, nothing to receive!")
 
         p_obj = None
         if self._multithreading:
@@ -963,7 +1010,7 @@ class StreamEndpoint:
                 "Multithreading detected, retrieving object "
                 f"from buffer (size={self._recv_buffer.qsize()})..."
             )
-            while self._started:
+            while self._started or not self._recv_buffer.empty():
                 try:
                     if timeout is not None:
                         p_obj = self._recv_buffer.get(timeout=timeout)
@@ -1010,6 +1057,10 @@ class StreamEndpoint:
     def _create_sender(self):
         """Starts the loop to send objects over the socket retrieved from the sending
         buffer.
+
+        Note that setting the keep-alive flag to false, terminations of the
+        connection stops the loop, stops the endpoints (not shut down) and exits the
+        thread automatically.
         """
         self._logger.info("AsyncSender: Starting...")
         self._ready.wait()
@@ -1029,11 +1080,17 @@ class StreamEndpoint:
                 self._logger.debug(
                     "AsyncSender: Timeout triggered: Buffer empty. Retrying..."
                 )
+            except RuntimeError:
+                self._logger.info("AsyncSender: Termination of connection detected!")
+                break
         self._logger.info("AsyncSender: Stopping...")
 
     def _create_receiver(self):
         """Starts the loop to receive objects over the socket and store them in the
         receiving buffer.
+
+        Note that setting the keep-alive flag to false, terminations of the
+        connection stops the loop and exits the thread automatically.
         """
         self._logger.info("AsyncReceiver: Starting...")
         self._ready.wait()
@@ -1056,6 +1113,10 @@ class StreamEndpoint:
                     "AsyncReceiver: Timeout triggered: Buffer full. "
                     "Discarding object..."
                 )
+            except RuntimeError:
+                self._logger.info("AsyncReceiver: Termination of connection detected!")
+                self.stop(blocking=False)
+                break
         self._logger.info("AsyncReceiver: Stopping...")
 
     def __iter__(self):
@@ -1197,6 +1258,8 @@ class EndpointServer:
     _multithreading: bool
     _buffer_size: int
 
+    _keep_alive: bool
+
     _started: bool
 
     def __init__(
@@ -1211,13 +1274,14 @@ class EndpointServer:
         unmarshal_f: Callable[[bytes], object] = pickle.loads,
         multithreading: bool = False,
         buffer_size: int = 1024,
+        keep_alive: bool = True,
     ):
         """Creates a new endpoint server.
 
         :param addr: Address of endpoint server.
         :param name: Name of endpoint server for logging purposes.
         :param c_timeout: Timeout (secs) for disconnected connection endpoints when
-        performing periodic cleanup.
+        performing periodic cleanup. Default is no cleanup.
         :param send_b_size: Underlying send buffer size of all connection sockets.
         :param recv_b_size: Underlying receive buffer size of all connection sockets.
         :param compression: Enables lz4 stream compression for bandwidth optimization.
@@ -1228,6 +1292,12 @@ class EndpointServer:
         endpoints) for speedup.
         :param buffer_size: Size of shared buffers, both for server and for
         connection endpoints in multithreading mode.
+        :param keep_alive: Determines whether connection endpoints should attempt
+        re-connects after their remote counterparts have terminated the connection.
+        Such connection terminations will then result in RuntimeErrors in synchronous
+        mode during send()/receive() and a more ressource efficient handling when
+        multithreading by closing endpoints prematurely. Note that the actual
+        shutdown and cleanup of the actual endpoint is still done by the server.
         """
         self._logger = logging.getLogger(name)
         self._logger.info(f"Initializing endpoint server {addr}...")
@@ -1247,6 +1317,8 @@ class EndpointServer:
         self._unmarshal_f = unmarshal_f
         self._multithreading = multithreading
         self._buffer_size = buffer_size
+
+        self._keep_alive = keep_alive
 
         self._started = False
         self._logger.info(f"Endpoint server {addr} initialized.")
@@ -1291,8 +1363,11 @@ class EndpointServer:
         if not self._started:
             raise RuntimeError("Endpoint server has not been started!")
         self._started = False
+        self._logger.info("Waiting for connection handler threader to stop...")
         self._connection_handler.join()
-        self._connection_cleaner.join()
+        if self._c_timeout is not None:
+            self._logger.info("Waiting for periodic cleanup thread to stop...")
+            self._connection_cleaner.join()
 
         self._logger.info("Closing connections...")
         with self._c_lock:
@@ -1425,6 +1500,7 @@ class EndpointServer:
                 unmarshal_f=self._unmarshal_f,
                 multithreading=self._multithreading,
                 buffer_size=self._buffer_size,
+                keep_alive=self._keep_alive,
             )
             n_connection_rdy = new_connection.start(blocking=False)
             while self._started and not n_connection_rdy.wait(10):
@@ -1441,7 +1517,7 @@ class EndpointServer:
                         logging_prefix
                         + "Storing connection endpoint in pending queue..."
                     )
-                    self._p_connections.put((remote_addr, new_connection), timeout=10)
+                    self._p_connections.put((remote_addr, new_connection), block=False)
                     with self._c_lock:
                         self._connections[remote_addr] = new_connection
                     self._logger.debug(
@@ -1451,7 +1527,7 @@ class EndpointServer:
                 except queue.Full:
                     self._logger.debug(
                         logging_prefix
-                        + "Timeout triggered: Queue full. Discarding oldest endpoint..."
+                        + "Pending queue full. Discarding oldest endpoint..."
                     )
                     try:
                         self._p_connections.get(block=False)
@@ -1565,12 +1641,13 @@ def _send_n_data(sock: socket.socket, data: bytes, size: int):
     :param sock: Sockets to send bytes over.
     :param data: Bytes to send.
     :param size: Number of bytes to send.
+    :raises RuntimeError: If connection has been closed by remote.
     """
     sent_bytes = 0
     while sent_bytes < size:
         n_sent_bytes = sock.send(data[sent_bytes:])
         if n_sent_bytes == 0:
-            raise RuntimeError("Connection broken!")
+            raise RuntimeError("Connection terminated!")
         sent_bytes += n_sent_bytes
 
 
@@ -1595,6 +1672,7 @@ def _recv_n_data(sock: socket.socket, size: int, buff_size: int = 4096) -> bytes
     :param buff_size: Maximum number of bytes to receive from socket per receive
     iteration.
     :return: Received n bytes.
+    :raises RuntimeError: If connection has been closed by remote.
     """
     data = bytearray(size)
     r_size = size
@@ -1602,7 +1680,7 @@ def _recv_n_data(sock: socket.socket, size: int, buff_size: int = 4096) -> bytes
         n_data = sock.recv(min(r_size, buff_size))
         n_size = len(n_data)
         if n_size == 0:
-            raise RuntimeError("Connection broken!")
+            raise RuntimeError("Connection terminated!")
         data[size - r_size : size - r_size + n_size] = n_data
         r_size -= n_size
     return data
