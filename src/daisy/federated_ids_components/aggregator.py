@@ -25,7 +25,7 @@ from typing import cast, Sequence
 import numpy as np
 import requests
 
-from daisy.communication import EndpointServer, ep_select, receive_latest_ep_objs
+from daisy.communication import EndpointServer, StreamEndpoint
 from daisy.federated_learning import ModelAggregator
 
 
@@ -106,7 +106,7 @@ class FederatedOnlineAggregator(ABC):
         self._logger.info("Performing further setup...")
         self.setup()
 
-        self._fed_aggr = threading.Thread(target=self.create_fed_aggr(), daemon=True)
+        self._fed_aggr = threading.Thread(target=self.create_fed_aggr, daemon=True)
         self._fed_aggr.start()
         self._logger.info("Federated online aggregator started.")
 
@@ -313,7 +313,7 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
             client.send(None)
         sleep(self._timeout)
 
-        clients = ep_select(clients)[0]
+        clients = StreamEndpoint.select_eps(clients)[0]
         self._logger.debug(
             "Receiving local models from available "
             f"requested clients [{len(clients)}]..."
@@ -321,7 +321,8 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
         client_models = [
             model
             for model in cast(
-                list[list[np.ndarray]], receive_latest_ep_objs(clients, list).values()
+                list[list[np.ndarray]],
+                StreamEndpoint.receive_latest_ep_objs(clients, list).values(),
             )
             if model is not None
         ]
@@ -377,7 +378,8 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
         client_models = [
             model
             for model in cast(
-                list[list[np.ndarray]], receive_latest_ep_objs(clients, list).values()
+                list[list[np.ndarray]],
+                StreamEndpoint.receive_latest_ep_objs(clients, list).values(),
             )
             if model is not None
         ]
@@ -398,7 +400,7 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
         )
         global_model = self._m_aggr.aggregate(client_models)
 
-        clients = ep_select(clients)[1]
+        clients = StreamEndpoint.select_eps(clients)[1]
         self._logger.debug(
             "Sending aggregated global model to available "
             f"requesting clients [{len(clients)}]..."
