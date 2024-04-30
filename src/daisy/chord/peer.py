@@ -15,14 +15,20 @@ from daisy.communication import EndpointServer, StreamEndpoint
 
 
 class MessageType(Enum):
-    JOIN = 1
-    LOOKUP_RES = 2
-    LOOKUP_REQ = 3
-    STABILIZE = 4
-    NOTIFY = 5
+    """Indicates how an incoming messages should be processed."""
+
+    JOIN = 1  # ttl 60
+    LOOKUP_RES = 2  # ttl 10
+    LOOKUP_REQ = 3  # ttl 10
+    STABILIZE = 4  # ttl 10
+    NOTIFY = 5  # ttl 10
 
 
 class MessageOrigin(Enum):
+    """Indicates the process from which a message originated.
+    Currently only used to categorize lookup response messages.
+    """
+
     JOIN = 1
     FIX_FINGERS = 2
 
@@ -33,30 +39,34 @@ class Chordmessage:
     id: uuid4
     type: MessageType
     peer_tuple: tuple[int, tuple[str, int]]
-    origin: MessageOrigin
     sender: tuple[int, tuple[str, int]]
+    timestamp: float
+    origin: MessageOrigin
 
     def __init__(
         self,
+        message_type: MessageType,
+        peer_tuple: tuple[int, tuple[str, int]],
+        sender: tuple[int, tuple[str, int]],
+        timestamp: float,
         request_id: uuid4 = None,
-        message_type: MessageType = None,
-        peer_tuple: tuple[int, tuple[str, int]] = None,
         origin: MessageOrigin = None,
-        sender: tuple[int, tuple[str, int]] = None,
     ):
         """Creates a new Chordmessage.
 
         :param request_id: Message identifier
         :param message_type: Type of message for processing in receive function.
         :param peer_tuple: ID and address of the peer sent whithin the Chordmessage.
-        :param origin: Origin of the Chordmessage.
         :param sender: Sender of the Chordmessage.
+        :param timestamp: Timestamp of the Chordmessage. Indicates when it was created.
+        :param origin: Origin of the Chordmessage.
         """
         self.id = request_id
         self.type = message_type
         self.peer_tuple = peer_tuple
-        self.origin = origin
         self.sender = sender
+        self.timestamp = timestamp
+        self.origin = origin
 
 
 def receive_on_single_endpoint(endpoint: StreamEndpoint) -> list[Chordmessage]:
@@ -88,6 +98,7 @@ class Peer:
 
     _endpoint_server: EndpointServer
     _pending_requests: dict[uuid4, tuple[int, float, int]]
+    _default_response_ttl: int
     # message id: ttl, send time, for fingers: i
 
     _logger: logging.Logger
@@ -99,6 +110,7 @@ class Peer:
         successor: tuple[int, tuple[str, int]] = None,
         predecessor: tuple[int, tuple[str, int]] = None,
         max_fingers: int = 6,
+        response_ttl: int = 15,
     ):
         self._id = peer_id
         self._addr = addr
@@ -112,24 +124,31 @@ class Peer:
         self._fingers = {}
 
         self._endpoint_server = EndpointServer(
-            name="EndpointServer", addr=addr, multithreading=True, c_timeout=30
+            name="EndpointServer",
+            addr=addr,
+            multithreading=True,
+            c_timeout=60,
+            keep_alive=False,
         )
         self._pending_requests = {}
+        self._default_response_ttl = response_ttl
 
         self._logger = logging.getLogger("Peer")
+        self._logger.setLevel(logging.INFO)
 
     def _create(self):
         self._logger.info("Creating new Chord Ring...")
         self._endpoint_server.start()
+        self._logger.debug(f"Listening on address {self._addr}")
         self._successor = (
             self._id,
             self._addr,
         )
-        self._logger.info(f"Listening on address {self._addr}")
 
     def _join(self, join_addr: tuple[str, int]):
         self._logger.info("Joining existig Chord Ring...")
         self._endpoint_server.start()
+        self._logger.debug(f"Listening on address {self._addr}")
         request_id = uuid4()
         message = Chordmessage(
             message_type=MessageType.JOIN,
@@ -137,14 +156,17 @@ class Peer:
             peer_tuple=(self._id, self._addr),
             origin=MessageOrigin.JOIN,
             request_id=request_id,
+            timestamp=time.time(),
         )
         self._pending_requests[request_id] = (60, time.time(), -1)
-        self._logger.info(f"Sending join Request to {join_addr}")
-        StreamEndpoint.create_quick_sender_ep(objects=[message], remote_addr=join_addr)
+        self._logger.debug(f"Sending join Request to {join_addr}")
+        StreamEndpoint.create_quick_sender_ep(
+            objects=[message], remote_addr=join_addr, blocking=False
+        )
 
     def _check_is_predecessor(self, check_id: int) -> bool:
         # check_id in ]pred, n[
-        self._logger.info(f"Testing if {check_id} is a predecessor...")
+        # self._logger.info(f"Testing if {check_id} is a predecessor...")
         if self._predecessor is None:
             return True
         pred_id = self._predecessor[0]
@@ -154,7 +176,7 @@ class Peer:
 
     def _check_is_successor(self, check_id: int) -> bool:
         # check_id in ]n, succ]
-        self._logger.info(f"Testing if {check_id} is a successor...")
+        # self._logger.info(f"Testing if {check_id} is a successor...")
         succ_id = self._successor[0]
         if succ_id == self._id:
             # edge case: first join right after create ->
@@ -211,20 +233,20 @@ class Peer:
         """
         result = self._lookup_peer_locally(lookup_id)
         if result is None:
-            self._logger.info(f"Relaying lookup to {self._successor[0]}...")
             forward_message = Chordmessage(
                 message_type=MessageType.LOOKUP_REQ,
                 sender=(self._id, self._addr),
                 peer_tuple=(lookup_id, response_addr),
                 request_id=request_id,
                 origin=lookup_origin,
+                timestamp=time.time(),
             )
             finger = self._find_closest_predecessor(lookup_id)
             if finger is None:
-                self._logger.critical("Forwarding lookup to successor...")
+                self._logger.info("Forwarding lookup to successor...")
                 self._successor_endpoint.send(forward_message)
                 return
-            self._logger.critical(f"Forwarding lookup to finger {finger}...")
+            self._logger.info(f"Forwarding lookup to finger {finger}...")
             finger[2].send(forward_message)
             return
         else:
@@ -235,6 +257,7 @@ class Peer:
                 peer_tuple=result,
                 request_id=request_id,
                 origin=lookup_origin,
+                timestamp=time.time(),
             )
             try:
                 send_ep = self._get_existing_endpoint_if_possible(
@@ -242,9 +265,9 @@ class Peer:
                 )
                 send_ep.send(message)
             except (TypeError, AttributeError):
-                self._logger.warning("Creating quick send ep in notify")
+                self._logger.debug("Creating quick send ep in notify")
                 StreamEndpoint.create_quick_sender_ep(
-                    objects=[message], remote_addr=response_addr
+                    objects=[message], remote_addr=response_addr, blocking=False
                 )
 
     def _stabilize(self):
@@ -253,6 +276,7 @@ class Peer:
             message_type=MessageType.STABILIZE,
             sender=(self._id, self._addr),
             peer_tuple=(self._id, self._addr),
+            timestamp=time.time(),
         )
         self._logger.info(f"Stabilizing {self._successor}...")
         self._successor_endpoint.send(stabilize_message)
@@ -266,6 +290,7 @@ class Peer:
             message_type=MessageType.NOTIFY,
             sender=(self._id, self._addr),
             peer_tuple=self._predecessor,
+            timestamp=time.time(),
         )
         self._logger.info(f"Notifying {notify_peer}...")
         try:
@@ -274,9 +299,9 @@ class Peer:
             )
             send_ep.send(message)
         except (TypeError, AttributeError):
-            self._logger.warning("Creating quick send ep in notify")
+            self._logger.debug("Creating quick send ep in notify")
             StreamEndpoint.create_quick_sender_ep(
-                objects=[message], remote_addr=notify_peer[1]
+                objects=[message], remote_addr=notify_peer[1], blocking=False
             )
 
     def _fix_fingers(self):
@@ -295,9 +320,9 @@ class Peer:
             if finger[0] == finger_id:
                 finger_count += 1
         if finger_count > 1:
-            self._logger.critical(f"finger {finger[0]} is not unique")
+            self._logger.debug(f"finger {finger[0]} is not unique")
             return False
-        self._logger.critical(f"finger {finger[0]} is unique")
+        self._logger.debug(f"finger {finger[0]} is unique")
         return True
 
     def _get_endpoint_if_peer_already_in_fingers(
@@ -313,11 +338,11 @@ class Peer:
         for key in self._fingers:
             finger = self._fingers.get(key)
             if finger[0] == new_finger[0] and index != key:
-                self._logger.critical(
+                self._logger.debug(
                     f"reusing endpoint of finger {key}, for finger {index}"
                 )
                 return finger[2]
-        self._logger.critical("not reusing endpoint")
+        self._logger.debug("not reusing endpoint")
         return None
 
     def _set_finger(
@@ -350,7 +375,7 @@ class Peer:
                 finger[0] != new_finger[0]
             ):  # only change entry if finger has actally changed
                 if self._check_finger_is_unique(finger=finger):
-                    # only stop existing endpoint if its not used somewhere else
+                    # only stop existing endpoint if it is not used somewhere else
                     finger[2].stop(shutdown=True)
 
                 finger_endpoint = self._get_endpoint_if_peer_already_in_fingers(
@@ -359,7 +384,7 @@ class Peer:
                 self._set_finger(
                     index=index, new_finger=new_finger, finger_endpoint=finger_endpoint
                 )
-                self._logger.critical(
+                self._logger.info(
                     f"Updated Finger at Index {index} with {new_finger}..."
                 )
         else:
@@ -368,9 +393,7 @@ class Peer:
                 index=index,
                 new_finger=new_finger,
             )
-            self._logger.critical(
-                f"Created Finger at Index {index} with {new_finger}..."
-            )
+            self._logger.info(f"Created Finger at Index {index} with {new_finger}...")
 
     def _get_existing_endpoint_if_possible(
         self, remote_addr: tuple[str, int]
@@ -389,30 +412,24 @@ class Peer:
         r_ready_eps = set()
         if self._successor_endpoint and self._successor_endpoint.poll()[0][1]:
             r_ready_eps.add(self._successor_endpoint)
-            self._logger.info("Successor endpoint is readable...")
+            self._logger.debug("Successor endpoint is readable...")
         if self._predecessor_endpoint and self._predecessor_endpoint.poll()[0][1]:
             r_ready_eps.add(self._predecessor_endpoint)
-            self._logger.info("Predecessor endpoint is readable...")
-        self._logger.info("Polling EndpointServer...")
+            self._logger.debug("Predecessor endpoint is readable...")
+        self._logger.debug("Polling EndpointServer...")
         r_ready, _ = self._endpoint_server.poll_connections()
         for addr in r_ready:
             r_ready_eps.add(r_ready[addr])
-        self._logger.info(f"Found {len(r_ready_eps)} readable endpoints...")
+        self._logger.debug(f"Found {len(r_ready_eps)} readable endpoints...")
         return r_ready_eps
 
     def run(self, join_addr: tuple[str, int] = None):
-        # TODO finger endpoints mehr benutzen
         # TODO Dropout peers erkennen -> stabilize ttl & failures für successor;
         #    aber predecessor wie?
-        # TODO wie wird ttl von nachrichten gesetzt und geprüft?
-        #    Was ist eine sinnvolle ttl?
-        # TODO nachrichten mit ttl für alle nodes, sodass lookups die zu lange dauern
-        #    abgebrochen werden können und nicht bis zum ende durchlaufen nur
-        #    um dann nicht genutt zu werden
+        # TODO Was ist eine sinnvolle ttl?
         # TODO retry von verlorenen anfragen
-        # TODO be faster
-        # fixme umgekehrte succ und pred pointer wenn alle peers zu beginn,
-        #    hintereinanderweg joinen
+        #    -> retry = true/false in message,oder woanders?
+        # TODO implement check predecessor and successor for failure
         self._logger.info(f"Peer {self._id} started...")
         start = time.time()
         period = start
@@ -429,19 +446,21 @@ class Peer:
                 sleep(1)
                 continue
             for ep in r_ready:
-                for message in receive_on_single_endpoint(ep):
+                messages = receive_on_single_endpoint(ep)
+                for message in messages:
                     match message.type:
                         case MessageType.LOOKUP_REQ:
                             self._process_lookup_request(message)
                         case MessageType.LOOKUP_RES:
                             self._process_lookup_response(message)
                         case MessageType.JOIN:
-                            self._process_join_request(message)
+                            if time.time() - message.timestamp < 60:
+                                self._process_join_request(message)
                         case MessageType.STABILIZE:
                             self._process_stabilize(message)
                         case MessageType.NOTIFY:
                             self._process_notify(message)
-            self._logger.critical(self.__str__())
+                self._logger.info(self.__str__())
 
     def _close_ring_at_first_peer(self):
         if self._successor == (self._id, self._addr) and self._predecessor is not None:
@@ -478,21 +497,37 @@ class Peer:
             request = self._pending_requests.get(key, None)
             if request is not None and time.time() - request[1] > request[0]:
                 self._pending_requests.pop(key)
+                self._logger.info(
+                    f"Deleted message after waiting for {time.time() - request[1]} seconds."
+                )
                 delete_count += 1
-        self._logger.critical(
+        self._logger.info(
             f"Deleted {delete_count} pending requests in this interation."
         )
 
+    def _check_if_ttl_expired(self, timestamp: float, ttl: int = None) -> bool:
+        self._logger.info(time.time() - timestamp)
+        if time.time() - timestamp > (ttl or self._default_response_ttl):
+            self._logger.info("skipping expired message")
+            return True
+        return False
+
     def _process_notify(self, message: Chordmessage):
+        if self._check_if_ttl_expired(message.timestamp):
+            return
         if self._check_is_successor(message.peer_tuple[0]):
             self._set_successor(message.peer_tuple)
 
     def _process_stabilize(self, message: Chordmessage):
+        if self._check_if_ttl_expired(message.timestamp):
+            return
         if self._check_is_predecessor(message.peer_tuple[0]):
             self._set_predecessor(message.peer_tuple)
         self._notify(message.peer_tuple)
 
     def _process_lookup_request(self, message: Chordmessage):
+        if self._check_if_ttl_expired(message.timestamp):
+            return
         self._logger.info(f"Received lookup request from {message.origin}...")
         self._lookup(
             *message.peer_tuple,
@@ -501,6 +536,8 @@ class Peer:
         )
 
     def _process_join_request(self, message: Chordmessage):
+        if self._check_if_ttl_expired(message.timestamp, 60):
+            return
         self._logger.info(f"Received join from {message.peer_tuple[0]}...")
         self._lookup(
             *message.peer_tuple,
@@ -511,16 +548,13 @@ class Peer:
     def _process_lookup_response(self, message: Chordmessage):
         self._logger.info(f"Received lookup response from {message.origin}...")
         # check whether request has spoiled
-        request = self._pending_requests.get(message.id, None)
+        request = self._pending_requests.pop(message.id, None)
         if request is None:
             return None
-        self._pending_requests.pop(message.id)
         # handle valid requests
         if message.origin == MessageOrigin.FIX_FINGERS:
-            self._logger.info("Received finger from FIx-Fingers request...")
             self._process_and_set_finger(request[2], message.peer_tuple)
         if message.origin == MessageOrigin.JOIN:
-            self._logger.info("Received successor from Join...")
             self._set_successor(message.peer_tuple)
 
     def _set_successor(self, successor: tuple[int, tuple[str, int]]):
@@ -579,7 +613,6 @@ class Peer:
                 finger,
                 ((self._id + (1 << finger)) % (1 << self._max_fingers)),
                 self._fingers[finger][0],
-                self._fingers[finger][2].name,
             )
             for finger in self._fingers
         ]
