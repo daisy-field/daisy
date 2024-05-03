@@ -133,6 +133,7 @@ class Peer:
             c_timeout=60,
             keep_alive=False,
         )
+        self._joined = False
         self._pending_requests = {}
         self._default_response_ttl = 2 * max_fingers
 
@@ -147,6 +148,7 @@ class Peer:
             self._id,
             self._addr,
         )
+        self._joined = True
 
     def _join(self, join_addr: tuple[str, int]):
         self._logger.info("Joining existig Chord Ring...")
@@ -313,7 +315,15 @@ class Peer:
             finger = (self._id + (1 << i)) % (1 << self._max_fingers)
             request_id = uuid4()
             self._pending_requests[request_id] = (10, time.time(), i)
-            self._lookup(finger, self._addr, MessageOrigin.FIX_FINGERS, request_id)
+            message = Chordmessage(
+                message_type=MessageType.LOOKUP_REQ,
+                sender=(self._id, self._addr),
+                peer_tuple=(finger, self._addr),
+                request_id=request_id,
+                origin=MessageOrigin.FIX_FINGERS,
+                timestamp=time.time(),
+            )
+            self._successor_endpoint.send(message)
 
     def _check_finger_is_unique(
         self, finger: tuple[int, tuple[str, int], StreamEndpoint]
@@ -427,13 +437,13 @@ class Peer:
         return r_ready_eps
 
     def run(self, join_addr: tuple[str, int] = None):
+        # FIXME rapid joining leads to chaotic, open ring
         # TODO tote peers erkennen -> stabilize ttl & failures für successor;
         #    aber predecessor wie?
         # TODO implement check predecessor and successor for failure
         # TODO retry von verlorenen anfragen
         #    -> retry = true/false in message,oder woanders?
         # TODO handling dead peers
-        # FIXME rapid joining leads to separated rings
         # TODO maybe join liste mit adressen übrgeben,
         #  falls man mehr als einen einsteigsknoten hat und dann durchprobieren
         self._logger.info(f"Peer {self._id} started...")
@@ -455,12 +465,12 @@ class Peer:
                 messages = receive_on_single_endpoint(ep)
                 for message in messages:
                     match message.type:
+                        case MessageType.JOIN:
+                            self._process_join_request(message)
                         case MessageType.LOOKUP_REQ:
                             self._process_lookup_request(message)
                         case MessageType.LOOKUP_RES:
                             self._process_lookup_response(message)
-                        case MessageType.JOIN:
-                            self._process_join_request(message)
                         case MessageType.STABILIZE:
                             self._process_stabilize(message)
                         case MessageType.NOTIFY:
@@ -478,6 +488,9 @@ class Peer:
         :param current_period: bginn of the last stabilization period
         :return: starting time of the current or the new stabilization period
         """
+        if not self._joined:
+            return current_period
+
         now = time.time()
         # set stabilization interval according to startup time of node
         stabilize_interval = 30
@@ -517,35 +530,20 @@ class Peer:
             return True
         return False
 
-    def _process_notify(self, message: Chordmessage):
-        self._logger.info(f"Received notify from {message.sender}...")
-        if self._check_if_ttl_expired(message.timestamp):
+    def _process_join_request(self, message: Chordmessage):
+        if self._check_if_ttl_expired(message.timestamp, 60):
             return
-        if self._check_is_successor(message.peer_tuple[0]):
-            self._set_successor(message.peer_tuple)
-
-    def _process_stabilize(self, message: Chordmessage):
-        self._logger.info(f"Received stabilize from {message.sender}...")
-        if self._check_if_ttl_expired(message.timestamp):
-            return
-        if self._check_is_predecessor(message.peer_tuple[0]):
-            self._set_predecessor(message.peer_tuple)
-        self._notify(message.peer_tuple)
-
-    def _process_lookup_request(self, message: Chordmessage):
-        if self._check_if_ttl_expired(message.timestamp):
-            return
-        self._logger.info(f"Received lookup request from {message.origin}...")
+        self._logger.info(f"Received join from {message.peer_tuple[0]}...")
         self._lookup(
             *message.peer_tuple,
             lookup_origin=message.origin,
             request_id=message.id,
         )
 
-    def _process_join_request(self, message: Chordmessage):
-        if self._check_if_ttl_expired(message.timestamp, 60):
+    def _process_lookup_request(self, message: Chordmessage):
+        if self._check_if_ttl_expired(message.timestamp) or not self._joined:
             return
-        self._logger.info(f"Received join from {message.peer_tuple[0]}...")
+        self._logger.info(f"Received lookup request from {message.origin}...")
         self._lookup(
             *message.peer_tuple,
             lookup_origin=message.origin,
@@ -559,10 +557,26 @@ class Peer:
         if request is None:
             return None
         # handle valid requests
-        if message.origin == MessageOrigin.FIX_FINGERS:
-            self._process_and_set_finger(request[2], message.peer_tuple)
-        if message.origin == MessageOrigin.JOIN:
+        if message.origin == MessageOrigin.JOIN and not self._joined:
             self._set_successor(message.peer_tuple)
+            self._joined = True
+        if message.origin == MessageOrigin.FIX_FINGERS and self._joined:
+            self._process_and_set_finger(request[2], message.peer_tuple)
+
+    def _process_notify(self, message: Chordmessage):
+        self._logger.info(f"Received notify from {message.sender}...")
+        if self._check_if_ttl_expired(message.timestamp) or not self._joined:
+            return
+        if self._check_is_successor(message.peer_tuple[0]):
+            self._set_successor(message.peer_tuple)
+
+    def _process_stabilize(self, message: Chordmessage):
+        self._logger.info(f"Received stabilize from {message.sender}...")
+        if self._check_if_ttl_expired(message.timestamp) or not self._joined:
+            return
+        if self._check_is_predecessor(message.peer_tuple[0]):
+            self._set_predecessor(message.peer_tuple)
+        self._notify(message.peer_tuple)
 
     def _set_successor(self, successor: tuple[int, tuple[str, int]]):
         """Setter for a peer's successor. Assigns new successor and
