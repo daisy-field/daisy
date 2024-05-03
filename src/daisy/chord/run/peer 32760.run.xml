@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="peer 32768" type="PythonConfigurationType" factoryName="Python" folderName="Chord Peers">
+  <configuration default="false" name="peer 32760" type="PythonConfigurationType" factoryName="Python" folderName="Chord Peers">
     <module name="daisy" />
     <option name="ENV_FILES" value="" />
     <option name="INTERPRETER_OPTIONS" value="" />
@@ -14,7 +14,7 @@
     <option name="ADD_SOURCE_ROOTS" value="true" />
     <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
     <option name="SCRIPT_NAME" value="$PROJECT_DIR$/src/daisy/chord/peer.py" />
-    <option name="PARAMETERS" value="--id 32767 --port 32767 --joinPort 16384" />
+    <option name="PARAMETERS" value="--id 32760 --port 32760 --joinPort 16384" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="false" />
     <option name="MODULE_MODE" value="false" />

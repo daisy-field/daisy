@@ -98,8 +98,12 @@ class Peer:
 
     _endpoint_server: EndpointServer
     _pending_requests: dict[uuid4, tuple[int, float, int]]
-    _default_response_ttl: int
     # message id: ttl, send time, for fingers: i
+    _default_response_ttl: float
+    # Theorem IV.2: With high probability, the number of nodes
+    # that must be contacted to find a successor in an N -node network
+    # is O(log N ).
+    # => ttl is Log(N)*(time per hop gerundet)
 
     _logger: logging.Logger
 
@@ -109,8 +113,7 @@ class Peer:
         addr: tuple[str, int],
         successor: tuple[int, tuple[str, int]] = None,
         predecessor: tuple[int, tuple[str, int]] = None,
-        max_fingers: int = 6,
-        response_ttl: int = 15,
+        max_fingers: int = 16,
     ):
         self._id = peer_id
         self._addr = addr
@@ -131,7 +134,7 @@ class Peer:
             keep_alive=False,
         )
         self._pending_requests = {}
-        self._default_response_ttl = response_ttl
+        self._default_response_ttl = 2 * max_fingers
 
         self._logger = logging.getLogger("Peer")
         self._logger.setLevel(logging.INFO)
@@ -424,12 +427,15 @@ class Peer:
         return r_ready_eps
 
     def run(self, join_addr: tuple[str, int] = None):
-        # TODO Dropout peers erkennen -> stabilize ttl & failures für successor;
+        # TODO tote peers erkennen -> stabilize ttl & failures für successor;
         #    aber predecessor wie?
-        # TODO Was ist eine sinnvolle ttl?
+        # TODO implement check predecessor and successor for failure
         # TODO retry von verlorenen anfragen
         #    -> retry = true/false in message,oder woanders?
-        # TODO implement check predecessor and successor for failure
+        # TODO handling dead peers
+        # FIXME rapid joining leads to separated rings
+        # TODO maybe join liste mit adressen übrgeben,
+        #  falls man mehr als einen einsteigsknoten hat und dann durchprobieren
         self._logger.info(f"Peer {self._id} started...")
         start = time.time()
         period = start
@@ -454,8 +460,7 @@ class Peer:
                         case MessageType.LOOKUP_RES:
                             self._process_lookup_response(message)
                         case MessageType.JOIN:
-                            if time.time() - message.timestamp < 60:
-                                self._process_join_request(message)
+                            self._process_join_request(message)
                         case MessageType.STABILIZE:
                             self._process_stabilize(message)
                         case MessageType.NOTIFY:
@@ -506,19 +511,21 @@ class Peer:
         )
 
     def _check_if_ttl_expired(self, timestamp: float, ttl: int = None) -> bool:
-        self._logger.info(time.time() - timestamp)
+        self._logger.info("Hop Time: %d", time.time() - timestamp)
         if time.time() - timestamp > (ttl or self._default_response_ttl):
             self._logger.info("skipping expired message")
             return True
         return False
 
     def _process_notify(self, message: Chordmessage):
+        self._logger.info(f"Received notify from {message.sender}...")
         if self._check_if_ttl_expired(message.timestamp):
             return
         if self._check_is_successor(message.peer_tuple[0]):
             self._set_successor(message.peer_tuple)
 
     def _process_stabilize(self, message: Chordmessage):
+        self._logger.info(f"Received stabilize from {message.sender}...")
         if self._check_if_ttl_expired(message.timestamp):
             return
         if self._check_is_predecessor(message.peer_tuple[0]):
