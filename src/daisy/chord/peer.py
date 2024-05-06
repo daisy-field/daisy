@@ -17,11 +17,11 @@ from daisy.communication import EndpointServer, StreamEndpoint
 class MessageType(Enum):
     """Indicates how an incoming messages should be processed."""
 
-    JOIN = 1  # ttl 60
-    LOOKUP_RES = 2  # ttl 10
-    LOOKUP_REQ = 3  # ttl 10
-    STABILIZE = 4  # ttl 10
-    NOTIFY = 5  # ttl 10
+    JOIN = 1  # ttl 10
+    LOOKUP_RES = 2
+    LOOKUP_REQ = 3
+    STABILIZE = 4
+    NOTIFY = 5
 
 
 class MessageOrigin(Enum):
@@ -150,24 +150,41 @@ class Peer:
         )
         self._joined = True
 
-    def _join(self, join_addr: tuple[str, int]):
+    def _join(self, join_addr: tuple[str, int], join_attempt_num: int = 0):
         self._logger.info("Joining existig Chord Ring...")
         self._endpoint_server.start()
         self._logger.debug(f"Listening on address {self._addr}")
-        request_id = uuid4()
-        message = Chordmessage(
-            message_type=MessageType.JOIN,
-            sender=(self._id, self._addr),
-            peer_tuple=(self._id, self._addr),
-            origin=MessageOrigin.JOIN,
-            request_id=request_id,
-            timestamp=time.time(),
-        )
-        self._pending_requests[request_id] = (60, time.time(), -1)
-        self._logger.debug(f"Sending join Request to {join_addr}")
-        StreamEndpoint.create_quick_sender_ep(
-            objects=[message], remote_addr=join_addr, blocking=False
-        )
+        while not self._joined:
+            if (
+                len(self._pending_requests) == 0
+            ):  # todo is empty check fnktioniert hier nicht rihtig
+                request_id = uuid4()
+                message = Chordmessage(
+                    message_type=MessageType.JOIN,
+                    sender=(self._id, self._addr),
+                    peer_tuple=(self._id, self._addr),
+                    origin=MessageOrigin.JOIN,
+                    request_id=request_id,
+                    timestamp=time.time(),
+                )
+                self._pending_requests[request_id] = (20, time.time(), -1)
+                self._logger.debug(f"Sending join Request to {join_addr}")
+                StreamEndpoint.create_quick_sender_ep(
+                    objects=[message], remote_addr=join_addr, blocking=False
+                )
+            self._cleanup_pending_requests()
+            r_ready = self._get_read_ready_endpoints()
+            if len(r_ready) == 0:
+                sleep(1)
+                continue
+            for ep in r_ready:
+                messages = receive_on_single_endpoint(ep)
+                for message in messages:
+                    if message.type == MessageType.LOOKUP_RES:
+                        if message.origin == MessageOrigin.JOIN:
+                            self._set_successor(message.peer_tuple)
+                            self._joined = True
+                            self._logger.info("Join was successful!")
 
     def _check_is_predecessor(self, check_id: int) -> bool:
         # check_id in ]pred, n[
@@ -196,13 +213,15 @@ class Peer:
     ) -> tuple[int, tuple[str, int], StreamEndpoint] | None:
         if len(self._fingers) > 0:
             for i in reversed(range(0, self._max_fingers)):
-                # ja, der check hier soll so implementiert sein,
-                # to avoid predecessor null defaulting
-                finger = self._fingers.get(i)
+                finger = self._fingers.get(i, None)
+                if finger is None:
+                    continue
                 if (
                     (lookup_id < self._id)
                     and finger[0] not in range(lookup_id, self._id + 1)
                 ) or finger[0] in range(self._id + 1, lookup_id):
+                    # ja, der check hier soll so implementiert sein,
+                    # to avoid predecessor null defaulting
                     return finger
         return None
 
@@ -438,22 +457,19 @@ class Peer:
 
     def run(self, join_addr: tuple[str, int] = None):
         # FIXME rapid joining leads to chaotic, open ring
+        # TODO retry von verlorenen anfragen
+        #    -> retry = true/false in message,oder woanders?
         # TODO tote peers erkennen -> stabilize ttl & failures für successor;
         #    aber predecessor wie?
         # TODO implement check predecessor and successor for failure
-        # TODO retry von verlorenen anfragen
-        #    -> retry = true/false in message,oder woanders?
         # TODO handling dead peers
         # TODO maybe join liste mit adressen übrgeben,
         #  falls man mehr als einen einsteigsknoten hat und dann durchprobieren
         self._logger.info(f"Peer {self._id} started...")
         start = time.time()
         period = start
-        if join_addr is None:
-            self._create()
-        else:
-            self._join(join_addr=join_addr)
-        while True:
+        self._join(join_addr=join_addr) if join_addr is not None else self._create()
+        while True and self._joined:
             self._close_ring_at_first_peer()
             self._cleanup_pending_requests()
             period = self._maintain_chord_ring(start, period)
@@ -476,6 +492,7 @@ class Peer:
                         case MessageType.NOTIFY:
                             self._process_notify(message)
                 self._logger.info(self.__str__())
+        self._logger.info("Join failed after 3 Attempts, exiting!")
 
     def _close_ring_at_first_peer(self):
         if self._successor == (self._id, self._addr) and self._predecessor is not None:
@@ -488,9 +505,6 @@ class Peer:
         :param current_period: bginn of the last stabilization period
         :return: starting time of the current or the new stabilization period
         """
-        if not self._joined:
-            return current_period
-
         now = time.time()
         # set stabilization interval according to startup time of node
         stabilize_interval = 30
@@ -508,22 +522,26 @@ class Peer:
             return now
         return current_period
 
-    def _cleanup_pending_requests(self):
-        """Checks whether pending requests have spoiled and removes them."""
+    def _cleanup_pending_requests(self) -> int:
+        """Checks whether pending requests have spoiled and removes them.
+        Initiates retry attempts for join messages.
+        """
         delete_count = 0
         for key in list(self._pending_requests):
             request = self._pending_requests.get(key, None)
             if request is not None and time.time() - request[1] > request[0]:
                 self._pending_requests.pop(key)
-                self._logger.info(
-                    f"Deleted message after waiting for {time.time() - request[1]} seconds."
+                self._logger.debug(
+                    f"Deleted message after waiting for "
+                    f"{time.time() - request[1]} seconds."
                 )
                 delete_count += 1
         self._logger.info(
             f"Deleted {delete_count} pending requests in this interation."
         )
+        return delete_count
 
-    def _check_if_ttl_expired(self, timestamp: float, ttl: int = None) -> bool:
+    def _check_ttl_expired(self, timestamp: float, ttl: int = None) -> bool:
         self._logger.info("Hop Time: %d", time.time() - timestamp)
         if time.time() - timestamp > (ttl or self._default_response_ttl):
             self._logger.info("skipping expired message")
@@ -531,7 +549,7 @@ class Peer:
         return False
 
     def _process_join_request(self, message: Chordmessage):
-        if self._check_if_ttl_expired(message.timestamp, 60):
+        if self._check_ttl_expired(message.timestamp, 21):
             return
         self._logger.info(f"Received join from {message.peer_tuple[0]}...")
         self._lookup(
@@ -541,7 +559,7 @@ class Peer:
         )
 
     def _process_lookup_request(self, message: Chordmessage):
-        if self._check_if_ttl_expired(message.timestamp) or not self._joined:
+        if self._check_ttl_expired(message.timestamp):
             return
         self._logger.info(f"Received lookup request from {message.origin}...")
         self._lookup(
@@ -557,22 +575,19 @@ class Peer:
         if request is None:
             return None
         # handle valid requests
-        if message.origin == MessageOrigin.JOIN and not self._joined:
-            self._set_successor(message.peer_tuple)
-            self._joined = True
-        if message.origin == MessageOrigin.FIX_FINGERS and self._joined:
+        if message.origin == MessageOrigin.FIX_FINGERS:
             self._process_and_set_finger(request[2], message.peer_tuple)
 
     def _process_notify(self, message: Chordmessage):
         self._logger.info(f"Received notify from {message.sender}...")
-        if self._check_if_ttl_expired(message.timestamp) or not self._joined:
+        if self._check_ttl_expired(message.timestamp):
             return
         if self._check_is_successor(message.peer_tuple[0]):
             self._set_successor(message.peer_tuple)
 
     def _process_stabilize(self, message: Chordmessage):
         self._logger.info(f"Received stabilize from {message.sender}...")
-        if self._check_if_ttl_expired(message.timestamp) or not self._joined:
+        if self._check_ttl_expired(message.timestamp):
             return
         if self._check_is_predecessor(message.peer_tuple[0]):
             self._set_predecessor(message.peer_tuple)
@@ -599,7 +614,7 @@ class Peer:
 
     def _set_predecessor(self, predecessor: tuple[int, tuple[str, int]]):
         """Setter for a peer's predecessor. Assigns new predecessor and
-        establishes new endpoint.Shuts down the old Endpoint.
+        establishes new endpoint. Shuts down the old Endpoint.
 
         :param predecessor: id and address of new predecessor
         """
@@ -656,14 +671,7 @@ if __name__ == "__main__":
     logging.basicConfig(
         format="%(asctime)s %(levelname)-8s %(name)-10s %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
-        level=logging.CRITICAL,  # handlers=[
-        #    logging.FileHandler(
-        #        filename=f"./logging/peer-{args.id}.log",
-        #        mode="w",
-        #        encoding="utf8",
-        #    ),
-        #    logging.StreamHandler(),
-        # ],
+        level=logging.CRITICAL,
     )
 
     localhost = "127.0.0.1"
