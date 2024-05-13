@@ -80,8 +80,12 @@ class TestPeer:
         self._id = id_test  # hash(addr) % (2 ** max_fingers)
         self._name = name
         self._addr = addr
-        self._endpoint_server = EndpointServer(
-            f"{name}-endpointserver", addr=addr, multithreading=True, c_timeout=30
+        self._endpoint_server = self._endpoint_server = EndpointServer(
+            name="EndpointServer",
+            addr=addr,
+            multithreading=True,
+            c_timeout=60,
+            keep_alive=False,
         )
 
     def send_lookup(self, remote_addr: tuple[str, int]):

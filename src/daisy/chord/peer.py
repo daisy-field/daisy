@@ -83,6 +83,15 @@ def receive_on_single_endpoint(endpoint: StreamEndpoint) -> list[Chordmessage]:
         return chordmessages
 
 
+def set_stabilization_interval(start):
+    now = time.time()
+    # set stabilization interval according to startup time of node
+    stabilize_interval = 30
+    if start - now < 150:  # 2.5 minutes
+        stabilize_interval = 5
+    return now, stabilize_interval
+
+
 class Peer:
     _id: int
     _addr: tuple[str, int]
@@ -94,7 +103,7 @@ class Peer:
 
     _max_fingers: int
     _fingers: dict[int, tuple[int, tuple[str, int], StreamEndpoint]]
-    # i: id, addr, ep
+    # i: (id, addr), ep
 
     _endpoint_server: EndpointServer
     _pending_requests: dict[uuid4, tuple[int, float, int]]
@@ -142,7 +151,7 @@ class Peer:
         self._stabilize_recv_timestamp = time.time()
 
         self._logger = logging.getLogger("Peer")
-        self._logger.setLevel(logging.INFO)
+        self._logger.setLevel(logging.DEBUG)
 
     def _create(self):
         self._logger.info("Creating new Chord Ring...")
@@ -159,9 +168,7 @@ class Peer:
         self._endpoint_server.start()
         self._logger.debug(f"Listening on address {self._addr}")
         while not self._joined:
-            if (
-                len(self._pending_requests) == 0
-            ):  # todo is empty check fnktioniert hier nicht rihtig
+            if len(self._pending_requests) == 0:
                 request_id = uuid4()
                 message = Chordmessage(
                     message_type=MessageType.JOIN,
@@ -333,12 +340,20 @@ class Peer:
             )
             finger = self._find_closest_predecessor(lookup_id)
             if finger is None:
-                self._logger.info("Forwarding lookup to successor...")
-                self._successor_endpoint.send(forward_message)
+                try:
+                    self._logger.info("Forwarding lookup to successor...")
+                    self._successor_endpoint.send(forward_message)
+                    return
+                except RuntimeError:
+                    self._logger.warning("Could not forward lookup to successor!")
+                    return
+            try:
+                self._logger.info(f"Forwarding lookup to finger {finger}...")
+                finger[2].send(forward_message)
                 return
-            self._logger.info(f"Forwarding lookup to finger {finger}...")
-            finger[2].send(forward_message)
-            return
+            except RuntimeError:
+                self._logger.warning(f"Could not forward lookup to finger {finger}!")
+                return
         else:
             self._logger.info(f"Replying to lookup with result {result}...")
             message = Chordmessage(
@@ -354,7 +369,7 @@ class Peer:
                     remote_addr=response_addr
                 )
                 send_ep.send(message)
-            except (TypeError, AttributeError):
+            except (TypeError, AttributeError, RuntimeError):
                 self._logger.debug("Creating quick send ep in notify")
                 StreamEndpoint.create_quick_sender_ep(
                     objects=[message], remote_addr=response_addr, blocking=False
@@ -369,7 +384,10 @@ class Peer:
             timestamp=time.time(),
         )
         self._logger.info(f"Stabilizing {self._successor}...")
-        self._successor_endpoint.send(stabilize_message)
+        try:
+            self._successor_endpoint.send(stabilize_message)
+        except RuntimeError:
+            return
 
     def _notify(self, notify_peer: tuple[int, tuple[str, int]]):
         """Creates and initiates a notify message
@@ -388,7 +406,7 @@ class Peer:
                 remote_addr=notify_peer[1]
             )
             send_ep.send(message)
-        except (TypeError, AttributeError):
+        except (TypeError, AttributeError, RuntimeError):
             self._logger.debug("Creating quick send ep in notify")
             StreamEndpoint.create_quick_sender_ep(
                 objects=[message], remote_addr=notify_peer[1], blocking=False
@@ -408,7 +426,13 @@ class Peer:
                 origin=MessageOrigin.FIX_FINGERS,
                 timestamp=time.time(),
             )
-            self._successor_endpoint.send(message)
+            try:
+                self._successor_endpoint.send(message)
+            except (RuntimeError, TypeError):
+                self._logger.warning(
+                    "Successor not accessible for fingertable updates."
+                )
+                return
 
     def _check_finger_is_unique(
         self, finger: tuple[int, tuple[str, int], StreamEndpoint]
@@ -417,9 +441,9 @@ class Peer:
         for finger_id, finger_addr, finger_ep in self._fingers.values():
             if finger[0] == finger_id:
                 finger_count += 1
-        if finger_count > 1:
-            self._logger.debug(f"finger {finger[0]} is not unique")
-            return False
+            if finger_count > 1:
+                self._logger.debug(f"finger {finger[0]} is not unique")
+                return False
         self._logger.debug(f"finger {finger[0]} is unique")
         return True
 
@@ -454,8 +478,9 @@ class Peer:
                 name=f"FINGER{new_finger[0]}",
                 remote_addr=new_finger[1],
                 acceptor=False,
-                multithreading=False,
+                multithreading=True,
                 buffer_size=10000,
+                keep_alive=False,
             )
             finger_endpoint.start()
         self._fingers[index] = (
@@ -522,15 +547,15 @@ class Peer:
         return r_ready_eps
 
     def run(self, join_addr: tuple[str, int] = None):
-        # FIXME rapid joining leads to chaotic, open ring
-        # TODO retry von verlorenen anfragen
-        #    -> retry = true/false in message,oder woanders?
-        # TODO tote peers erkennen -> stabilize ttl & failures für successor;
-        #    aber predecessor wie?
-        # TODO implement check predecessor and successor for failure
-        # TODO handling dead peers
+        # TODO tote peers erkennen -> received stablize and notify timestamps - done
+        # TODO implement check predecessor and successor for failure - done
+        # TODO handling dead peers - in progress
         # TODO maybe join liste mit adressen übrgeben,
         #  falls man mehr als einen einsteigsknoten hat und dann durchprobieren
+        # TODO unify ep handling for succ, pred, fingers
+        # TODO finger class?
+        # todo determine proper ttl/retry time for join
+
         self._logger.info(f"Peer {self._id} started...")
         start = time.time()
         period = start
@@ -558,24 +583,21 @@ class Peer:
                         case MessageType.NOTIFY:
                             self._process_notify(message)
                 self._logger.info(self.__str__())
-        self._logger.info("Join failed after 3 Attempts, exiting!")
 
     def _close_ring_at_first_peer(self):
         if self._successor == (self._id, self._addr) and self._predecessor is not None:
             self._set_successor(self._predecessor)
 
     def _maintain_chord_ring(self, start: float, current_period: float) -> float:
-        """wrapper for periodic stabilize and fix finger calls. Handles the timimng of maintenance calls.
+        """Makes periodic stabilize and fix finger calls and handles their periodicity,
+        initiates purging of dead predecessor and successor pointers.
 
         :param start: startup time of the peer
         :param current_period: bginn of the last stabilization period
         :return: starting time of the current or the new stabilization period
         """
-        now = time.time()
-        # set stabilization interval according to startup time of node
-        stabilize_interval = 30
-        if start - now < 30:  # 300 -> 5 minutes up and running
-            stabilize_interval = 5
+        self._purge_dropout_peers()
+        now, stabilize_interval = set_stabilization_interval(start)
         # check whether new period should be started
         if now - current_period > stabilize_interval:
             # conduct maintenance calls
@@ -648,6 +670,7 @@ class Peer:
         self._logger.info(f"Received notify from {message.sender}...")
         if self._check_ttl_expired(message.timestamp):
             return
+        self._notify_recv_timestamp = time.time()
         if self._check_is_successor(message.peer_tuple[0]):
             self._set_successor(message.peer_tuple)
 
@@ -655,6 +678,7 @@ class Peer:
         self._logger.info(f"Received stabilize from {message.sender}...")
         if self._check_ttl_expired(message.timestamp):
             return
+        self._stabilize_recv_timestamp = time.time()
         if self._check_is_predecessor(message.peer_tuple[0]):
             self._set_predecessor(message.peer_tuple)
         self._notify(message.peer_tuple)
@@ -673,8 +697,9 @@ class Peer:
             name=f"succ-ep-{self._id}",
             remote_addr=successor[1],
             acceptor=False,
-            multithreading=False,
+            multithreading=True,
             buffer_size=10000,
+            keep_alive=False,
         )
         self._successor_endpoint.start()
 
@@ -692,8 +717,9 @@ class Peer:
             name=f"pred-ep-{self._id}",
             remote_addr=predecessor[1],
             acceptor=False,
-            multithreading=False,
+            multithreading=True,
             buffer_size=10000,
+            keep_alive=False,
         )
         self._predecessor_endpoint.start()
 
