@@ -568,7 +568,7 @@ class Peer:
         # TODO unify ep handling for succ, pred, fingers
         # TODO finger class?
         # todo determine proper ttl/retry time for join
-
+        # TODO was wenn succ & pred failen? rejoin functionality in case node is left alone
         self._logger.info(f"Peer {self._id} started...")
         start = time.time()
         period = start
