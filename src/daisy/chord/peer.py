@@ -104,6 +104,8 @@ class Peer:
     # that must be contacted to find a successor in an N -node network
     # is O(log N ).
     # => ttl is Log(N)*(time per hop gerundet)
+    _stabilize_recv_timestamp: float
+    _notify_recv_timestamp: float
 
     _logger: logging.Logger
 
@@ -136,6 +138,8 @@ class Peer:
         self._joined = False
         self._pending_requests = {}
         self._default_response_ttl = 2 * max_fingers
+        self._notify_recv_timestamp = time.time()
+        self._stabilize_recv_timestamp = time.time()
 
         self._logger = logging.getLogger("Peer")
         self._logger.setLevel(logging.INFO)
@@ -207,6 +211,68 @@ class Peer:
         return (
             (self._id > succ_id) and (check_id not in range(succ_id + 1, self._id + 1))
         ) or (check_id in range(self._id + 1, succ_id + 1))
+
+    def _purge_dropout_fingers(self, peer_id: int):
+        self._logger.info("purging fingertable")
+        for key in self._fingers.copy().keys():
+            finger = self._fingers.get(key)
+            if finger[0] == peer_id:
+                try:
+                    finger[2].stop(shutdown=True)
+                except RuntimeError:
+                    pass
+                self._fingers.pop(key)
+
+    def _purge_successor_if_dropout(self):
+        self._logger.info("purging successor")
+        self._purge_dropout_fingers(self._successor[0])
+        try:
+            self._successor_endpoint.stop(shutdown=True)
+        except (RuntimeError, AttributeError):
+            pass
+        any_finger = self._fingers[min(self._fingers.keys())]
+        # Begründen mit besserer laufzeit weil im best case chord hierdurch
+        # geschlossen wird, worst case bleibt die Laufzeit schlecht
+        if any_finger is not None:
+            self._successor = (any_finger[0], any_finger[1])
+            self._successor_endpoint = any_finger[2]
+        else:
+            self._successor = (self._id, self._addr)
+            self._successor_endpoint = None
+        self._notify_recv_timestamp = time.time()
+
+    def _purge_predecessor_if_dropout(self):
+        self._logger.info("purging predecessor")
+        self._purge_dropout_fingers(self._predecessor[0])
+        try:
+            self._predecessor_endpoint.stop(shutdown=True)
+        except (RuntimeError, AttributeError):
+            pass
+        try:
+            any_finger = self._fingers[max(self._fingers.keys())]
+            self._predecessor = (any_finger[0], any_finger[1])
+            self._predecessor_endpoint = any_finger[
+                2
+            ]  # fixme be careful here, ep handling is not yet unified
+        except ValueError:
+            self._predecessor = None
+            self._predecessor_endpoint = None
+        self._stabilize_recv_timestamp = time.time()
+
+    def _purge_dropout_peers(self):
+        if self._predecessor and (
+            time.time() - self._stabilize_recv_timestamp
+            > self._default_response_ttl * 2
+        ):
+            self._purge_predecessor_if_dropout()
+
+        if self._successor and (
+            time.time() - self._notify_recv_timestamp > self._default_response_ttl * 2
+        ):
+            self._purge_successor_if_dropout()
+            # Zeit bis Ring wieder geschlossen ist, ist relativ hoch wenn zwei Knoten
+            # back to back ausfallen, allerdings ist das okay, da die wahrscheinlichkeit
+            # für dieses Ergnis in einem unendlich großen Ring gegen null konvergiert
 
     def _find_closest_predecessor(
         self, lookup_id: int
