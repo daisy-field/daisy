@@ -146,7 +146,7 @@ class Peer:
         )
         self._joined = False
         self._pending_requests = {}
-        self._default_response_ttl = 2 * max_fingers
+        self._default_response_ttl = 1.5 * max_fingers
         self._notify_recv_timestamp = time.time()
         self._stabilize_recv_timestamp = time.time()
 
@@ -230,6 +230,18 @@ class Peer:
                     pass
                 self._fingers.pop(key)
 
+    def _get_min_or_max_finger(self, get_min: bool = True):
+        keys = range(self._max_fingers)
+        if not get_min:
+            keys = reversed(keys)
+        for key in keys:
+            finger = self._fingers.get(key, None)
+            try:
+                if finger[0] != self._id and finger[2].poll()[0][0]:
+                    return finger
+            except (RuntimeError, TypeError):
+                pass
+
     def _purge_successor_if_dropout(self):
         self._logger.info("purging successor")
         self._purge_dropout_fingers(self._successor[0])
@@ -237,13 +249,14 @@ class Peer:
             self._successor_endpoint.stop(shutdown=True)
         except (RuntimeError, AttributeError):
             pass
-        any_finger = self._fingers[min(self._fingers.keys())]
-        # Begründen mit besserer laufzeit weil im best case chord hierdurch
+
+        # Begründen mit besserer laufzeit, da im best case chord hierdurch
         # geschlossen wird, worst case bleibt die Laufzeit schlecht
-        if any_finger is not None:
-            self._successor = (any_finger[0], any_finger[1])
-            self._successor_endpoint = any_finger[2]
-        else:
+        try:
+            min_finger = self._get_min_or_max_finger()
+            self._successor = (min_finger[0], min_finger[1])
+            self._successor_endpoint = min_finger[2]
+        except (ValueError, TypeError):
             self._successor = (self._id, self._addr)
             self._successor_endpoint = None
         self._notify_recv_timestamp = time.time()
@@ -256,12 +269,12 @@ class Peer:
         except (RuntimeError, AttributeError):
             pass
         try:
-            any_finger = self._fingers[max(self._fingers.keys())]
-            self._predecessor = (any_finger[0], any_finger[1])
-            self._predecessor_endpoint = any_finger[
+            max_finger = self._get_min_or_max_finger(get_min=False)
+            self._predecessor = (max_finger[0], max_finger[1])
+            self._predecessor_endpoint = max_finger[
                 2
             ]  # fixme be careful here, ep handling is not yet unified
-        except ValueError:
+        except (ValueError, TypeError):
             self._predecessor = None
             self._predecessor_endpoint = None
         self._stabilize_recv_timestamp = time.time()
