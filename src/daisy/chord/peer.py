@@ -254,8 +254,7 @@ class Peer:
         # geschlossen wird, worst case bleibt die Laufzeit schlecht
         try:
             min_finger = self._get_min_or_max_finger()
-            self._successor = (min_finger[0], min_finger[1])
-            self._successor_endpoint = min_finger[2]
+            self._set_successor((min_finger[0], min_finger[1]))
         except (ValueError, TypeError):
             self._successor = (self._id, self._addr)
             self._successor_endpoint = None
@@ -270,10 +269,7 @@ class Peer:
             pass
         try:
             max_finger = self._get_min_or_max_finger(get_min=False)
-            self._predecessor = (max_finger[0], max_finger[1])
-            self._predecessor_endpoint = max_finger[
-                2
-            ]  # fixme be careful here, ep handling is not yet unified
+            self._set_predecessor((max_finger[0], max_finger[1]))
         except (ValueError, TypeError):
             self._predecessor = None
             self._predecessor_endpoint = None
