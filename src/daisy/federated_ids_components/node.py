@@ -23,6 +23,7 @@ from typing import Callable, cast, Optional
 import numpy as np
 import tensorflow as tf
 
+from daisy.chord import Peer
 from daisy.communication import StreamEndpoint
 from daisy.data_sources import DataSource
 from daisy.federated_learning import FederatedModel, ModelAggregator
@@ -578,12 +579,11 @@ class FederatedOnlineClient(FederatedOnlineNode):
 class FederatedOnlinePeer(FederatedOnlineNode):
     """TODO by @lotta
 
-    :var _peers: TBD
     :var _topology: TBD
+    :var _m_aggr: TBD
     """
 
-    _peers: list[StreamEndpoint]
-    _topology: object
+    _topology: Peer
     _m_aggr: ModelAggregator
 
     def __init__(

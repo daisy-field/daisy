@@ -93,6 +93,18 @@ def set_stabilization_interval(start):
 
 
 class Peer:
+    """This Class implements a variation of the Chord distributed Hashtable.
+    see: Stoica, Ion, et al. "Chord: a scalable peer-to-peer lookup protocol for
+    internet applications." IEEE/ACM Transactions on networking 11.1 (2003): 17-32.
+
+    This class is to be used instead of a Tracker Server under a BitTorrent overlay.
+    It does not support any database operations.
+    It features lookups according to peer ids, periodical stabilization
+    and some fault tolerance.
+    To start a new peer use the run function without the join_addr argument,
+    to join an existing ring enter the address of the peer to join on.
+    """
+
     _id: int
     _addr: tuple[str, int]
 
@@ -126,6 +138,8 @@ class Peer:
         predecessor: tuple[int, tuple[str, int]] = None,
         max_fingers: int = 16,
     ):
+        """creates a new ChordPeer"""
+
         self._id = peer_id
         self._addr = addr
 
@@ -285,10 +299,7 @@ class Peer:
         if self._successor and (
             time.time() - self._notify_recv_timestamp > self._default_response_ttl * 2
         ):
-            self._purge_successor_if_dropout()
-            # Zeit bis Ring wieder geschlossen ist, ist relativ hoch wenn zwei Knoten
-            # back to back ausfallen, allerdings ist das okay, da die wahrscheinlichkeit
-            # für dieses Ergnis in einem unendlich großen Ring gegen null konvergiert
+            self._purge_successor_if_dropout()  # Zeit bis Ring wieder geschlossen ist, ist relativ hoch wenn zwei Knoten  # back to back ausfallen, allerdings ist das okay, da die wahrscheinlichkeit  # für dieses Ergnis in einem unendlich großen Ring gegen null konvergiert
 
     def _find_closest_predecessor(
         self, lookup_id: int
@@ -555,7 +566,7 @@ class Peer:
         self._logger.debug(f"Found {len(r_ready_eps)} readable endpoints...")
         return r_ready_eps
 
-    def run(self, join_addr: tuple[str, int] = None):
+    def start(self, join_addr: tuple[str, int] = None):
         # TODO tote peers erkennen -> received stablize and notify timestamps - done
         # TODO implement check predecessor and successor for failure - done
         # TODO handling dead peers - in progress
@@ -779,6 +790,6 @@ if __name__ == "__main__":
 
     peer = Peer(peer_id=args.id, addr=(localhost, args.port))
     if args.joinPort:
-        peer.run((localhost, args.joinPort))  # start as first chord peer
+        peer.start((localhost, args.joinPort))  # start as first chord peer
     else:
-        peer.run()
+        peer.start()
