@@ -25,12 +25,13 @@ class MessageType(Enum):
 
 
 class MessageOrigin(Enum):
-    """Indicates the process from which a message originated.
-    Currently only used to categorize lookup response messages.
+    """Indicates the opration from which a message originated.
+    Used to categorize lookup response messages.
     """
 
     JOIN = 1
     FIX_FINGERS = 2
+    BT_LOOKUP = 3
 
 
 class Chordmessage:
@@ -92,7 +93,7 @@ def set_stabilization_interval(start):
     return now, stabilize_interval
 
 
-class Peer:
+class ChordDHTPeer:
     """This Class implements a variation of the Chord distributed Hashtable.
     see: Stoica, Ion, et al. "Chord: a scalable peer-to-peer lookup protocol for
     internet applications." IEEE/ACM Transactions on networking 11.1 (2003): 17-32.
@@ -299,7 +300,7 @@ class Peer:
         if self._successor and (
             time.time() - self._notify_recv_timestamp > self._default_response_ttl * 2
         ):
-            self._purge_successor_if_dropout()  # Zeit bis Ring wieder geschlossen ist, ist relativ hoch wenn zwei Knoten  # back to back ausfallen, allerdings ist das okay, da die wahrscheinlichkeit  # für dieses Ergnis in einem unendlich großen Ring gegen null konvergiert
+            self._purge_successor_if_dropout()  # Zeit bis Ring wieder geschlossen ist, ist relativ hoch wenn zwei Knoten  # back to back ausfallen, allerdings ist das okay, da die wahrscheinlichkeit  # für dieses Ergnis in einem unendlich großen Ring gegen null konvergiert  # if self._predecessor is None and  # self._successor is None and  # len(self._fingers) == 0:  #   exit()
 
     def _find_closest_predecessor(
         self, lookup_id: int
@@ -572,7 +573,6 @@ class Peer:
         # TODO handling dead peers - in progress
         # TODO maybe join liste mit adressen übrgeben,
         #  falls man mehr als einen einsteigsknoten hat und dann durchprobieren
-        # TODO unify ep handling for succ, pred, fingers
         # TODO finger class?
         # todo determine proper ttl/retry time for join
         # TODO was wenn succ & pred failen? rejoin functionality in case node is left alone
@@ -788,7 +788,7 @@ if __name__ == "__main__":
 
     localhost = "127.0.0.1"
 
-    peer = Peer(peer_id=args.id, addr=(localhost, args.port))
+    peer = ChordDHTPeer(peer_id=args.id, addr=(localhost, args.port))
     if args.joinPort:
         peer.start((localhost, args.joinPort))  # start as first chord peer
     else:

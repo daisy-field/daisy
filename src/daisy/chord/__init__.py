@@ -9,9 +9,9 @@ Author: Lotta Fejzula
 Modified: 30.04.2024
 """
 
-__all__ = ["MessageOrigin", "MessageType", "Chordmessage", "Peer"]
+__all__ = ["MessageOrigin", "MessageType", "Chordmessage", "ChordDHTPeer"]
 
-from .peer import MessageOrigin
-from .peer import MessageType
-from .peer import Chordmessage
-from .peer import Peer
+from .chord_dht import MessageOrigin
+from .chord_dht import MessageType
+from .chord_dht import Chordmessage
+from .chord_dht import ChordDHTPeer

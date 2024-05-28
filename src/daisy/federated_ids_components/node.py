@@ -23,7 +23,9 @@ from typing import Callable, cast, Optional
 import numpy as np
 import tensorflow as tf
 
-from daisy.chord import Peer
+from daisy.chord.federated_online_peer_interface import (
+    FederatedOnlinePeerToNetworkInterface,
+)
 from daisy.communication import StreamEndpoint
 from daisy.data_sources import DataSource
 from daisy.federated_learning import FederatedModel, ModelAggregator
@@ -576,14 +578,12 @@ class FederatedOnlineClient(FederatedOnlineNode):
             self.fed_update()
 
 
-class FederatedOnlinePeer(FederatedOnlineNode):
+class FederatedOnlinePeer(FederatedOnlineNode, FederatedOnlinePeerToNetworkInterface):
     """TODO by @lotta
 
-    :var _topology: TBD
     :var _m_aggr: TBD
     """
 
-    _topology: Peer
     _m_aggr: ModelAggregator
 
     def __init__(
@@ -643,6 +643,7 @@ class FederatedOnlinePeer(FederatedOnlineNode):
 
     def setup(self):
         """ """
+        # start bittorrent
         raise NotImplementedError
 
     def cleanup(self):
@@ -655,6 +656,18 @@ class FederatedOnlinePeer(FederatedOnlineNode):
 
     def create_async_fed_learner(self):
         """ """
+        raise NotImplementedError
+
+    def get_n_federated_peers_random_selection(self, **kwargs):
+        """Find peers for federated learning"""
+        raise NotImplementedError
+
+    def get_federated_modeldata(self, **kwargs):
+        """Request modeldata from one or more peers"""
+        raise NotImplementedError
+
+    def send_modeldata(self):
+        """Share own modeldata with one or more other peers"""
         raise NotImplementedError
 
 
