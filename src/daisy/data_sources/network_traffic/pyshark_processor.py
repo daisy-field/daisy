@@ -30,7 +30,7 @@ from pyshark.packet.layers.json_layer import JsonLayer
 from pyshark.packet.layers.xml_layer import XmlLayer
 from pyshark.packet.packet import Packet
 
-from daisy.data_sources import SimpleDataProcessor
+from ..data_processor import SimpleDataProcessor
 
 # Exemplary network feature filter, supporting cohda-box (V2x) messages, besides
 # TCP/IP and ETH.
