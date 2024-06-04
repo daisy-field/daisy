@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run Pre-Commit
+        uses: pre-commit/action@v3.0.1
+      - name: Apply Changes
+        uses: pre-commit-ci/lite-action@v1.0.2
+        if: success() || failure()

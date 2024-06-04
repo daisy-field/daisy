@@ -60,7 +60,7 @@ class FederatedModel(ABC):
     def predict(self, x_data) -> Tensor:
         """Makes a prediction on the given data and returns it, which must be
         compatible with the tensorflow API
-        (see: https://www.tensorflow.org/api_docs/python/tf/keras/Model#fit).
+        (see: https://www.tensorflow.org/api_docs/python/tf/keras/Model#predict).
 
         :param x_data: Input data.
         :return: Predicted output tensor.
@@ -133,7 +133,7 @@ class TFFederatedModel(FederatedModel):
         """Makes a prediction on the given data and returns it by calling the wrapped
         model. Uses the call() tensorflow model interface for small numbers of data
         points, which must be compatible with the tensorflow API (see:
-        https://www.tensorflow.org/api_docs/python/tf/keras/Model#fit).
+        https://www.tensorflow.org/api_docs/python/tf/keras/Model#predict).
 
         :param x_data: Input data.
         :return: Predicted output tensor.
@@ -225,7 +225,9 @@ class FederatedIFTM(FederatedModel):
 
         :param identify_fn: Federated identity function model.
         :param threshold_m: Federated threshold model.
-        :param error_fn: Reconstruction/Prediction error function.
+        :param error_fn: Reconstruction/Prediction error function that must compute
+        the error in sample-wise manner (for example, if using a loss function,
+        the reduction should be set to NONE).
         :param param_split: Length of IF parameters to efficiently merge the two
         lists of params.
         :param pf_mode: Whether IFTM uses an identity function or a prediction function.
@@ -356,15 +358,3 @@ class FederatedIFTM(FederatedModel):
             y_true = x_data
             x_data = tf.concat([prev_sample, x_data[:-1]], 0)
         return x_data, y_true
-
-    @staticmethod
-    def get_tf_error_fn(
-        tf_metric: keras.metrics.Metric,
-    ) -> Callable[[Tensor, Tensor], Tensor]:
-        """Quick wrapper for tensorflow metric objects as error functions for IFTM
-        models.
-
-        :param tf_metric: Tensorflow metric object to be wrapped.
-        :return: Wrapped tensorflow metric object as callable function.
-        """
-        return lambda t_label, p_label: tf_metric(t_label, p_label)

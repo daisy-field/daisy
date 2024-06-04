@@ -32,7 +32,7 @@ class SlidingWindowEvaluation(keras.metrics.Metric, ABC):
     pred_labels: deque
     _window_size: int
 
-    def __init__(self, name="ad_online_evaluation", window_size: int = -1, **kwargs):
+    def __init__(self, name="ad_online_evaluation", window_size: int = None, **kwargs):
         """Creates a new sliding window evaluation metric.
 
         :param name: Name of metric.
@@ -130,7 +130,7 @@ class ConfMatrSlidingWindowEvaluation(SlidingWindowEvaluation):
     _tn: int
 
     def __init__(
-        self, name="conf_matrix_online_evaluation", window_size: int = 0, **kwargs
+        self, name="conf_matrix_online_evaluation", window_size: int = None, **kwargs
     ):
         """Creates a new confusion matrix sliding window evaluation metric.
 
@@ -215,7 +215,9 @@ class TFMetricSlidingWindowEvaluation(SlidingWindowEvaluation):
 
     _tf_metric: keras.metrics.Metric
 
-    def __init__(self, tf_metric: keras.metrics.Metric, window_size: int = 0, **kwargs):
+    def __init__(
+        self, tf_metric: keras.metrics.Metric, window_size: int = None, **kwargs
+    ):
         """Create a new wrapped tf sliding window evaluation metric.
 
 
