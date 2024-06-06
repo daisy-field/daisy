@@ -9,7 +9,6 @@ adjusted for each test case.
 
 Author: Fabian Hofmann
 Modified: 10.04.24
-
 """
 
 import logging

@@ -40,7 +40,10 @@ class DataSource:
     _multithreading: bool
     _loader: threading.Thread
     _buffer: queue.Queue
+
     _opened: bool
+    _exhausted: bool
+    _completed = threading.Event
 
     def __init__(
         self,
@@ -63,6 +66,8 @@ class DataSource:
         self._logger.info("Initializing data source...")
 
         self._opened = False
+        self._exhausted = False
+        self._completed = threading.Event()
 
         self._source_handler = source_handler
         self._data_processor = data_processor
@@ -75,17 +80,24 @@ class DataSource:
         """Opens the data source for data point retrieval. Must be called before data
         can be retrieved; in multithreading mode also starts the loader thread as
         daemon.
+
+        :return: Event object to check whether data source has completed processing
+        every data point and may be closed. Only useful when iterating through a source
+        manually since __iter__ automatically stops yielding objects when completed.
         """
         self._logger.info("Starting data source...")
         if self._opened:
             raise RuntimeError("Data source has already been opened!")
         self._opened = True
+        self._exhausted = False
+        self._completed.clear()
         self._source_handler.open()
 
         if self._multithreading:
             self._loader = threading.Thread(target=self._create_loader, daemon=True)
             self._loader.start()
         self._logger.info("Data source started.")
+        return self._completed
 
     def close(self):
         """Shuts down any thread running in the background to load data into the data
@@ -117,12 +129,14 @@ class DataSource:
                         f"(length: {self._buffer.qsize()})..."
                     )
                     self._buffer.put(self._data_processor.process(o_point), timeout=10)
+                    break
                 except queue.Full:
                     self._logger.warning(
                         "AsyncLoader: Timeout triggered: Buffer full. Retrying..."
                     )
             if not self._opened:
                 break
+        self._exhausted = True
         self._logger.info("AsyncLoader: Stopping...")
 
     def __iter__(self) -> Iterator[np.ndarray | dict | object]:
@@ -136,7 +150,7 @@ class DataSource:
             raise RuntimeError("Data source has not been opened!")
 
         if self._multithreading:
-            while self._opened:
+            while self._opened and not (self._buffer.empty() and self._exhausted):
                 self._logger.debug(
                     "Multithreading detected, retrieving data point from "
                     f"buffer (size={self._buffer.qsize()})..."
@@ -149,6 +163,7 @@ class DataSource:
             for o_point in self._source_handler:
                 yield self._data_processor.process(o_point)
         self._logger.info("Data source exhausted or closed.")
+        self._completed.set()
 
     def __enter__(self):
         self.open()
@@ -158,5 +173,5 @@ class DataSource:
         self.close()
 
     def __del__(self):
-        if self._opened:
+        if self._opened and threading.current_thread() != self._loader:
             self.close()
