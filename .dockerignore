@@ -161,7 +161,7 @@ cython_debug/
 .noai
 
 # Test Outputs
-**/test_file.csv
+**/test_*.csv
 
 # Git
 .git/

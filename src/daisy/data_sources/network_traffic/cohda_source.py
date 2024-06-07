@@ -6,8 +6,8 @@
 """Implementations of the data source processor interface that allows the processing
 and provisioning of pyshark packets that are captured from cohda boxes.
 
-Author: Seraphin Zunzer, Fabian Hofmann
-Modified: 19.04.24
+Author: Fabian Hofmann, Seraphin Zunzer
+Modified: 07.06.24
 """
 
 from datetime import datetime
@@ -17,8 +17,6 @@ import numpy as np
 
 from ...data_sources.data_processor import SimpleDataProcessor
 from ...data_sources.network_traffic.pyshark_processor import (
-    default_f_features,
-    default_nn_aggregator,
     pyshark_map_fn,
     pyshark_filter_fn,
     pyshark_reduce_fn,
@@ -38,27 +36,30 @@ class CohdaProcessor(SimpleDataProcessor):
         self,
         client_id: int,
         events: list[tuple[int, tuple[datetime, datetime], list[str], list[str], int]],
+        map_fn: Callable[[object], dict] = pyshark_map_fn(),
+        filter_fn: Callable[[dict], dict] = pyshark_filter_fn(),
+        reduce_fn: Callable[[dict], np.ndarray | dict] = pyshark_reduce_fn(),
         name: str = "",
-        f_features: tuple[str, ...] = default_f_features,
-        nn_aggregator: Callable[[str, object], object] = default_nn_aggregator,
     ):
         """Creates a new cohda processor for a specific client.
 
         :param client_id: ID of client.
         :param events: List of labeled, self-descriptive, events by which one can
         label individual data points with.
+        :param map_fn: Map function, which receives a data point and maps it to a
+        dictionary.
+        :param filter_fn: Filter function, which receives the map output and
+        filters/selects its features.
+        :param reduce_fn: Reduce function, which receives the filter output and
+        transforms into a numpy array (if serving as input for ML tasks), to be executed
+        after the pyshark data point (packet) has been labeled.
         :param name: Name of processor for logging purposes.
-        :param f_features: Selection of features that every data point will have
-        after processing.
-        :param nn_aggregator: List aggregator that is able to aggregator dictionary
-        values that are lists into singleton values, depending on the key they are
-        sorted under.
         """
         super().__init__(
-            pyshark_map_fn(),
-            pyshark_filter_fn(f_features),
-            pyshark_reduce_fn(nn_aggregator),
-            name,
+            map_fn=map_fn,
+            filter_fn=filter_fn,
+            reduce_fn=reduce_fn,
+            name=name,
         )
 
         self._client_id = client_id
@@ -80,6 +81,7 @@ class CohdaProcessor(SimpleDataProcessor):
                 <= datetime.strptime(d_point["meta.time"], "%Y-%m-%d %H:%M:%S.%f")
                 <= end_time
                 and any([x in d_point["meta.protocols"] for x in protocols])
+                and d_point["ip.addr"] is not np.nan
                 and all([x in d_point["ip.addr"] for x in addresses])
             ):
                 d_point["label"] = label

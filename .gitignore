@@ -160,4 +160,4 @@ cython_debug/
 .idea/
 
 # Test Outputs
-**/test_file.csv
+**/test_*.csv
