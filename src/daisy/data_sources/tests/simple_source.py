@@ -13,7 +13,31 @@ Modified: 06.06.24
 
 import logging
 
-from daisy.data_sources import DataSource, SimpleDataProcessor, SimpleSourceHandler
+from daisy.data_sources import (
+    DataSource,
+    CSVFileRelay,
+    SimpleDataProcessor,
+    SimpleSourceHandler,
+)
+
+
+def source_writer():
+    """Creates and starts a file relay to write the contents of an entire data source
+    to a csv file that runs until processing all data points.
+    """
+    _list = [{"a": 2}, {"a": 3}, {"a": 3}, {"a": 4}, {"a": 5}]
+    handler = SimpleSourceHandler(iter(_list))
+    processor = SimpleDataProcessor()
+
+    with DataSource(
+        source_handler=handler, data_processor=processor, multithreading=True
+    ) as source:
+        relay = CSVFileRelay(
+            data_source=source,
+            target_file="test_file.csv",
+            overwrite_file=True,
+        )
+        relay.start(blocking=True)
 
 
 def source_status():
@@ -55,5 +79,6 @@ if __name__ == "__main__":
         datefmt="%Y-%m-%d %H:%M:%S",
         level=logging.INFO,
     )
-    source_status()
-    list_source()
+    # source_status()
+    # list_source()
+    source_writer()

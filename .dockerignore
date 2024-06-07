@@ -160,6 +160,9 @@ cython_debug/
 .idea/
 .noai
 
+# Test Outputs
+**/test_file.csv
+
 # Git
 .git/
 .github/

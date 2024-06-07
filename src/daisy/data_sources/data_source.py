@@ -83,7 +83,7 @@ class DataSource:
 
         :return: Event object to check whether data source has completed processing
         every data point and may be closed. Only useful when iterating through a source
-        manually since __iter__ automatically stops yielding objects when completed.
+        manually since __iter__() automatically stops yielding objects when completed.
         """
         self._logger.info("Starting data source...")
         if self._opened:
@@ -136,8 +136,10 @@ class DataSource:
                     )
             if not self._opened:
                 break
-        self._exhausted = True
-        self._logger.info("AsyncLoader: Stopping...")
+        if self._opened:
+            self._exhausted = True
+            self._logger.info("AsyncLoader: Data source exhausted, stopping...")
+        self._logger.info("AsyncLoader: Stopped")
 
     def __iter__(self) -> Iterator[np.ndarray | dict | object]:
         """Generator that supports multithreading to retrieve processed data points.

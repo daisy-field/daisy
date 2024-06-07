@@ -40,6 +40,7 @@ class DataSourceRelay:
 
     _relay: threading.Thread
     _started: bool
+    _completed = threading.Event
 
     def __init__(
         self, data_source: DataSource, endpoint: StreamEndpoint, name: str = ""
@@ -54,21 +55,29 @@ class DataSourceRelay:
         self._logger.info("Initializing data source relay...")
 
         self._started = False
+        self._completed = threading.Event()
 
         self._data_source = data_source
         self._endpoint = endpoint
 
         self._logger.info("Data source relay initialized.")
 
-    def start(self):
+    def start(self, blocking: bool = False):
         """Starts the data source relay along any other objects in this union (data
         source, endpoint). Non-blocking, as the relay is started in the background to
         allow the stopping of it afterward.
+
+        :param blocking: Whether the relay should block until all data points have
+        been processed.
+        :return: Event object to check whether relay has completed processing
+        every data point and may be closed. Only useful when calling start()
+        non-blocking, otherwise it is implicitly used to wait for completion.
         """
         self._logger.info("Starting data source relay...")
         if self._started:
             raise RuntimeError("Relay has already been started!")
         self._started = True
+        self._completed.clear()
         try:
             self._data_source.open()
         except RuntimeError:
@@ -81,6 +90,11 @@ class DataSourceRelay:
         self._relay = threading.Thread(target=self._create_relay, daemon=True)
         self._relay.start()
         self._logger.info("Data source relay started.")
+
+        if blocking:
+            self._completed.wait()
+            self._logger.info("Relay has processed all data points and may be closed.")
+        return self._completed
 
     def stop(self):
         """Closes and stops the data source and the endpoint and joins the relay
@@ -114,7 +128,8 @@ class DataSourceRelay:
             except RuntimeError:
                 # stop() was called
                 break
-        self._logger.info("Data source exhausted, or relay closing...")
+        self._logger.info("Data source exhausted, or relay closed.")
+        self._completed.set()
 
     def __del__(self):
         if self._started:
@@ -142,6 +157,7 @@ class CSVFileRelay:
 
     _relay: threading.Thread
     _started: bool
+    _completed = threading.Event
 
     def __init__(
         self,
@@ -165,7 +181,8 @@ class CSVFileRelay:
         header via auto-detection. Note it is not guaranteed that all
         features/headers of all data points in the (possible infinite) stream will be
         discovered, if for example a data point with new features could arrive after
-        the discovery is completed.
+        the discovery is completed. On the other hand, if the buffer size is great
+        or equal to the number of points, the entire stream is used for discovery.
         :param overwrite_file: Whether the file should be overwritten if it exists.
         :param separator: Separator used in the CSV file.
         :param default_missing_value: Default value if a feature is not present in a
@@ -179,6 +196,7 @@ class CSVFileRelay:
         self._logger.info("Initializing file relay...")
 
         self._started = False
+        self._completed = threading.Event()
 
         if header_buffer_size <= 0:
             raise ValueError("Header buffer size must be greater 0")
@@ -211,14 +229,21 @@ class CSVFileRelay:
 
         self._logger.info("File relay initialized.")
 
-    def start(self):
+    def start(self, blocking: bool = False):
         """Starts the data source relay along the data source itself. Non-blocking,
         as the relay is started in the background to allow the stopping of it afterward.
+
+        :param blocking: Whether the relay should block until all data points have
+        been processed.
+        :return: Event object to check whether file relay has completed processing
+        every data point and may be closed. Only useful when calling start()
+        non-blocking, otherwise it is implicitly used to wait for completion.
         """
         self._logger.info("Starting file relay...")
         if self._started:
             raise RuntimeError("Relay has already been started!")
         self._started = True
+        self._completed.clear()
         try:
             self._data_source.open()
         except RuntimeError:
@@ -227,6 +252,13 @@ class CSVFileRelay:
         self._relay = threading.Thread(target=self._create_relay, daemon=True)
         self._relay.start()
         self._logger.info("File relay started.")
+
+        if blocking:
+            self._completed.wait()
+            self._logger.info(
+                "File relay has processed all data points and may be closed."
+            )
+        return self._completed
 
     def stop(self):
         """Closes and stops the data source and joins the relay thread into the
@@ -254,6 +286,24 @@ class CSVFileRelay:
         :raises TypeError: Retrieved data point is not of type dictionary. Only
         dictionaries are supported.
         """
+
+        # noinspection PyShadowingNames
+        def buffer_to_file():
+            self._headers = tuple(header_buffer)
+            self._logger.info(
+                "Headers found with buffer size of "
+                f"{self._header_buffer_size}: {self._headers}"
+            )
+            file.write(f"{self._separator.join(self._headers)}\n")
+
+            for d_point_in_buffer in d_point_buffer:
+                values = map(
+                    lambda topic: self._get_value(d_point_in_buffer, topic),
+                    self._headers,
+                )
+                line = self._separator.join(values)
+                file.write(f"{line}\n")
+
         self._logger.info("Starting to relay data points from data source...")
         d_point_counter = 0
         d_point_buffer = []
@@ -272,22 +322,7 @@ class CSVFileRelay:
                         d_point_buffer += [d_point]
                     else:
                         if do_buffer:
-                            self._headers = tuple(header_buffer)
-                            self._logger.info(
-                                "Headers found with buffer size of "
-                                f"{self._header_buffer_size}: {self._headers}"
-                            )
-                            file.write(f"{self._separator.join(self._headers)}\n")
-
-                            for d_point_in_buffer in d_point_buffer:
-                                values = map(
-                                    lambda topic: self._get_value(
-                                        d_point_in_buffer, topic
-                                    ),
-                                    self._headers,
-                                )
-                                line = self._separator.join(values)
-                                file.write(f"{line}\n")
+                            buffer_to_file()
                             do_buffer = False
 
                         values = map(
@@ -299,7 +334,10 @@ class CSVFileRelay:
                 except RuntimeError:
                     # stop() was called
                     break
-        self._logger.info("Data source exhausted, or relay closing...")
+            if d_point_counter <= self._header_buffer_size:
+                buffer_to_file()
+        self._logger.info("Data source exhausted, or relay closed.")
+        self._completed.set()
 
     def _get_value(self, d_point: dict, topic: str) -> str:
         """Retrieves a value from a data point, transforming it into a string to
