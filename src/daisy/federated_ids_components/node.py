@@ -17,15 +17,14 @@ Modified: 04.04.24
 import logging
 import threading
 from abc import ABC, abstractmethod
+from queue import Empty
 from time import sleep, time
 from typing import Callable, cast, Optional
 
 import numpy as np
 import tensorflow as tf
 
-from daisy.chord.federated_online_peer_interface import (
-    FederatedOnlinePeerToNetworkInterface,
-)
+from daisy.chord import ChordDHTPeer
 from daisy.communication import StreamEndpoint
 from daisy.data_sources import DataSource
 from daisy.federated_learning import FederatedModel, ModelAggregator
@@ -578,13 +577,24 @@ class FederatedOnlineClient(FederatedOnlineNode):
             self.fed_update()
 
 
-class FederatedOnlinePeer(FederatedOnlineNode, FederatedOnlinePeerToNetworkInterface):
+class FederatedOnlinePeer(FederatedOnlineNode):
     """TODO by @lotta
 
     :var _m_aggr: TBD
     """
 
+    _topology: ChordDHTPeer
+    _topology_thread: threading.Thread
+    _addr: tuple[str, int]
+    _dht_join_addr: tuple[str, int]
+
     _m_aggr: ModelAggregator
+    _num_peers: int
+    _unchoked_peers: set
+
+    model: FederatedModel
+
+    _logger: logging.Logger
 
     def __init__(
         self,
@@ -598,9 +608,10 @@ class FederatedOnlinePeer(FederatedOnlineNode, FederatedOnlinePeerToNetworkInter
         metrics: list[tf.metrics] = None,
         eval_server: tuple[str, int] = None,
         aggr_server: tuple[str, int] = None,
-        sync_mode: bool = True,
         update_interval_s: int = None,
         update_interval_t: int = None,
+        dht_join_addr: tuple[str, int] = None,
+        num_peers: int = 4,
     ):
         """Creates a new federated online peer.
 
@@ -634,17 +645,27 @@ class FederatedOnlinePeer(FederatedOnlineNode, FederatedOnlinePeerToNetworkInter
             metrics=metrics,
             eval_server=eval_server,
             aggr_server=aggr_server,
-            sync_mode=sync_mode,
+            sync_mode=False,
             update_interval_s=update_interval_s,
             update_interval_t=update_interval_t,
         )
 
+        self._dht_join_addr = dht_join_addr
         self._m_aggr = m_aggr
+        self._topology = ChordDHTPeer(addr=self._addr)
+        self._num_peers = num_peers
+        self._unchoked_peers = set()
+
+        self._logger = logging.getLogger("F_Node")
+        self._logger.setLevel(logging.INFO)
 
     def setup(self):
         """ """
-        # start bittorrent
-        raise NotImplementedError
+        # start dht
+        self._topology_thread = threading.Thread(
+            target=self._topology.start(self._dht_join_addr), daemon=True
+        )
+        self._topology_thread.start()
 
     def cleanup(self):
         """ """
@@ -656,19 +677,62 @@ class FederatedOnlinePeer(FederatedOnlineNode, FederatedOnlinePeerToNetworkInter
 
     def create_async_fed_learner(self):
         """ """
-        raise NotImplementedError
+        # TODO time management
+        #  wann/wie oft wird optimistic unchoking durchgeführt,
+        #  wann/wie oft tit for tat
+        # TODO race conditions
+        # TODO logik abklären
+        while True:
+            self.request_n_federated_peers_random_selection(self._num_peers)
+            self._optimistic_unchoke()
+            models = self._tit_for_tat()
+            models.add(self.model.get_parameters())
+            self.model.set_parameters(self._m_aggr.aggregate(list(models)))
 
-    def get_n_federated_peers_random_selection(self, **kwargs):
-        """Find peers for federated learning"""
-        raise NotImplementedError
+    def _optimistic_unchoke(self):
+        peers = set()
+        while len(peers) < self._num_peers:
+            try:
+                peers.add(self._topology.fed_peers.get_nowait())
+            except Empty:
+                self._logger.error("No Peers in queue")
+                break
 
-    def get_federated_modeldata(self, **kwargs):
-        """Request modeldata from one or more peers"""
-        raise NotImplementedError
+        self._logger.debug(
+            f"Requesting local models from sampled clients [{len(peers)}]..."
+        )
+        for peer in peers:
+            if peer in self._unchoked_peers:
+                continue
+            self.send_modeldata(peer, self.model.get_parameters())
+            self._unchoked_peers.add(peer)
 
-    def send_modeldata(self):
-        """Share own modeldata with one or more other peers"""
-        raise NotImplementedError
+    def _tit_for_tat(self) -> set:
+        peers_and_models = set()
+        models = set()
+        while len(models) < self._num_peers:
+            try:
+                peers_and_models.add(self._topology.fed_models.get_nowait())
+            except Empty:
+                self._logger.error("No Models in queue")
+                break
+        for peer, model in peers_and_models:
+            if peer in self._unchoked_peers:
+                self._unchoked_peers.remove(peer)
+            else:
+                self.send_modeldata(peer, model)
+            models.add(model)
+        return models
+
+    def request_n_federated_peers_random_selection(self, n_peers: int):
+        """get a number of peers for federated learning in random selection mode"""
+        self._topology.request_n_random_peers(n_peers)
+
+    def send_modeldata(
+        self, fed_peer: tuple[int, tuple[str, int]], model: list[np.ndarray]
+    ):
+        """Share own modeldata with another peer"""
+        self._topology.send_federated_model(fed_peer, model)
 
 
 def _try_ops(*operations: Callable, logger: logging.Logger):

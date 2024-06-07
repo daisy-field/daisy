@@ -4,6 +4,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 import threading
+import time
 import typing
 from enum import Enum
 from time import sleep
@@ -26,6 +27,7 @@ class MessageType(Enum):
 
 
 class MessageOrigin(Enum):
+    FED_PEERS_REQ = 3
     JOIN = 1
     FIX_FINGERS = 2
 
@@ -38,6 +40,7 @@ class Chordmessage:
     peer_tuple: tuple[int, tuple[str, int]]
     origin: MessageOrigin
     sender: tuple[int, tuple[str, int]]
+    timestamp: float
 
     def __init__(
         self,
@@ -46,6 +49,7 @@ class Chordmessage:
         peer_tuple: tuple[int, tuple[str, int]] = None,
         origin: MessageOrigin = None,
         sender: tuple[int, tuple[str, int]] = None,
+        timestamp: float = 0,
     ):
         """Creates a new Chordmessage.
         :param request_id: Message identifier
@@ -59,6 +63,7 @@ class Chordmessage:
         self.peer_tuple = peer_tuple
         self.origin = origin
         self.sender = sender
+        self.timestamp = timestamp
 
 
 class TestPeer:
@@ -94,7 +99,8 @@ class TestPeer:
             message_type=MessageType.LOOKUP_REQ,
             peer_tuple=(id, self._addr),
             request_id=123,
-            origin=MessageOrigin.FIX_FINGERS,
+            origin=MessageOrigin.FED_PEERS_REQ,
+            timestamp=time.time(),
         )
         ep_name = f"ep-{id}"
         endpoint = StreamEndpoint(
