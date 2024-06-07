@@ -17,11 +17,11 @@ from daisy.communication import EndpointServer, StreamEndpoint
 class MessageType(Enum):
     """Indicates how an incoming messages should be processed."""
 
-    JOIN = 1  # ttl 10
     LOOKUP_RES = 2
     LOOKUP_REQ = 3
     STABILIZE = 4
     NOTIFY = 5
+    FED_MODEL = 6
 
 
 class MessageOrigin(Enum):
