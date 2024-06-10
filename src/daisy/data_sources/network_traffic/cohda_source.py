@@ -72,38 +72,21 @@ class CohdaProcessor(SimpleDataProcessor):
         :param d_point: Data point as dictionary.
         :return: Labeled data point as vector.
         """
-        d_point = cohda_label_packets(d_point, self._events, self._client_id)
+        d_point["label"] = 0
+        for event in self._events:
+            client, (start_time, end_time), protocols, addresses, label = event
+            if (
+                client == self._client_id
+                and start_time
+                <= datetime.strptime(d_point["meta.time"], "%Y-%m-%d %H:%M:%S.%f")
+                <= end_time
+                and any([x in d_point["meta.protocols"] for x in protocols])
+                and d_point["ip.addr"] is not np.nan
+                and all([x in d_point["ip.addr"] for x in addresses])
+            ):
+                d_point["label"] = label
+                break
         return super().reduce(d_point)
-
-
-def cohda_label_packets(
-    d_point: dict,
-    events: list[tuple[int, tuple[datetime, datetime], list[str], list[str], int]],
-    client_id: int,
-) -> dict:
-    """Labels the pyshark data points based on the provided (labeled) events.
-
-    :param d_point: Data point as dictionary.
-    :param events: List of labeled, self-descriptive, events by which one can
-    label individual data points with.
-    :param client_id: ID of client.
-    :return: Labeled data point.
-    """
-    d_point["label"] = 0
-    for event in events:
-        client, (start_time, end_time), protocols, addresses, label = event
-        if (
-            client == client_id
-            and start_time
-            <= datetime.strptime(d_point["meta.time"], "%Y-%m-%d %H:%M:%S.%f")
-            <= end_time
-            and any([x in d_point["meta.protocols"] for x in protocols])
-            and d_point["ip.addr"] is not np.nan
-            and all([x in d_point["ip.addr"] for x in addresses])
-        ):
-            d_point["label"] = label
-            break
-    return d_point
 
 
 # Existing datasets captured on Cohda boxes 2 and 5 on March 6th (2023)
