@@ -1134,7 +1134,11 @@ class StreamEndpoint:
         self.stop(shutdown=True)
 
     def __del__(self):
-        if not self._shutdown:
+        if (
+            not self._shutdown
+            and threading.current_thread() != self._sender
+            and threading.current_thread() != self._receiver
+        ):
             self.stop(shutdown=True)
 
     @classmethod
@@ -1602,7 +1606,11 @@ class EndpointServer:
         self.stop()
 
     def __del__(self):
-        if self._started:
+        if (
+            self._started
+            and threading.current_thread() != self._connection_handler
+            and threading.current_thread() != self._connection_cleaner
+        ):
             self.stop()
 
 
