@@ -20,7 +20,7 @@ from collections import OrderedDict
 from pathlib import Path
 
 from daisy.communication import StreamEndpoint
-from daisy.data_sources import DataSource
+from .data_source import DataSource
 
 
 class DataSourceRelay:

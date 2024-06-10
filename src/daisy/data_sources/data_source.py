@@ -18,7 +18,8 @@ from typing import Iterator
 
 import numpy as np
 
-from daisy.data_sources import SourceHandler, DataProcessor
+from .data_handler import SourceHandler
+from .data_processor import DataProcessor
 
 
 class DataSource:
