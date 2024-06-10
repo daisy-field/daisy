@@ -183,6 +183,6 @@ class PcapHandler(SourceHandler):
                     yield packet
             except TSharkCrashException as e:
                 logging.warning(
-                    f"Encountered problem while reading packets. Error message: {e}"
+                    f"{e.__class__.__name__}({e}) while reading packets. Closing..."
                 )
             self._cur_file_handle.close()
