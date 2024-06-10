@@ -147,10 +147,10 @@ def create_pyshark_processor(
     :param nn_aggregator: The aggregator, which should map features to integers
     """
     return SimpleDataProcessor(
-        pyshark_map_fn(),
-        pyshark_filter_fn(f_features),
-        pyshark_reduce_fn(nn_aggregator),
-        name,
+        map_fn=pyshark_map_fn(),
+        filter_fn=pyshark_filter_fn(f_features),
+        reduce_fn=pyshark_reduce_fn(nn_aggregator),
+        name=name,
     )
 
 

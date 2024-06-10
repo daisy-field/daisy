@@ -120,11 +120,11 @@ class SimpleDataProcessor(DataProcessor):
         """Creates a SimpleDataProcessor from the given map/filter/reduce functions. Any
         function not provided will default to noop.
 
-        :param map_fn: The map function, which receives a data point and should map
-        it to a dictionary
-        :param filter_fn: The filter function, which receives the map output and
+        :param map_fn: Map function, which receives a data point and maps it to a
+        dictionary.
+        :param filter_fn: Filter function, which receives the map output and
         filters/selects its features.
-        :param reduce_fn: The reduce function, which receives the filter output and
+        :param reduce_fn: Reduce function, which receives the filter output and
         transforms into a numpy array (if serving as input for ML tasks).
         :param name: The name for logging purposes.
         """
