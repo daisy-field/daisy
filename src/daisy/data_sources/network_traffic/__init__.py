@@ -26,6 +26,7 @@ Modified: 19.04.24
 
 __all__ = [
     "CohdaProcessor",
+    "cohda_label_packets",
     "march23_events",
     "LivePysharkHandler",
     "PcapHandler",
@@ -35,7 +36,7 @@ __all__ = [
     "create_pyshark_processor",
 ]
 
-from .cohda_source import CohdaProcessor
+from .cohda_source import CohdaProcessor, cohda_label_packets
 from .cohda_source import march23_events
 
 from .pyshark_handler import LivePysharkHandler, PcapHandler

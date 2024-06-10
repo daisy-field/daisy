@@ -36,6 +36,7 @@ __all__ = [
     "CSVFileRelay",
     "DataSource",
     "CohdaProcessor",
+    "cohda_label_packets",
     "LivePysharkHandler",
     "PcapHandler",
     "march23_events",
@@ -51,6 +52,7 @@ from .data_relay import DataSourceRelay, CSVFileRelay
 from .data_source import DataSource
 from .network_traffic import (
     CohdaProcessor,
+    cohda_label_packets,
     march23_events,
     LivePysharkHandler,
     PcapHandler,

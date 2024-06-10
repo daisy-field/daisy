@@ -10,12 +10,8 @@ source that generates packets in either fashion.
 Author: Jonathan Ackerschewski, Fabian Hofmann
 Modified: 19.04.24
 """
-# TODO: Future Work:
-#   - Encoding/mapping of string/non-numerical values into numerical features
-#   - Flattening of Lists instead of encoding them into singular numerical features
-#   - NaN values also need to converted to something useful
-#     (that does not break the prediction/training)
 
+import logging
 import os
 from typing import Iterator, Optional
 
@@ -26,6 +22,13 @@ from pyshark.capture.live_capture import LiveCapture
 from pyshark.packet.packet import Packet
 
 from ...data_sources.data_source import SourceHandler
+
+
+# TODO: Future Work:
+#   - Encoding/mapping of string/non-numerical values into numerical features
+#   - Flattening of Lists instead of encoding them into singular numerical features
+#   - NaN values also need to converted to something useful
+#     (that does not break the prediction/training)
 
 
 class LivePysharkHandler(SourceHandler):
@@ -177,6 +180,11 @@ class PcapHandler(SourceHandler):
         """
         for _ in self._pcap_files:
             self._open()
-            for packet in self._cur_file_handle:
-                yield packet
+            try:
+                for packet in self._cur_file_handle:
+                    yield packet
+            except TSharkCrashException as e:
+                logging.warning(
+                    f"Encountered problem while reading packets. Skipping... Error message: {e}"
+                )
             self._cur_file_handle.close()
