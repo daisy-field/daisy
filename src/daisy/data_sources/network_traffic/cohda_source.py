@@ -33,14 +33,13 @@ class CohdaProcessor(SimpleDataProcessor):
     _events: list[tuple[int, tuple[datetime, datetime], list[str], list[str], int]]
 
     def __init__(
-            self,
-            client_id: int,
-            events: list[
-                tuple[int, tuple[datetime, datetime], list[str], list[str], int]],
-            map_fn: Callable[[object], dict] = pyshark_map_fn(),
-            filter_fn: Callable[[dict], dict] = pyshark_filter_fn(),
-            reduce_fn: Callable[[dict], np.ndarray | dict] = pyshark_reduce_fn(),
-            name: str = "",
+        self,
+        client_id: int,
+        events: list[tuple[int, tuple[datetime, datetime], list[str], list[str], int]],
+        map_fn: Callable[[object], dict] = pyshark_map_fn(),
+        filter_fn: Callable[[dict], dict] = pyshark_filter_fn(),
+        reduce_fn: Callable[[dict], np.ndarray | dict] = pyshark_reduce_fn(),
+        name: str = "",
     ):
         """Creates a new cohda processor for a specific client.
 
@@ -77,13 +76,13 @@ class CohdaProcessor(SimpleDataProcessor):
         for event in self._events:
             client, (start_time, end_time), protocols, addresses, label = event
             if (
-                    client == self._client_id
-                    and start_time
-                    <= datetime.strptime(d_point["meta.time"], "%Y-%m-%d %H:%M:%S.%f")
-                    <= end_time
-                    and any([x in d_point["meta.protocols"] for x in protocols])
-                    and d_point["ip.addr"] is not np.nan
-                    and all([x in d_point["ip.addr"] for x in addresses])
+                client == self._client_id
+                and start_time
+                <= datetime.strptime(d_point["meta.time"], "%Y-%m-%d %H:%M:%S.%f")
+                <= end_time
+                and any([x in d_point["meta.protocols"] for x in protocols])
+                and d_point["ip.addr"] is not np.nan
+                and all([x in d_point["ip.addr"] for x in addresses])
             ):
                 d_point["label"] = label
                 break
