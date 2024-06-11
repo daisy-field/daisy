@@ -4,7 +4,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """Pre-configured demonstration client for a simple federated intrusion detection
-system (IDS), that learns cooperatively with another clients through a centralized
+system (IDS), that learns cooperatively with other clients through a centralized
 model aggregation server using the federated averaging (FedAvg) technique. In this
 example, the client is configured to process network traffic data from the road-side
 infrastructure (BeIntelli) on Cohda boxes 2 and 5 on March 6th 2023, which must be
@@ -21,7 +21,7 @@ evaluation metrics (e.g. Precision, Recall, F1-score, etc.).
 Note that this demonstration client can also be launched as a standalone detection
 component, if no additional client is run along with the model aggregation server.
 The same is the case for additional prediction and evaluation result aggregation
-using centralize servers (see -h for more information).
+using centralized servers (see -h for more information).
 However, the full demonstration topology consists of two federated IDS detection
 clients along three servers (from the 'generic_fids_components' scripts subpackage):
 
