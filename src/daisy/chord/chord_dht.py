@@ -3,7 +3,17 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+"""
+Chord DHT
+- modified stabilize/notify
+- no data storage
+- minor fault tolerance: uses fingertables to close ring if succ/pred fail
+- no notify if node fails
+"""
+
 import argparse
+import hashlib
 import logging
 import queue
 import random
@@ -143,7 +153,6 @@ class ChordDHTPeer:
 
     def __init__(
         self,
-        peer_id: int,
         addr: tuple[str, int],
         successor: tuple[int, tuple[str, int]] = None,
         predecessor: tuple[int, tuple[str, int]] = None,
@@ -151,8 +160,15 @@ class ChordDHTPeer:
     ):
         """creates a new ChordPeer"""
 
-        self._id = peer_id
-        # (int(hashlib.sha3_224(addr[0].encode(encoding="utf-8")).hexdigest(), 16)% max_fingers))
+        self._id = (
+            int(
+                hashlib.sha3_224(
+                    (addr[0] + str(addr[1])).encode(encoding="utf-8")
+                ).hexdigest(),
+                16,
+            )
+            % max_fingers
+        )
         self._addr = addr
 
         self._successor = successor
@@ -615,7 +631,7 @@ class ChordDHTPeer:
                         case MessageType.NOTIFY:
                             self._process_notify(message)
                         case MessageType.FED_MODEL:
-                            self.fed_models.put((message.sender, message.model))
+                            self._put_federated_model(message)
                 self._logger.info(self.__str__())
 
     def _close_ring_at_first_peer(self):
@@ -690,7 +706,8 @@ class ChordDHTPeer:
         if message.origin == MessageOrigin.FIX_FINGERS:
             self._process_and_set_finger(request[2], message.peer_tuple)
         elif message.origin == MessageOrigin.FED_PEERS_REQ:
-            self.fed_peers.put(message.peer_tuple)
+            if message.peer_tuple is not (self._id, self._addr):
+                self.fed_peers.put(message.peer_tuple)
 
     def _process_notify(self, message: Chordmessage):
         self._logger.info(f"Received notify from {message.sender}...")
@@ -708,6 +725,10 @@ class ChordDHTPeer:
         if self._check_is_predecessor(message.peer_tuple[0]):
             self._set_predecessor(message.peer_tuple)
         self._notify(message.peer_tuple)
+
+    def _put_federated_model(self, message: Chordmessage):
+        if message.sender is not (self._id, self._addr):
+            self.fed_models.put((message.sender, message.model))
 
     def _set_successor(self, successor: tuple[int, tuple[str, int]]):
         """Setter for a peer's successor. Assigns new successor and
