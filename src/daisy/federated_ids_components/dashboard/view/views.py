@@ -4,8 +4,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-from daisy.federated_ids_components.dashboard.api.models import Aggregation, Prediction
-from dash_bootstrap_templates import load_figure_template
+from api.models import Aggregation, Prediction
+#from dash_bootstrap_templates import load_figure_template
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
 
@@ -48,7 +48,7 @@ def index(request):
 
 _dark_template = "bootstrap_dark"  # "slate"
 _light_template = "bootstrap"  # pulse"
-load_figure_template([_light_template, _dark_template])
+#load_figure_template([_light_template, _dark_template])
 
 
 def change_theme(request):

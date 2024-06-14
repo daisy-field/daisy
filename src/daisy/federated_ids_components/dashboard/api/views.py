@@ -5,7 +5,7 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 from rest_framework import permissions, viewsets
 
-from daisy.federated_ids_components.dashboard.api.serializers import (
+from api.serializers import (
     MetricsSerializer,
     AggregationSerializer,
     PredictionSerializer,
