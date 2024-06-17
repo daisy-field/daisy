@@ -193,7 +193,7 @@ class ChordDHTPeer:
         self._stabilize_recv_timestamp = time.time()
 
         self._logger = logging.getLogger("Peer")
-        self._logger.setLevel(logging.CRITICAL)
+        self._logger.setLevel(logging.INFO)
 
         self.fed_peers = queue.Queue()
         self.fed_models = queue.Queue()
@@ -674,15 +674,15 @@ class ChordDHTPeer:
                     f"{time.time() - request[1]} seconds."
                 )
                 delete_count += 1
-        self._logger.info(
+        self._logger.debug(
             f"Deleted {delete_count} pending requests in this interation."
         )
         return delete_count
 
     def _check_ttl_expired(self, timestamp: float, ttl: int = None) -> bool:
-        self._logger.info("Hop Time: %d", time.time() - timestamp)
+        self._logger.debug("Hop Time: %d", time.time() - timestamp)
         if time.time() - timestamp > (ttl or self._default_response_ttl):
-            self._logger.info("skipping expired message")
+            self._logger.debug("skipping expired message")
             return True
         return False
 
@@ -770,8 +770,14 @@ class ChordDHTPeer:
         )
         self._predecessor_endpoint.start()
 
-    def request_n_random_peers(self, n_peers: int):
+    def request_n_random_peers(self, n_peers: int) -> int:
         random.seed()
+        if self._successor == (self._id, self._addr):
+            self._logger.warning(
+                "Randomized Peer selection not possible: Only one Peer in Network: "
+                + "Try again later. "
+            )
+            return -1
         for i in range(n_peers):
             r_num = random.randint(a=0, b=(1 << self._max_fingers))
             message = Chordmessage(
@@ -785,7 +791,11 @@ class ChordDHTPeer:
             try:
                 self._successor_endpoint.send(message)
             except RuntimeError:
-                self._logger.error("lookup failed, successor endpoint not available!")
+                self._logger.error(
+                    "requesting random peer failed: successor endpoint not available."
+                )
+                return -1
+        return 1
 
     def __str__(self) -> str:
         return (

@@ -11,9 +11,8 @@ the samples of that data stream at every step.
 Author: Fabian Hofmann
 Modified: 04.04.24
 """
-# TODO Future Work: Defining granularity of logging in inits
-# TODO Future Work: Args for client-side ports in init
 
+import argparse
 import logging
 import threading
 from abc import ABC, abstractmethod
@@ -26,8 +25,20 @@ import tensorflow as tf
 
 from daisy.chord import ChordDHTPeer
 from daisy.communication import StreamEndpoint
-from daisy.data_sources import DataSource
-from daisy.federated_learning import FederatedModel, ModelAggregator
+from daisy.data_sources import DataSource, SimpleDataProcessor, SimpleSourceHandler
+from daisy.evaluation import ConfMatrSlidingWindowEvaluation
+from daisy.federated_learning import (
+    FederatedModel,
+    ModelAggregator,
+    FederatedIFTM,
+    FedAvgAggregator,
+    EMAvgTM,
+    TFFederatedModel,
+)
+
+
+# TODO Future Work: Defining granularity of logging in inits
+# TODO Future Work: Args for client-side ports in init
 
 
 class FederatedOnlineNode(ABC):
@@ -138,7 +149,9 @@ class FederatedOnlineNode(ABC):
         self._model = model
         self._m_lock = threading.Lock()
 
-        if label_split == 2**32 and (supervised or len(metrics) == 0):
+        if label_split == 2**32 and (
+            supervised or metrics is None or len(metrics) == 0
+        ):
             raise ValueError("Supervised and/or evaluation mode requires labels!")
         self._label_split = label_split
         self._supervised = supervised
@@ -593,6 +606,7 @@ class FederatedOnlinePeer(FederatedOnlineNode):
     _unchoked_peers: set
 
     model: FederatedModel
+    _started: bool
 
     _logger: logging.Logger
 
@@ -602,6 +616,7 @@ class FederatedOnlinePeer(FederatedOnlineNode):
         batch_size: int,
         model: FederatedModel,
         m_aggr: ModelAggregator,
+        port: int,
         name: str = "",
         label_split: int = 2**32,
         supervised: bool = False,
@@ -649,23 +664,25 @@ class FederatedOnlinePeer(FederatedOnlineNode):
             update_interval_s=update_interval_s,
             update_interval_t=update_interval_t,
         )
-
+        self._addr = ("127.0.0.1", port)
         self._dht_join_addr = dht_join_addr
         self._m_aggr = m_aggr
         self._topology = ChordDHTPeer(addr=self._addr)
         self._num_peers = num_peers
         self._unchoked_peers = set()
+        self._started = False
 
-        self._logger = logging.getLogger("F_Node")
-        self._logger.setLevel(logging.INFO)
+        self._logger = logging.getLogger("FED_PEER")
+        self._logger.setLevel(logging.DEBUG)
 
     def setup(self):
         """ """
         # start dht
         self._topology_thread = threading.Thread(
-            target=self._topology.start(self._dht_join_addr), daemon=True
+            target=lambda: self._topology.start(self._dht_join_addr), daemon=True
         )
         self._topology_thread.start()
+        return
 
     def cleanup(self):
         """ """
@@ -681,13 +698,18 @@ class FederatedOnlinePeer(FederatedOnlineNode):
         #  wann/wie oft wird optimistic unchoking durchgeführt,
         #  wann/wie oft tit for tat
         # TODO race conditions
+        # TODO single Peer
+        # TODO only two peers
         # TODO logik abklären
         while True:
-            self.request_n_federated_peers_random_selection(self._num_peers)
-            self._optimistic_unchoke()
-            models = self._tit_for_tat()
-            models.add(self.model.get_parameters())
-            self.model.set_parameters(self._m_aggr.aggregate(list(models)))
+            if self._request_n_federated_peers_random_selection(self._num_peers) == 1:
+                self._optimistic_unchoke()
+                models = self._tit_for_tat()
+                models.add(self.model.get_parameters())
+                self.model.set_parameters(self._m_aggr.aggregate(list(models)))
+            else:
+                self._logger.debug("fed peer sleep 10")
+                sleep(10)
 
     def _optimistic_unchoke(self):
         peers = set()
@@ -704,7 +726,7 @@ class FederatedOnlinePeer(FederatedOnlineNode):
         for peer in peers:
             if peer in self._unchoked_peers:
                 continue
-            self.send_modeldata(peer, self.model.get_parameters())
+            self._send_modeldata(peer, self.model.get_parameters())
             self._unchoked_peers.add(peer)
 
     def _tit_for_tat(self) -> set:
@@ -714,25 +736,28 @@ class FederatedOnlinePeer(FederatedOnlineNode):
             try:
                 peers_and_models.add(self._topology.fed_models.get_nowait())
             except Empty:
-                self._logger.error("No Models in queue")
+                self._logger.error("No Models in queue.")
                 break
+        self._logger.info(f"Retrieved {len(models)} from network.")
         for peer, model in peers_and_models:
             if peer in self._unchoked_peers:
                 self._unchoked_peers.remove(peer)
             else:
-                self.send_modeldata(peer, model)
+                self._send_modeldata(peer, model)
             models.add(model)
         return models
 
-    def request_n_federated_peers_random_selection(self, n_peers: int):
+    def _request_n_federated_peers_random_selection(self, n_peers: int):
         """get a number of peers for federated learning in random selection mode"""
-        self._topology.request_n_random_peers(n_peers)
+        if self._topology.request_n_random_peers(n_peers) == -1:
+            return -1
+        return 1
 
-    def send_modeldata(
-        self, fed_peer: tuple[int, tuple[str, int]], model: list[np.ndarray]
+    def _send_modeldata(
+        self, fed_peer: tuple[int, tuple[str, int]], fed_model: list[np.ndarray]
     ):
         """Share own modeldata with another peer"""
-        self._topology.send_federated_model(fed_peer, model)
+        self._topology.send_federated_model(fed_peer, fed_model)
 
 
 def _try_ops(*operations: Callable, logger: logging.Logger):
@@ -750,3 +775,56 @@ def _try_ops(*operations: Callable, logger: logging.Logger):
             logger.warning(
                 f"{e.__class__.__name__}({e}) while trying to execute {op}: {e}"
             )
+
+
+if __name__ == "__main__":
+    logging.basicConfig(
+        format="%(asctime)s %(levelname)-8s %(name)-10s %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+        level=logging.INFO,
+    )
+
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parser.add_argument("--port", type=int, default=None, help="Port of peer")
+    parser.add_argument(
+        "--port_join", type=int, default=None, help="Port of peer to join dht on"
+    )
+    args = parser.parse_args()
+
+    # Model
+    id_fn = TFFederatedModel.get_fae(
+        input_size=1,
+        batch_size=1,
+        epochs=1,
+    )
+    t_m = EMAvgTM(alpha=0.05)
+    err_fn = tf.keras.losses.MeanAbsoluteError(reduction=tf.keras.losses.Reduction.NONE)
+    model = FederatedIFTM(
+        identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn, param_split=1
+    )
+
+    _list = [{"a": 2}, {"a": 3}, {"a": 3}, {"a": 4}, {"a": 5}]
+    handler = SimpleSourceHandler(iter(_list))
+    processor = SimpleDataProcessor(
+        reduce_fn=lambda o_point: np.array(list(o_point.values()))
+    )
+    data_source = DataSource(source_handler=handler, data_processor=processor)
+    metrics = [ConfMatrSlidingWindowEvaluation(window_size=8)]
+
+    join_addr = None
+    if args.port_join:
+        join_addr = ("127.0.0.1", args.port_join)
+    federated_node = FederatedOnlinePeer(
+        data_source=data_source,
+        model=model,
+        batch_size=1,
+        m_aggr=FedAvgAggregator(),
+        port=int(args.port),
+        metrics=metrics,
+        dht_join_addr=join_addr,
+    )
+    federated_node.start()
+    input("Press Enter to stop peer...")
+    federated_node.stop()
