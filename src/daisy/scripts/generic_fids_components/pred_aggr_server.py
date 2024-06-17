@@ -24,6 +24,7 @@ import logging
 
 from daisy.federated_ids_components import FederatedPredictionAggregator
 
+
 def _parse_args() -> argparse.Namespace:
     """Creates a parser for the server arguments and parses them.
 
@@ -64,17 +65,14 @@ def _parse_args() -> argparse.Namespace:
         help="Window_size of aggregation",
     )
     aggr_options.add_argument(
-        "--dashboard_url",
-        default="127.0.0.1",
-        help="IP of dashboard server"
+        "--dashboard_url", default="127.0.0.1", help="IP of dashboard server"
     )
     aggr_options.add_argument(
-        "--name",
-        default="Evaluation Server",
-        help="Name of prediction server"
+        "--name", default="Evaluation Server", help="Name of prediction server"
     )
 
     return parser.parse_args()
+
 
 def create_server():
     """Creates a pre-configured federated server node for two the federated demo
