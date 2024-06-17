@@ -14,15 +14,17 @@ docstrings of the respective demos.
 
 Currently, the following generic federated IDS components are provided:
 
-    * eval_aggr_server - TODO
+    * eval_aggr_server - Auxiliary aggregation server for evaluation metric results.
     * model_aggr_server - Federated model aggregation server using federated averaging.
-    * pred_aggr_server - TODO
+    * pred_aggr_server - Auxiliary aggregation server for prediction value results.
 
 
 Author: Fabian Hofmann
-Modified: 10.04.24
+Modified: 17.06.24
 """
 
-__all__ = ["model_aggr_server"]
+__all__ = ["eval_aggr_server", "model_aggr_server", "pred_aggr_server"]
 
+from .eval_aggr_server import create_server as eval_aggr_server
 from .model_aggr_server import create_server as model_aggr_server
+from .pred_aggr_server import create_server as pred_aggr_server

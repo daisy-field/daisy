@@ -143,6 +143,8 @@ dev = ["coverage", "pre-commit", "ruff"]
 # which executes the function `main` from this package when invoked.
 [project.scripts]
 model_aggr_server = "daisy.scripts.generic_fids_components:model_aggr_server"
+eval_aggr_server = "daisy.scripts.generic_fids_components:eval_aggr_server"
+pred_aggr_server = "daisy.scripts.generic_fids_components:pred_aggr_server"
 demo_202312_client = "daisy.scripts.demo_components:demo_202312_client"
 
 # This is configuration specific to the `setuptools` build backend.
