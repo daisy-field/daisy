@@ -160,15 +160,12 @@ class ChordDHTPeer:
     ):
         """creates a new ChordPeer"""
 
-        self._id = (
-            int(
-                hashlib.sha3_224(
-                    (addr[0] + str(addr[1])).encode(encoding="utf-8")
-                ).hexdigest(),
-                16,
-            )
-            % max_fingers
-        )
+        self._id = int(
+            hashlib.sha3_224(
+                (addr[0] + str(addr[1])).encode(encoding="utf-8")
+            ).hexdigest(),
+            16,
+        ) % (1 << max_fingers)
         self._addr = addr
 
         self._successor = successor
@@ -605,11 +602,12 @@ class ChordDHTPeer:
         #  falls man mehr als einen einsteigsknoten hat und dann durchprobieren
         # TODO finger class?
         # todo determine proper ttl/retry time for join
-        # TODO was wenn succ & pred failen? rejoin functionality in case node is left alone
+        # TODO was wenn succ & pred failen? rejoin functionality
+        #       in case node is left alone
         self._logger.info(f"Peer {self._id} started...")
         start = time.time()
         period = start
-        self._join(join_addr=join_addr) if join_addr is not None else self._create()
+        self._create() if join_addr is None else self._join(join_addr=join_addr)
         while True and self._joined:
             self._close_ring_at_first_peer()
             self._cleanup_pending_requests()
@@ -771,6 +769,7 @@ class ChordDHTPeer:
         self._predecessor_endpoint.start()
 
     def request_n_random_peers(self, n_peers: int) -> int:
+        """Requests a number of peers randomly from the chord ring. Should never be called by the chord peer, only by the federated node."""
         random.seed()
         if self._successor == (self._id, self._addr):
             self._logger.warning(
@@ -790,7 +789,7 @@ class ChordDHTPeer:
             )
             try:
                 self._successor_endpoint.send(message)
-            except RuntimeError:
+            except (RuntimeError, AttributeError):
                 self._logger.error(
                     "requesting random peer failed: successor endpoint not available."
                 )

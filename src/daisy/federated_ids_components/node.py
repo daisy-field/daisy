@@ -697,21 +697,23 @@ class FederatedOnlinePeer(FederatedOnlineNode):
         return
 
     def cleanup(self):
-        """ """
+        """TODO implement"""
         raise NotImplementedError
 
     def fed_update(self):
-        """"""
+        """TODO implement"""
         raise NotImplementedError
 
     def create_async_fed_learner(self):
         """ """
+        # TODO dht node continues running after fed node exits
+        #  possibility for fed node to exit dht node
         # TODO time management
         #  wann/wie oft wird optimistic unchoking durchgeführt,
         #  wann/wie oft tit for tat
         # TODO race conditions
-        # TODO single Peer
-        # TODO only two peers
+        # DONE single Peer -> sleep, no learning
+        # DONE only two peers - not an edge case
         # TODO logik abklären
         while True:
             if self._request_n_federated_peers_random_selection(self._num_peers) == 1:
