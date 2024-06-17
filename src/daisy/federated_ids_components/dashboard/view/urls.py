@@ -5,7 +5,7 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 from django.urls import path
 
-from . import views
+from daisy.federated_ids_components.dashboard.view import views
 
 urlpatterns = [
     path("", views.index, name="index"),
