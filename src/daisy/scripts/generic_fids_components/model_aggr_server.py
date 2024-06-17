@@ -16,7 +16,7 @@ asynchronous federated updating, since the server does the initial requests for 
 updates.
 
 Author: Fabian Hofmann
-Modified: 10.04.24
+Modified: 17.06.24
 """
 
 import argparse
@@ -63,15 +63,25 @@ def _parse_args() -> argparse.Namespace:
         type=int,
         default=None,
         metavar="",
-        help="Federated updating interval, defined by time (s)",
+        help="Federated updating step interval, defined by time (s)",
+    )
+    aggr_options.add_argument(
+        "--numClients",
+        type=int,
+        default=None,
+        metavar="",
+        help="Number of federated clients to sample during an aggregation step",
+    )
+    aggr_options.add_argument(
+        "--dashboardURL", default="127.0.0.1", help="IP of (external) dashboard server"
     )
 
     return parser.parse_args()
 
 
 def create_server():
-    """Creates a pre-configured federated server node for two the federated demo
-    clients. Entry point of this module's functionality.
+    """Creates a pre-configured federated model aggregation server node.
+    Entry point of this module's functionality.
 
     See the header doc string of this module for more details about the preset
     configuration.
@@ -99,10 +109,11 @@ def create_server():
         addr=(args.serv, args.servPort),
         timeout=args.timeout,
         update_interval=args.updateInterval,
-        num_clients=2,
+        num_clients=args.numClients,
+        dashboard_url=args.dashboardURL,
     )
     server.start()
-    input("Press Enter to stop client...")
+    input("Press Enter to stop server...")
     server.stop()
 
 

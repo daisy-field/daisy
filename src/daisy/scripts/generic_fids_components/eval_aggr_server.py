@@ -3,20 +3,17 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""Pre-configured evaluation aggregation server for a centralized federated system,
-whose clients learn cooperatively with each other through this centralized model
-aggregation server using the federated averaging (FedAvg) technique. This processing
-is done in online manner (as is the general nature of all current federated
-processing nodes) and in synchronous fashion, as the server calls upon the clients'
-models in periodic manner.
+"""Pre-configured evaluation aggregation server for any federated system, whose nodes
+report their evaluation metrics to a central server. Making this component auxiliary in
+nature, as it merely serves as a central collection agent for further processing or
+visualization purposes.
 
-Note this server does nothing on its own --- it requires at least one (in
-practicality two) active client to be run in tandem with it, whose set to
-asynchronous federated updating, since the server does the initial requests for model
-updates.
+Note this server does nothing on its own --- it requires at least one active
+federated node to be run in tandem with it, whose set to report its evaluation results
+to this server.
 
 Author: Fabian Hofmann, Seraphin Zunzer
-Modified: 12.06.24
+Modified: 17.06.24
 """
 
 import argparse
@@ -43,7 +40,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--servPort",
         type=int,
-        default=8000,
+        default=8001,
         choices=range(1, 65535),
         metavar="",
         help="Port of evaluation aggregation server",
@@ -55,28 +52,25 @@ def _parse_args() -> argparse.Namespace:
         type=int,
         default=10,
         metavar="",
-        help="Timeout to receive model updates from federated clients",
+        help="Timeout to receive metric updates from federated nodes",
     )
     aggr_options.add_argument(
-        "--window_size",
+        "--windowSize",
         type=int,
         default=None,
         metavar="",
-        help="Window_size of aggregation",
+        help="Window size of aggregator",
     )
     aggr_options.add_argument(
-        "--dashboard_url", default="127.0.0.1", help="IP of dashboard server"
-    )
-    aggr_options.add_argument(
-        "--name", default="Evaluation Server", help="Name of evaluation server"
+        "--dashboardURL", default="127.0.0.1", help="IP of (external) dashboard server"
     )
 
     return parser.parse_args()
 
 
 def create_server():
-    """Creates a pre-configured federated server node for two the federated demo
-    clients. Entry point of this module's functionality.
+    """Creates a pre-configured prediction value collection server node.
+    Entry point of this module's functionality.
 
     See the header doc string of this module for more details about the preset
     configuration.
@@ -98,14 +92,13 @@ def create_server():
 
     # Server
     server = FederatedEvaluationAggregator(
-        dashboard_url=args.dashboard_url,
-        window_size=args.window_size,
-        name=args.name,
-        timeout=args.timeout,
         addr=(args.serv, args.servPort),
+        window_size=args.windowSize,
+        timeout=args.timeout,
+        dashboard_url=args.dashboardURL,
     )
     server.start()
-    input("Press Enter to stop client...")
+    input("Press Enter to stop server...")
     server.stop()
 
 
