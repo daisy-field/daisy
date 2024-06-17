@@ -16,6 +16,7 @@ Modified: 19.04.24
 #   - NaN values also need to converted to something useful
 #     (that does not break the prediction/training)
 
+import logging
 import os
 from typing import Iterator, Optional
 
@@ -177,6 +178,11 @@ class PcapHandler(SourceHandler):
         """
         for _ in self._pcap_files:
             self._open()
-            for packet in self._cur_file_handle:
-                yield packet
+            try:
+                for packet in self._cur_file_handle:
+                    yield packet
+            except TSharkCrashException as e:
+                logging.warning(
+                    f"{e.__class__.__name__}({e}) while reading packets. Closing..."
+                )
             self._cur_file_handle.close()

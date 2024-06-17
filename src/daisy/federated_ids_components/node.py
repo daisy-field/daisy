@@ -100,6 +100,7 @@ class FederatedOnlineNode(ABC):
     _loc_learner: threading.Thread
     _fed_updater: threading.Thread
     _started: bool
+    _completed = threading.Event
 
     def __init__(
         self,
@@ -182,13 +183,18 @@ class FederatedOnlineNode(ABC):
         self._u_lock = threading.Lock()
 
         self._started = False
+        self._completed = threading.Event()
         self._logger.info("Federated online node initialized.")
 
-    def start(self):
+    def start(self, blocking: bool = False):
         """Starts the federated online node, along with any underlying endpoints,
         data sources, and any other object by an extension of this class (see setup(
         )). Non-blocking.
 
+        :param blocking: Whether the node should block until all data points have
+        been processed.
+        :return: Event object to check completion state of federated node, i.e. whether
+        it has processed every data point and may be closed.
         :raises RuntimeError: If federated online node has already been started.
         """
         self._logger.info("Starting federated online node...")
@@ -215,6 +221,11 @@ class FederatedOnlineNode(ABC):
             )
             self._fed_updater.start()
         self._logger.info("Federated online node started.")
+
+        if blocking:
+            self._completed.wait()
+            self._logger.info("Node has processed all data points and may be closed.")
+        return self._completed
 
     @abstractmethod
     def setup(self):
@@ -290,7 +301,8 @@ class FederatedOnlineNode(ABC):
         except RuntimeError:
             # stop() was called
             pass
-        self._logger.info("AsyncLearner: Stopping...")
+        self._logger.info("AsyncLearner: Data source exhausted, or node closed.")
+        self._completed.set()
 
     def _process_batch(self):
         """Processes the current batch for both running a prediction and fitting the

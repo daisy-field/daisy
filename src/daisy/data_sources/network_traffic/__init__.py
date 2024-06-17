@@ -35,9 +35,7 @@ __all__ = [
     "create_pyshark_processor",
 ]
 
-from .cohda_source import CohdaProcessor
-from .cohda_source import march23_events
-
+from .cohda_source import CohdaProcessor, march23_events
 from .pyshark_handler import LivePysharkHandler, PcapHandler
 from .pyshark_processor import (
     pyshark_map_fn,
