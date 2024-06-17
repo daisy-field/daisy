@@ -700,9 +700,10 @@ class FederatedOnlinePeer(FederatedOnlineNode):
         """TODO implement"""
         raise NotImplementedError
 
-    def fed_update(self):
-        """TODO implement"""
-        raise NotImplementedError
+    def fed_update(self, models: set[list[np.ndarray]] = None):
+        """ """
+        if models is not None and len(models) > 0:
+            self.model.set_parameters(self._m_aggr.aggregate(list(models)))
 
     def create_async_fed_learner(self):
         """ """
@@ -715,12 +716,14 @@ class FederatedOnlinePeer(FederatedOnlineNode):
         # DONE single Peer -> sleep, no learning
         # DONE only two peers - not an edge case
         # TODO logik abklären
-        while True:
+        while self._started:
             if self._request_n_federated_peers_random_selection(self._num_peers) == 1:
                 self._optimistic_unchoke()
+                sleep(self._topology._max_fingers)  # todo hier sinnvoll drankommen
                 models = self._tit_for_tat()
-                models.add(self.model.get_parameters())
-                self.model.set_parameters(self._m_aggr.aggregate(list(models)))
+                with self._m_lock:
+                    models.add(self.model.get_parameters())
+                    self.fed_update(models)
             else:
                 self._logger.debug("fed peer sleep 10")
                 sleep(10)
@@ -743,23 +746,23 @@ class FederatedOnlinePeer(FederatedOnlineNode):
             self._send_modeldata(peer, self.model.get_parameters())
             self._unchoked_peers.add(peer)
 
-    def _tit_for_tat(self) -> set:
-        peers_and_models = set()
-        models = set()
-        while len(models) < self._num_peers:
+    def _tit_for_tat(self) -> set[list[np.ndarray]]:
+        fed_peers_and_models = set()
+        fed_models = set()
+        while len(fed_models) < self._num_peers:
             try:
-                peers_and_models.add(self._topology.fed_models.get_nowait())
+                fed_peers_and_models.add(self._topology.fed_models.get_nowait())
             except Empty:
                 self._logger.error("No Models in queue.")
                 break
-        self._logger.info(f"Retrieved {len(models)} from network.")
-        for peer, model in peers_and_models:
-            if peer in self._unchoked_peers:
-                self._unchoked_peers.remove(peer)
+        self._logger.info(f"Retrieved {len(fed_models)} from network.")
+        for fed_peer, fed_model in fed_peers_and_models:
+            if fed_peer in self._unchoked_peers:
+                self._unchoked_peers.remove(fed_peer)
             else:
-                self._send_modeldata(peer, model)
-            models.add(model)
-        return models
+                self._send_modeldata(fed_peer, fed_model)
+            fed_models.add(fed_model)
+        return fed_models
 
     def _request_n_federated_peers_random_selection(self, n_peers: int):
         """get a number of peers for federated learning in random selection mode"""
