@@ -14,17 +14,18 @@ docstrings of the respective demos.
 
 Currently, the following generic federated IDS components are provided:
 
+    * dashboard - Auxiliary dashboard for all other servers' aggregated results.
     * eval_aggr_server - Auxiliary aggregation server for evaluation metric results.
     * model_aggr_server - Federated model aggregation server using federated averaging.
     * pred_aggr_server - Auxiliary aggregation server for prediction value results.
-
 
 Author: Fabian Hofmann
 Modified: 17.06.24
 """
 
-__all__ = ["eval_aggr_server", "model_aggr_server", "pred_aggr_server"]
+__all__ = ["dashboard", "eval_aggr_server", "model_aggr_server", "pred_aggr_server"]
 
+from .dashboard import create_dashboard as dashboard
 from .eval_aggr_server import create_server as eval_aggr_server
 from .model_aggr_server import create_server as model_aggr_server
 from .pred_aggr_server import create_server as pred_aggr_server
