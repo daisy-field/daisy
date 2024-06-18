@@ -5,7 +5,8 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 from api.models import Aggregation, Prediction
-#from dash_bootstrap_templates import load_figure_template
+
+# from dash_bootstrap_templates import load_figure_template
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
 
@@ -48,7 +49,7 @@ def index(request):
 
 _dark_template = "bootstrap_dark"  # "slate"
 _light_template = "bootstrap"  # pulse"
-#load_figure_template([_light_template, _dark_template])
+# load_figure_template([_light_template, _dark_template])
 
 
 def change_theme(request):
