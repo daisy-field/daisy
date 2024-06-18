@@ -119,9 +119,8 @@ dependencies = [
 # projects.
 [project.optional-dependencies] # Optional
 cuda = ["tensorflow[and-cuda]~=2.15.0"]
-dev = ["pre-commit", "ruff"]
+dev = ["coverage", "pre-commit", "ruff"]
 #dev = ["check-manifest"]
-#test = ["coverage"]
 
 # List URLs that are relevant to your project
 #
@@ -144,6 +143,9 @@ dev = ["pre-commit", "ruff"]
 # which executes the function `main` from this package when invoked.
 [project.scripts]
 model_aggr_server = "daisy.scripts.generic_fids_components:model_aggr_server"
+eval_aggr_server = "daisy.scripts.generic_fids_components:eval_aggr_server"
+pred_aggr_server = "daisy.scripts.generic_fids_components:pred_aggr_server"
+dashboard = "daisy.scripts.generic_fids_components:dashboard"
 demo_202312_client = "daisy.scripts.demo_components:demo_202312_client"
 
 # This is configuration specific to the `setuptools` build backend.

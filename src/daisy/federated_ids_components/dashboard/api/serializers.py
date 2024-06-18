@@ -5,7 +5,7 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 from rest_framework import serializers
 
-from .models import Metrics, Aggregation, Alerts, Prediction, Node
+from api.models import Metrics, Aggregation, Alerts, Prediction, Node
 
 
 class MetricsSerializer(serializers.HyperlinkedModelSerializer):
