@@ -218,7 +218,6 @@ class FederatedIFTM(FederatedModel):
         identify_fn: FederatedModel,
         threshold_m: FederatedModel,
         error_fn: Callable[[Tensor, Tensor], Tensor],
-        param_split: int,
         pf_mode: bool = False,
     ):
         """Creates a new federated IFTM anomaly detection model.
@@ -228,15 +227,13 @@ class FederatedIFTM(FederatedModel):
         :param error_fn: Reconstruction/Prediction error function that must compute
         the error in sample-wise manner (for example, if using a loss function,
         the reduction should be set to NONE).
-        :param param_split: Length of IF parameters to efficiently merge the two
-        lists of params.
         :param pf_mode: Whether IFTM uses an identity function or a prediction function.
         """
         self._if = identify_fn
         self._tm = threshold_m
         self._ef = error_fn
 
-        self._param_split = param_split
+        self._param_split = len(identify_fn.get_parameters())
 
         self._pf_mode = pf_mode
         self._prev_fit_sample = None

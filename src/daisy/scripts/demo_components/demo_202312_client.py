@@ -190,9 +190,7 @@ def create_client():
     )
     t_m = EMAvgTM(alpha=0.05)
     err_fn = tf.keras.losses.MeanAbsoluteError(reduction=tf.keras.losses.Reduction.NONE)
-    model = FederatedIFTM(
-        identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn, param_split=65
-    )
+    model = FederatedIFTM(identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn)
 
     metrics = [ConfMatrSlidingWindowEvaluation(window_size=args.batchSize * 8)]
 
