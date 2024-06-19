@@ -89,7 +89,7 @@ def _parse_args() -> argparse.Namespace:
     server_options.add_argument(
         "--modelAggrServPort",
         type=int,
-        default=8000,
+        default=8003,
         choices=range(1, 65535),
         metavar="",
         help="Port of model aggregation server",

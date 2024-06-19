@@ -62,7 +62,7 @@ def _parse_args() -> argparse.Namespace:
         help="Window size of aggregator",
     )
     aggr_options.add_argument(
-        "--dashboardURL", default="127.0.0.1", help="IP of (external) dashboard server"
+        "--dashboardURL", default="http://127.0.0.1:8000/", help="IP of (external) dashboard server"
     )
 
     return parser.parse_args()
