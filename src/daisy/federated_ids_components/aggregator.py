@@ -174,7 +174,9 @@ class FederatedOnlineAggregator(ABC):
         if self._dashboard_url is None:
             return
         try:
-            _ = requests.post(url=self._dashboard_url + ressource, data=data)
+            _ = requests.post(
+                url="http://" + self._dashboard_url + ":8000" + ressource, data=data
+            )
         except requests.exceptions.RequestException as e:
             self._logger.warning(f"Dashboard server not reachable: {e}")
 
@@ -483,7 +485,7 @@ class FederatedValueAggregator(FederatedOnlineAggregator):
             # TODO add client number
             self._update_dashboard(
                 "/prediction/",  # ADD CORRECT PATH
-                {"pred_status": "Operational", "pred_cunt": 1},
+                {"pred_status": "Operational", "pred_count": 1},
             )
 
             try:
