@@ -39,7 +39,10 @@ def _parse_args() -> argparse.Namespace:
         "--debug", type=bool, default=False, metavar="", help="Show debug outputs"
     )
     parser.add_argument(
-        "--serv", required=True, help="IP or hostname of model aggregation server"
+        "--serv",
+        default="0.0.0.0",
+        metavar="",
+        help="IP or hostname of model aggregation server",
     )
     parser.add_argument(
         "--servPort",
@@ -73,7 +76,10 @@ def _parse_args() -> argparse.Namespace:
         help="Number of federated clients to sample during an aggregation step",
     )
     aggr_options.add_argument(
-        "--dashboardURL", default="127.0.0.1", help="IP of (external) dashboard server"
+        "--dashboardURL",
+        default=None,
+        metavar="",
+        help="IP of (external) dashboard server",
     )
 
     return parser.parse_args()

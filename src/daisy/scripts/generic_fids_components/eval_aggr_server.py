@@ -35,7 +35,10 @@ def _parse_args() -> argparse.Namespace:
         "--debug", type=bool, default=False, metavar="", help="Show debug outputs"
     )
     parser.add_argument(
-        "--serv", required=True, help="IP or hostname of evaluation aggregation server"
+        "--serv",
+        default="0.0.0.0",
+        metavar="",
+        help="IP or hostname of evaluation aggregation server",
     )
     parser.add_argument(
         "--servPort",
@@ -62,7 +65,10 @@ def _parse_args() -> argparse.Namespace:
         help="Window size of aggregator",
     )
     aggr_options.add_argument(
-        "--dashboardURL", default="http://127.0.0.1:8000/", help="IP of (external) dashboard server"
+        "--dashboardURL",
+        default=None,
+        metavar="",
+        help="IP of (external) dashboard server",
     )
 
     return parser.parse_args()
