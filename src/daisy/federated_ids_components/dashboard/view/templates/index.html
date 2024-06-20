@@ -235,26 +235,21 @@
                  success: (response) => {
                      const givenDate = new Date(response[response.length-1].agg_time);
                      const timeDifferenceMs = new Date() - givenDate;
-                    const diffMinutes = Math.floor(timeDifferenceMs / (1000 * 60));
-
+                     const diffMinutes = Math.floor(timeDifferenceMs / (1000 * 60));
                      if(diffMinutes< 1){
-
-                            var element = document.getElementById("agg_box");
-                            element.classList.add("bg-success");
-                                                     element.classList.remove("bg-warning");
+                         var element = document.getElementById("agg_box");
+                         element.classList.add("bg-success");
+                         element.classList.remove("bg-warning");
                      }
                      else{
-                          var element = document.getElementById("agg_box");
-                            element.classList.remove("bg-success");
-                            element.classList.add("bg-warning");
-
+                         var element = document.getElementById("agg_box");
+                         element.classList.remove("bg-success");
+                         element.classList.add("bg-warning");
                      }
-
                      },
                  error: (error) => {
                      console.log(error);
                  }
-
              })
              $.ajax({
                  url: "http://127.0.0.1:8000/prediction/",
@@ -264,27 +259,45 @@
                      const givenDate = new Date(response[response.length-1].pred_time);
                      const timeDifferenceMs = new Date() - givenDate;
                      const diffMinutes = Math.floor(timeDifferenceMs / (1000 * 60));
-
-                    console.log(diffMinutes, new Date())
-
                      if(diffMinutes< 1){
-                            var element = document.getElementById("pred_box");
-                            element.classList.add("bg-success");
+                         var element = document.getElementById("pred_box");
+                         element.classList.add("bg-success");
                          element.classList.remove("bg-warning");
                      }
                      else{
                           var element = document.getElementById("pred_box");
-                            element.classList.remove("bg-success");
-                            element.classList.add("bg-warning");
-
+                          element.classList.remove("bg-success");
+                          element.classList.add("bg-warning");
                      }
-
                      },
                  error: (error) => {
                      console.log(error);
                  }
-
              })
+             $.ajax({
+                 url: "http://127.0.0.1:8000/evaluation/",
+                 type: "GET",
+                 dataType: "json",
+                 success: (response) => {
+                     const givenDate = new Date(response[response.length-1].eval_time);
+                     const timeDifferenceMs = new Date() - givenDate;
+                     const diffMinutes = Math.floor(timeDifferenceMs / (1000 * 60));
+                     if(diffMinutes< 1){
+                         var element = document.getElementById("eval_box");
+                         element.classList.add("bg-success");
+                         element.classList.remove("bg-warning");
+                     }
+                     else{
+                          var element = document.getElementById("eval_box");
+                          element.classList.remove("bg-success");
+                          element.classList.add("bg-warning");
+                     }
+                     },
+                 error: (error) => {
+                     console.log(error);
+                 }
+             })
+
          }
 
 

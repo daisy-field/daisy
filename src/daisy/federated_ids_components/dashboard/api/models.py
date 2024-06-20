@@ -24,6 +24,7 @@ class Alerts(models.Model):
     )
     active = models.BooleanField(default=True)
     message = models.CharField(max_length=255, unique=True)
+    address = models.CharField(max_length=255, unique=True)
     timestamp = models.DateTimeField(auto_now_add=True)
 
 
