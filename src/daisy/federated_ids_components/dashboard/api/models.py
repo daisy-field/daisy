@@ -37,7 +37,7 @@ class Metrics(models.Model):
 
     def save(self, *args, **kwargs):
         total_records = Metrics.objects.count()
-        while total_records >= 50:
+        while total_records >= 500:
             pks = Metrics.objects.values_list("pk")[:1]
             Metrics.objects.filter(pk__in=pks).delete()
             print("delete")
@@ -54,7 +54,7 @@ class Aggregation(models.Model):
 
     def save(self, *args, **kwargs):
         total_records = Aggregation.objects.count()
-        while total_records >= 100:
+        while total_records >= 1000:
             pks = Aggregation.objects.values_list("pk")[:1]
             Aggregation.objects.filter(pk__in=pks).delete()
             total_records = Aggregation.objects.count()
@@ -69,10 +69,25 @@ class Prediction(models.Model):
 
     def save(self, *args, **kwargs):
         total_records = Aggregation.objects.count()
-        while total_records >= 100:
+        while total_records >= 1000:
             pks = Aggregation.objects.values_list("pk")[:1]
             Aggregation.objects.filter(pk__in=pks).delete()
             total_records = Aggregation.objects.count()
+        else:
+            super().save(*args, **kwargs)
+
+
+class Evaluation(models.Model):
+    eval_status = models.CharField(max_length=255)
+    eval_count = models.IntegerField()
+    eval_time = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        total_records = Aggregation.objects.count()
+        while total_records >= 1000:
+            pks = Evaluation.objects.values_list("pk")[:1]
+            Evaluation.objects.filter(pk__in=pks).delete()
+            total_records = Evaluation.objects.count()
         else:
             super().save(*args, **kwargs)
 

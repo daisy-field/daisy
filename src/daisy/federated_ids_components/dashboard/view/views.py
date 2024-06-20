@@ -4,7 +4,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-from api.models import Aggregation, Prediction
+from api.models import Aggregation, Prediction, Evaluation
 
 # from dash_bootstrap_templates import load_figure_template
 from django.http import HttpResponseRedirect
@@ -32,6 +32,15 @@ def index(request):
         prediction_count = 0
         prediction_time = "None"
 
+    try:
+        evaluation_status = getattr(Evaluation.objects.last(), "eval_status")
+        evaluation_count = getattr(Evaluation.objects.last(), "eval_count")
+        evaluation_time = getattr(Evaluation.objects.last(), "eval_time")
+    except AttributeError:
+        evaluation_status = "None"
+        evaluation_count = 0
+        evaluation_time = "None"
+
     return render(
         request,
         "index.html",
@@ -43,6 +52,9 @@ def index(request):
             "prediction_status": prediction_status,
             "prediction_count": prediction_count,
             "prediction_time": prediction_time,
+            "evaluation_status": evaluation_status,
+            "evaluation_count": evaluation_count,
+            "evaluation_time": evaluation_time,
         },
     )
 
@@ -70,6 +82,11 @@ def alerts(request):
 def aggregate(request):
     theme = request.session.get("is_dark_theme")
     return render(request, "model_aggregation.html", {"dark_theme": theme})
+
+
+def predict(request):
+    theme = request.session.get("is_dark_theme")
+    return render(request, "prediction_aggregation.html", {"dark_theme": theme})
 
 
 def evaluate(request):

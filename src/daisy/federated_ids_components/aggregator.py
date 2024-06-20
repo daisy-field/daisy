@@ -353,7 +353,7 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
         self._update_dashboard(
             "/aggregation/",
             {
-                "agg_status": "up",  # len(client_models), #TODO agg_count, update_count
+                "agg_status": "Operational",  # len(client_models), #TODO agg_count, update_count
                 "agg_count": len(clients),  # ADD CLIENT NUMBER WHO RCVED UPDATE
             },
         )
@@ -415,7 +415,7 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
         self._update_dashboard(
             "/aggregation/",
             {
-                "agg_status": "up",  # len(client_models), #TODO agg_count, update_count
+                "agg_status": "Operational",  # len(client_models), #TODO agg_count, update_count
                 "agg_count": len(clients),  # ADD CLIENT NUMBER WHO RCVED UPDATE
                 # "agg_count": len(client_models),
                 # "update_count": len(clients),  # ADD CLIENT NUMBER WHO RCVED UPDATE
@@ -655,7 +655,7 @@ class FederatedEvaluationAggregator(FederatedValueAggregator):
             self._update_dashboard(
                 "/metrics/",
                 {
-                    "address": node[0],
+                    "address": node,
                     "accuracy": conf_matrix["accuracy"],
                     "recall": conf_matrix["recall"],
                     "precision": conf_matrix["precision"],

@@ -12,6 +12,7 @@ urlpatterns = [
     path("alerts/", views.alerts, name="alerts"),
     path("aggregate/", views.aggregate, name="aggregate"),
     path("evaluate/", views.evaluate, name="evaluate"),
+    path("predict/", views.predict, name="predict"),
     path("nodes/", views.nodes, name="nodes"),
     path("terms/", views.terms, name="terms"),
     path("privacy/", views.privacy, name="privacy"),
