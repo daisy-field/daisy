@@ -284,6 +284,7 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
                         "asynchronous aggregation requests..."
                     )
                     self._async_aggr()
+                    # FIXME this is getting spammed if there are no read ready clients
             except RuntimeError:
                 # stop() was called
                 break
