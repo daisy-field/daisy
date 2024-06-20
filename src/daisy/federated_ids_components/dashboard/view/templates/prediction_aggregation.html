@@ -1,0 +1,151 @@
+<!--
+  ~ Copyright (C) 2024 DAI-Labor and others
+  ~
+  ~ This Source Code Form is subject to the terms of the Mozilla Public
+  ~ License, v. 2.0. If a copy of the MPL was not distributed with this
+  ~ file, You can obtain one at https://mozilla.org/MPL/2.0/.
+  -->
+{% extends "./base.html" %}
+
+{% block body_theme %}
+{% if dark_theme %}
+"sb-nav-fixed bg-dark"
+{% else %}
+"sb-nav-fixed"
+{% endif %}
+{% endblock %}
+
+{% block footer_theme %}
+{% if dark_theme %}
+"py-4 bg-dark mt-auto"
+{% else %}
+"py-4 mt-auto"
+{% endif %}
+{% endblock %}
+
+{% block navbar_theme %}
+{% if dark_theme %}
+"sb-sidenav accordion sb-sidenav-dark"
+{% else %}
+"sb-sidenav accordion sb-sidenav-light"
+{% endif %}
+{% endblock %}
+
+{% block main %}
+<h1 class="mt-4"></h1>
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+
+<script type="text/javascript">
+    google.charts.load('current', {'packages': ['corechart']});
+    google.charts.setOnLoadCallback(drawChart);
+
+    function drawChart() {
+        var data = google.visualization.arrayToDataTable([
+            ['Time', 'Nodes'],
+            ['2004', 0]
+        ]);
+
+        {% if not dark_theme %}
+
+        var options = {
+            curveType: 'function',
+            backgroundColor: {fill: 'transparent'},
+        };
+
+
+        {% else %}
+        var options = {
+            backgroundColor: 'transparent', // Set background color to transparent
+            curveType: 'function',
+
+            hAxis: {
+                textStyle: {
+                    color: '#FFFFFF' // Set text color for horizontal axis labels
+                },
+                gridlines: {
+                    color: 'transparent' // Set color of gridlines for horizontal axis
+                }
+            },
+            vAxis: {
+                textStyle: {
+                    color: '#FFFFFF' // Set text color for vertical axis labels
+                },
+                gridlines: {
+                    color: 'transparent' // Set color of gridlines for vertical axis
+                }
+            },
+            legend: {
+                textStyle: {
+                    color: '#FFFFFF' // Set text color for legend
+                }
+            },
+            titleTextStyle: {
+                color: '#FFFFFF' // Set text color for chart title
+            }
+        };
+        {% endif %}
+
+        var chart = new google.visualization.LineChart(document.getElementById('curve_chart'));
+
+        chart.draw(data, options);
+
+        function sendRequest() {
+            $.ajax({
+                url: "http://127.0.0.1:8000/prediction/",
+                type: "GET",
+                dataType: "json",
+                success: (response) => {
+
+                    data = google.visualization.arrayToDataTable([
+                        ["Time", "Connected Nodes"],
+                        [new Date(response[0].agg_time),response[0].agg_count ]
+
+                    ])
+
+                    for (let i = 1; i < response.length; i++) {
+                        data.addRow([new Date(response[i].agg_time), response[i].agg_count])
+                    }
+                    chart.draw(data, options);
+
+                    var currentdate = new Date();
+                    var datetime = +currentdate.getDate() + "/"
+                        + (currentdate.getMonth() + 1) + "/"
+                        + currentdate.getFullYear() + " -- "
+                        + currentdate.getHours() + ":"
+                        + currentdate.getMinutes() + ":"
+                        + currentdate.getSeconds();
+                    $("#updated").text("Last update: " + datetime)
+
+                },
+                error: (error) => {
+                    console.log(error);
+                }
+
+            })
+        }
+
+        sendRequest();
+        setInterval(sendRequest, 3000);
+
+    }
+
+
+</script>
+
+<ol class="breadcrumb mb-4">
+    <li class="breadcrumb-item active"></li>
+</ol>
+                         <div class={% if dark_theme %}
+        "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
+        <div class="card-header">
+            <i class="fas fa-chart-area me-1"></i>
+            Participating Nodes in Prediction Aggregation
+        </div>
+        <div class="card-body">
+    <div id="curve_chart" style="width: 100%; height: 500px"></div>
+
+        </div>
+        <div id="updated" class="card-footer small text-muted"></div>
+
+{% endblock %}
