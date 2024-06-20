@@ -101,6 +101,19 @@ def resolve(request, alert_id):
     return redirect("alerts")
 
 
+def delete(request, alert_id):
+    alert = get_object_or_404(Alerts, id=alert_id)
+    alert.delete()
+    return redirect("alerts")
+
+
+def restore(request, alert_id):
+    alert = get_object_or_404(Alerts, id=alert_id)
+    alert.active = True
+    alert.save()
+    return redirect("alerts")
+
+
 def aggregate(request):
     theme = request.session.get("is_dark_theme")
     return render(request, "model_aggregation.html", {"dark_theme": theme})

@@ -22,4 +22,6 @@ urlpatterns = [
     path("precision/", views.precision, name="precision"),
     path("f1-score/", views.f1, name="f1-score"),
     path("resolve/<uuid:alert_id>/", views.resolve, name="resolve"),
+    path("restore/<uuid:alert_id>/", views.restore, name="restore"),
+    path("delete/<uuid:alert_id>/", views.delete, name="delete"),
 ]
