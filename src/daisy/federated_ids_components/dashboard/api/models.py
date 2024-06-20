@@ -5,6 +5,7 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 from django.db import models
 
+import uuid
 
 # Create your models here.
 
@@ -22,9 +23,12 @@ class Alerts(models.Model):
             ("alert", "Alert"),
         ),
     )
+    id = models.UUIDField(
+        primary_key=True, default=uuid.uuid4, editable=False, unique=True
+    )
     active = models.BooleanField(default=True)
-    message = models.CharField(max_length=255, unique=True)
-    address = models.CharField(max_length=255, unique=True)
+    message = models.CharField(max_length=255)
+    address = models.CharField(max_length=255)
     timestamp = models.DateTimeField(auto_now_add=True)
 
 

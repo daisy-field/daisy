@@ -35,7 +35,7 @@ class EvaluationSerializer(serializers.HyperlinkedModelSerializer):
 class AlertsSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Alerts
-        fields = ["address", "category", "active", "timestamp", "message"]
+        fields = ["id", "address", "category", "active", "timestamp", "message"]
 
 
 class NodeSerializer(serializers.HyperlinkedModelSerializer):

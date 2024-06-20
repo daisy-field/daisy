@@ -4,11 +4,11 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-from api.models import Aggregation, Prediction, Evaluation
+from api.models import Aggregation, Prediction, Evaluation, Alerts
 
 # from dash_bootstrap_templates import load_figure_template
 from django.http import HttpResponseRedirect
-from django.shortcuts import render
+from django.shortcuts import render, redirect, get_object_or_404
 
 
 def index(request):
@@ -76,7 +76,29 @@ def change_theme(request):
 
 def alerts(request):
     theme = request.session.get("is_dark_theme")
-    return render(request, "alerts.html", {"dark_theme": theme})
+    alarm_alerts = Alerts.objects.filter(category="alert").filter(active=True)
+    warning_alerts = Alerts.objects.filter(category="warning").filter(active=True)
+    info_alerts = Alerts.objects.filter(category="info").filter(active=True)
+    history = Alerts.objects.filter(active=False)
+
+    return render(
+        request,
+        "alerts.html",
+        {
+            "dark_theme": theme,
+            "alarms": alarm_alerts,
+            "warnings": warning_alerts,
+            "infos": info_alerts,
+            "history": history,
+        },
+    )
+
+
+def resolve(request, alert_id):
+    alert = get_object_or_404(Alerts, id=alert_id)
+    alert.active = False
+    alert.save()
+    return redirect("alerts")
 
 
 def aggregate(request):
