@@ -347,13 +347,13 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
         )
         for client in clients:
             client.send(global_model)
-
+        self._logger.info("Sending aggregated global model to dashboard ")
         # TODO @seraphin adjust values to report (see below)
         self._update_dashboard(
             "/aggregation/",
             {
-                "agg_count": len(client_models),
-                "update_count": len(clients),  # ADD CLIENT NUMBER WHO RCVED UPDATE
+                "agg_status": "up",  # len(client_models), #TODO agg_count, update_count
+                "agg_count": len(clients),  # ADD CLIENT NUMBER WHO RCVED UPDATE
             },
         )
 
@@ -414,8 +414,10 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
         self._update_dashboard(
             "/aggregation/",
             {
-                "agg_count": len(client_models),
-                "update_count": len(clients),  # ADD CLIENT NUMBER WHO RCVED UPDATE
+                "agg_status": "up",  # len(client_models), #TODO agg_count, update_count
+                "agg_count": len(clients),  # ADD CLIENT NUMBER WHO RCVED UPDATE
+                # "agg_count": len(client_models),
+                # "update_count": len(clients),  # ADD CLIENT NUMBER WHO RCVED UPDATE
             },
         )
 
@@ -645,6 +647,8 @@ class FederatedEvaluationAggregator(FederatedValueAggregator):
         self._logger.debug(f"Evaluation metrics received from {node}: {msg}")
 
         # TODO @seraphin check values to report
+        self._logger.info("Evaluation send to dashboard")
+
         if "conf_matrix_online_evaluation" in msg:
             conf_matrix = msg["conf_matrix_online_evaluation"]
             self._update_dashboard(
