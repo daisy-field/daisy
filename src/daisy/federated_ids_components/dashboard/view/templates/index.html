@@ -38,17 +38,18 @@
     google.charts.load('current', {'packages': ['corechart']});
     google.charts.setOnLoadCallback(drawChart);
 
+    var updateInterval = 10
     function drawChart() {
         var accuracyData = google.visualization.arrayToDataTable([
             ['Time', 'Nodes'],
-            ['2004', 1000],
+            [new Date(), 1000],
         ]);
 
         {%if not dark_theme %}
         var options = {
             curveType: 'function',
             backgroundColor: {fill: 'transparent'},
-            legend: 'bottom',
+            legend: 'top',
 
         };
         {% else %}
@@ -56,13 +57,12 @@
             backgroundColor: 'transparent', // Set background color to transparent
             curveType: 'function',
 
-
             hAxis: {
                 textStyle: {
                     color: '#FFFFFF' // Set text color for horizontal axis labels
                 },
                 gridlines: {
-                    color: '#444444' // Set color of gridlines for horizontal axis
+                    color: 'transparent' // Set color of gridlines for horizontal axis
                 }
             },
             vAxis: {
@@ -100,19 +100,19 @@
 
                     accuracyData = google.visualization.arrayToDataTable([
                         ["Time"],
-                        [""]
+                        [new Date()]
                     ])
                     var f1Data = google.visualization.arrayToDataTable([
                         ["Time"],
-                        [""]
+                        [new Date()]
                     ])
                     var recallData = google.visualization.arrayToDataTable([
                         ["Time"],
-                        [""]
+                        [new Date()]
                     ])
                     var precisionData = google.visualization.arrayToDataTable([
                         ["Time"],
-                        [""]
+                        [new Date()]
                     ])
 
                     nodes = []
@@ -124,7 +124,7 @@
                     times = []
                     response.forEach(function (element) {
                         if (!times.includes(element.timestamp)) {
-                            times.push(element.timestamp)
+                            times.push(new Date(element.timestamp))
                         }
                     })
 
@@ -142,17 +142,18 @@
                         var recallRow = [time]
                         nodes.forEach(function (node) {
                             var found = false
-                            response.forEach(function (element) {
-                                //console.log(element.time, element.address, time, node)
-                                if (element.timestamp == time && element.address == node) {
+                            for (let i = 0; i < response.length; i++) {
+                                var element = response[i];
+                                if ((new Date(element.timestamp).getTime() == time.getTime()) && element.address == node) {
                                     precisionRow.push(element.precision)
                                     f1Row.push(element.f1)
                                     recallRow.push(element.recall)
                                     accuracyRow.push(element.accuracy)
                                     found = true
                                     console.log("Found")
+                                    break;
                                 }
-                            })
+                            }
                             if (found === false) {
                                 precisionRow.push(0)
                                 accuracyRow.push(0)  //null
@@ -228,12 +229,101 @@
 
              })
          }
+         function getServerStates() {
+             $.ajax({
+                 url: "http://127.0.0.1:8000/aggregation/",
+                 type: "GET",
+                 dataType: "json",
+                 success: (response) => {
+                     const givenDate = new Date(response[response.length-1].agg_time);
+                     const timeDifferenceMs = new Date() - givenDate;
+                     const diffMinutes = Math.floor(timeDifferenceMs / (1000 * 60));
+                     if(diffMinutes< 1){
+                         var element = document.getElementById("agg_box");
+                         document.getElementById("agg_status").innerText = response[response.length-1].agg_status;
+                         document.getElementById("agg_count").innerText = response[response.length-1].agg_count;
+                         element.classList.add("bg-success");
+                         element.classList.remove("bg-warning");
+                     }
+                     else{
+                         var element = document.getElementById("agg_box");
+                         document.getElementById("agg_status").innerText = "Offline";
+                         document.getElementById("agg_count").innerText = "-";
+                         element.classList.remove("bg-success");
+                         element.classList.add("bg-warning");
+                     }
+                     },
+                 error: (error) => {
+                     console.log(error);
+                 }
+             })
+             $.ajax({
+                 url: "http://127.0.0.1:8000/prediction/",
+                 type: "GET",
+                 dataType: "json",
+                 success: (response) => {
+                     const givenDate = new Date(response[response.length-1].pred_time);
+                     const timeDifferenceMs = new Date() - givenDate;
+                     const diffMinutes = Math.floor(timeDifferenceMs / (1000 * 60));
+                     if(diffMinutes< 1){
+                         var element = document.getElementById("pred_box");
+                         document.getElementById("pred_status").innerText = response[response.length-1].pred_status;
+                         document.getElementById("pred_count").innerText = response[response.length-1].pred_count;
+
+                         element.classList.add("bg-success");
+                         element.classList.remove("bg-warning");
+                     }
+                     else{
+                          var element = document.getElementById("pred_box");
+                          document.getElementById("pred_status").innerText = "Offline";
+                          document.getElementById("pred_count").innerText = "-";
+                          element.classList.remove("bg-success");
+                          element.classList.add("bg-warning");
+                     }
+                     },
+                 error: (error) => {
+                     console.log(error);
+                 }
+             })
+             $.ajax({
+                 url: "http://127.0.0.1:8000/evaluation/",
+                 type: "GET",
+                 dataType: "json",
+                 success: (response) => {
+                     const givenDate = new Date(response[response.length-1].eval_time);
+                     const timeDifferenceMs = new Date() - givenDate;
+                     const diffMinutes = Math.floor(timeDifferenceMs / (1000 * 60));
+                     if(diffMinutes< 1){
+                         var element = document.getElementById("eval_box");
+                         document.getElementById("eval_status").innerText = response[response.length-1].eval_status;
+                         document.getElementById("eval_count").innerText = response[response.length-1].eval_count;
+                         element.classList.add("bg-success");
+                         element.classList.remove("bg-warning");
+                     }
+                     else{
+                          var element = document.getElementById("eval_box");
+                          document.getElementById("eval_status").innerText = "Offline";
+                          document.getElementById("eval_count").innerText = "-";
+                          element.classList.remove("bg-success");
+                          element.classList.add("bg-warning");
+                     }
+                     },
+                 error: (error) => {
+                     console.log(error);
+                 }
+             })
+
+         }
+
 
         sendRequest();
-        setInterval(sendRequest, 3000);
+        setInterval(sendRequest, updateInterval*1000);
+
+        getServerStates();
+        setInterval(getServerStates, updateInterval*1000);
 
         getAlerts();
-        setInterval(getAlerts, 3000);
+        setInterval(getAlerts, updateInterval* 1000);
 
     }
 
@@ -251,18 +341,18 @@
     <div class="card-body">
         <div class="row">
 
-            <div class="col-xl-4 col-md-4">
-                <div class="card bg-success text-white mb-4" style="height:6cm;  display:flex">
+            <div class="col-xl-3 col-md-3">
+                <div id="agg_box" class="card bg-warning text-white mb-4" style="height:6cm;  display:flex">
                     <div class="card-header"><i class="fa-solid fa-server"></i> Model Aggregation:</div>
                     <div class="card-body">
                         <div class="row">
                             <div class="col-xl-8 col-md-6">
-                                Status: {{agg_status}} <br>
+                                Status: <div id="agg_status">{{agg_status}}</div>
                                 Last connection: <br>{{agg_time}}
                             </div>
                             <div class="col-xl-4 col-md-6">
-                                Connections:
-                                <p style="font-size:40px;">{{agg_count}}</p>
+                                Nodes:
+                                <p style="font-size:40px;" id="agg_count">{{agg_count}}</p>
                             </div>
                         </div>
                     </div>
@@ -273,18 +363,40 @@
                 </div>
             </div>
 
-            <div class="col-xl-4 col-md-4">
-                <div class="card bg-success text-white mb-4" style="height:6cm;  display:flex">
-                    <div class="card-header"><i class="fa-solid fa-chart-line"></i> Prediction Aggregation:</div>
+            <div class="col-xl-3 col-md-3">
+                <div id="pred_box" class="card bg-warning text-white mb-4" style="height:6cm;  display:flex">
+                    <div class="card-header"><i class="fa-solid fa-server"></i> Prediction Aggregation:</div>
                     <div class="card-body">
                         <div class="row">
                             <div class="col-xl-8 col-md-6">
-                                Status: {{prediction_status}} <br>
+                                Status: <div id="pred_status">{{prediction_status}} </div>
                                 Last connection: {{prediction_time}}
                             </div>
                             <div class="col-xl-4 col-md-6">
-                                Connections:
-                                <p style="font-size:40px;">{{prediction_count}}</p>
+                                Nodes:
+                                <p style="font-size:40px;" id="pred_count">{{prediction_count}}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer d-flex align-items-center justify-content-between">
+                        <a class="small text-white stretched-link" href={% url "evaluate" %} >View Details</a>
+                        <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-3">
+                <div id="eval_box" class="card bg-warning text-white mb-4" style="height:6cm;  display:flex">
+                    <div class="card-header"><i class="fa-solid fa-chart-line"></i> Evaluation Aggregation:</div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-xl-8 col-md-6">
+                                Status: <div id="eval_status">{{evaluation_status}} </div>
+                                Last connection: {{evaluation_time}}
+                            </div>
+                            <div class="col-xl-4 col-md-6">
+                                Nodes:
+                                <p style="font-size:40px;" id="eval_count">{{evaluation_count}}</p>
                             </div>
                         </div>
                     </div>
@@ -296,30 +408,24 @@
             </div>
 
 
-            <div class="col-xl-2 col-md-2">
-                <div id="warning-card" class="card bg-secondary text-white mb-4" style="height:6cm;  display:flex">
+            <div class="col-xl-3 col-md-3">
+                <div id="warning-card" class="card bg-secondary text-white mb-4" style="height:2.7cm;  display:flex">
                     <div class="card-header"><i class="fa-solid fa-triangle-exclamation"></i> Warnings:</div>
                     <div class="card-body">
-                        <p id ="warning_box" style="font-size:40px;"></p>
+                        <div id ="warning_box" style="font-size:30px; margin-top: -0.3cm"></div>
                     </div>
-                    <div class="card-footer d-flex align-items-center justify-content-between">
-                        <a class="small text-white stretched-link" href={% url "alerts" %} >View Details</a>
-                        <div class="small text-white"><i class="fas fa-angle-right"></i></div>
-                    </div>
-                </div>
-            </div>
+                    <a class="small text-white stretched-link" href={% url "alerts" %} ></a>
 
-            <div class="col-xl-2 col-md-2">
-                <div  id="alert-card" class="card bg-secondary text-white mb-4" style="height:6cm; display:flex">
+                </div>
+
+                <div  id="alert-card" class="card bg-secondary text-white mb-4" style="height:2.7cm; display:flex">
                     <div class="card-header"><i class="fa-solid fa-skull-crossbones"></i> Alerts:
                     </div>
                     <div class="card-body">
-                        <p id ="alert_box"  style="font-size:40px;"></p>
+                        <p id ="alert_box"  style="font-size:30px; margin-top: -0.3cm"></p>
                     </div>
-                    <div class="card-footer d-flex align-items-center justify-content-between">
-                        <a class="small text-white stretched-link" href={% url "alerts" %} >View Details</a>
-                        <div class="small text-white"><i class="fas fa-angle-right"></i></div>
-                    </div>
+                                        <a class="small text-white stretched-link" href={% url "alerts" %} ></a>
+
                 </div>
             </div>
 

@@ -62,6 +62,11 @@
                                 <div class="sb-nav-link-icon"><i class="fas fa-tachometer-alt"></i></div>
                                 Dashboard
                             </a>
+                            <a class="nav-link" href={% url "alerts" %}>
+                                <div class="sb-nav-link-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                                Alerts
+                            </a>
+                            <div class="sb-sidenav-menu-heading">Servers</div>
                             <a class="nav-link collapsed" href="#" data-bs-toggle="collapse" data-bs-target="#collapsePages" aria-expanded="false" aria-controls="collapsePages">
                                 <div class="sb-nav-link-icon"><i class="fa-solid fa-chart-line"></i></div>
                                 Evaluation
@@ -86,21 +91,17 @@
                                     </a>
                                 </nav>
                             </div>
-                            <div class="sb-sidenav-menu-heading">Servers</div>
                             <a class="nav-link" href={% url "aggregate" %}>
                             <div class="sb-nav-link-icon"><i class="fa-solid fa-server"></i></div>
                                 Model Aggregation
                             </a>
-                            <a class="nav-link" href={% url "aggregate" %}>
+                            <a class="nav-link" href={% url "predict" %}>
                             <div class="sb-nav-link-icon"><i class="fa-solid fa-server"></i></div>
                                 Prediction Aggregation
                             </a>
 
                             <div class="sb-sidenav-menu-heading">Addons</div>
-                            <a class="nav-link" href={% url "alerts" %}>
-                                <div class="sb-nav-link-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
-                                Alerts
-                            </a>
+
                             <a class="nav-link" href={% url "nodes" %}>
                                 <div class="sb-nav-link-icon"><i class="fa-solid fa-grip-vertical"></i></div>
                                 Nodes

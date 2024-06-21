@@ -14,6 +14,7 @@ router.register(r"aggregation", views.AggregationSerializerView)
 router.register(r"prediction", views.PredictionSerializerView)
 router.register(r"alert", views.AlertsSerializerView)
 router.register(r"node", views.NodeSerializerView)
+router.register(r"evaluation", views.EvaluationSerializerView)
 
 # Wire up our API using automatic URL routing.
 # Additionally, we include login URLs for the browsable API.

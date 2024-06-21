@@ -4,11 +4,11 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-from api.models import Aggregation, Prediction
+from api.models import Aggregation, Prediction, Evaluation, Alerts
 
 # from dash_bootstrap_templates import load_figure_template
 from django.http import HttpResponseRedirect
-from django.shortcuts import render
+from django.shortcuts import render, redirect, get_object_or_404
 
 
 def index(request):
@@ -32,6 +32,15 @@ def index(request):
         prediction_count = 0
         prediction_time = "None"
 
+    try:
+        evaluation_status = getattr(Evaluation.objects.last(), "eval_status")
+        evaluation_count = getattr(Evaluation.objects.last(), "eval_count")
+        evaluation_time = getattr(Evaluation.objects.last(), "eval_time")
+    except AttributeError:
+        evaluation_status = "None"
+        evaluation_count = 0
+        evaluation_time = "None"
+
     return render(
         request,
         "index.html",
@@ -43,6 +52,9 @@ def index(request):
             "prediction_status": prediction_status,
             "prediction_count": prediction_count,
             "prediction_time": prediction_time,
+            "evaluation_status": evaluation_status,
+            "evaluation_count": evaluation_count,
+            "evaluation_time": evaluation_time,
         },
     )
 
@@ -64,12 +76,67 @@ def change_theme(request):
 
 def alerts(request):
     theme = request.session.get("is_dark_theme")
-    return render(request, "alerts.html", {"dark_theme": theme})
+    alarm_alerts = Alerts.objects.filter(category="alert").filter(active=True)
+    warning_alerts = Alerts.objects.filter(category="warning").filter(active=True)
+    info_alerts = Alerts.objects.filter(category="info").filter(active=True)
+    history = Alerts.objects.filter(active=False)
+
+    return render(
+        request,
+        "alerts.html",
+        {
+            "dark_theme": theme,
+            "alarms": alarm_alerts,
+            "warnings": warning_alerts,
+            "infos": info_alerts,
+            "history": history,
+        },
+    )
+
+
+def resolve(request, alert_id):
+    alert = get_object_or_404(Alerts, id=alert_id)
+    alert.active = False
+    alert.save()
+    return redirect("alerts")
+
+
+def resolveAll(request):
+    alerts = Alerts.objects.filter(category="alert")
+    for i in alerts:
+        i.active = False
+        i.save()
+    return redirect("alerts")
+
+
+def delete(request, alert_id):
+    alert = get_object_or_404(Alerts, id=alert_id)
+    alert.delete()
+    return redirect("alerts")
+
+
+def deleteAll(request):
+    alerts = Alerts.objects.filter(active=False)
+    for i in alerts:
+        i.delete()
+    return redirect("alerts")
+
+
+def restore(request, alert_id):
+    alert = get_object_or_404(Alerts, id=alert_id)
+    alert.active = True
+    alert.save()
+    return redirect("alerts")
 
 
 def aggregate(request):
     theme = request.session.get("is_dark_theme")
     return render(request, "model_aggregation.html", {"dark_theme": theme})
+
+
+def predict(request):
+    theme = request.session.get("is_dark_theme")
+    return render(request, "prediction_aggregation.html", {"dark_theme": theme})
 
 
 def evaluate(request):

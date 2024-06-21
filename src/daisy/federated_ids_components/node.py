@@ -329,7 +329,12 @@ class FederatedOnlineNode(ABC):
                 f"AsyncLearner: Evaluation results for minibatch: {eval_res}"
             )
             if self._eval_serv is not None:
-                self._eval_serv.send(eval_res)
+                self._eval_serv.send(
+                    {
+                        metric.name: {x: y.numpy() for x, y in metric.result().items()}
+                        for metric in self._metrics
+                    }
+                )
 
         self._model.fit(x_data, y_true)
         self._logger.debug("AsyncLearner: Minibatch processed, cleaning window ...")
