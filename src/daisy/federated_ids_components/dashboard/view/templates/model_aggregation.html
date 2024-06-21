@@ -43,53 +43,56 @@
     function drawChart() {
         var data = google.visualization.arrayToDataTable([
             ['Time', 'Nodes'],
-            ['2004', 0]
+            ['2004', 1000],
         ]);
 
         {% if not dark_theme %}
 
-        var options = {
-            curveType: 'function',
+         var options = {
             backgroundColor: {fill: 'transparent'},
         };
 
 
         {% else %}
         var options = {
-            backgroundColor: 'transparent', // Set background color to transparent
-            curveType: 'function',
+  backgroundColor: 'transparent', // Set background color to transparent
 
-            hAxis: {
-                textStyle: {
-                    color: '#FFFFFF' // Set text color for horizontal axis labels
-                },
-                gridlines: {
-                    color: 'transparent' // Set color of gridlines for horizontal axis
-                }
-            },
-            vAxis: {
-                textStyle: {
-                    color: '#FFFFFF' // Set text color for vertical axis labels
-                },
-                gridlines: {
-                    color: 'transparent' // Set color of gridlines for vertical axis
-                }
-            },
-            legend: {
-                textStyle: {
-                    color: '#FFFFFF' // Set text color for legend
-                }
-            },
-            titleTextStyle: {
-                color: '#FFFFFF' // Set text color for chart title
-            }
-        };
+  hAxis: {
+    textStyle: {
+      color: '#FFFFFF' // Set text color for horizontal axis labels
+    },
+    gridlines: {
+      color: 'transparent' // Set color of gridlines for horizontal axis
+    }
+  },
+  vAxis: {
+    textStyle: {
+      color: '#FFFFFF' // Set text color for vertical axis labels
+    },
+    gridlines: {
+      color: 'transparent' // Set color of gridlines for vertical axis
+    }
+  },
+  legend: {
+    textStyle: {
+      color: '#FFFFFF' // Set text color for legend
+    }
+  },
+  titleTextStyle: {
+    color: '#FFFFFF' // Set text color for chart title
+  }
+};
+
+
+
         {% endif %}
+
+
+
 
         var chart = new google.visualization.LineChart(document.getElementById('curve_chart'));
 
         chart.draw(data, options);
-
         function sendRequest() {
             $.ajax({
                 url: "http://127.0.0.1:8000/aggregation/",
@@ -99,18 +102,18 @@
 
                     data = google.visualization.arrayToDataTable([
                         ["Time", "Connected Nodes"],
-                        [new Date(response[0].agg_time),response[0].agg_count ]
-
+                        ["", 0]
                     ])
 
                     for (let i = 1; i < response.length; i++) {
-                        data.addRow([new Date(response[i].agg_time), response[i].agg_count])
+                        console.log(response[i].agg_time, response[i].agg_count);
+                        data.addRow([response[i].agg_time, response[i].agg_count])
                     }
                     chart.draw(data, options);
 
                     var currentdate = new Date();
                     var datetime = +currentdate.getDate() + "/"
-                        + (currentdate.getMonth() + 1) + "/"
+                    + (currentdate.getMonth() + 1) + "/"
                         + currentdate.getFullYear() + " -- "
                         + currentdate.getHours() + ":"
                         + currentdate.getMinutes() + ":"
@@ -140,7 +143,7 @@
         "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
         <div class="card-header">
             <i class="fas fa-chart-area me-1"></i>
-            Participating Nodes in Model Aggregation
+            In Evaluation Participating Nodes
         </div>
         <div class="card-body">
     <div id="curve_chart" style="width: 100%; height: 500px"></div>

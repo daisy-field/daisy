@@ -49,7 +49,6 @@
         {% if not dark_theme %}
 
          var options = {
-            curveType: 'function',
             backgroundColor: {fill: 'transparent'},
         };
 
@@ -96,7 +95,7 @@
         chart.draw(data, options);
         function sendRequest() {
             $.ajax({
-                url: "http://127.0.0.1:8000/aggregation/",
+                url: "http://127.0.0.1:8000/evaluation/",
                 type: "GET",
                 dataType: "json",
                 success: (response) => {
@@ -107,8 +106,8 @@
                     ])
 
                     for (let i = 1; i < response.length; i++) {
-                        console.log(response[i].agg_time, response[i].agg_count);
-                        data.addRow([response[i].agg_time, response[i].agg_count])
+                        console.log(response[i].eval_time, response[i].eval_count);
+                        data.addRow([response[i].eval_time, response[i].eval_count])
                     }
                     chart.draw(data, options);
 

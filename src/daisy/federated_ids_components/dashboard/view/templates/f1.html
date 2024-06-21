@@ -42,15 +42,12 @@
 
         {%if not dark_theme %}
         var options = {
-            curveType: 'function',
             backgroundColor: {fill: 'transparent'},
-            legend: 'bottom',
 
         };
         {% else %}
         var options = {
             backgroundColor: 'transparent', // Set background color to transparent
-            curveType: 'function',
 
 
 
@@ -105,7 +102,7 @@
                     times = []
                     response.forEach(function (element) {
                         if (!times.includes(element.timestamp)) {
-                            times.push(element.timestamp)
+                            times.push(new Date(element.timestamp).toLocaleString())
                         }
                     })
 
