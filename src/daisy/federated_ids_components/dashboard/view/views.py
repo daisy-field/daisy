@@ -101,9 +101,24 @@ def resolve(request, alert_id):
     return redirect("alerts")
 
 
+def resolveAll(request):
+    alerts = Alerts.objects.filter(category="alert")
+    for i in alerts:
+        i.active = False
+        i.save()
+    return redirect("alerts")
+
+
 def delete(request, alert_id):
     alert = get_object_or_404(Alerts, id=alert_id)
     alert.delete()
+    return redirect("alerts")
+
+
+def deleteAll(request):
+    alerts = Alerts.objects.filter(active=False)
+    for i in alerts:
+        i.delete()
     return redirect("alerts")
 
 

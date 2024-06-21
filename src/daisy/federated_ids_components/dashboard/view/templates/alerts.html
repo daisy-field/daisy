@@ -49,43 +49,95 @@
 
 
 <h1 class="mt-4"></h1>
+<head>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+      google.charts.load('current', {'packages':['corechart']});
+      google.charts.setOnLoadCallback(drawChart);
+
+      function drawChart() {
+
+        var data = google.visualization.arrayToDataTable([
+          ['Category', 'Number'],
+          ['Alarms',     {{ alarms|length }}],
+          ['Warnings',      {{ warnings|length }}],
+          ['Info',  {{ infos|length }}],
+          ['History', {{ history|length }}],
+         ]);
+
+        {%if not dark_theme %}
+        var options = {
+            curveType: 'function',
+            backgroundColor: {fill: 'transparent'},
+            legend: 'bottom',
+
+        };
+        {% else %}
+        var options = {
+            backgroundColor: 'transparent', // Set background color to transparent
+            curveType: 'function',
+            slices: [{color: '#dc3545'}, {color: '#ffc107'},{color: '#0dcaf0'}, {color: '#6c757d'}, {color: 'black'}],
+
+            legend: {
+                position: 'top',
+                textStyle: {
+                    color: '#FFFFFF' // Set text color for legend
+                }
+            },
+            titleTextStyle: {
+                color: '#FFFFFF' // Set text color for chart title
+            }
+        };
+        {% endif %}
+
+        var chart = new google.visualization.PieChart(document.getElementById('piechart'));
+
+        chart.draw(data, options);
+      }
+    </script>
+  </head>
+
 
 <div class={% if dark_theme %}
 "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
 <div class="card-header">
     <i class="fa-solid fa-skull-crossbones"></i>
-    Alerts
+    Alerts <a style="  float:right;"
+href={% url 'resolveAll' %} type="button" class="btn btn-dark">Resolve All</a>
 </div>
 <div class="card-body">
    {% for alert in alarms%}
- <div style="width: 20%; display:inline-block" class="card bg-danger text-white mb-4" data-bs-toggle="modal" data-bs-target="#alarms">
-     <div class="card-header"><i class="fa-solid fa-server"></i>'{{alert.address}}</div>
-     <div class="card-body">{{alert.message}} </div>
-     <div class="card-footer d-flex align-items-center justify-content-between">
-         <a class="small text-white stretched-link" href="#">{{alert.timestamp}}</a>
-         <div class="small text-white"><i class="fas fa-angle-right"></i></div>
-     </div>
- </div>
-<div class="modal fade" id="alarms" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
-                    <div class="modal-dialog" role="document">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                        <h5 class="modal-title" id="exampleModalLabel">{{alert.address}}</h5>
+    <div style="width: 20%; display:inline-block" class="card bg-danger text-white mb-4" data-bs-toggle="modal"
+         data-bs-target="#alarms{{alert.id}}">
+        <div class="card-header"><i class="fa-solid fa-server"></i>{{alert.address}}</div>
+        <div class="card-body">{{alert.message}}</div>
+        <div class="card-footer d-flex align-items-center justify-content-between">
+            <a class="small text-white stretched-link" href="#">{{alert.timestamp}}</a>
+            <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+        </div>
+    </div>
+    <div class="modal fade" id="alarms{{alert.id}}" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel{{alert.id}}"
+         aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel{{alert.id}}">TESL {{alert.address}}</h5>
 
-                        </div>
-                        <div class="modal-body">
-                        {{alert.message}} <br>
-                            {{alert.timestamp}}
-                        </div>
-                        <div class="modal-footer">
-                        <a href={% url 'resolve' alert.id %} type="button" class="btn btn-secondary" data-dismiss="modal">Mark as Resolved</a>
-                            <a href={% url 'alerts' %} type="button" class="btn btn-primary">Close</a>
-
-                        </div>
-                    </div>
-                    </div>
                 </div>
-{% endfor %}
+                <div class="modal-body">
+                    {{alert.message}} <br>
+                    {{alert.timestamp}} TEST
+                </div>
+                <div class="modal-footer">
+                    <a href={% url 'resolve' alert.id %} type="button" class="btn btn-secondary"
+                    data-dismiss="modal">Mark as Resolved</a>
+                    <a href={% url 'alerts' %} type="button" class="btn btn-primary">Close</a>
+
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
 </div>
 <div id="updated" class="card-footer small text-muted"></div>
 </div>
@@ -98,7 +150,7 @@
 </div>
 <div class="card-body">
     {% for alert in warnings%}
- <div style="width: 20%; display:inline-block" class="card bg-warning text-white mb-4" data-bs-toggle="modal" data-bs-target="#warnings">
+ <div style="width: 20%; display:inline-block" class="card bg-warning text-white mb-4" data-bs-toggle="modal" data-bs-target="#warnings{{alert.id}}">
      <div class="card-header"><i class="fa-solid fa-server"></i>{{alert.address}}</div>
      <div class="card-body">{{alert.message}} </div>
      <div class="card-footer d-flex align-items-center justify-content-between">
@@ -106,7 +158,7 @@
          <div class="small text-white"><i class="fas fa-angle-right"></i></div>
      </div>
  </div>
-<div class="modal fade" id="warnings" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+<div class="modal fade" id="warnings{{alert.id}}" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
                     <div class="modal-dialog" role="document">
                     <div class="modal-content">
                         <div class="modal-header">
@@ -134,10 +186,11 @@
 "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
 <div class="card-header">
     <i class="fa-solid fa-circle-info"></i> Info
+
 </div>
 <div class="card-body">
 {% for alert in infos%}
- <div style="width: 20%; display:inline-block" class="card bg-info text-white mb-4" data-bs-toggle="modal" data-bs-target="#infos">
+ <div style="width: 20%; display:inline-block" class="card bg-info text-white mb-4" data-bs-toggle="modal" data-bs-target="#infos{{alert.id}}">
      <div class="card-header"><i class="fa-solid fa-server"></i>{{alert.address}}</div>
      <div class="card-body">{{alert.message}} </div>
      <div class="card-footer d-flex align-items-center justify-content-between">
@@ -145,7 +198,7 @@
          <div class="small text-white"><i class="fas fa-angle-right"></i></div>
      </div>
  </div>
-<div class="modal fade" id="infos" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+<div class="modal fade" id="infos{{alert.id}}" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
                     <div class="modal-dialog" role="document">
                     <div class="modal-content">
                         <div class="modal-header">
@@ -171,11 +224,12 @@
 <div class={% if dark_theme %}
 "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
 <div class="card-header">
-    <i class="fa-solid fa-clock-rotate-left"></i> History
+    <i class="fa-solid fa-clock-rotate-left"></i> History  <a style="  float:right;"
+href={% url 'deleteAll' %} type="button" class="btn btn-dark">Delete All</a>
 </div>
 <div class="card-body">
 {% for alert in history%}
- <div style="width: 20%; display:inline-block" class="card bg-secondary text-white mb-4" data-bs-toggle="modal" data-bs-target="#history">
+ <div style="width: 20%; display:inline-block" class="card bg-secondary text-white mb-4" data-bs-toggle="modal" data-bs-target="#history{{alert.id}}">
      <div class="card-header"><i class="fa-solid fa-server"></i>{{alert.address}}</div>
      <div class="card-body">{{alert.message}} </div>
      <div class="card-footer d-flex align-items-center justify-content-between">
@@ -183,7 +237,7 @@
          <div class="small text-white"><i class="fas fa-angle-right"></i></div>
      </div>
  </div>
-<div class="modal fade" id="history" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+<div class="modal fade" id="history{{alert.id}}" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
                     <div class="modal-dialog" role="document">
                     <div class="modal-content">
                         <div class="modal-header">
@@ -211,6 +265,9 @@
  <!-- Modal -->
 
 
+  <body>
+    <div id="piechart" style="width: 500px; height: 300px;"></div>
+  </body>
 
 <!-- Modal -->
 

@@ -24,4 +24,6 @@ urlpatterns = [
     path("resolve/<uuid:alert_id>/", views.resolve, name="resolve"),
     path("restore/<uuid:alert_id>/", views.restore, name="restore"),
     path("delete/<uuid:alert_id>/", views.delete, name="delete"),
+    path("deleteAll/", views.deleteAll, name="deleteAll"),
+    path("resolveAll/", views.resolveAll, name="resolveAll"),
 ]
