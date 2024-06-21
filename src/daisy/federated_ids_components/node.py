@@ -608,10 +608,7 @@ class FederatedOnlineClient(FederatedOnlineNode):
 
 
 class FederatedOnlinePeer(FederatedOnlineNode):
-    """TODO by @lotta
-
-    :var _m_aggr: TBD
-    """
+    """TODO by @lotta"""
 
     _topology: ChordDHTPeer
     _topology_thread: threading.Thread
@@ -623,7 +620,6 @@ class FederatedOnlinePeer(FederatedOnlineNode):
     _unchoked_peers: set
 
     model: FederatedModel
-    _started: bool
 
     _logger: logging.Logger
 
@@ -684,13 +680,13 @@ class FederatedOnlinePeer(FederatedOnlineNode):
         self._addr = ("127.0.0.1", port)
         self._dht_join_addr = dht_join_addr
         self._m_aggr = m_aggr
-        self._topology = ChordDHTPeer(addr=self._addr)
+        self._topology = ChordDHTPeer(addr=self._addr, cluster_size=num_peers)
         self._num_peers = num_peers
         self._unchoked_peers = set()
         self._started = False
 
-        self._logger = logging.getLogger("FED_PEER")
-        self._logger.setLevel(logging.DEBUG)
+        self._logger = logging.getLogger("FED_NODE")
+        self._logger.setLevel(logging.INFO)
 
     def setup(self):
         """ """
@@ -705,10 +701,13 @@ class FederatedOnlinePeer(FederatedOnlineNode):
         """TODO implement"""
         raise NotImplementedError
 
-    def fed_update(self, models: set[list[np.ndarray]] = None):
+    def fed_update(self, models: list[list[np.ndarray]] = None):
         """ """
         if models is not None and len(models) > 0:
-            self.model.set_parameters(self._m_aggr.aggregate(list(models)))
+            self._logger.info(
+                f"Calculating federated Update with {len(models)} models."
+            )
+            self._model.set_parameters(self._m_aggr.aggregate(models))
 
     def create_async_fed_learner(self):
         """ """
@@ -722,16 +721,12 @@ class FederatedOnlinePeer(FederatedOnlineNode):
         # DONE only two peers - not an edge case
         # TODO logik abklären
         while self._started:
-            if self._request_n_federated_peers_random_selection(self._num_peers) == 1:
-                self._optimistic_unchoke()
-                sleep(self._topology._max_fingers)  # todo hier sinnvoll drankommen
-                models = self._tit_for_tat()
-                with self._m_lock:
-                    models.add(self.model.get_parameters())
-                    self.fed_update(models)
-            else:
-                self._logger.debug("fed peer sleep 10")
-                sleep(10)
+            sleep(5)
+            self._optimistic_unchoke()
+            models = self._tit_for_tat()
+            with self._m_lock:
+                models.append(self._model.get_parameters())
+                self.fed_update(models)
 
     def _optimistic_unchoke(self):
         peers = set()
@@ -739,47 +734,40 @@ class FederatedOnlinePeer(FederatedOnlineNode):
             try:
                 peers.add(self._topology.fed_peers.get_nowait())
             except Empty:
-                self._logger.error("No Peers in queue")
+                self._logger.info(
+                    f"Sampled {len(self._unchoked_peers)} Peers from Network."
+                )
                 break
 
-        self._logger.debug(
-            f"Requesting local models from sampled clients [{len(peers)}]..."
-        )
         for peer in peers:
             if peer in self._unchoked_peers:
                 continue
-            self._send_modeldata(peer, self.model.get_parameters())
-            self._unchoked_peers.add(peer)
+            with self._m_lock:
+                self._topology.fed_models_outgoing.put(
+                    (peer, self._model.get_parameters())
+                )
+                self._unchoked_peers.add(peer)
 
-    def _tit_for_tat(self) -> set[list[np.ndarray]]:
-        fed_peers_and_models = set()
-        fed_models = set()
-        while len(fed_models) < self._num_peers:
+    def _tit_for_tat(self) -> list[list[np.ndarray]]:
+        fed_peers_and_models = {}
+        fed_models = []
+        while len(fed_peers_and_models) < self._num_peers:
             try:
-                fed_peers_and_models.add(self._topology.fed_models.get_nowait())
+                fed_peer, fed_model = self._topology.fed_models_incoming.get_nowait()
+                fed_peers_and_models[fed_peer] = fed_model
             except Empty:
-                self._logger.error("No Models in queue.")
+                self._logger.info(
+                    f"Retrieved {len(fed_peers_and_models)} Models from network."
+                )
                 break
-        self._logger.info(f"Retrieved {len(fed_models)} from network.")
-        for fed_peer, fed_model in fed_peers_and_models:
+        for fed_peer in fed_peers_and_models:
+            fed_model = fed_peers_and_models[fed_peer]
             if fed_peer in self._unchoked_peers:
                 self._unchoked_peers.remove(fed_peer)
             else:
-                self._send_modeldata(fed_peer, fed_model)
-            fed_models.add(fed_model)
+                self._topology.fed_models_outgoing.put((fed_peer, fed_model))
+            fed_models.append(fed_model)
         return fed_models
-
-    def _request_n_federated_peers_random_selection(self, n_peers: int):
-        """get a number of peers for federated learning in random selection mode"""
-        if self._topology.request_n_random_peers(n_peers) == -1:
-            return -1
-        return 1
-
-    def _send_modeldata(
-        self, fed_peer: tuple[int, tuple[str, int]], fed_model: list[np.ndarray]
-    ):
-        """Share own modeldata with another peer"""
-        self._topology.send_federated_model(fed_peer, fed_model)
 
 
 def _try_ops(*operations: Callable, logger: logging.Logger):
@@ -824,7 +812,10 @@ if __name__ == "__main__":
     t_m = EMAvgTM(alpha=0.05)
     err_fn = tf.keras.losses.MeanAbsoluteError(reduction=tf.keras.losses.Reduction.NONE)
     model = FederatedIFTM(
-        identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn, param_split=1
+        identify_fn=id_fn,
+        threshold_m=t_m,
+        error_fn=err_fn,
+        param_split=len(id_fn.get_parameters()),
     )
 
     _list = [{"a": 2}, {"a": 3}, {"a": 3}, {"a": 4}, {"a": 5}]

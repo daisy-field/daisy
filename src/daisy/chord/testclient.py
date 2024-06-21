@@ -136,7 +136,7 @@ class TestPeer:
 
 
 if __name__ == "__main__":
-    testpeer = TestPeer("localhost", ("127.0.0.1", 15888), id_test=1)
+    testpeer = TestPeer("testper", ("127.0.0.1", 15888), id_test=1)
     testpeer.start()
     addr = input("enter target port: ")
     testpeer.send_lookup(("127.0.0.1", int(addr)))

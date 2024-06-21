@@ -3,6 +3,11 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+# Copyright (C) 2024 DAI-Labor and others
 
 """
 Chord DHT
@@ -17,88 +22,14 @@ import hashlib
 import logging
 import queue
 import random
+import threading
 import time
 import typing
-from enum import Enum
 from time import sleep
 from uuid import uuid4
 
-import numpy as np
-
+from daisy.chord.chord_message import MessageOrigin, Chordmessage, MessageType
 from daisy.communication import EndpointServer, StreamEndpoint
-
-
-class MessageType(Enum):
-    """Indicates how an incoming messages should be processed."""
-
-    LOOKUP_RES = 2
-    LOOKUP_REQ = 3
-    STABILIZE = 4
-    NOTIFY = 5
-    FED_MODEL = 6
-
-
-class MessageOrigin(Enum):
-    """Indicates the opration from which a message originated.
-    Used to categorize lookup response messages.
-    """
-
-    JOIN = 1
-    FIX_FINGERS = 2
-    FED_PEERS_REQ = 3
-
-
-class Chordmessage:
-    """Class for Chord messages."""
-
-    id: uuid4
-    type: MessageType
-    peer_tuple: tuple[int, tuple[str, int]]
-    model: list[np.ndarray]
-    sender: tuple[int, tuple[str, int]]
-    timestamp: float
-    origin: MessageOrigin
-
-    def __init__(
-        self,
-        msg_type: MessageType,
-        sender: tuple[int, tuple[str, int]],
-        timestamp: float,
-        request_id: uuid4 = None,
-        origin: MessageOrigin = None,
-        peer_tuple: tuple[int, tuple[str, int]] = None,
-        model_params: list[np.ndarray] = None,
-    ):
-        """Creates a new Chordmessage.
-
-        :param request_id: Message identifier
-        :param msg_type: Type of message for processing in receive function.
-        :param peer_tuple: ID and address of the peer sent whithin the Chordmessage.
-        :param sender: Sender of the Chordmessage.
-        :param timestamp: Timestamp of the Chordmessage. Indicates when it was created.
-        :param origin: Origin of the Chordmessage.
-        """
-        self.id = request_id
-        self.type = msg_type
-        self.peer_tuple = peer_tuple
-        self.model = model_params
-        self.sender = sender
-        self.timestamp = timestamp
-        self.origin = origin
-
-
-def receive_on_single_endpoint(endpoint: StreamEndpoint) -> list[Chordmessage]:
-    """Receives and returns the Chordmessages in an endpoint.
-
-    :param endpoint: Endpoint to receive on.
-    :return: Chordmessages in an endpoint or empty list
-    """
-    chordmessages = []
-    try:
-        while True:
-            chordmessages.append(typing.cast(Chordmessage, endpoint.receive(timeout=0)))
-    except (RuntimeError, TimeoutError):
-        return chordmessages
 
 
 def set_stabilization_interval(start):
@@ -146,10 +77,13 @@ class ChordDHTPeer:
     _stabilize_recv_timestamp: float
     _notify_recv_timestamp: float
 
+    _a_lock: threading.Lock
     _logger: logging.Logger
 
     fed_peers: queue
-    fed_models: queue
+    fed_models_incoming: queue
+    fed_models_outgoing: queue
+    _cluster_size: int
 
     def __init__(
         self,
@@ -157,6 +91,7 @@ class ChordDHTPeer:
         successor: tuple[int, tuple[str, int]] = None,
         predecessor: tuple[int, tuple[str, int]] = None,
         max_fingers: int = 16,
+        cluster_size: int = 4,
     ):
         """creates a new ChordPeer"""
 
@@ -177,7 +112,7 @@ class ChordDHTPeer:
         self._fingers = {}
 
         self._endpoint_server = EndpointServer(
-            name="EndpointServer",
+            name="EP_SERVER",
             addr=addr,
             multithreading=True,
             c_timeout=60,
@@ -189,11 +124,13 @@ class ChordDHTPeer:
         self._notify_recv_timestamp = time.time()
         self._stabilize_recv_timestamp = time.time()
 
-        self._logger = logging.getLogger("Peer")
-        self._logger.setLevel(logging.INFO)
-
+        self._logger = logging.getLogger("DHT_PEER")
+        self._logger.setLevel(logging.CRITICAL)
+        self._a_lock = threading.Lock()
+        self._cluster_size = cluster_size
         self.fed_peers = queue.Queue()
-        self.fed_models = queue.Queue()
+        self.fed_models_incoming = queue.Queue()
+        self.fed_models_outgoing = queue.Queue()
 
     def _create(self):
         self._logger.info("Creating new Chord Ring...")
@@ -205,7 +142,7 @@ class ChordDHTPeer:
         )
         self._joined = True
 
-    def _join(self, join_addr: tuple[str, int], join_attempt_num: int = 0):
+    def _join(self, join_addr: tuple[str, int]):
         self._logger.info("Joining existig Chord Ring...")
         self._endpoint_server.start()
         self._logger.debug(f"Listening on address {self._addr}")
@@ -235,7 +172,7 @@ class ChordDHTPeer:
                 sleep(1)
                 continue
             for ep in r_ready:
-                messages = receive_on_single_endpoint(ep)
+                messages = self._receive_on_single_endpoint(ep)
                 for message in messages:
                     if message.type == MessageType.LOOKUP_RES:
                         if message.origin == MessageOrigin.JOIN:
@@ -594,6 +531,24 @@ class ChordDHTPeer:
         self._logger.debug(f"Found {len(r_ready_eps)} readable endpoints...")
         return r_ready_eps
 
+    def _receive_on_single_endpoint(
+        self, endpoint: StreamEndpoint
+    ) -> list[Chordmessage]:
+        """Receives and returns the Chordmessages in an endpoint.
+
+        :param endpoint: Endpoint to receive on.
+        :return: Chordmessages in an endpoint or empty list
+        """
+        chordmessages = []
+        try:
+            while True:
+                chordmessages.append(
+                    typing.cast(Chordmessage, endpoint.receive(timeout=0))
+                )
+        except (RuntimeError, TimeoutError):
+            self._logger.debug(f"received {len(chordmessages)} messages on endpoint.")
+            return chordmessages
+
     def start(self, join_addr: tuple[str, int] = None):
         # TODO tote peers erkennen -> received stablize and notify timestamps - done
         # TODO implement check predecessor and successor for failure - done
@@ -606,18 +561,27 @@ class ChordDHTPeer:
         #       in case node is left alone
         self._logger.info(f"Peer {self._id} started...")
         start = time.time()
-        period = start
+        stabilize_period = start
+        request_r_peers_period = start
         self._create() if join_addr is None else self._join(join_addr=join_addr)
-        while True and self._joined:
+        while self._joined:
             self._close_ring_at_first_peer()
             self._cleanup_pending_requests()
-            period = self._maintain_chord_ring(start, period)
+
+            if time.time() - request_r_peers_period > 30:
+                request_r_peers_period = time.time()
+                self.request_n_random_peers()
+
+            self.send_federated_model()
+
+            stabilize_period = self._maintain_chord_ring(start, stabilize_period)
             r_ready = self._get_read_ready_endpoints()
+
             if len(r_ready) == 0:
                 sleep(1)
                 continue
             for ep in r_ready:
-                messages = receive_on_single_endpoint(ep)
+                messages = self._receive_on_single_endpoint(ep)
                 for message in messages:
                     match message.type:
                         case MessageType.LOOKUP_REQ:
@@ -699,7 +663,7 @@ class ChordDHTPeer:
         # check whether request has spoiled
         request = self._pending_requests.pop(message.id, None)
         if request is None:
-            return None
+            return
         # handle valid requests
         if message.origin == MessageOrigin.FIX_FINGERS:
             self._process_and_set_finger(request[2], message.peer_tuple)
@@ -726,7 +690,7 @@ class ChordDHTPeer:
 
     def _put_federated_model(self, message: Chordmessage):
         if message.sender is not (self._id, self._addr):
-            self.fed_models.put((message.sender, message.model))
+            self.fed_models_incoming.put((message.sender, message.model))
 
     def _set_successor(self, successor: tuple[int, tuple[str, int]]):
         """Setter for a peer's successor. Assigns new successor and
@@ -737,7 +701,10 @@ class ChordDHTPeer:
         self._logger.info(f"Setting new Successor {successor}...")
         self._successor = successor
         if self._successor_endpoint is not None:
-            self._successor_endpoint.stop(shutdown=True)
+            try:
+                self._successor_endpoint.stop(shutdown=True)
+            except RuntimeError:
+                pass
         self._successor_endpoint = StreamEndpoint(
             name=f"succ-ep-{self._id}",
             remote_addr=successor[1],
@@ -757,7 +724,10 @@ class ChordDHTPeer:
         self._logger.info(f"Setting new Predecessor {predecessor}...")
         self._predecessor = predecessor
         if self._predecessor_endpoint is not None:
-            self._predecessor_endpoint.stop(shutdown=True)
+            try:
+                self._predecessor_endpoint.stop(shutdown=True)
+            except RuntimeError:
+                pass
         self._predecessor_endpoint = StreamEndpoint(
             name=f"pred-ep-{self._id}",
             remote_addr=predecessor[1],
@@ -768,7 +738,7 @@ class ChordDHTPeer:
         )
         self._predecessor_endpoint.start()
 
-    def request_n_random_peers(self, n_peers: int) -> int:
+    def request_n_random_peers(self):
         """Requests a number of peers randomly from the chord ring. Should never be called by the chord peer, only by the federated node."""
         random.seed()
         if self._successor == (self._id, self._addr):
@@ -776,25 +746,51 @@ class ChordDHTPeer:
                 "Randomized Peer selection not possible: Only one Peer in Network: "
                 + "Try again later. "
             )
-            return -1
-        for i in range(n_peers):
+            return
+        for i in range(self._cluster_size):
             r_num = random.randint(a=0, b=(1 << self._max_fingers))
+            request_id = uuid4()
             message = Chordmessage(
                 msg_type=MessageType.LOOKUP_REQ,
                 sender=(self._id, self._addr),
                 peer_tuple=(r_num, self._addr),
                 origin=MessageOrigin.FED_PEERS_REQ,
-                request_id=uuid4(),
+                request_id=request_id,
                 timestamp=time.time(),
             )
             try:
                 self._successor_endpoint.send(message)
+                self._pending_requests[request_id] = (
+                    self._default_response_ttl,
+                    time.time(),
+                    -1,
+                )
             except (RuntimeError, AttributeError):
                 self._logger.error(
                     "requesting random peer failed: successor endpoint not available."
                 )
-                return -1
-        return 1
+
+    def send_federated_model(self):
+        try:
+            while True:
+                fed_peer, fed_model_params = self.fed_models_outgoing.get_nowait()
+                message = Chordmessage(
+                    msg_type=MessageType.FED_MODEL,
+                    sender=(self._id, self._addr),
+                    timestamp=time.time(),
+                    request_id=uuid4(),
+                    model_params=fed_model_params,
+                )
+                try:
+                    send_ep = self._get_existing_endpoint(fed_peer[1])
+                    send_ep.send(message)
+                except (TypeError, AttributeError, RuntimeError):
+                    self._logger.debug("Creating quick send ep in send federated model")
+                    StreamEndpoint.create_quick_sender_ep(
+                        objects=[message], remote_addr=fed_peer[1], blocking=False
+                    )
+        except queue.Empty:
+            self._logger.warning("Outgoing Queue is empty")
 
     def __str__(self) -> str:
         return (
@@ -818,27 +814,6 @@ class ChordDHTPeer:
             for finger in self._fingers
         ]
 
-    def send_federated_model(
-        self,
-        fed_peer: tuple[int, tuple[str, int]],
-        model_params: list[np.ndarray],
-    ):
-        message = Chordmessage(
-            msg_type=MessageType.FED_MODEL,
-            sender=(self._id, self._addr),
-            timestamp=time.time(),
-            request_id=uuid4(),
-            model_params=model_params,
-        )
-        try:
-            send_ep = self._get_existing_endpoint(fed_peer[1])
-            send_ep.send(message)
-        except (TypeError, AttributeError, RuntimeError):
-            self._logger.debug("Creating quick send ep in send federated model")
-            StreamEndpoint.create_quick_sender_ep(
-                objects=[message], remote_addr=fed_peer[1], blocking=False
-            )
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -857,12 +832,12 @@ if __name__ == "__main__":
     logging.basicConfig(
         format="%(asctime)s %(levelname)-8s %(name)-10s %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
-        level=logging.CRITICAL,
+        level=logging.INFO,
     )
 
     localhost = "127.0.0.1"
 
-    peer = ChordDHTPeer(peer_id=args.id, addr=(localhost, args.port))
+    peer = ChordDHTPeer(addr=(localhost, args.port))
     if args.joinPort:
         peer.start((localhost, args.joinPort))  # start as first chord peer
     else:
