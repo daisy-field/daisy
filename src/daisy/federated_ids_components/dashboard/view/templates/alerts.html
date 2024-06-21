@@ -110,7 +110,7 @@ href={% url 'resolveAll' %} type="button" class="btn btn-dark">Resolve All</a>
     <div style="width: 20%; display:inline-block" class="card bg-danger text-white mb-4" data-bs-toggle="modal"
          data-bs-target="#alarms{{alert.id}}">
         <div class="card-header"><i class="fa-solid fa-server"></i>{{alert.address}}</div>
-        <div class="card-body">{{alert.message}}</div>
+        <div class="card-body"></div>
         <div class="card-footer d-flex align-items-center justify-content-between">
             <a class="small text-white stretched-link" href="#">{{alert.timestamp}}</a>
             <div class="small text-white"><i class="fas fa-angle-right"></i></div>
@@ -121,12 +121,12 @@ href={% url 'resolveAll' %} type="button" class="btn btn-dark">Resolve All</a>
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="exampleModalLabel{{alert.id}}">TESL {{alert.address}}</h5>
+                    <h5 class="modal-title" id="exampleModalLabel{{alert.id}}">{{alert.address}}</h5>
 
                 </div>
                 <div class="modal-body">
-                    {{alert.message}} <br>
-                    {{alert.timestamp}} TEST
+                    {{alert.message}} <br><br>
+                    {{alert.timestamp}}
                 </div>
                 <div class="modal-footer">
                     <a href={% url 'resolve' alert.id %} type="button" class="btn btn-secondary"
@@ -152,7 +152,7 @@ href={% url 'resolveAll' %} type="button" class="btn btn-dark">Resolve All</a>
     {% for alert in warnings%}
  <div style="width: 20%; display:inline-block" class="card bg-warning text-white mb-4" data-bs-toggle="modal" data-bs-target="#warnings{{alert.id}}">
      <div class="card-header"><i class="fa-solid fa-server"></i>{{alert.address}}</div>
-     <div class="card-body">{{alert.message}} </div>
+     <div class="card-body"></div>
      <div class="card-footer d-flex align-items-center justify-content-between">
          <a class="small text-white stretched-link" href="#">{{alert.timestamp}}</a>
          <div class="small text-white"><i class="fas fa-angle-right"></i></div>
@@ -192,7 +192,7 @@ href={% url 'resolveAll' %} type="button" class="btn btn-dark">Resolve All</a>
 {% for alert in infos%}
  <div style="width: 20%; display:inline-block" class="card bg-info text-white mb-4" data-bs-toggle="modal" data-bs-target="#infos{{alert.id}}">
      <div class="card-header"><i class="fa-solid fa-server"></i>{{alert.address}}</div>
-     <div class="card-body">{{alert.message}} </div>
+     <div class="card-body"> </div>
      <div class="card-footer d-flex align-items-center justify-content-between">
          <a class="small text-white stretched-link" href="#">{{alert.timestamp}}</a>
          <div class="small text-white"><i class="fas fa-angle-right"></i></div>
@@ -231,7 +231,7 @@ href={% url 'deleteAll' %} type="button" class="btn btn-dark">Delete All</a>
 {% for alert in history%}
  <div style="width: 20%; display:inline-block" class="card bg-secondary text-white mb-4" data-bs-toggle="modal" data-bs-target="#history{{alert.id}}">
      <div class="card-header"><i class="fa-solid fa-server"></i>{{alert.address}}</div>
-     <div class="card-body">{{alert.message}} </div>
+     <div class="card-body"></div>
      <div class="card-footer d-flex align-items-center justify-content-between">
          <a class="small text-white stretched-link" href="#">{{alert.timestamp}}</a>
          <div class="small text-white"><i class="fas fa-angle-right"></i></div>

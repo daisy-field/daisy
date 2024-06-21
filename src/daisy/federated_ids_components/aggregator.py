@@ -347,7 +347,7 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
             "/aggregation/",
             {
                 "agg_status": "Operational",  # TODO add len(client_models)
-                "agg_count": len(clients),
+                "agg_count": len(self._aggr_serv.poll_connections()[1].values()),
             },
         )
 
@@ -558,7 +558,7 @@ class FederatedPredictionAggregator(FederatedValueAggregator):
                 "/prediction/",  # ADD CORRECT PATH
                 {
                     "pred_status": "Operational",
-                    "pred_count": 0,
+                    "pred_count": len(self._aggr_serv.poll_connections()[1].values()),
                 },  # TODO get correct value for pred_count
             )
 
@@ -610,10 +610,13 @@ class FederatedPredictionAggregator(FederatedValueAggregator):
                 self._update_dashboard(
                     "/alert/",
                     {
-                        "address": node[0],  # ADD NODE WHO REPORTED ALERT
+                        "address": str(node[0])
+                        + ":"
+                        + str(node[1]),  # ADD NODE WHO REPORTED ALERT
                         "category": "alert",
                         "active": True,
-                        "message": "Alert raised!",
+                        "message": "Packet content: "
+                        + ",".join(str(x) for x in x_data[i]),  # "Alert raised!",
                     },
                 )
         return values
@@ -665,7 +668,7 @@ class FederatedEvaluationAggregator(FederatedValueAggregator):
                 "/evaluation/",  # ADD CORRECT PATH
                 {
                     "eval_status": "Operational",
-                    "eval_count": 0,
+                    "eval_count": len(self._aggr_serv.poll_connections()[1].values()),
                 },  # TODO get correct value for eval_count
             )
 
