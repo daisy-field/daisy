@@ -142,7 +142,8 @@
                         var recallRow = [time]
                         nodes.forEach(function (node) {
                             var found = false
-                            response.forEach(function (element) {
+                            for (let i = 0; i < response.length; i++) {
+                                var element = response[i];
                                 if ((new Date(element.timestamp).getTime() == time.getTime()) && element.address == node) {
                                     precisionRow.push(element.precision)
                                     f1Row.push(element.f1)
@@ -150,8 +151,9 @@
                                     accuracyRow.push(element.accuracy)
                                     found = true
                                     console.log("Found")
+                                    break;
                                 }
-                            })
+                            }
                             if (found === false) {
                                 precisionRow.push(0)
                                 accuracyRow.push(0)  //null
@@ -239,12 +241,14 @@
                      if(diffMinutes< 1){
                          var element = document.getElementById("agg_box");
                          document.getElementById("agg_status").innerText = response[response.length-1].agg_status;
+                         document.getElementById("agg_count").innerText = response[response.length-1].agg_count;
                          element.classList.add("bg-success");
                          element.classList.remove("bg-warning");
                      }
                      else{
                          var element = document.getElementById("agg_box");
                          document.getElementById("agg_status").innerText = "Offline";
+                         document.getElementById("agg_count").innerText = "-";
                          element.classList.remove("bg-success");
                          element.classList.add("bg-warning");
                      }
@@ -264,12 +268,15 @@
                      if(diffMinutes< 1){
                          var element = document.getElementById("pred_box");
                          document.getElementById("pred_status").innerText = response[response.length-1].pred_status;
+                         document.getElementById("pred_count").innerText = response[response.length-1].pred_count;
+
                          element.classList.add("bg-success");
                          element.classList.remove("bg-warning");
                      }
                      else{
                           var element = document.getElementById("pred_box");
                           document.getElementById("pred_status").innerText = "Offline";
+                          document.getElementById("pred_count").innerText = "-";
                           element.classList.remove("bg-success");
                           element.classList.add("bg-warning");
                      }
@@ -289,12 +296,14 @@
                      if(diffMinutes< 1){
                          var element = document.getElementById("eval_box");
                          document.getElementById("eval_status").innerText = response[response.length-1].eval_status;
+                         document.getElementById("eval_count").innerText = response[response.length-1].eval_count;
                          element.classList.add("bg-success");
                          element.classList.remove("bg-warning");
                      }
                      else{
                           var element = document.getElementById("eval_box");
                           document.getElementById("eval_status").innerText = "Offline";
+                          document.getElementById("eval_count").innerText = "-";
                           element.classList.remove("bg-success");
                           element.classList.add("bg-warning");
                      }
@@ -343,7 +352,7 @@
                             </div>
                             <div class="col-xl-4 col-md-6">
                                 Nodes:
-                                <p style="font-size:40px;">{{agg_count}}</p>
+                                <p style="font-size:40px;" id="agg_count">{{agg_count}}</p>
                             </div>
                         </div>
                     </div>
@@ -365,7 +374,7 @@
                             </div>
                             <div class="col-xl-4 col-md-6">
                                 Nodes:
-                                <p style="font-size:40px;">{{prediction_count}}</p>
+                                <p style="font-size:40px;" id="pred_count">{{prediction_count}}</p>
                             </div>
                         </div>
                     </div>
@@ -387,7 +396,7 @@
                             </div>
                             <div class="col-xl-4 col-md-6">
                                 Nodes:
-                                <p style="font-size:40px;">{{evaluation_count}}</p>
+                                <p style="font-size:40px;" id="eval_count">{{evaluation_count}}</p>
                             </div>
                         </div>
                     </div>
