@@ -38,7 +38,7 @@
     google.charts.load('current', {'packages': ['corechart']});
     google.charts.setOnLoadCallback(drawChart);
 
-    var updateInterval = 10
+    var updateInterval = 30
     function drawChart() {
         var accuracyData = google.visualization.arrayToDataTable([
             ['Time', 'Nodes'],
@@ -47,7 +47,6 @@
 
         {%if not dark_theme %}
         var options = {
-            curveType: 'function',
             backgroundColor: {fill: 'transparent'},
             legend: 'top',
 
@@ -55,7 +54,6 @@
         {% else %}
         var options = {
             backgroundColor: 'transparent', // Set background color to transparent
-            curveType: 'function',
 
             hAxis: {
                 textStyle: {
@@ -95,6 +93,7 @@
             $.ajax({
                 url: "http://127.0.0.1:8000/metrics/",
                 type: "GET",
+                async: true,
                 dataType: "json",
                 success: (response) => {
 
@@ -150,7 +149,6 @@
                                     recallRow.push(element.recall)
                                     accuracyRow.push(element.accuracy)
                                     found = true
-                                    console.log("Found")
                                     break;
                                 }
                             }
@@ -173,14 +171,7 @@
                     f1_chart.draw(f1Data, options);
                     recall_chart.draw(recallData, options);
 
-                    var currentdate = new Date();
-                    var datetime = +currentdate.getDate() + "/"
-                        + (currentdate.getMonth() + 1) + "/"
-                        + currentdate.getFullYear() + " -- "
-                        + currentdate.getHours() + ":"
-                        + currentdate.getMinutes() + ":"
-                        + currentdate.getSeconds();
-                    $("#updated").text("Last update: " + datetime)
+                    $("#updated").text("Last update: " + new Date())
 
                 },
                 error: (error) => {
@@ -193,6 +184,7 @@
              $.ajax({
                  url: "http://127.0.0.1:8000/alert/",
                  type: "GET",
+                 async: true,
                  dataType: "json",
                  success: (response) => {
 
@@ -233,6 +225,7 @@
              $.ajax({
                  url: "http://127.0.0.1:8000/aggregation/",
                  type: "GET",
+                 async: true,
                  dataType: "json",
                  success: (response) => {
                      const givenDate = new Date(response[response.length-1].agg_time);
@@ -252,6 +245,7 @@
                          element.classList.remove("bg-success");
                          element.classList.add("bg-warning");
                      }
+                     document.getElementById("agg_time").innerText = (new Date(response[response.length-1].agg_time)).toLocaleString();
                      },
                  error: (error) => {
                      console.log(error);
@@ -260,6 +254,8 @@
              $.ajax({
                  url: "http://127.0.0.1:8000/prediction/",
                  type: "GET",
+                 async: true,
+
                  dataType: "json",
                  success: (response) => {
                      const givenDate = new Date(response[response.length-1].pred_time);
@@ -269,7 +265,6 @@
                          var element = document.getElementById("pred_box");
                          document.getElementById("pred_status").innerText = response[response.length-1].pred_status;
                          document.getElementById("pred_count").innerText = response[response.length-1].pred_count;
-
                          element.classList.add("bg-success");
                          element.classList.remove("bg-warning");
                      }
@@ -280,6 +275,7 @@
                           element.classList.remove("bg-success");
                           element.classList.add("bg-warning");
                      }
+                     document.getElementById("pred_time").innerText = (new Date(response[response.length-1].pred_time)).toLocaleString();
                      },
                  error: (error) => {
                      console.log(error);
@@ -289,6 +285,8 @@
                  url: "http://127.0.0.1:8000/evaluation/",
                  type: "GET",
                  dataType: "json",
+                 async: true,
+
                  success: (response) => {
                      const givenDate = new Date(response[response.length-1].eval_time);
                      const timeDifferenceMs = new Date() - givenDate;
@@ -307,6 +305,7 @@
                           element.classList.remove("bg-success");
                           element.classList.add("bg-warning");
                      }
+                     document.getElementById("eval_time").innerText = (new Date(response[response.length-1].eval_time)).toLocaleString();
                      },
                  error: (error) => {
                      console.log(error);
@@ -347,12 +346,12 @@
                     <div class="card-body">
                         <div class="row">
                             <div class="col-xl-8 col-md-6">
-                                Status: <div id="agg_status">{{agg_status}}</div>
-                                Last connection: <br>{{agg_time}}
+                                 <div id="agg_status"></div> <br>
+                                Last connection: <div id="agg_time"></div>
                             </div>
                             <div class="col-xl-4 col-md-6">
                                 Nodes:
-                                <p style="font-size:40px;" id="agg_count">{{agg_count}}</p>
+                                <p style="font-size:40px;" id="agg_count"></p>
                             </div>
                         </div>
                     </div>
@@ -369,12 +368,12 @@
                     <div class="card-body">
                         <div class="row">
                             <div class="col-xl-8 col-md-6">
-                                Status: <div id="pred_status">{{prediction_status}} </div>
-                                Last connection: {{prediction_time}}
+                                <div id="pred_status"></div><br>
+                                Last connection:<div id="pred_time"></div>
                             </div>
                             <div class="col-xl-4 col-md-6">
                                 Nodes:
-                                <p style="font-size:40px;" id="pred_count">{{prediction_count}}</p>
+                                <p style="font-size:40px;" id="pred_count"></p>
                             </div>
                         </div>
                     </div>
@@ -391,12 +390,12 @@
                     <div class="card-body">
                         <div class="row">
                             <div class="col-xl-8 col-md-6">
-                                Status: <div id="eval_status">{{evaluation_status}} </div>
-                                Last connection: {{evaluation_time}}
+                                <div id="eval_status"></div><br>
+                                Last connection:<div id="eval_time"></div>
                             </div>
                             <div class="col-xl-4 col-md-6">
                                 Nodes:
-                                <p style="font-size:40px;" id="eval_count">{{evaluation_count}}</p>
+                                <p style="font-size:40px;" id="eval_count"></p>
                             </div>
                         </div>
                     </div>
