@@ -708,25 +708,32 @@ class FederatedOnlinePeer(FederatedOnlineNode):
                 f"Calculating federated Update with {len(models)} models."
             )
             self._model.set_parameters(self._m_aggr.aggregate(models))
+            self._logger.info("Model metrics: ")
 
     def create_async_fed_learner(self):
         """ """
-        # TODO dht node continues running after fed node exits
-        #  possibility for fed node to exit dht node
+        # TODO sample based/ time based
         # TODO time management
         #  wann/wie oft wird optimistic unchoking durchgeführt,
-        #  wann/wie oft tit for tat
-        # TODO race conditions
-        # DONE single Peer -> sleep, no learning
-        # DONE only two peers - not an edge case
-        # TODO logik abklären
+        #  wann/wie oft tit for tat -> Paper sagt alle 10 sek. default
+        time()
+        start = time()
+        tft_timer = start
+        unchoke_timer = start
+        models = []
         while self._started:
-            sleep(5)
-            self._optimistic_unchoke()
-            models = self._tit_for_tat()
-            with self._m_lock:
-                models.append(self._model.get_parameters())
-                self.fed_update(models)
+            if time() - unchoke_timer >= 10:
+                self._optimistic_unchoke()
+                unchoke_timer = time()
+            if time() - tft_timer >= 30:
+                models = self._tit_for_tat()
+            if models and len(models) > 0:
+                with self._m_lock:
+                    models.append(self._model.get_parameters())
+                    self.fed_update(models)
+                models.clear()
+            else:
+                sleep(1)
 
     def _optimistic_unchoke(self):
         peers = set()
@@ -811,12 +818,7 @@ if __name__ == "__main__":
     )
     t_m = EMAvgTM(alpha=0.05)
     err_fn = tf.keras.losses.MeanAbsoluteError(reduction=tf.keras.losses.Reduction.NONE)
-    model = FederatedIFTM(
-        identify_fn=id_fn,
-        threshold_m=t_m,
-        error_fn=err_fn,
-        param_split=len(id_fn.get_parameters()),
-    )
+    model = FederatedIFTM(identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn)
 
     _list = [{"a": 2}, {"a": 3}, {"a": 3}, {"a": 4}, {"a": 5}]
     handler = SimpleSourceHandler(iter(_list))
