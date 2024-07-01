@@ -21,6 +21,8 @@ Modified: 04.04.24
 
 from abc import ABC, abstractmethod
 from collections import deque
+from keras import Model
+from difflib import SequenceMatcher
 
 import numpy as np
 
@@ -237,6 +239,46 @@ class EMAggregator(ModelAggregator):
 
         for i in range(len(models_avg)):
             self._em_avg[i] = (
-                self._alpha * models_avg[i] + (1 - self._alpha) * self._em_avg[i]
+                    self._alpha * models_avg[i] + (1 - self._alpha) * self._em_avg[i]
             )
         return self._em_avg
+
+
+class LCAggregator(ModelAggregator):
+    _commonalities = {}
+
+    def __init__(self, models: dict[str, list[Model]]):
+        """ Creates a new layerwise aggregator.
+
+        :param layers: layers of the initial models
+        """
+
+        for model_key in models.keys():
+            # Get the layer-names of the model
+            layers = self.extract_layer_names(models[model_key])
+
+            # Add yourself to the knowledge base
+            self._commonalities[model_key] = {
+                'layers': layers,
+                'commonalities': {
+                    model_key: [i for (i, _) in enumerate(layers)]
+                }
+            }
+
+            for other_key in self._commonalities.keys():
+                if other_key == model_key:
+                    continue
+
+                other_layers = self._commonalities[other_key]['layers']
+                match = SequenceMatcher(None, layers, other_layers).find_longest_match()
+                print(match.size)
+
+    @staticmethod
+    def extract_layer_names(layers: list[Model]):
+        # TODO: this feels a bit scuffed since i dont know all of the layernames this could potentially be problematic
+        return [layer.name[:layer.name.rfind('_')]
+                if layer.name.rfind('_') != -1 and layer.name[len(layer.name) - 1].isnumeric()
+                else layer.name for layer in layers]
+
+    def aggregate(self, models_parameters: list[list[np.ndarray]]) -> list[np.ndarray]:
+        return list(np.ndarray(0))

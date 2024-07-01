@@ -84,7 +84,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--pcapBasePath",
         type=pathlib.Path,
-        default="/home/fabian/Documents/DAI-Lab/COBRA-5G/D-IDS/Datasets/v2x_2023-03-06",
+        default="/mnt/d/Arbeit/Uni/Bachelor/datasets/v2x_2023-03-06",
         metavar="",
         help="Path to the march23 v2x dataset directory (root)",
     )
