@@ -15,7 +15,6 @@ import logging
 from daisy.data_sources import (
     DataSource,
     SimpleDataProcessor,
-    pyshark_map_fn,
     LivePysharkHandler,
     SimpleRemoteSourceHandler,
     DataSourceRelay,
@@ -252,7 +251,7 @@ def create_relay():
             endpoint=stream_endpoint, name="data_relay:remote_data_handler"
         )
     data_processor = SimpleDataProcessor(
-        map_fn=pyshark_map_fn(), filter_fn=lambda x: x, reduce_fn=lambda x: x
+        map_fn=lambda x: x, filter_fn=lambda x: x, reduce_fn=lambda x: x
     )
     data_source = DataSource(
         source_handler=data_handler,

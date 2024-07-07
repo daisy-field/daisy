@@ -23,6 +23,48 @@ from daisy.data_sources import (
 from daisy.communication import StreamEndpoint
 
 
+def remove_filter(d_point: dict, f_features: list) -> dict:
+    """Takes a packet and removes all given features from it.
+
+    :param d_point: Dictionary of packet data.
+    :param f_features: List of features to remove.
+    :return: Dictionary of packet with features removed.
+    """
+    for feature in f_features:
+        d_point.pop(feature, None)
+    return d_point
+
+
+def label_reduce(
+    d_point: dict,
+    events: list[
+        tuple[tuple[float, float], list[tuple[any, any]], list[tuple[any, any]], str]
+    ],
+) -> dict:
+    for event in events:
+        if not (event[0][0] < d_point["meta.time_epoch"] < event[0][1]):
+            continue
+
+        skip = False
+        for feature, value in event[1]:
+            if d_point[feature] != value:
+                skip = True
+                break
+        if skip:
+            continue
+
+        skip = False
+        for feature, value in event[2]:
+            if value not in d_point[feature]:
+                skip = True
+                break
+        if skip:
+            continue
+
+        d_point["label"] = event[3]
+    return d_point
+
+
 def _parse_args() -> argparse.Namespace:
     """Creates a parser for the arguments and parses them.
 
@@ -246,8 +288,28 @@ def create_collector():
         data_handler = SimpleRemoteSourceHandler(
             endpoint=stream_endpoint, name="data_collector:remote_data_handler"
         )
+
+    f_features = []  # TODO load the features into a list here
+    # TODO create a parameter for configuring the filter
+    events = []  # TODO load events into a list here
+    # TODO create a parameter to configure events
+    # TODO events are of construction:
+    # [ ( (a, b), [(c, d)], [(e, f)], g) ]
+    # a tuple with four elements
+    # first element contains a and b, which are floats with time from epoch. The packet needs to be a < packet < b
+    # second element is list of tuples with two elements c and d.
+    # This List contains values, which should be equal
+    # c is the key of the packet, d is the value => packet[c] == d
+    # can be used for example with ("port", 22) => packet["port"] == 22, which asks if the port is 22 for SSH
+    # third element is list of tuples with two elements e and f
+    # This list contains values, which should be IN the packet
+    # e is the key of the packet, f the value that should be in it => f in packet[e]
+    # can be used for example for IPs: ("ip", "10.1.") => "10.1." in packet["ip"]
+    # can also be used to check contents of lists and so on
     data_processor = SimpleDataProcessor(
-        map_fn=pyshark_map_fn(), filter_fn=lambda x: x, reduce_fn=lambda x: x
+        map_fn=pyshark_map_fn(),
+        filter_fn=lambda x: remove_filter(x, f_features),
+        reduce_fn=lambda x: label_reduce(x, events),
     )
     data_source = DataSource(
         source_handler=data_handler,
