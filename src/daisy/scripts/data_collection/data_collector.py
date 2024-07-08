@@ -11,6 +11,7 @@ Modified: 03.07.2024
 
 import argparse
 import logging
+import re
 
 from daisy.data_sources import (
     DataSource,
@@ -40,7 +41,9 @@ def label_reduce(
     events: list[
         tuple[tuple[float, float], list[tuple[any, any]], list[tuple[any, any]], str]
     ],
+    default_label: str = "",
 ) -> dict:
+    d_point["label"] = default_label
     for event in events:
         if not (event[0][0] < d_point["meta.time_epoch"] < event[0][1]):
             continue
@@ -63,6 +66,45 @@ def label_reduce(
 
         d_point["label"] = event[3]
     return d_point
+
+
+def parse_event(line):
+    parts = re.split("[\[\]]", line)
+    times = parts[0].split(",")
+    times[0] = float(times[0])
+    times[1] = float(times[1])
+
+    eq_parts = re.split("[()]", parts[1])
+    eq_list = []
+    for eq in eq_parts:
+        cur_eq = [
+            keyval.strip().strip('"')
+            for keyval in re.split(',(?=(?:[^"]*"[^"]*")*[^"]*$)', eq)
+        ]
+        if len(cur_eq) != 2:
+            continue
+        key, val = cur_eq
+        if not key and not val:
+            continue
+        eq_list += [(key, val)]
+
+    con_parts = re.split("[()]", parts[3])
+    con_list = []
+    for con in con_parts:
+        cur_con = [
+            keyval.strip().strip('"')
+            for keyval in re.split(',(?=(?:[^"]*"[^"]*")*[^"]*$)', con)
+        ]
+        if len(cur_con) != 2:
+            continue
+        key, val = cur_con
+        if not key and not val:
+            continue
+        con_list += [(key, val)]
+
+    label = parts[4].strip(",").strip().strip('"')
+
+    return ((times[0], times[1]), eq_list, con_list, label)
 
 
 def _parse_args() -> argparse.Namespace:
@@ -225,6 +267,20 @@ def _parse_args() -> argparse.Namespace:
         default=",",
         help="Sets the separator for the CSV file. (Default: ,)",
     )
+    output_group.add_argument(
+        "--feature-filter",
+        "-ff",
+        type=str,
+        metavar="FILE",
+        help="Removes the features specified in the given file from each packet. The file is expected to have one feature per line.",
+    )
+    output_group.add_argument(
+        "--events",
+        "-e",
+        type=str,
+        metavar="FILE",
+        help="Extracts events for labeling from the given file. Each line is expected to be one event.",
+    )
 
     performance_group = parser.add_argument_group(
         "Performance Configuration", "These arguments can adjust performance."
@@ -289,23 +345,45 @@ def create_collector():
             endpoint=stream_endpoint, name="data_collector:remote_data_handler"
         )
 
-    f_features = []  # TODO load the features into a list here
-    # TODO create a parameter for configuring the filter
-    events = []  # TODO load events into a list here
-    # TODO create a parameter to configure events
-    # TODO events are of construction:
-    # [ ( (a, b), [(c, d)], [(e, f)], g) ]
-    # a tuple with four elements
-    # first element contains a and b, which are floats with time from epoch. The packet needs to be a < packet < b
-    # second element is list of tuples with two elements c and d.
-    # This List contains values, which should be equal
-    # c is the key of the packet, d is the value => packet[c] == d
-    # can be used for example with ("port", 22) => packet["port"] == 22, which asks if the port is 22 for SSH
-    # third element is list of tuples with two elements e and f
-    # This list contains values, which should be IN the packet
-    # e is the key of the packet, f the value that should be in it => f in packet[e]
-    # can be used for example for IPs: ("ip", "10.1.") => "10.1." in packet["ip"]
-    # can also be used to check contents of lists and so on
+    if not args.feature_filter:
+        f_features = []
+    else:
+        try:
+            with open(args.feature_filter, "r") as feature_file:
+                f_features = [line.strip() for line in feature_file]
+        except FileNotFoundError:
+            logging.error(
+                f"Feature filter file does not exist at path {args.feature_filter}."
+            )
+            exit(1)
+
+    if not args.events:
+        events = []
+    else:
+        try:
+            with open(args.events, "r") as events_file:
+                events = []
+                for event in events_file:
+                    try:
+                        events += [parse_event(event)]
+                    except ValueError:
+                        logging.warning(
+                            f"A line in the event file could not be parsed. Line: {event}"
+                        )
+                        continue
+        except FileNotFoundError:
+            logging.error(f"Event file does not exist at path {args.events}.")
+            exit(1)
+        except Exception as e:
+            logging.error("Unexpected error occurred while parsing events file.")
+            logging.error(e)
+            exit(1)
+        logging.info("Found following events:")
+        for event in events:
+            logging.info(
+                f"Start time: {event[0][0]}, End time: {event[0][1]}, Label: {event[3]}, List of feature equals value: {event[1]}, List of value in feature: {event[2]}"
+            )
+
     data_processor = SimpleDataProcessor(
         map_fn=pyshark_map_fn(),
         filter_fn=lambda x: remove_filter(x, f_features),
