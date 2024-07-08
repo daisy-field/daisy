@@ -3,7 +3,8 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""This script runs a data collector, which can either capture live data from the local machine or gather data from a remote connection. The data will be written into CSV files.
+"""This script runs a data collector, which can either capture live data from the local machine or gather data from a
+remote connection. The data will be written into CSV files.
 
 Author: Jonathan Ackerschewski
 Modified: 03.07.2024
@@ -251,7 +252,8 @@ def _parse_args() -> argparse.Namespace:
         type=int,
         metavar="N",
         default=1000,
-        help="Sets the number of packets, which will be used for CSV header discovery. Higher numbers reduce chance of missing headers, but increase RAM usage. (Default: 1000)",
+        help="Sets the number of packets, which will be used for CSV header discovery. Higher numbers reduce chance of "
+        "missing headers, but increase RAM usage. (Default: 1000)",
     )
     output_group.add_argument(
         "--overwrite",
@@ -272,7 +274,8 @@ def _parse_args() -> argparse.Namespace:
         "-ff",
         type=str,
         metavar="FILE",
-        help="Removes the features specified in the given file from each packet. The file is expected to have one feature per line.",
+        help="Removes the features specified in the given file from each packet. The file is expected to have one "
+        "feature per line.",
     )
     output_group.add_argument(
         "--events",
@@ -302,7 +305,8 @@ def _parse_args() -> argparse.Namespace:
 
 
 def create_collector():
-    """Creates a CSV file relay with all needed structures to provide it with data. There is the option to either use a live data capture on the local machine or to use data from a remote machine."""
+    """Creates a CSV file relay with all needed structures to provide it with data. There is the option to either use
+    a live data capture on the local machine or to use data from a remote machine."""
     # Args parsing
     args = _parse_args()
 
@@ -381,7 +385,8 @@ def create_collector():
         logging.info("Found following events:")
         for event in events:
             logging.info(
-                f"Start time: {event[0][0]}, End time: {event[0][1]}, Label: {event[3]}, List of feature equals value: {event[1]}, List of value in feature: {event[2]}"
+                f"Start time: {event[0][0]}, End time: {event[0][1]}, Label: {event[3]}, List of feature equals value: "
+                f"{event[1]}, List of value in feature: {event[2]}"
             )
 
     data_processor = SimpleDataProcessor(

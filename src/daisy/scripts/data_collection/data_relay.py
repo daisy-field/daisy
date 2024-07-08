@@ -3,7 +3,8 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""This script starts a relay, which passes data to a remote machine for further processing. There it the option to use locally captured data or use data provided by a remote source.
+"""This script starts a relay, which passes data to a remote machine for further processing. There it the option to use
+locally captured data or use data provided by a remote source.
 
 Author: Jonathan Ackerschewski
 Modified: 03.07.2024
@@ -209,7 +210,8 @@ def _parse_args() -> argparse.Namespace:
 
 
 def create_relay():
-    """Creates a relay, which passes provided data to a remote machine for further processing. There it the option to use locally captured data or use data provided by a remote source."""
+    """Creates a relay, which passes provided data to a remote machine for further processing. There it the option to
+    use locally captured data or use data provided by a remote source."""
     args = _parse_args()
 
     match args.loglevel:
