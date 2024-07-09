@@ -136,10 +136,10 @@ def _parse_args() -> argparse.Namespace:
         help="Collects data from a remotely connected machine.",
     )
 
-    logging_group = parser.add_argument_group(
+    logging_group_main = parser.add_argument_group(
         "Logging", "These arguments define the log level"
     )
-    logging_group = logging_group.add_mutually_exclusive_group()
+    logging_group = logging_group_main.add_mutually_exclusive_group()
     logging_group.add_argument(
         "--debug",
         action="store_const",
@@ -173,6 +173,13 @@ def _parse_args() -> argparse.Namespace:
         default=0,
         dest="loglevel",
         help="Increases verbosity with each occurance up to level 3.",
+    )
+    logging_group_main.add_argument(
+        "--log-file",
+        "-lf",
+        type=str,
+        metavar="FILE",
+        help="Writes all log messages to specified file instead of the console.",
     )
 
     remote_group = parser.add_argument_group(
@@ -320,11 +327,20 @@ def create_collector():
         case _:
             log_level = logging.DEBUG
 
-    logging.basicConfig(
-        format="%(asctime)s %(levelname)-8s %(name)-10s %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-        level=log_level,
-    )
+    if not args.log_file:
+        logging.basicConfig(
+            format="%(asctime)s %(levelname)-8s %(name)-10s %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+            level=log_level,
+        )
+    else:
+        logging.basicConfig(
+            filename=args.log_file,
+            filemode="w",
+            format="%(asctime)s %(levelname)-8s %(name)-10s %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+            level=log_level,
+        )
 
     if not args.localSource:
         if not args.local_ip or not args.remote_ip:
