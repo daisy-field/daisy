@@ -2,6 +2,8 @@ import keras.losses
 import os
 from federated_aggregator import LCAggregator
 from keras import datasets, layers, models
+from difflib import SequenceMatcher
+import json
 
 
 def create_model():
@@ -12,8 +14,9 @@ def create_model():
     model.add(layers.MaxPooling2D((2, 2)))
     model.add(layers.Conv2D(128, (3, 3), activation='relu'))
     model.add(layers.Flatten())
-    model.add(layers.Dense(128, activation='relu'))
+    model.add(layers.Dense(256, activation='relu'))
     model.add(layers.Dropout(0.5))
+    model.add(layers.Dense(128, activation='relu'))
     model.add(layers.Dense(10, activation='softmax'))
     return model
 
@@ -40,7 +43,6 @@ path = './trained/{model_num:04d}.ckpt'
 model_checkpoint = keras.callbacks.ModelCheckpoint(
     filepath=path,
     verbose=1,
-    save_weights_only=True,
     save_freq='epoch'
 )
 
@@ -49,9 +51,9 @@ if not os.path.isfile('./trained/0001.ckpt.data-00000-of-00001'):
     model.compile(optimizer='adam',
                   loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True),
                   metrics=['accuracy'])
-    model.save_weights(path.format(model_num=1))
     history = model.fit(train_images, train_labels, epochs=10,
                         validation_data=(test_images, test_labels))
+    model.save_weights(path.format(model_num=1))
 else:
     model.load_weights(path.format(model_num=1))
 
@@ -60,10 +62,12 @@ if not os.path.isfile('./trained/0002.ckpt.data-00000-of-00001'):
     model2.compile(optimizer='adam',
                    loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True),
                    metrics=['accuracy'])
-    model.save_weights(path.format(model_num=2))
-    history2 = model.fit(train_images, train_labels, epochs=10,
+    history2 = model2.fit(train_images, train_labels, epochs=10,
                          validation_data=(test_images, test_labels))
+    model2.save_weights(path.format(model_num=2))
 else:
     model2.load_weights(path.format(model_num=2))
 
-aggregator = LCAggregator({'0': model.layers, '1': model2.layers})
+
+aggregator = LCAggregator({0: model.layers, 1: model2.layers})
+aggregator.aggregate([(0, model.get_weights()), (1, model2.get_weights())])
