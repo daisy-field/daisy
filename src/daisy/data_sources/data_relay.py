@@ -287,10 +287,7 @@ class CSVFileRelay:
         except RuntimeError:
             pass
 
-        try:
-            self._relay.join()
-        except RuntimeError:  # TODO this is a workaround for PyShark Exceptions.
-            self._relay.join()
+        self._relay.join()
         self._logger.info("File relay stopped.")
 
     def _create_relay(self):
@@ -330,29 +327,41 @@ class CSVFileRelay:
         with open(self._file, "w") as file:
             if self._headers_provided:
                 file.write(f"{self._separator.join(self._headers)}\n")
-            for d_point in self._data_source:
-                try:
-                    if not isinstance(d_point, dict):
-                        raise TypeError(
-                            "Received data point that is not  of type dictionary."
-                        )
-                    if d_point_counter < self._header_buffer_size:
-                        header_buffer.update(OrderedDict.fromkeys(d_point.keys()))
-                        d_point_buffer += [d_point]
-                    else:
-                        if do_buffer:
-                            buffer_to_file()
-                            do_buffer = False
+            try:
+                for d_point in self._data_source:
+                    try:
+                        if not self._started:
+                            # stop was called
+                            break
+                        if not isinstance(d_point, dict):
+                            raise TypeError(
+                                "Received data point that is not  of type dictionary."
+                            )
+                        if d_point_counter < self._header_buffer_size:
+                            if d_point_counter % 100 == 0:
+                                self._logger.debug(
+                                    f"Received packet {d_point_counter} and writing it into buffer."
+                                )
+                            header_buffer.update(OrderedDict.fromkeys(d_point.keys()))
+                            d_point_buffer += [d_point]
+                        else:
+                            if do_buffer:
+                                buffer_to_file()
+                                do_buffer = False
 
-                        values = map(
-                            lambda topic: self._get_value(d_point, topic), self._headers
-                        )
-                        line = self._separator.join(values)
-                        file.write(f"{line}\n")
-                    d_point_counter += 1
-                except RuntimeError:
-                    # stop() was called
-                    break
+                            values = map(
+                                lambda topic: self._get_value(d_point, topic),
+                                self._headers,
+                            )
+                            line = self._separator.join(values)
+                            file.write(f"{line}\n")
+                        d_point_counter += 1
+                    except RuntimeError:
+                        # stop() was called
+                        break
+            except RuntimeError:
+                # stop() was called
+                pass
             if d_point_counter <= self._header_buffer_size:
                 buffer_to_file()
         self._logger.info("Data source exhausted, or relay closed.")
