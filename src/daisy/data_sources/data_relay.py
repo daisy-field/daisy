@@ -287,7 +287,10 @@ class CSVFileRelay:
         except RuntimeError:
             pass
 
-        self._relay.join()
+        try:
+            self._relay.join()
+        except RuntimeError:  # TODO this is a workaround for PyShark Exceptions.
+            self._relay.join()
         self._logger.info("File relay stopped.")
 
     def _create_relay(self):
