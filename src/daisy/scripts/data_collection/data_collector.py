@@ -252,7 +252,8 @@ def _parse_args() -> argparse.Namespace:
         required=True,
         help="sets the output file location.",
     )
-    output_group.add_argument(
+    output_exclusive_group = output_group.add_mutually_exclusive_group()
+    output_exclusive_group.add_argument(
         "--csv-header-buffer",
         "--buffer",
         "-b",
@@ -261,6 +262,14 @@ def _parse_args() -> argparse.Namespace:
         default=1000,
         help="Sets the number of packets, which will be used for CSV header discovery. Higher numbers reduce chance of "
         "missing headers, but increase RAM usage. (Default: 1000)",
+    )
+    output_exclusive_group.add_argument(
+        "--headers-file",
+        "-hf",
+        type=str,
+        metavar="FILE",
+        help="Sets the headers file location. If this is provided, the auto header discovery is turned off and the "
+        "provided headers will be used instead. Each line is expected to be a feature/header.",
     )
     output_group.add_argument(
         "--overwrite",
@@ -416,11 +425,16 @@ def create_collector():
         name="data_collector:data_source",
         multithreading=args.processing_multithreading,
     )
+    headers = None
+    if args.headers_file is not None:
+        with open(args.headers_file, "r") as headers_file:
+            headers = tuple([line.strip() for line in headers_file])
     csv_file_relay = CSVFileRelay(
         data_source=data_source,
         target_file=args.output,
         name="data_collector:csv_file_relay",
         header_buffer_size=args.csv_header_buffer,
+        headers=headers,
         overwrite_file=args.overwrite,
         separator=args.separator,
         default_missing_value="",

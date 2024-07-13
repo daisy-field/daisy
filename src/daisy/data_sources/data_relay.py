@@ -152,6 +152,7 @@ class CSVFileRelay:
     _file: Path
     _header_buffer_size: int
     _headers: tuple[str, ...]
+    _headers_provided: bool
     _separator: str
     _default_missing_value: object
 
@@ -165,6 +166,7 @@ class CSVFileRelay:
         target_file: str,
         name: str = "",
         header_buffer_size: int = 1000,
+        headers: tuple[str, ...] = None,
         overwrite_file: bool = False,
         separator: str = ",",
         default_missing_value: object = "",
@@ -183,6 +185,8 @@ class CSVFileRelay:
         discovered, if for example a data point with new features could arrive after
         the discovery is completed. On the other hand, if the buffer size is great
         or equal to the number of points, the entire stream is used for discovery.
+        :param headers: If this is provided, the auto header discovery will be turned
+        off and the provided headers will be used instead.
         :param overwrite_file: Whether the file should be overwritten if it exists.
         :param separator: Separator used in the CSV file.
         :param default_missing_value: Default value if a feature is not present in a
@@ -198,8 +202,9 @@ class CSVFileRelay:
         self._started = False
         self._completed = threading.Event()
 
-        if header_buffer_size <= 0:
-            raise ValueError("Header buffer size must be greater 0")
+        if headers is None:
+            if header_buffer_size <= 0:
+                raise ValueError("Header buffer size must be greater 0")
 
         if separator == '"':
             raise ValueError(f"'{separator}' is not allowed as a separator")
@@ -223,8 +228,14 @@ class CSVFileRelay:
 
         self._data_source = data_source
         self._separator = separator
-        self._header_buffer_size = header_buffer_size
-        self._headers = ()
+        if headers is not None:
+            self._header_buffer_size = 0
+            self._headers = headers
+            self._headers_provided = True
+        else:
+            self._header_buffer_size = header_buffer_size
+            self._headers = ()
+            self._headers_provided = False
         self._default_missing_value = default_missing_value
 
         self._logger.info("File relay initialized.")
@@ -307,10 +318,15 @@ class CSVFileRelay:
         self._logger.info("Starting to relay data points from data source...")
         d_point_counter = 0
         d_point_buffer = []
-        do_buffer = True
+        do_buffer = not self._headers_provided
         header_buffer = OrderedDict()
-        self._logger.info("Attempting to discover headers...")
+        if self._headers_provided:
+            self._logger.info(f"Using headers: {self._headers}")
+        else:
+            self._logger.info("Attempting to discover headers...")
         with open(self._file, "w") as file:
+            if self._headers_provided:
+                file.write(f"{self._separator.join(self._headers)}\n")
             for d_point in self._data_source:
                 try:
                     if not isinstance(d_point, dict):
