@@ -257,16 +257,8 @@ class LCAggregator(ModelAggregator):
         self._fed_avg = FedAvgAggregator()
 
         for model_key in models.keys():
-            # Construct the layer list
-            layers = [self.construct_layer_dict(layer) for layer in models[model_key]]
-
-            # Add yourself to the knowledge base
-            self._commonalities[model_key] = {
-                'layers': layers,
-                'commonalities': {
-                    model_key: np.arange(len(models[model_key]))
-                }
-            }
+            # Build the information about the model layers of the current archetype
+            layers = self.build_own_information(models[model_key], model_key)
 
             # Go through all other models and add their respective similarities
             for other_key in self._commonalities.keys():
@@ -279,22 +271,33 @@ class LCAggregator(ModelAggregator):
                     self.find_layer_similarities(layers, other_layers))
 
                 # Get indices of layers to share
-                layer_ids_self = np.arange(sequence_start_own, sequence_start_own + sequence_len, dtype=int)
-                layer_ids_other = np.arange(sequence_start_other, sequence_start_other + sequence_len, dtype=int)
+                shareable_layers = np.arange(sequence_start_own, sequence_start_own + sequence_len, dtype=int)
+                self.get_relevant_weights((model_key, other_key), shareable_layers)
 
-                # Save which layers can be transferred to the other model
-                self._commonalities[model_key]['commonalities'][other_key] = layer_ids_self
-                self._commonalities[other_key]['commonalities'][model_key] = layer_ids_other
+                shareable_layers = np.arange(sequence_start_other, sequence_start_other + sequence_len, dtype=int)
+                self.get_relevant_weights((other_key, model_key), shareable_layers)
 
         print(self._commonalities)
 
-    @staticmethod
-    def construct_layer_dict(layer: Model) -> dict[str, any]:
-        layer_info = {
-            'type': layer.__class__.__name__,
-            'params': layer.count_params()
+    def build_own_information(self, model, model_key) -> list[dict]:
+        # Construct the layer list with information for each layer
+        layers = []
+        weight_indices = []
+        for i, layer in enumerate(model):
+            layers.append({
+                'type': layer.__class__.__name__,
+                'params': layer.count_params()
+            })
+            weight_indices.extend([i] * len(layer.get_weights()))
+        weight_indices = np.asarray(weight_indices)
+
+        # Add yourself to the knowledge base
+        self._commonalities[model_key] = {
+            'layers': layers,
+            'weight_indices': weight_indices,
         }
-        return layer_info
+
+        return layers
 
     @staticmethod
     def find_layer_similarities(own_layers: list[dict], other_layers: list[dict]) -> (int, int, int):
@@ -302,31 +305,32 @@ class LCAggregator(ModelAggregator):
         other_layers = [json.dumps(layer) for layer in other_layers]
 
         match = SequenceMatcher(None, own_layers, other_layers).find_longest_match()
-        
+
         return match.size, match.a, match.b
+
+    def get_relevant_weights(self, model_ids: (int, int), layer_indices: np.ndarray):
+        occurrences = []
+        for index in layer_indices:
+            occurrences.extend(np.where(index == self._commonalities[model_ids[0]]['weight_indices'])[0].tolist())
+        self._commonalities[model_ids[0]][model_ids[1]] = occurrences
 
     def aggregate(self, models_parameters: list[(int, list[np.ndarray])]) -> list[list[np.ndarray]]:
         aggregated_models = []
 
         for (i, (first_model_id, first_model_weights)) in enumerate(models_parameters):
             temp = first_model_weights
-            print(len(temp))
-            print([el.shape for el in temp])
             for (j, (second_model_id, second_model_weights)) in enumerate(models_parameters):
                 if i == j:
                     continue
-                print([el.shape for el in second_model_weights])
-                # Get the weights of the relevant layers for the two models
-                first_idx = self._commonalities[first_model_id]['commonalities'][second_model_id]
-                first_model_layers = [temp[k] for k in first_idx]
-                print(first_idx)
-                second_idx = self._commonalities[second_model_id]['commonalities'][first_model_id]
-                second_model_layers = [second_model_weights[k] for k in second_idx]
-                print(second_idx)
-                print([el.shape for el in first_model_layers])
-                print([el.shape for el in second_model_layers])
-                # Aggregate the layers
-                self._fed_avg.aggregate([first_model_layers, second_model_layers])
+
+                # Get weights of the two models
+                idx = self._commonalities[first_model_id][second_model_id]
+                first_weights = [first_model_weights[i] for i in range(len(first_model_weights)) if i in idx]
+
+                idx = self._commonalities[second_model_id][first_model_id]
+                second_weights = [second_model_weights[i] for i in range(len(second_model_weights)) if i in idx]
+
+                temp = self._fed_avg.aggregate([first_weights, second_weights])
 
             aggregated_models.append(temp)
         return aggregated_models

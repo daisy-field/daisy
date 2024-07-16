@@ -63,11 +63,10 @@ if not os.path.isfile('./trained/0002.ckpt.data-00000-of-00001'):
                    loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True),
                    metrics=['accuracy'])
     history2 = model2.fit(train_images, train_labels, epochs=10,
-                         validation_data=(test_images, test_labels))
+                          validation_data=(test_images, test_labels))
     model2.save_weights(path.format(model_num=2))
 else:
     model2.load_weights(path.format(model_num=2))
-
 
 aggregator = LCAggregator({0: model.layers, 1: model2.layers})
 aggregator.aggregate([(0, model.get_weights()), (1, model2.get_weights())])
