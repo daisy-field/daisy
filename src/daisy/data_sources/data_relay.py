@@ -378,6 +378,7 @@ class CSVFileRelay:
         """
         string_value = str(d_point.get(topic, self._default_missing_value))
         if self._separator in string_value:
+            string_value = string_value.replace('"', '\\"')
             string_value = f'"{string_value}"'
         return string_value
 
