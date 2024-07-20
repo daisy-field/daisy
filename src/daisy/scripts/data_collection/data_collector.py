@@ -46,12 +46,12 @@ def label_reduce(
 ) -> dict:
     d_point["label"] = default_label
     for event in events:
-        if not (event[0][0] < d_point["meta.time_epoch"] < event[0][1]):
+        if not (event[0][0] < float(d_point.get("meta.time_epoch", 0)) < event[0][1]):
             continue
 
         skip = False
         for feature, value in event[1]:
-            if d_point[feature] != value:
+            if d_point.get(feature, None) != value:
                 skip = True
                 break
         if skip:
@@ -59,9 +59,19 @@ def label_reduce(
 
         skip = False
         for feature, value in event[2]:
-            if value not in d_point[feature]:
-                skip = True
-                break
+            try:
+                if value not in d_point.get(feature, []):
+                    skip = True
+                    break
+            except TypeError:
+                val = d_point.get(feature, [])
+                if val:
+                    logging.error(
+                        f"Got TypeError for feature {feature}, trying to determine if {value} is in "
+                        f"{val}. Skipping..."
+                    )
+                    skip = True
+                    break
         if skip:
             continue
 
@@ -417,7 +427,7 @@ def create_collector():
     data_processor = SimpleDataProcessor(
         map_fn=pyshark_map_fn(),
         filter_fn=lambda x: remove_filter(x, f_features),
-        reduce_fn=lambda x: label_reduce(x, events),
+        reduce_fn=lambda x: label_reduce(x, events, default_label="benign"),
     )
     data_source = DataSource(
         source_handler=data_handler,
