@@ -247,7 +247,6 @@ class EMAggregator(ModelAggregator):
 
 class LCAggregator(ModelAggregator):
     _commonalities = {}
-    _fed_avg: FedAvgAggregator
 
     def __init__(self, models: dict[int, list[Model]]):
         """ Creates a new layerwise aggregator.
@@ -316,12 +315,19 @@ class LCAggregator(ModelAggregator):
 
     def aggregate(self, models_parameters: list[(int, list[np.ndarray])]) -> list[list[np.ndarray]]:
         aggregated_models = []
-
+        # TODO: fix avg since it cant be done this way. allow for same model aggregation
         for (i, (first_model_id, first_model_weights)) in enumerate(models_parameters):
-            temp = first_model_weights
+            temp = []
+            aggr = CumAggregator()
+            aggr.aggregate(first_model_weights)
             for (j, (second_model_id, second_model_weights)) in enumerate(models_parameters):
                 if i == j:
                     continue
+                elif first_model_id == second_model_id:
+                    aggr.aggregate(second_model_weights)
+                else:
+                    idx = self._commonalities[second_model_id][first_model_id]
+                    second_weights = [second_model_weights[i] for i in range(len(second_model_weights)) if i in idx]
 
                 # Get weights of the two models
                 idx = self._commonalities[first_model_id][second_model_id]
@@ -329,8 +335,6 @@ class LCAggregator(ModelAggregator):
 
                 idx = self._commonalities[second_model_id][first_model_id]
                 second_weights = [second_model_weights[i] for i in range(len(second_model_weights)) if i in idx]
-
-                temp = self._fed_avg.aggregate([first_weights, second_weights])
 
             aggregated_models.append(temp)
         return aggregated_models
