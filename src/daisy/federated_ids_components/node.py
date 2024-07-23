@@ -727,6 +727,7 @@ class FederatedOnlinePeer(FederatedOnlineNode):
                 unchoke_timer = time()
             if time() - tft_timer >= 30:
                 models = self._tit_for_tat()
+                # Fixme: tft timer updaten!!
             if models and len(models) > 0:
                 with self._m_lock:
                     models.append(self._model.get_parameters())
