@@ -278,15 +278,12 @@ class LCAggregator(ModelAggregator):
 
         print(self._commonalities)
 
-    def build_own_information(self, model, model_key) -> list[dict]:
+    def build_own_information(self, model, model_key) -> list[str]:
         # Construct the layer list with information for each layer
         layers = []
         weight_indices = []
         for i, layer in enumerate(model):
-            layers.append({
-                'type': layer.__class__.__name__,
-                'params': layer.count_params()
-            })
+            layers.append(f'{layer.__class__.__name__};{layer.count_params()}')
             weight_indices.extend([i] * len(layer.get_weights()))
         weight_indices = np.asarray(weight_indices)
 
@@ -299,12 +296,8 @@ class LCAggregator(ModelAggregator):
         return layers
 
     @staticmethod
-    def find_layer_similarities(own_layers: list[dict], other_layers: list[dict]) -> (int, int, int):
-        own_layers = [json.dumps(layer) for layer in own_layers]
-        other_layers = [json.dumps(layer) for layer in other_layers]
-
+    def find_layer_similarities(own_layers: list[str], other_layers: list[str]) -> (int, int, int):
         match = SequenceMatcher(None, own_layers, other_layers).find_longest_match()
-
         return match.size, match.a, match.b
 
     def get_relevant_weights(self, model_ids: (int, int), layer_indices: np.ndarray):
@@ -315,26 +308,25 @@ class LCAggregator(ModelAggregator):
 
     def aggregate(self, models_parameters: list[(int, list[np.ndarray])]) -> list[list[np.ndarray]]:
         aggregated_models = []
-        # TODO: fix avg since it cant be done this way. allow for same model aggregation
-        for (i, (first_model_id, first_model_weights)) in enumerate(models_parameters):
-            temp = []
+        for (i, (first_id, first_weights)) in enumerate(models_parameters):
             aggr = CumAggregator()
-            aggr.aggregate(first_model_weights)
-            for (j, (second_model_id, second_model_weights)) in enumerate(models_parameters):
+            temp = aggr.aggregate([first_weights])
+            for (j, (second_id, second_weights)) in enumerate(models_parameters):
                 if i == j:
                     continue
-                elif first_model_id == second_model_id:
-                    aggr.aggregate(second_model_weights)
+                elif first_id == second_id:
+                    aggr.aggregate(second_weights)
                 else:
-                    idx = self._commonalities[second_model_id][first_model_id]
-                    second_weights = [second_model_weights[i] for i in range(len(second_model_weights)) if i in idx]
+                    # Get the relevant weights from the second model
+                    relevant_layers = self._commonalities[second_id][first_id]
+                    relevant_weights = [second_weights[idx] for idx in relevant_layers]
 
-                # Get weights of the two models
-                idx = self._commonalities[first_model_id][second_model_id]
-                first_weights = [first_model_weights[i] for i in range(len(first_model_weights)) if i in idx]
+                    # Replace the relevant layers with weights from the second model
+                    second_weights = first_weights
+                    relevant_layers = self._commonalities[first_id][second_id]
+                    for k, idx in enumerate(relevant_layers):
+                        second_weights[idx] = relevant_weights[k]
 
-                idx = self._commonalities[second_model_id][first_model_id]
-                second_weights = [second_model_weights[i] for i in range(len(second_model_weights)) if i in idx]
-
+                    aggr.aggregate([second_weights])
             aggregated_models.append(temp)
         return aggregated_models
