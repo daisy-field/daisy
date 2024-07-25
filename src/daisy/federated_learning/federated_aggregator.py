@@ -315,18 +315,18 @@ class LCAggregator(ModelAggregator):
                 if i == j:
                     continue
                 elif first_id == second_id:
-                    aggr.aggregate(second_weights)
+                    temp = aggr.aggregate([second_weights])
                 else:
                     # Get the relevant weights from the second model
                     relevant_layers = self._commonalities[second_id][first_id]
                     relevant_weights = [second_weights[idx] for idx in relevant_layers]
 
                     # Replace the relevant layers with weights from the second model
-                    second_weights = first_weights
+                    second_weights = temp
                     relevant_layers = self._commonalities[first_id][second_id]
                     for k, idx in enumerate(relevant_layers):
                         second_weights[idx] = relevant_weights[k]
 
-                    aggr.aggregate([second_weights])
+                    temp = aggr.aggregate([second_weights])
             aggregated_models.append(temp)
         return aggregated_models
