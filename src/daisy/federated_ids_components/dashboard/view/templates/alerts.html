@@ -34,21 +34,6 @@
 {% block main %}
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-
-<script type="text/javascript">
-    function createcard(type, time, node, message){
-            var card =
-                ''
-
-            return card
-        }
-
-
-</script>
-
-
-
-<h1 class="mt-4"></h1>
 <head>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <script type="text/javascript">
@@ -70,6 +55,8 @@
             curveType: 'function',
             backgroundColor: {fill: 'transparent'},
             legend: 'bottom',
+            slices: [{color: '#dc3545'}, {color: '#ffc107'},{color: '#0dcaf0'}, {color: '#6c757d'}, {color: 'black'}],
+
 
         };
         {% else %}
@@ -79,7 +66,7 @@
             slices: [{color: '#dc3545'}, {color: '#ffc107'},{color: '#0dcaf0'}, {color: '#6c757d'}, {color: 'black'}],
 
             legend: {
-                position: 'top',
+                position: 'bottom',
                 textStyle: {
                     color: '#FFFFFF' // Set text color for legend
                 }
@@ -94,9 +81,157 @@
 
         chart.draw(data, options);
       }
-    </script>
-  </head>
 
+      google.charts.setOnLoadCallback(drawChart2);
+
+
+    function drawChart2() {
+
+        {%if not dark_theme %}
+        var options = {
+            backgroundColor: {fill: 'transparent'},
+            legend: {
+                position: 'top',},
+                        colors:['#dc3545','#0dcaf0','#ffc107'],
+
+        };
+        {% else %}
+        var options = {
+            colors:['#dc3545','#0dcaf0','#ffc107'],
+
+            backgroundColor: 'transparent', // Set background color to transparent
+            hAxis: {
+                textStyle: {
+                    color: '#FFFFFF' // Set text color for horizontal axis labels
+                },
+                gridlines: {
+                    color: 'transparent' // Set color of gridlines for horizontal axis
+                },
+            },
+            vAxis: {
+                textStyle: {
+                    color: '#FFFFFF' // Set text color for vertical axis labels
+                },
+                gridlines: {
+                    color: 'transparent' // Set color of gridlines for vertical axis
+                }
+            },
+            legend: {
+                position: 'top',
+                textStyle: {
+                    color: '#FFFFFF' // Set text color for legend
+                }
+            },
+            titleTextStyle: {
+                color: '#FFFFFF' // Set text color for chart title
+            }
+        };
+        {% endif %}
+
+        var chart = new google.visualization.LineChart(document.getElementById('curve_chart'));
+
+
+        $.ajax({
+                url: "http://127.0.0.1:8000/alert/",
+                type: "GET",
+                dataType: "json",
+                success: (response) => {
+                    const dataTable = new google.visualization.DataTable();
+                    dataTable.addColumn('datetime', 'Time');
+                    dataTable.addColumn('number', 'Alert');
+                    dataTable.addColumn('number', 'Info');
+                    dataTable.addColumn('number', 'Warning');
+
+                    function getLast60Days() {
+                        const today = new Date();
+                        const dates = [];
+
+                        for (let i = 0; i < 60; i++) {
+                            const date = new Date(today);
+                            date.setDate(today.getDate() - i);
+                            dates.push(date);
+                        }
+
+                        return dates.reverse(); // Reverse to start from the earliest date
+                    }
+
+                    function areSameDay(date1, date2) {
+                        // Convert date1 to a Date object if it is not already
+                        const d1 = typeof date1 === 'string' ? new Date(date1) : date1;
+                        const d2 = typeof date2 === 'string' ? new Date(date2) : date2;
+
+                        // Extract year, month, and day for both dates
+                        const d1Year = d1.getFullYear();
+                        const d1Month = d1.getMonth();
+                        const d1Day = d1.getDate();
+
+                        const d2Year = d2.getFullYear();
+                        const d2Month = d2.getMonth();
+                        const d2Day = d2.getDate();
+
+                        // Compare the year, month, and day
+                        return d1Year === d2Year && d1Month === d2Month && d1Day === d2Day;
+                    }
+
+                    times = getLast60Days()
+                    times.forEach(function (day) {
+                        alertCount= 0
+                        warningCount=0
+                        infoCount=0
+                        response.forEach(function (element) {
+                            console.log(areSameDay(day, element.timestamp))
+                            if (areSameDay(day, element.timestamp)) {
+                                console.log("Day found")
+                                if (element.category == "alert")
+                                    alertCount += 1
+                                if (element.category == "warning")
+                                    warningCount += 1
+                                if (element.category == "info")
+                                    infoCount += 1
+                            }
+                        })
+                        dataTable.addRow([day, alertCount, warningCount, infoCount]);
+
+                        })
+                    chart.draw(dataTable, options);
+
+                },
+                error: (error) => {
+                    console.log(error);
+                }
+
+            })
+        }
+
+</script>
+</head>
+
+<h1 class="mt-4"></h1>
+
+<div class="row">
+    <div class="col-xl-4 col-md-3">
+        <div class={% if dark_theme %}
+        "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
+        <div class="card-header">
+            <i class="fa-solid fa-solid fa-chart-pie"></i> Alert Distribution
+        </div>
+        <div class="card-body">
+            <div class="mb-4" id="piechart" style="width: 500px; height: 300px;"></div>
+        </div>
+        </div>
+    </div>
+<div class="col-xl-8 col-md-3">
+    <div class={% if dark_theme %}
+    "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
+    <div class="card-header">
+        <i class="fa-solid fa-solid fa-clock-rotate-left"></i> Alerts of the last 60 days
+    </div>
+    <div class="card-body">
+        <div class="mb-8" id="curve_chart" style="width: 100%; height: 300px"></div>
+    </div>
+    </div>
+</div>
+</div>
 
 <div class={% if dark_theme %}
 "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
@@ -109,8 +244,8 @@ href={% url 'resolveAll' %} type="button" class="btn btn-dark">Resolve All</a>
    {% for alert in alarms%}
     <div style="width: 20%; display:inline-block" class="card bg-danger text-white mb-4" data-bs-toggle="modal"
          data-bs-target="#alarms{{alert.id}}">
-        <div class="card-header"><i class="fa-solid fa-server"></i>{{alert.address}}</div>
-        <div class="card-body"></div>
+        <div class="card-header"><i class="fa-solid fa-server"></i> {{alert.address}}</div>
+        <div class="card-body">Alert raised!</div>
         <div class="card-footer d-flex align-items-center justify-content-between">
             <a class="small text-white stretched-link" href="#">{{alert.timestamp}}</a>
             <div class="small text-white"><i class="fas fa-angle-right"></i></div>
@@ -119,7 +254,7 @@ href={% url 'resolveAll' %} type="button" class="btn btn-dark">Resolve All</a>
     <div class="modal fade" id="alarms{{alert.id}}" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel{{alert.id}}"
          aria-hidden="true">
         <div class="modal-dialog" role="document">
-            <div class="modal-content">
+            <div class="modal-content" style="color:black">
                 <div class="modal-header">
                     <h5 class="modal-title" id="exampleModalLabel{{alert.id}}">{{alert.address}}</h5>
 
@@ -151,8 +286,8 @@ href={% url 'resolveAll' %} type="button" class="btn btn-dark">Resolve All</a>
 <div class="card-body">
     {% for alert in warnings%}
  <div style="width: 20%; display:inline-block" class="card bg-warning text-white mb-4" data-bs-toggle="modal" data-bs-target="#warnings{{alert.id}}">
-     <div class="card-header"><i class="fa-solid fa-server"></i>{{alert.address}}</div>
-     <div class="card-body"></div>
+     <div class="card-header"><i class="fa-solid fa-server"></i> {{alert.address}}</div>
+     <div class="card-body">Warning raised!</div>
      <div class="card-footer d-flex align-items-center justify-content-between">
          <a class="small text-white stretched-link" href="#">{{alert.timestamp}}</a>
          <div class="small text-white"><i class="fas fa-angle-right"></i></div>
@@ -160,7 +295,7 @@ href={% url 'resolveAll' %} type="button" class="btn btn-dark">Resolve All</a>
  </div>
 <div class="modal fade" id="warnings{{alert.id}}" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
                     <div class="modal-dialog" role="document">
-                    <div class="modal-content">
+                    <div class="modal-content"  style="color:black">
                         <div class="modal-header">
                         <h5 class="modal-title">{{alert.address}}</h5>
 
@@ -191,8 +326,8 @@ href={% url 'resolveAll' %} type="button" class="btn btn-dark">Resolve All</a>
 <div class="card-body">
 {% for alert in infos%}
  <div style="width: 20%; display:inline-block" class="card bg-info text-white mb-4" data-bs-toggle="modal" data-bs-target="#infos{{alert.id}}">
-     <div class="card-header"><i class="fa-solid fa-server"></i>{{alert.address}}</div>
-     <div class="card-body"> </div>
+     <div class="card-header"><i class="fa-solid fa-server"></i> {{alert.address}}</div>
+     <div class="card-body">Information available!</div>
      <div class="card-footer d-flex align-items-center justify-content-between">
          <a class="small text-white stretched-link" href="#">{{alert.timestamp}}</a>
          <div class="small text-white"><i class="fas fa-angle-right"></i></div>
@@ -200,7 +335,7 @@ href={% url 'resolveAll' %} type="button" class="btn btn-dark">Resolve All</a>
  </div>
 <div class="modal fade" id="infos{{alert.id}}" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
                     <div class="modal-dialog" role="document">
-                    <div class="modal-content">
+                    <div class="modal-content"  style="color:black">
                         <div class="modal-header">
                         <h5 class="modal-title">{{alert.address}}</h5>
 
@@ -230,7 +365,7 @@ href={% url 'deleteAll' %} type="button" class="btn btn-dark">Delete All</a>
 <div class="card-body">
 {% for alert in history%}
  <div style="width: 20%; display:inline-block" class="card bg-secondary text-white mb-4" data-bs-toggle="modal" data-bs-target="#history{{alert.id}}">
-     <div class="card-header"><i class="fa-solid fa-server"></i>{{alert.address}}</div>
+     <div class="card-header"><i class="fa-solid fa-server"></i> {{alert.address}}</div>
      <div class="card-body"></div>
      <div class="card-footer d-flex align-items-center justify-content-between">
          <a class="small text-white stretched-link" href="#">{{alert.timestamp}}</a>
@@ -239,9 +374,9 @@ href={% url 'deleteAll' %} type="button" class="btn btn-dark">Delete All</a>
  </div>
 <div class="modal fade" id="history{{alert.id}}" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
                     <div class="modal-dialog" role="document">
-                    <div class="modal-content">
+                    <div class="modal-content"  style="color:black">
                         <div class="modal-header">
-                        <h5 class="modal-title">{{alert.address}}</h5>
+                        <h5 class="modal-title"> {{alert.address}}</h5>
 
                         </div>
                         <div class="modal-body">
@@ -260,16 +395,6 @@ href={% url 'deleteAll' %} type="button" class="btn btn-dark">Delete All</a>
 {% endfor %}</div>
 <div id="updated3" class="card-footer small text-muted"></div>
 </div>
-
-
- <!-- Modal -->
-
-
-  <body>
-    <div id="piechart" style="width: 500px; height: 300px;"></div>
-  </body>
-
-<!-- Modal -->
 
 
 {% endblock %}
