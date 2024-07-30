@@ -77,7 +77,6 @@ class ChordDHTPeer:
     _stabilize_recv_timestamp: float
     _notify_recv_timestamp: float
 
-    _a_lock: threading.Lock
     _logger: logging.Logger
 
     fed_peers: queue
@@ -126,7 +125,6 @@ class ChordDHTPeer:
 
         self._logger = logging.getLogger("DHT_PEER")
         self._logger.setLevel(logging.CRITICAL)
-        self._a_lock = threading.Lock()
         self._cluster_size = cluster_size
         self.fed_peers = queue.Queue()
         self.fed_models_incoming = queue.Queue()
