@@ -131,7 +131,7 @@ class CumAggregator(ModelAggregator):
         :return: Aggregated model parameters.
         """
         models_avg = self._fed_avg.aggregate(models_parameters)
-
+        print(self._n)
         self._n += 1
         if self._n == 1:
             self._cum_avg = models_avg
@@ -320,13 +320,11 @@ class LCAggregator(ModelAggregator):
                     # Get the relevant weights from the second model
                     relevant_layers = self._commonalities[second_id][first_id]
                     relevant_weights = [second_weights[idx] for idx in relevant_layers]
-
                     # Replace the relevant layers with weights from the second model
-                    second_weights = temp
+                    second_weights = temp.copy()
                     relevant_layers = self._commonalities[first_id][second_id]
                     for k, idx in enumerate(relevant_layers):
                         second_weights[idx] = relevant_weights[k]
-
                     temp = aggr.aggregate([second_weights])
             aggregated_models.append(temp)
         return aggregated_models
