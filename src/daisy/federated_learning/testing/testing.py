@@ -28,7 +28,7 @@ match model_type:
     case 'cnn':
         (train_images, train_labels), (test_images, test_labels) = datasets.cifar10.load_data()
 
-        path = '../trained/cnn_{model_num:04d}.ckpt'
+        path = './trained/cnn_{model_num:04d}.ckpt'
         model_checkpoint = keras.callbacks.ModelCheckpoint(
             filepath=path,
             verbose=1,
@@ -49,9 +49,9 @@ match model_type:
         print(aggregation_result)
 
     case 'auto':
-        train_data = np.random.rand(1000, 3)
+        train_data = np.random.rand(1000, 2)
 
-        path = '../trained/auto_{model_num:04d}.ckpt'
+        path = './trained/auto_{model_num:04d}.ckpt'
         model_checkpoint = keras.callbacks.ModelCheckpoint(
             filepath=path,
             verbose=1,

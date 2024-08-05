@@ -137,7 +137,9 @@ class CumAggregator(ModelAggregator):
         else:
             for i in range(len(models_avg)):
                 delta = models_avg[i] - self._cum_avg[i]
-                print(delta)
+                if not np.all(delta == 0):
+                    print(models_avg[i])
+                    print(delta)
                 self._cum_avg[i] += delta / self._n
         return self._cum_avg
 
