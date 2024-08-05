@@ -63,15 +63,13 @@ match model_type:
         train_model(model, 0, path, loss,
                     train_data, train_data)
 
-        model2 = tm.create_autoencoder(0)
+        model2 = tm.create_autoencoder(1)
         train_model(model, 1, path, loss,
                     train_data, train_data)
 
         aggregator = LCAggregator({0: model.layers, 1: model2.layers})
         aggregation_result = aggregator.aggregate([(0, model.get_weights()), (1, model2.get_weights())])
 
+        print(model.get_weights())
+        print(model2.get_weights())
         print(aggregation_result[0])
-        print(FedAvgAggregator().aggregate([model.get_weights(), model2.get_weights()]))
-        f = FedAvgAggregator().aggregate([model.get_weights(), model2.get_weights()])
-        for idx in range(len(aggregation_result[0])):
-            print(np.equal(aggregation_result[0][idx], f[idx]))

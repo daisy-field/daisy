@@ -131,13 +131,13 @@ class CumAggregator(ModelAggregator):
         :return: Aggregated model parameters.
         """
         models_avg = self._fed_avg.aggregate(models_parameters)
-        print(self._n)
         self._n += 1
         if self._n == 1:
             self._cum_avg = models_avg
         else:
             for i in range(len(models_avg)):
                 delta = models_avg[i] - self._cum_avg[i]
+                print(delta)
                 self._cum_avg[i] += delta / self._n
         return self._cum_avg
 
@@ -325,6 +325,10 @@ class LCAggregator(ModelAggregator):
                     relevant_layers = self._commonalities[first_id][second_id]
                     for k, idx in enumerate(relevant_layers):
                         second_weights[idx] = relevant_weights[k]
+                    print("first")
+                    print(first_weights)
+                    print("second")
+                    print(second_weights)
                     temp = aggr.aggregate([second_weights])
             aggregated_models.append(temp)
         return aggregated_models
