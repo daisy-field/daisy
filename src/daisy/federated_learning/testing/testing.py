@@ -41,7 +41,7 @@ match model_type:
                     train_images, train_labels, test_images, test_labels)
 
         model2 = tm.create_cnn(1)
-        train_model(model, 1, path, loss,
+        train_model(model2, 1, path, loss,
                     train_images, train_labels, test_images, test_labels)
 
         aggregator = LCAggregator({0: model.layers, 1: model2.layers})
@@ -50,6 +50,7 @@ match model_type:
 
     case 'auto':
         train_data = np.random.rand(1000, 2)
+        bad_model_data = np.random.rand(1000, 5)
 
         path = './trained/auto_{model_num:04d}.ckpt'
         model_checkpoint = keras.callbacks.ModelCheckpoint(
@@ -63,8 +64,9 @@ match model_type:
         train_model(model, 0, path, loss,
                     train_data, train_data)
 
+        # TODO: why does this model have new, seemingly random, weight values with every execution
         model2 = tm.create_autoencoder(1)
-        train_model(model, 1, path, loss,
+        train_model(model2, 1, path, loss,
                     train_data, train_data)
 
         aggregator = LCAggregator({0: model.layers, 1: model2.layers})

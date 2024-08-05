@@ -138,8 +138,8 @@ class CumAggregator(ModelAggregator):
             for i in range(len(models_avg)):
                 delta = models_avg[i] - self._cum_avg[i]
                 if not np.all(delta == 0):
+                    print(self._cum_avg[i])
                     print(models_avg[i])
-                    print(delta)
                 self._cum_avg[i] += delta / self._n
         return self._cum_avg
 
@@ -300,7 +300,7 @@ class LCAggregator(ModelAggregator):
     @staticmethod
     def find_layer_similarities(own_layers: list[str], other_layers: list[str]) -> (int, int, int):
         match = SequenceMatcher(None, own_layers, other_layers).find_longest_match()
-        return match.size, match.a, match.b
+        return match.size if match.size > 1 else 0, match.a, match.b
 
     def get_relevant_weights(self, model_ids: (int, int), layer_indices: np.ndarray):
         occurrences = []
@@ -314,7 +314,7 @@ class LCAggregator(ModelAggregator):
             aggr = CumAggregator()
             temp = aggr.aggregate([first_weights])
             for (j, (second_id, second_weights)) in enumerate(models_parameters):
-                if i == j:
+                if i == j or self._commonalities[first_id][second_id] == []:
                     continue
                 elif first_id == second_id:
                     temp = aggr.aggregate([second_weights])
