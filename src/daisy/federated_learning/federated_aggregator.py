@@ -137,9 +137,6 @@ class CumAggregator(ModelAggregator):
         else:
             for i in range(len(models_avg)):
                 delta = models_avg[i] - self._cum_avg[i]
-                if not np.all(delta == 0):
-                    print(self._cum_avg[i])
-                    print(models_avg[i])
                 self._cum_avg[i] += delta / self._n
         return self._cum_avg
 
@@ -311,26 +308,27 @@ class LCAggregator(ModelAggregator):
     def aggregate(self, models_parameters: list[(int, list[np.ndarray])]) -> list[list[np.ndarray]]:
         aggregated_models = []
         for (i, (first_id, first_weights)) in enumerate(models_parameters):
+            # TODO: maybe i can completely switch to fed avg if i just build a list of models?
             aggr = CumAggregator()
             temp = aggr.aggregate([first_weights])
             for (j, (second_id, second_weights)) in enumerate(models_parameters):
-                if i == j or self._commonalities[first_id][second_id] == []:
+                if i == j:
                     continue
                 elif first_id == second_id:
                     temp = aggr.aggregate([second_weights])
+                elif not self._commonalities[first_id][second_id]:
+                    continue
                 else:
                     # Get the relevant weights from the second model
                     relevant_layers = self._commonalities[second_id][first_id]
                     relevant_weights = [second_weights[idx] for idx in relevant_layers]
+
                     # Replace the relevant layers with weights from the second model
                     second_weights = temp.copy()
                     relevant_layers = self._commonalities[first_id][second_id]
                     for k, idx in enumerate(relevant_layers):
                         second_weights[idx] = relevant_weights[k]
-                    print("first")
-                    print(first_weights)
-                    print("second")
-                    print(second_weights)
+
                     temp = aggr.aggregate([second_weights])
             aggregated_models.append(temp)
         return aggregated_models

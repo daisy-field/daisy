@@ -59,3 +59,13 @@ def create_autoencoder(architecture: int):
                 layers.Dense(4),
                 layers.Dense(5),
             ])
+        case 3:
+            return models.Sequential([
+                layers.Input(shape=(3,)),
+                layers.Dense(3),
+                layers.Dense(2),
+                layers.Dense(1),
+                layers.Dense(2),
+                layers.Dense(3),
+            ])
+

@@ -1,2 +1,2 @@
-model_checkpoint_path: "auto_0001.ckpt"
-all_model_checkpoint_paths: "auto_0001.ckpt"
+model_checkpoint_path: "cnn_0001.ckpt"
+all_model_checkpoint_paths: "cnn_0001.ckpt"
