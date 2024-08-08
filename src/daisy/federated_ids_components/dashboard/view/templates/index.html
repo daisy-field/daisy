@@ -49,6 +49,10 @@
         var options = {
             backgroundColor: {fill: 'transparent'},
             legend: 'top',
+            vAxis:{viewWindow: {
+                        min: 0,
+                         max: 1
+        }}
 
         };
         {% else %}
@@ -69,7 +73,11 @@
                 },
                 gridlines: {
                     color: 'transparent' // Set color of gridlines for vertical axis
-                }
+                },
+                viewWindow: {
+                        min: 0,
+                         max: 1
+                 }
             },
             legend: {
                 position: 'top',
@@ -115,13 +123,11 @@
                     ])
 
                     nodes = []
+                    times = []
                     response.forEach(function (element) {
                         if (!nodes.includes(element.address)) {
                             nodes.push(element.address)
                         }
-                    })
-                    times = []
-                    response.forEach(function (element) {
                         if (!times.includes(element.timestamp)) {
                             times.push(new Date(element.timestamp))
                         }
@@ -153,10 +159,10 @@
                                 }
                             }
                             if (found === false) {
-                                precisionRow.push(0)
-                                accuracyRow.push(0)  //null
-                                f1Row.push(0)
-                                recallRow.push(0)
+                                precisionRow.push(null)
+                                accuracyRow.push(null)  //null
+                                f1Row.push(null)
+                                recallRow.push(null)
                             }
 
                         })
@@ -342,7 +348,7 @@
 
             <div class="col-xl-3 col-md-3">
                 <div id="agg_box" class="card bg-warning text-white mb-4" style="height:6cm;  display:flex">
-                    <div class="card-header"><i class="fa-solid fa-server"></i> Model Aggregation:</div>
+                    <div class="card-header"><i class="fa-solid fa-server"></i> Model Aggregation</div>
                     <div class="card-body">
                         <div class="row">
                             <div class="col-xl-8 col-md-6">
@@ -364,7 +370,7 @@
 
             <div class="col-xl-3 col-md-3">
                 <div id="pred_box" class="card bg-warning text-white mb-4" style="height:6cm;  display:flex">
-                    <div class="card-header"><i class="fa-solid fa-server"></i> Prediction Aggregation:</div>
+                    <div class="card-header"><i class="fa-solid fa-server"></i> Prediction Aggregation</div>
                     <div class="card-body">
                         <div class="row">
                             <div class="col-xl-8 col-md-6">
@@ -386,7 +392,7 @@
 
             <div class="col-xl-3 col-md-3">
                 <div id="eval_box" class="card bg-warning text-white mb-4" style="height:6cm;  display:flex">
-                    <div class="card-header"><i class="fa-solid fa-chart-line"></i> Evaluation Aggregation:</div>
+                    <div class="card-header"><i class="fa-solid fa-chart-line"></i> Evaluation Aggregation</div>
                     <div class="card-body">
                         <div class="row">
                             <div class="col-xl-8 col-md-6">
@@ -409,7 +415,7 @@
 
             <div class="col-xl-3 col-md-3">
                 <div id="warning-card" class="card bg-secondary text-white mb-4" style="height:2.7cm;  display:flex">
-                    <div class="card-header"><i class="fa-solid fa-triangle-exclamation"></i> Warnings:</div>
+                    <div class="card-header"><i class="fa-solid fa-triangle-exclamation"></i> Warnings</div>
                     <div class="card-body">
                         <div id ="warning_box" style="font-size:30px; margin-top: -0.3cm"></div>
                     </div>
@@ -418,7 +424,7 @@
                 </div>
 
                 <div  id="alert-card" class="card bg-secondary text-white mb-4" style="height:2.7cm; display:flex">
-                    <div class="card-header"><i class="fa-solid fa-skull-crossbones"></i> Alerts:
+                    <div class="card-header"><i class="fa-solid fa-skull-crossbones"></i> Alerts
                     </div>
                     <div class="card-body">
                         <p id ="alert_box"  style="font-size:30px; margin-top: -0.3cm"></p>

@@ -43,21 +43,26 @@
         {%if not dark_theme %}
         var options = {
             backgroundColor: {fill: 'transparent'},
+            legend: 'top',
+            vAxis:{viewWindow: {
+                        min: 0,
+                         max: 1
+        }},
+            interpolateNulls: true,
+
 
         };
         {% else %}
         var options = {
             backgroundColor: 'transparent', // Set background color to transparent
 
-
-
             hAxis: {
                 textStyle: {
                     color: '#FFFFFF' // Set text color for horizontal axis labels
                 },
                 gridlines: {
-                    color: '#444444' // Set color of gridlines for horizontal axis
-                }
+                    color: 'transparent' // Set color of gridlines for horizontal axis
+                },
             },
             vAxis: {
                 textStyle: {
@@ -65,7 +70,11 @@
                 },
                 gridlines: {
                     color: 'transparent' // Set color of gridlines for vertical axis
-                }
+                },
+                viewWindow: {
+                        min: 0,
+                         max: 1
+                 }
             },
             legend: {
                 position: 'top',
@@ -77,7 +86,7 @@
                 color: '#FFFFFF' // Set text color for chart title
             }
         };
-        {% endif %}
+        {%endif %}
 
         var chart = new google.visualization.LineChart(document.getElementById('curve_chart'));
 
@@ -90,56 +99,57 @@
 
                     var data = google.visualization.arrayToDataTable([
                         ["Time"],
-                        [""]
+                        [new Date()]
                     ])
 
                     nodes = []
+                    times =[]
                     response.forEach(function (element) {
                         if (!nodes.includes(element.address)) {
                             nodes.push(element.address)
                         }
-                    })
-                    times = []
-                    response.forEach(function (element) {
                         if (!times.includes(element.timestamp)) {
-                            times.push(new Date(element.timestamp).toLocaleString())
+                            times.push(new Date(element.timestamp))
                         }
                     })
+                    console.log(nodes.length)
+                    console.log(times)
+
 
                     nodes.forEach(function (element) {
                         data.addColumn('number', element);
 
                     })
 
-                    times.forEach(function (time) {
-                        var row = [time]
 
+                    times.forEach(function (time) {
+                        var accuracyRow = [time]
                         nodes.forEach(function (node) {
                             var found = false
-                            response.forEach(function (element) {
-                                //console.log(element.time, element.address, time, node)
-                                if (element.timestamp == time && element.address == node) {
-                                    row.push(element.accuracy)
+                            for (let i = 0; i < response.length; i++) {
+                                var element = response[i];
+                                if ((new Date(element.timestamp).getTime() == time.getTime()) && element.address == node) {
+                                    accuracyRow.push(element.accuracy)
                                     found = true
-                                    console.log("Found")
+                                    break;
                                 }
-                            })
+                            }
                             if (found === false) {
-
-                                row.push(0)  //null
-
+                                accuracyRow.push(null)  //null
                             }
 
                         })
-                        data.addRow(row)
-
-
+                        data.addRow(accuracyRow)
                     })
-                    chart.draw(data, options);
 
+
+                    chart.draw(data, options);
+                    document.getElementById('exportButton').addEventListener('click', function() {
+                    exportTableToCSV(data);
+                      });
 
                     var currentdate = new Date();
-                    var datetime = +currentdate.getDate() + "/"
+                    var datetime = currentdate.getDate() + "/"
                         + (currentdate.getMonth() + 1) + "/"
                         + currentdate.getFullYear() + " -- "
                         + currentdate.getHours() + ":"
@@ -156,8 +166,43 @@
             })
         }
 
+        function exportTableToCSV(dataTable) {
+            var csvData = [];
+            var numRows = dataTable.getNumberOfRows();
+            var numCols = dataTable.getNumberOfColumns();
+
+            // Extract headers
+            var headers = [];
+            for (var col = 0; col < numCols; col++) {
+                headers.push(dataTable.getColumnLabel(col));
+            }
+            csvData.push(headers.join(','));
+
+            // Extract rows
+            for (var row = 0; row < numRows; row++) {
+                var rowData = [];
+                for (var col = 0; col < numCols; col++) {
+                    rowData.push(dataTable.getValue(row, col));
+                }
+                csvData.push(rowData.join(','));
+            }
+
+            // Create CSV file
+            var csvString = csvData.join('\n');
+            var blob = new Blob([csvString], {type: 'text/csv'});
+            var url = window.URL.createObjectURL(blob);
+
+            // Create a link to download the CSV
+            var a = document.createElement('a');
+            a.setAttribute('hidden', '');
+            a.setAttribute('href', url);
+            a.setAttribute('download', 'accuracy_data.csv');
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
         sendRequest();
-        setInterval(sendRequest, 10000);
+        setInterval(sendRequest, 30000);
 
     }
 
@@ -171,11 +216,14 @@
         <div class="card-header">
             <i class="fas fa-chart-area me-1"></i>
             Accuracy
+            <a style="  float:right;"
+id="exportButton" type="button" class="btn btn-dark">Export data</a>
         </div>
         <div class="card-body">
     <div id="curve_chart" style="width: 100%; height: 500px"></div>
 
         </div>
+
         <div id="updated" class="card-footer small text-muted"></div>
 
 
