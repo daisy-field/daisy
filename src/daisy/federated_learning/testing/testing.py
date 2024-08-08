@@ -22,7 +22,7 @@ def train_model(model, model_num, path, loss, train_data, train_labels, val_data
         model.load_weights(path)
 
 
-model_type = 'cnn'
+model_type = 'auto'
 
 match model_type:
     case 'cnn':
@@ -78,11 +78,9 @@ match model_type:
                     train_data2, train_data2)
 
         test_data = np.random.rand(1000, 2)
-        model.evaluate(test_data, test_data)
 
         aggregator = LCAggregator({0: model.layers, 1: model2.layers, 2: model3.layers})
         aggregation_result = aggregator.aggregate(
-            [(0, model.get_weights()), (1, model2.get_weights()), (2, model3.get_weights())])
+            [(1, model2.get_weights())], (0, model.get_weights()))
 
-        model.set_weights(aggregation_result[0])
-        model.evaluate(test_data, test_data)
+
