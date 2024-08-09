@@ -44,6 +44,8 @@
                         <li><a class="dropdown-item" href={% url "change_theme" %}>Change Theme</a></li>
                         <li class="nav-item dropdown"><a class="dropdown-item" href="#!"><img src={% static "gb.png"%} style="height:10px" alt="English"> English</a></li>
                         <li class="nav-item dropdown"><a class="dropdown-item" href="#!"><img src={% static "de.png"%} style="height:10px" alt="English"> German</a></li>
+                        <li><a class="dropdown-item" href={% url "change_smoothing" %}>{% if smoothing %}<i class="fa-solid fa-toggle-on">{% else %}<i class="fa-solid fa-toggle-off">{% endif %}</i> Curve smoothing</a></li>
+                        <li><a class="dropdown-item" href={% url "change_interpolation" %}>{% if interpolation %}<i class="fa-solid fa-toggle-on">{% else %}<i class="fa-solid fa-toggle-off">{% endif %} </i> Curve interpolation</a></li>
 
                         <li><a class="dropdown-item" href="#!">Activity Log</a></li>
                         <li><hr class="dropdown-divider" /></li>

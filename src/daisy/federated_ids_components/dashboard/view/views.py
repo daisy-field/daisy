@@ -13,7 +13,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 
 def index(request):
     theme = request.session.get("is_dark_theme")
-
+    smoothing = request.session.get("smoothing")
+    interpolation = request.session.get("interpolation")
     try:
         agg_status = getattr(Aggregation.objects.last(), "agg_status")
         agg_count = getattr(Aggregation.objects.last(), "agg_count")
@@ -46,6 +47,8 @@ def index(request):
         "index.html",
         {
             "dark_theme": theme,
+            "smoothing": smoothing,
+            "interpolation": interpolation,
             "agg_status": agg_status,
             "agg_count": agg_count,
             "agg_time": agg_time,
@@ -66,16 +69,32 @@ _light_template = "bootstrap"  # pulse"
 
 def change_theme(request):
     if "is_dark_theme" in request.session:
-        print("Light Theme")
         request.session["is_dark_theme"] = not request.session.get("is_dark_theme")
     else:
-        print("Dark Theme")
         request.session["is_dark_theme"] = True
+    return HttpResponseRedirect(request.META.get("HTTP_REFERER", "/"))
+
+
+def change_smoothing(request):
+    if "smoothing" in request.session:
+        request.session["smoothing"] = not request.session.get("smoothing")
+    else:
+        request.session["smoothing"] = True
+    return HttpResponseRedirect(request.META.get("HTTP_REFERER", "/"))
+
+
+def change_interpolation(request):
+    if "interpolation" in request.session:
+        request.session["interpolation"] = not request.session.get("interpolation")
+    else:
+        request.session["interpolation"] = True
     return HttpResponseRedirect(request.META.get("HTTP_REFERER", "/"))
 
 
 def alerts(request):
     theme = request.session.get("is_dark_theme")
+    smoothing = request.session.get("smoothing")
+    interpolation = request.session.get("interpolation")
     alarm_alerts = Alerts.objects.filter(category="alert").filter(active=True)
     warning_alerts = Alerts.objects.filter(category="warning").filter(active=True)
     info_alerts = Alerts.objects.filter(category="info").filter(active=True)
@@ -86,6 +105,8 @@ def alerts(request):
         "alerts.html",
         {
             "dark_theme": theme,
+            "smoothing": smoothing,
+            "interpolation": interpolation,
             "alarms": alarm_alerts,
             "warnings": warning_alerts,
             "infos": info_alerts,
@@ -131,49 +152,109 @@ def restore(request, alert_id):
 
 def aggregate(request):
     theme = request.session.get("is_dark_theme")
-    return render(request, "model_aggregation.html", {"dark_theme": theme})
+    smoothing = request.session.get("smoothing")
+    interpolation = request.session.get("interpolation")
+    return render(
+        request,
+        "model_aggregation.html",
+        {"dark_theme": theme, "smoothing": smoothing, "interpolation": interpolation},
+    )
 
 
 def predict(request):
     theme = request.session.get("is_dark_theme")
-    return render(request, "prediction_aggregation.html", {"dark_theme": theme})
+    smoothing = request.session.get("smoothing")
+    interpolation = request.session.get("interpolation")
+    return render(
+        request,
+        "prediction_aggregation.html",
+        {"dark_theme": theme, "smoothing": smoothing, "interpolation": interpolation},
+    )
 
 
 def evaluate(request):
     theme = request.session.get("is_dark_theme")
-    return render(request, "evaluation_aggregation.html", {"dark_theme": theme})
+    smoothing = request.session.get("smoothing")
+    interpolation = request.session.get("interpolation")
+    return render(
+        request,
+        "evaluation_aggregation.html",
+        {"dark_theme": theme, "smoothing": smoothing, "interpolation": interpolation},
+    )
 
 
 def nodes(request):
     theme = request.session.get("is_dark_theme")
-    return render(request, "nodes.html", {"dark_theme": theme})
+    smoothing = request.session.get("smoothing")
+    interpolation = request.session.get("interpolation")
+    return render(
+        request,
+        "nodes.html",
+        {"dark_theme": theme, "smoothing": smoothing, "interpolation": interpolation},
+    )
 
 
 def terms(request):
     theme = request.session.get("is_dark_theme")
-    return render(request, "tc.html", {"dark_theme": theme})
+    smoothing = request.session.get("smoothing")
+    interpolation = request.session.get("interpolation")
+    return render(
+        request,
+        "tc.html",
+        {"dark_theme": theme, "smoothing": smoothing, "interpolation": interpolation},
+    )
 
 
 def privacy(request):
     theme = request.session.get("is_dark_theme")
-    return render(request, "pp.html", {"dark_theme": theme})
+    smoothing = request.session.get("smoothing")
+    interpolation = request.session.get("interpolation")
+    return render(
+        request,
+        "pp.html",
+        {"dark_theme": theme, "smoothing": smoothing, "interpolation": interpolation},
+    )
 
 
 def accuracy(request):
     theme = request.session.get("is_dark_theme")
-    return render(request, "accuracy.html", {"dark_theme": theme})
+    smoothing = request.session.get("smoothing")
+    interpolation = request.session.get("interpolation")
+    return render(
+        request,
+        "accuracy.html",
+        {"dark_theme": theme, "smoothing": smoothing, "interpolation": interpolation},
+    )
 
 
 def f1(request):
+    smoothing = request.session.get("smoothing")
+    interpolation = request.session.get("interpolation")
     theme = request.session.get("is_dark_theme")
-    return render(request, "f1.html", {"dark_theme": theme})
+    return render(
+        request,
+        "f1.html",
+        {"dark_theme": theme, "smoothing": smoothing, "interpolation": interpolation},
+    )
 
 
 def recall(request):
+    smoothing = request.session.get("smoothing")
+    interpolation = request.session.get("interpolation")
     theme = request.session.get("is_dark_theme")
-    return render(request, "recall.html", {"dark_theme": theme})
+    return render(
+        request,
+        "recall.html",
+        {"dark_theme": theme, "smoothing": smoothing, "interpolation": interpolation},
+    )
 
 
 def precision(request):
+    smoothing = request.session.get("smoothing")
+    interpolation = request.session.get("interpolation")
     theme = request.session.get("is_dark_theme")
-    return render(request, "precision.html", {"dark_theme": theme})
+    return render(
+        request,
+        "precision.html",
+        {"dark_theme": theme, "smoothing": smoothing, "interpolation": interpolation},
+    )

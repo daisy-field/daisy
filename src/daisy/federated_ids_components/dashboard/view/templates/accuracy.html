@@ -48,12 +48,18 @@
                         min: 0,
                          max: 1
         }},
-            interpolateNulls: true,
-
+        {%if interpolation %}interpolateNulls: true,
+        {%endif%}
+        {%if smoothing %}curveType: 'function',
+        {%endif%}
 
         };
         {% else %}
         var options = {
+            {%if interpolation %}interpolateNulls: true,
+            {%endif%}
+            {%if smoothing %}curveType: 'function',
+            {%endif%}
             backgroundColor: 'transparent', // Set background color to transparent
 
             hAxis: {
@@ -108,18 +114,18 @@
                         if (!nodes.includes(element.address)) {
                             nodes.push(element.address)
                         }
-                        if (!times.includes(element.timestamp)) {
+                        if (!times.includes(new Date(element.timestamp))) {
                             times.push(new Date(element.timestamp))
                         }
                     })
                     console.log(nodes.length)
-                    console.log(times)
-
+                    console.log(times.length)
 
                     nodes.forEach(function (element) {
                         data.addColumn('number', element);
-
                     })
+
+
 
 
                     times.forEach(function (time) {
@@ -142,7 +148,7 @@
                         data.addRow(accuracyRow)
                     })
 
-
+                    
                     chart.draw(data, options);
                     document.getElementById('exportButton').addEventListener('click', function() {
                     exportTableToCSV(data);

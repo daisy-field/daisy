@@ -17,6 +17,10 @@ urlpatterns = [
     path("terms/", views.terms, name="terms"),
     path("privacy/", views.privacy, name="privacy"),
     path("change_theme/", views.change_theme, name="change_theme"),
+    path("change_smoothing/", views.change_smoothing, name="change_smoothing"),
+    path(
+        "change_interpolation/", views.change_interpolation, name="change_interpolation"
+    ),
     path("accuracy/", views.accuracy, name="accuracy"),
     path("recall/", views.recall, name="recall"),
     path("precision/", views.precision, name="precision"),

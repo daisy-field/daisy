@@ -47,11 +47,19 @@
             vAxis:{viewWindow: {
                         min: 0,
                          max: 1
-        }}
+        }},
+        {%if interpolation %}interpolateNulls: true,
+        {%endif%}
+        {%if smoothing %}curveType: 'function',
+        {%endif%}
 
         };
         {% else %}
         var options = {
+            {%if interpolation %}interpolateNulls: true,
+            {%endif%}
+            {%if smoothing %}curveType: 'function',
+            {%endif%}
             backgroundColor: 'transparent', // Set background color to transparent
 
             hAxis: {
