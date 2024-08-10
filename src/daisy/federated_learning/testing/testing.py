@@ -81,6 +81,7 @@ match model_type:
 
         aggregator = LCAggregator({0: model.layers, 1: model2.layers, 2: model3.layers})
         aggregation_result = aggregator.aggregate(
-            [(1, model2.get_weights())], (0, model.get_weights()))
+            [(1, model2.get_weights()), (0, model.get_weights())], (0, model.get_weights()))
+        print(aggregation_result)
 
 

@@ -261,6 +261,9 @@ class LCAggregator(ModelAggregator):
             # Go through all other models and add their respective similarities
             for other_key in self._commonalities.keys():
                 if other_key == model_key:
+                    all_layers = np.arange(len(self._commonalities[model_key]['weight_indices'])).tolist()
+                    self._commonalities[model_key][other_key] = all_layers
+                    self._commonalities[other_key][model_key] = all_layers
                     continue
 
                 # Find layerwise commonalities between two model architectures
@@ -316,13 +319,10 @@ class LCAggregator(ModelAggregator):
         base_weights = base_model[1]
         aggregation_list = list(map(lambda x: [x], base_weights))
         for (i, (model_id, model_weights)) in enumerate(models_parameters):
-            if base_id == model_id:
-                # TODO: aggregate same architecture
-                continue
-            elif not self._commonalities[base_id][model_id]:
+            if not self._commonalities[base_id][model_id]:
                 continue
             else:
-                # Get the relevant weights from the model
+                # Get the relevant weights from the model0
                 relevant_layers = self._commonalities[model_id][base_id]
                 relevant_weights = [model_weights[idx] for idx in relevant_layers]
 
@@ -331,39 +331,7 @@ class LCAggregator(ModelAggregator):
                 for (j, idx) in enumerate(relevant_layers):
                     aggregation_list[idx].append(relevant_weights[j])
 
-                print(aggregation_list)
-                for (j, layer) in enumerate(aggregation_list):
-                    aggregation_list[j] = aggregator.aggregate(layer)
+        for (j, layer) in enumerate(aggregation_list):
+            aggregation_list[j] = aggregator.aggregate(layer)
         # TODO: whats the case that gets marked here???
         return aggregation_list
-
-
-
-
-
-        # aggregated_models = []
-        # for (i, (first_id, first_weights)) in enumerate(models_parameters):
-        #     # TODO: maybe i can completely switch to fed avg if i just build a list of models?
-        #     aggr = CumAggregator()
-        #     temp = aggr.aggregate([first_weights])
-        #     for (j, (second_id, second_weights)) in enumerate(models_parameters):
-        #         if i == j:
-        #             continue
-        #         elif first_id == second_id:
-        #             temp = aggr.aggregate([second_weights])
-        #         elif not self._commonalities[first_id][second_id]:
-        #             continue
-        #         else:
-        #             # Get the relevant weights from the second model
-        #             relevant_layers = self._commonalities[second_id][first_id]
-        #             relevant_weights = [second_weights[idx] for idx in relevant_layers]
-        #
-        #             # Replace the relevant layers with weights from the second model
-        #             second_weights = temp.copy()
-        #             relevant_layers = self._commonalities[first_id][second_id]
-        #             for k, idx in enumerate(relevant_layers):
-        #                 second_weights[idx] = relevant_weights[k]
-        #
-        #             temp = aggr.aggregate([second_weights])
-        #     aggregated_models.append(temp)
-        # return aggregated_models
