@@ -244,7 +244,7 @@ class EMAggregator(ModelAggregator):
         return self._em_avg
 
 
-class LCAggregator(ModelAggregator):
+class LCAggregator(Aggregator):
     _commonalities = {}
 
     def __init__(self, models: dict[int, list[Model]]):
@@ -308,11 +308,8 @@ class LCAggregator(ModelAggregator):
             occurrences.extend(np.where(index == self._commonalities[model_ids[0]]['weight_indices'])[0].tolist())
         self._commonalities[model_ids[0]][model_ids[1]] = occurrences
 
-    def aggregate(self, models_parameters: list[(int, list[np.ndarray])], base_model: (int, list[np.ndarray]) = None) \
+    def aggregate(self, models_parameters: list[(int, list[np.ndarray])], base_model: (int, list[np.ndarray])) \
             -> list[np.ndarray]:
-        if base_model is None:
-            # TODO: add error here
-            return []
 
         aggregator = FedAvgAggregator()
         base_id = base_model[0]
@@ -322,7 +319,7 @@ class LCAggregator(ModelAggregator):
             if not self._commonalities[base_id][model_id]:
                 continue
             else:
-                # Get the relevant weights from the model0
+                # Get the relevant weights from the model
                 relevant_layers = self._commonalities[model_id][base_id]
                 relevant_weights = [model_weights[idx] for idx in relevant_layers]
 
