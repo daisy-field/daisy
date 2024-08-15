@@ -250,7 +250,7 @@ class LCAggregator(Aggregator):
     def __init__(self, models: dict[int, list[Model]]):
         """ Creates a new layerwise aggregator.
 
-        :param layers: layers of the initial models
+        :param models: dictionary of model layers with their respective archetype id
         """
         self._fed_avg = FedAvgAggregator()
 
@@ -300,7 +300,7 @@ class LCAggregator(Aggregator):
     @staticmethod
     def find_layer_similarities(own_layers: list[str], other_layers: list[str]) -> (int, int, int):
         match = SequenceMatcher(None, own_layers, other_layers).find_longest_match()
-        return match.size if match.size > 1 else 0, match.a, match.b
+        return match.size if match.size > 2 else 0, match.a, match.b
 
     def get_relevant_weights(self, model_ids: (int, int), layer_indices: np.ndarray):
         occurrences = []
@@ -308,27 +308,36 @@ class LCAggregator(Aggregator):
             occurrences.extend(np.where(index == self._commonalities[model_ids[0]]['weight_indices'])[0].tolist())
         self._commonalities[model_ids[0]][model_ids[1]] = occurrences
 
-    def aggregate(self, models_parameters: list[(int, list[np.ndarray])], base_model: (int, list[np.ndarray])) \
-            -> list[np.ndarray]:
-
-        aggregator = FedAvgAggregator()
+    def get_aggregation_list(self, base_model: (int, list[np.ndarray]),
+                             models_parameters: list[(int, list[np.ndarray])]) -> (list[list[np.ndarray]], list[float]):
         base_id = base_model[0]
         base_weights = base_model[1]
         aggregation_list = list(map(lambda x: [x], base_weights))
+        weight_list = [1] * len(aggregation_list)
+
         for (i, (model_id, model_weights)) in enumerate(models_parameters):
             if not self._commonalities[base_id][model_id]:
                 continue
-            else:
-                # Get the relevant weights from the model
-                relevant_layers = self._commonalities[model_id][base_id]
-                relevant_weights = [model_weights[idx] for idx in relevant_layers]
 
-                relevant_layers = self._commonalities[base_id][model_id]
+            # Get the relevant weights from the model
+            relevant_layers = self._commonalities[model_id][base_id]
+            relevant_weights = [model_weights[idx] for idx in relevant_layers]
+            weight_factor = len(relevant_layers) / len(aggregation_list)
 
-                for (j, idx) in enumerate(relevant_layers):
-                    aggregation_list[idx].append(relevant_weights[j])
+            relevant_layers = self._commonalities[base_id][model_id]
+            for (j, idx) in enumerate(relevant_layers):
+                aggregation_list[idx].append(relevant_weights[j] * weight_factor)
+                weight_list[idx] += weight_factor
+
+        return aggregation_list, weight_list
+
+    def aggregate(self, base_model: (int, list[np.ndarray]), models_parameters: list[(int, list[np.ndarray])]) \
+            -> list[np.ndarray]:
+
+        aggregation_list, weight_list = self.get_aggregation_list(base_model, models_parameters)
 
         for (j, layer) in enumerate(aggregation_list):
-            aggregation_list[j] = aggregator.aggregate(layer)
-        # TODO: whats the case that gets marked here???
+            aggregation_list[j] = sum(layer) / weight_list[j]
+
+        print(weight_list[4])
         return aggregation_list

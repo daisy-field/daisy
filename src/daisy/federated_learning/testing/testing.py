@@ -22,7 +22,7 @@ def train_model(model, model_num, path, loss, train_data, train_labels, val_data
         model.load_weights(path)
 
 
-model_type = 'cnn'
+model_type = 'auto'
 
 match model_type:
     case 'cnn':
@@ -48,15 +48,14 @@ match model_type:
 
         aggregator = LCAggregator({0: model.layers, 1: model2.layers})
         aggregation_result = aggregator.aggregate(
-            [(1, model2.get_weights())], (0, model.get_weights()))
+            (0, model.get_weights()), [(1, model2.get_weights())])
 
         model.set_weights(aggregation_result)
         model.evaluate(test_images, test_labels)
 
     case 'auto':
-        train_data = np.random.rand(1000, 2)
-        train_data2 = np.random.rand(1000, 3)
-        bad_model_data = np.random.rand(1000, 5)
+        train_data = np.random.rand(1000, 6)
+        train_data2 = np.random.rand(1000, 5)
 
         path = './trained/auto_{model_num:04d}.ckpt'
         model_checkpoint = keras.callbacks.ModelCheckpoint(
@@ -66,27 +65,26 @@ match model_type:
         )
         loss = 'mse'
 
-        model = tm.create_autoencoder(0)
-        train_model(model, 0, path, loss,
+        model = tm.create_autoencoder(4)
+        train_model(model, 4, path, loss,
                     train_data, train_data)
 
-        model2 = tm.create_autoencoder(1)
-        train_model(model2, 1, path, loss,
+        model2 = tm.create_autoencoder(5)
+        train_model(model2, 5, path, loss,
                     train_data, train_data)
 
-        model3 = tm.create_autoencoder(3)
-        train_model(model3, 3, path, loss,
-                    train_data2, train_data2)
+        test_data = np.random.rand(1000, 6)
+        model.evaluate(test_data, test_data)
 
-        test_data = np.random.rand(1000, 2)
-
-        model.evaluate(train_data, train_data)
-
-        aggregator = LCAggregator({0: model.layers, 1: model2.layers, 2: model3.layers})
+        print(model.get_weights()[4])
+        print(model2.get_weights()[2])
+        aggregator = LCAggregator({0: model.layers, 1: model2.layers})
         aggregation_result = aggregator.aggregate(
-            [(1, model2.get_weights())], (0, model.get_weights()))
+             (0, model.get_weights()), [(1, model2.get_weights())])
+
+        print(aggregation_result[4])
 
         model.set_weights(aggregation_result)
-        model.evaluate(train_data, train_data)
+        model.evaluate(test_data, test_data)
 
 
