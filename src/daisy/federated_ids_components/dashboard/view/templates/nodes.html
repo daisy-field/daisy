@@ -82,12 +82,72 @@
 
 
 <h1 class="mt-4"></h1>
+<html>
+<head>
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
 
-<div id="content">
+    <style type="text/css">
+        #mynetwork {
+            width: 100%;
+            height: 700px;
+            border: 1px solid lightgray;
+        }
+    </style>
+</head>
+<body>
+<div id="mynetwork"></div>
 
+<script type="text/javascript">
+    // create an array with nodes
+    serverurl ="https://freesvg.org/img/1373811890.png"
+    url = "https://www.svgrepo.com/show/41324/cube.svg"
+    var nodes = new vis.DataSet([
+        {id: 1,shape: "image",
+      image:serverurl , label: 'Evaluation Server', color: "#948e8e"},
+        {id: 6,shape: "image",
+      image:serverurl , label: 'Aggregation Server', color: "#948e8e"},
+        {id: 7 ,shape: "image",
+      image:serverurl , label: 'Prediction Server', color: "#948e8e"},
+        {id: 2,shape: "image",
+      image:url , label: 'Node 2', color:"#eeeeee"},
+        {id: 3,shape: "image",
+      image: url , label: 'Node 3',  color:"#eeeeee"},
+        {id: 4, shape: "image",
+      image:url ,label: 'Node 4',  color:"#eeeeee"},
+        {id: 5,shape: "image",
+      image:url, label: 'Node 5',  color:"#eeeeee"}
+    ]);
 
-</div>
+    // create an array with edges
+    var edges = new vis.DataSet([
+        {from: 1, to: 3},
+        {from: 6, to: 3},
+        {from: 6, to: 4},
+        {from: 6, to: 5},
+        {from: 1, to: 2},
+        {from: 7, to: 4},
+        {from: 1, to: 5}
+    ]);
 
+    // create a network
+    var container = document.getElementById('mynetwork');
+
+    // provide the data in the vis format
+    var data = {
+        nodes: nodes,
+        edges: edges
+    };
+    var options = { edges: {
+    smooth: {
+      type: 'dynamic'
+    }},
+     interaction: {
+    zoomSpeed: 0.5 // Lower this value to reduce the zoom speed (default is 1)
+  }};
+
+    // initialize your network!
+    var network = new vis.Network(container, data, options);
+</script>
 
 
 {% endblock %}

@@ -17,7 +17,7 @@ class MetricsSerializer(serializers.HyperlinkedModelSerializer):
 class AggregationSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Aggregation
-        fields = ["agg_status", "agg_count", "agg_time"]
+        fields = ["agg_status", "agg_count", "agg_time", "agg_nodes"]
 
 
 class PredictionSerializer(serializers.HyperlinkedModelSerializer):

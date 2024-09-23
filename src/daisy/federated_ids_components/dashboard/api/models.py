@@ -56,6 +56,7 @@ class Aggregation(models.Model):
     agg_status = models.CharField(max_length=255)
     agg_count = models.IntegerField()
     agg_time = models.DateTimeField(auto_now_add=True)
+    agg_nodes = models.CharField(max_length=500)
 
     def save(self, *args, **kwargs):
         total_records = Aggregation.objects.count()
