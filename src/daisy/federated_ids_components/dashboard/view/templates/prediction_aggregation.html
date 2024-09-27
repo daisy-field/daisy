@@ -92,7 +92,6 @@
 
         var chart = new google.visualization.LineChart(document.getElementById('curve_chart'));
 
-        chart.draw(data, options);
         function sendRequest() {
             $.ajax({
                 url: "http://127.0.0.1:8000/prediction/",
@@ -109,6 +108,8 @@
                         console.log(response[i].pred_time, response[i].pred_count);
                         data.addRow([response[i].pred_time, response[i].pred_count])
                     }
+                    document.querySelector('.loader').style.display = 'none';
+                    document.getElementById('curve_chart').style.display = 'flex';
                     chart.draw(data, options);
 
                     var currentdate = new Date();
@@ -128,7 +129,6 @@
             })
         }
 
-        sendRequest();
         setInterval(sendRequest, 3000);
 
     }
@@ -146,8 +146,9 @@
             In Prediction Participating Nodes
         </div>
         <div class="card-body">
-    <div id="curve_chart" style="width: 100%; height: 500px"></div>
+<div class="loader"></div>
 
+    <div id="curve_chart" style="display:none; width: 100%; height: 500px"></div>
         </div>
         <div id="updated" class="card-footer small text-muted"></div>
 

@@ -19,6 +19,31 @@
         <link href="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/style.min.css" rel="stylesheet" />
         <link href= {% static 'css/styles.css' %} rel="stylesheet" />
         <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
+        <style>
+    .loader {
+        margin-left: auto;
+        margin-right: auto;
+        z-index: 1;
+
+        width: 35px;
+        aspect-ratio: 1;
+        {% if dark_theme %} --c: no-repeat linear-gradient(#fff 0 0);
+        {% else %} --c: no-repeat linear-gradient(#000 0 0);
+        {% endif %}
+        background: var(--c) 0% 100%,
+        var(--c) 50% 100%,
+        var(--c) 100% 100%;
+        animation: l2 1s infinite linear;
+        }
+    @keyframes l2 {
+            0%  {background-size: 20% 100%,20% 100%,20% 100%}
+            20% {background-size: 20% 60% ,20% 100%,20% 100%}
+            40% {background-size: 20% 80% ,20% 60% ,20% 100%}
+            60% {background-size: 20% 100%,20% 80% ,20% 60% }
+            80% {background-size: 20% 100%,20% 100%,20% 80% }
+            100%{background-size: 20% 100%,20% 100%,20% 100%}
+        }
+</style>
     </head>
     <body class={% block body_theme %}{% endblock %}>
         <nav class="sb-topnav navbar navbar-expand navbar-dark bg-dark">
@@ -39,17 +64,17 @@
             <!-- Navbar-->
             <ul class="navbar-nav ms-auto ms-md-0 me-3 me-lg-4">
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" id="navbarDropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="fas fa-user fa-fw"></i></a>
+                    <a class="nav-link dropdown-toggle" id="navbarDropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="fa-solid fa-gear"></i></a>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                        <li><a class="dropdown-item" href={% url "change_theme" %}>Change Theme</a></li>
-                        <li class="nav-item dropdown"><a class="dropdown-item" href="#!"><img src={% static "gb.png"%} style="height:10px" alt="English"> English</a></li>
-                        <li class="nav-item dropdown"><a class="dropdown-item" href="#!"><img src={% static "de.png"%} style="height:10px" alt="English"> German</a></li>
+                        <li><a class="dropdown-item" href={% url "change_theme" %}>{%if not dark_theme %}<i class="fa-solid fa-moon"></i> Dark Mode{% else %}<i class="fa-regular fa-sun"></i> Light Mode{% endif %}</a></li>
+<!--                        <li class="nav-item dropdown"><a class="dropdown-item" href="#!"><img src={% static "gb.png"%} style="height:10px" alt="English"> English</a></li>-->
+<!--                        <li class="nav-item dropdown"><a class="dropdown-item" href="#!"><img src={% static "de.png"%} style="height:10px" alt="English"> German</a></li>-->
                         <li><a class="dropdown-item" href={% url "change_smoothing" %}>{% if smoothing %}<i class="fa-solid fa-toggle-on">{% else %}<i class="fa-solid fa-toggle-off">{% endif %}</i> Curve smoothing</a></li>
                         <li><a class="dropdown-item" href={% url "change_interpolation" %}>{% if interpolation %}<i class="fa-solid fa-toggle-on">{% else %}<i class="fa-solid fa-toggle-off">{% endif %} </i> Curve interpolation</a></li>
 
-                        <li><a class="dropdown-item" href="#!">Activity Log</a></li>
-                        <li><hr class="dropdown-divider" /></li>
-                        <li><a class="dropdown-item" href="#!">Logout</a></li>
+<!--                        <li><a class="dropdown-item" href="#!">Activity Log</a></li>-->
+<!--                        <li><hr class="dropdown-divider" /></li>-->
+<!--                        <li><a class="dropdown-item" href="#!">Logout</a></li>-->
                     </ul>
                 </li>
             </ul>
@@ -68,28 +93,11 @@
                                 <div class="sb-nav-link-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
                                 Alerts
                             </a>
-                            <div class="sb-sidenav-menu-heading">Servers</div>
-                            <a class="nav-link collapsed" href="#" data-bs-toggle="collapse" data-bs-target="#collapsePages" aria-expanded="false" aria-controls="collapsePages">
-                                <div class="sb-nav-link-icon"><i class="fa-solid fa-chart-line"></i></div>
-                                Evaluation
-                                <div class="sb-sidenav-collapse-arrow"><i class="fas fa-angle-down"></i></div>
+                            <a class="nav-link" href={% url "nodes" %}>
+                                <div class="sb-nav-link-icon"><i class="fa-solid fa-grip-vertical"></i></div>
+                                Network
                             </a>
-                            <div class="collapse" id="collapsePages" aria-labelledby="headingTwo" data-bs-parent="#sidenavAccordion">
-                                <nav class="sb-sidenav-menu-nested nav accordion" id="sidenavAccordionPages">
-                                    <a class="nav-link collapsed" href="/accuracy">
-                                        Accuracy
-                                    </a>
-                                    <a class="nav-link collapsed" href="/f1-score">
-                                        F1-Score
-                                    </a>
-                                    <a class="nav-link collapsed" href="/precision">
-                                        Precision
-                                    </a>
-                                    <a class="nav-link collapsed" href="/recall">
-                                        Recall
-                                    </a>
-                                </nav>
-                            </div>
+                            <div class="sb-sidenav-menu-heading">Servers</div>
                             <a class="nav-link" href={% url "aggregate" %}>
                             <div class="sb-nav-link-icon"><i class="fa-solid fa-server"></i></div>
                                 Model Aggregation
@@ -103,11 +111,23 @@
                                 Evaluation Aggregation
                             </a>
 
-                            <div class="sb-sidenav-menu-heading">Addons</div>
 
-                            <a class="nav-link" href={% url "nodes" %}>
-                                <div class="sb-nav-link-icon"><i class="fa-solid fa-grip-vertical"></i></div>
-                                Nodes
+                             <div class="sb-sidenav-menu-heading">Evaluation</div>
+                            <a class="nav-link" href={% url "accuracy" %}>
+                                <div class="sb-nav-link-icon"><i class="fa-solid fa-chart-line"></i></div>
+                                Accuracy
+                            </a>
+                            <a class="nav-link" href={% url "f1-score" %}>
+                                <div class="sb-nav-link-icon"><i class="fa-solid fa-chart-line"></i></div>
+                                F1-Score
+                            </a>
+                            <a class="nav-link" href={% url "precision" %}>
+                                <div class="sb-nav-link-icon"><i class="fa-solid fa-chart-line"></i></div>
+                                Precision
+                            </a>
+                            <a class="nav-link" href={% url "recall" %}>
+                                <div class="sb-nav-link-icon"><i class="fa-solid fa-chart-line"></i></div>
+                                Recall
                             </a>
                         </div>
                     </div>
@@ -131,7 +151,6 @@
                             <div class="text-muted">Copyright &copy; daisy 2024</div>
                             <div>
                                 <a href={% url "privacy" %}>Privacy Policy</a>
-                                &middot;
                                 <a href={% url "terms" %}>Terms &amp; Conditions</a>
                             </div>
                         </div>

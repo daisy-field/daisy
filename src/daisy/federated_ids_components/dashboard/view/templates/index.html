@@ -39,6 +39,8 @@
     google.charts.setOnLoadCallback(drawChart);
 
     var updateInterval = 30
+
+
     function drawChart() {
         var accuracyData = google.visualization.arrayToDataTable([
             ['Time', 'Nodes'],
@@ -330,7 +332,9 @@
 
         sendRequest();
         setInterval(sendRequest, updateInterval*1000);
-
+        $(window).resize(function(){
+                    sendRequest()
+    });
         getServerStates();
         setInterval(getServerStates, updateInterval*1000);
 
@@ -353,7 +357,7 @@
     <div class="card-body">
         <div class="row">
 
-            <div class="col-xl-3 col-md-3">
+            <div class="col-xl-3 col-md-6">
                 <div id="agg_box" class="card bg-warning text-white mb-4" style="height:6cm;  display:flex">
                     <div class="card-header"><i class="fa-solid fa-server"></i> Model Aggregation</div>
                     <div class="card-body">
@@ -375,7 +379,7 @@
                 </div>
             </div>
 
-            <div class="col-xl-3 col-md-3">
+            <div class="col-xl-3 col-md-6">
                 <div id="pred_box" class="card bg-warning text-white mb-4" style="height:6cm;  display:flex">
                     <div class="card-header"><i class="fa-solid fa-server"></i> Prediction Aggregation</div>
                     <div class="card-body">
@@ -397,7 +401,7 @@
                 </div>
             </div>
 
-            <div class="col-xl-3 col-md-3">
+            <div class="col-xl-3 col-md-6">
                 <div id="eval_box" class="card bg-warning text-white mb-4" style="height:6cm;  display:flex">
                     <div class="card-header"><i class="fa-solid fa-chart-line"></i> Evaluation Aggregation</div>
                     <div class="card-body">
@@ -420,7 +424,7 @@
             </div>
 
 
-            <div class="col-xl-3 col-md-3">
+            <div class="col-xl-3 col-md-6">
                 <div id="warning-card" class="card bg-secondary text-white mb-4" style="height:2.7cm;  display:flex">
                     <div class="card-header"><i class="fa-solid fa-triangle-exclamation"></i> Warnings</div>
                     <div class="card-body">

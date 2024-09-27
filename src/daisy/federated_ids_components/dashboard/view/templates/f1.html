@@ -148,7 +148,8 @@
                         data.addRow(accuracyRow)
                     })
 
-
+                    document.querySelector('.loader').style.display = 'none';
+                    document.getElementById('curve_chart').style.display = 'flex';
                     chart.draw(data, options);
 
                     document.getElementById('exportButton').addEventListener('click', function() {
@@ -226,7 +227,10 @@
 id="exportButton" type="button" class="btn btn-dark">Export data</a>
         </div>
         <div class="card-body">
-    <div id="curve_chart" style="width: 100%; height: 500px"></div>
+            <div class="loader"></div>
+
+    <div id="curve_chart" style="display:none; width: 100%; height: 500px"></div>
+
 
         </div>
         <div id="updated" class="card-footer small text-muted"></div>
