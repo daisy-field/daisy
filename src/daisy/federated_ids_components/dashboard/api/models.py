@@ -72,6 +72,7 @@ class Prediction(models.Model):
     pred_status = models.CharField(max_length=255)
     pred_count = models.IntegerField()
     pred_time = models.DateTimeField(auto_now_add=True)
+    pred_nodes = models.CharField(max_length=500)
 
     def save(self, *args, **kwargs):
         total_records = Aggregation.objects.count()
@@ -87,6 +88,7 @@ class Evaluation(models.Model):
     eval_status = models.CharField(max_length=255)
     eval_count = models.IntegerField()
     eval_time = models.DateTimeField(auto_now_add=True)
+    eval_nodes = models.CharField(max_length=500)
 
     def save(self, *args, **kwargs):
         total_records = Aggregation.objects.count()

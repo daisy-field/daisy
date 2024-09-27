@@ -23,13 +23,13 @@ class AggregationSerializer(serializers.HyperlinkedModelSerializer):
 class PredictionSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Prediction
-        fields = ["pred_status", "pred_count", "pred_time"]
+        fields = ["pred_status", "pred_count", "pred_time", "pred_nodes"]
 
 
 class EvaluationSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Evaluation
-        fields = ["eval_status", "eval_count", "eval_time"]
+        fields = ["eval_status", "eval_count", "eval_time", "eval_nodes"]
 
 
 class AlertsSerializer(serializers.HyperlinkedModelSerializer):

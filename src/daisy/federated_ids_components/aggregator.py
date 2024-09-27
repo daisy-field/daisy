@@ -348,6 +348,7 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
             {
                 "agg_status": "Operational",  # TODO add len(client_models)
                 "agg_count": len(self._aggr_serv.poll_connections()[1].values()),
+                "agg_nodes": str(self._aggr_serv.poll_connections()[1]),
             },
         )
 
@@ -409,6 +410,7 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
             {
                 "agg_status": "Operational",  # TODO add len(client_models)
                 "agg_count": len(clients),
+                "agg_nodes": clients,
             },
         )
 
@@ -559,6 +561,7 @@ class FederatedPredictionAggregator(FederatedValueAggregator):
                 {
                     "pred_status": "Operational",
                     "pred_count": len(self._aggr_serv.poll_connections()[1].values()),
+                    "pred_nodes": str(self._aggr_serv.poll_connections()[1]),
                 },  # TODO get correct value for pred_count
             )
 
@@ -669,6 +672,7 @@ class FederatedEvaluationAggregator(FederatedValueAggregator):
                 {
                     "eval_status": "Operational",
                     "eval_count": len(self._aggr_serv.poll_connections()[1].values()),
+                    "eval_nodes": str(self._aggr_serv.poll_connections()[1]),
                 },  # TODO get correct value for eval_count
             )
 
