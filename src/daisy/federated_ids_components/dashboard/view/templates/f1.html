@@ -60,6 +60,7 @@
             {%endif%}
             {%if smoothing %}curveType: 'function',
             {%endif%}
+
             backgroundColor: 'transparent', // Set background color to transparent
 
             hAxis: {
@@ -90,7 +91,11 @@
             },
             titleTextStyle: {
                 color: '#FFFFFF' // Set text color for chart title
-            }
+            }, explorer: {
+        axis: 'horizontal',
+        keepInBounds: true,
+        maxZoomIn: 4.0
+      }
         };
         {%endif %}
 
