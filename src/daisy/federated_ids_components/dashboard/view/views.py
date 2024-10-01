@@ -231,8 +231,6 @@ def accuracy(request):
         timestamp.strftime("%Y-%m-%d %H:%M:%S") for timestamp in unique_timestamps
     ]  # Format timestamps as strings
 
-    print(unique_timestamps)
-
     node_data = defaultdict(
         lambda: [None] * len(unique_timestamps)
     )  # Initializes lists with 'None'
@@ -241,7 +239,7 @@ def accuracy(request):
             metric.timestamp.strftime("%Y-%m-%d %H:%M:%S")
         )
         node_data[metric.address][timestamp_index] = metric.accuracy
-    print(node_data)
+
     node_data = dict(node_data)
 
     theme = request.session.get("is_dark_theme")
@@ -264,13 +262,38 @@ def accuracy(request):
 
 
 def f1(request):
+    data = Metrics_long.objects.all().values()  # or filter() as needed
+
+    # Convert queryset to list of dictionaries (JSON-like structure)
+    data_list = list(data)
+
+    metrics = Metrics_long.objects.all().order_by("timestamp")
+    unique_timestamps = sorted(metrics.values_list("timestamp", flat=True).distinct())
+    unique_timestamps = [
+        timestamp.strftime("%Y-%m-%d %H:%M:%S") for timestamp in unique_timestamps
+    ]  # Format timestamps as strings
+
+    node_data = defaultdict(
+        lambda: [None] * len(unique_timestamps)
+    )  # Initializes lists with 'None'
+    for metric in metrics:
+        timestamp_index = unique_timestamps.index(
+            metric.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        )
+        node_data[metric.address][timestamp_index] = metric.f1
+
+    node_data = dict(node_data)
+
+    theme = request.session.get("is_dark_theme")
     smoothing = request.session.get("smoothing")
     interpolation = request.session.get("interpolation")
-    theme = request.session.get("is_dark_theme")
     return render(
         request,
-        "metrics.html",
+        "accuracy.html",
         {
+            "data": data_list,
+            "unique_timestamps": unique_timestamps,
+            "node_data": json.dumps(node_data),
             "dark_theme": theme,
             "smoothing": smoothing,
             "interpolation": interpolation,
@@ -281,13 +304,38 @@ def f1(request):
 
 
 def recall(request):
+    data = Metrics_long.objects.all().values()  # or filter() as needed
+
+    # Convert queryset to list of dictionaries (JSON-like structure)
+    data_list = list(data)
+
+    metrics = Metrics_long.objects.all().order_by("timestamp")
+    unique_timestamps = sorted(metrics.values_list("timestamp", flat=True).distinct())
+    unique_timestamps = [
+        timestamp.strftime("%Y-%m-%d %H:%M:%S") for timestamp in unique_timestamps
+    ]  # Format timestamps as strings
+
+    node_data = defaultdict(
+        lambda: [None] * len(unique_timestamps)
+    )  # Initializes lists with 'None'
+    for metric in metrics:
+        timestamp_index = unique_timestamps.index(
+            metric.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        )
+        node_data[metric.address][timestamp_index] = metric.recall
+
+    node_data = dict(node_data)
+
+    theme = request.session.get("is_dark_theme")
     smoothing = request.session.get("smoothing")
     interpolation = request.session.get("interpolation")
-    theme = request.session.get("is_dark_theme")
     return render(
         request,
-        "metrics.html",
+        "accuracy.html",
         {
+            "data": data_list,
+            "unique_timestamps": unique_timestamps,
+            "node_data": json.dumps(node_data),
             "dark_theme": theme,
             "smoothing": smoothing,
             "interpolation": interpolation,
@@ -298,13 +346,38 @@ def recall(request):
 
 
 def precision(request):
+    data = Metrics_long.objects.all().values()  # or filter() as needed
+
+    # Convert queryset to list of dictionaries (JSON-like structure)
+    data_list = list(data)
+
+    metrics = Metrics_long.objects.all().order_by("timestamp")
+    unique_timestamps = sorted(metrics.values_list("timestamp", flat=True).distinct())
+    unique_timestamps = [
+        timestamp.strftime("%Y-%m-%d %H:%M:%S") for timestamp in unique_timestamps
+    ]  # Format timestamps as strings
+
+    node_data = defaultdict(
+        lambda: [None] * len(unique_timestamps)
+    )  # Initializes lists with 'None'
+    for metric in metrics:
+        timestamp_index = unique_timestamps.index(
+            metric.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        )
+        node_data[metric.address][timestamp_index] = metric.precision
+
+    node_data = dict(node_data)
+
+    theme = request.session.get("is_dark_theme")
     smoothing = request.session.get("smoothing")
     interpolation = request.session.get("interpolation")
-    theme = request.session.get("is_dark_theme")
     return render(
         request,
-        "metrics.html",
+        "accuracy.html",
         {
+            "data": data_list,
+            "unique_timestamps": unique_timestamps,
+            "node_data": json.dumps(node_data),
             "dark_theme": theme,
             "smoothing": smoothing,
             "interpolation": interpolation,
