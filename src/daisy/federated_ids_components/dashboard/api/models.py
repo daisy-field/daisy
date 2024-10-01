@@ -54,7 +54,6 @@ class Metrics(models.Model):
                 timestamp=oldest_record.timestamp,
             )
             oldest_record.delete()
-            print("delete")
             total_records = Metrics.objects.count()
 
         else:
@@ -71,10 +70,10 @@ class Metrics_long(models.Model):
 
     def save(self, *args, **kwargs):
         total_records = Metrics_long.objects.count()
-        while total_records >= 30000:
+        while total_records >= 20000:
             pks = Metrics_long.objects.values_list("pk")[:1]
-            Metrics.objects.filter(pk__in=pks).delete()
-            print("delete")
+            Metrics_long.objects.filter(pk__in=pks).delete()
+            print("Delete longterm object", total_records)
             total_records = Metrics_long.objects.count()
 
         else:
