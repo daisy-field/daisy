@@ -5,6 +5,7 @@
   ~ License, v. 2.0. If a copy of the MPL was not distributed with this
   ~ file, You can obtain one at https://mozilla.org/MPL/2.0/.
   -->
+
 {% extends "./base.html" %}
 {% block body_theme %}
 {% if dark_theme %}
@@ -39,31 +40,63 @@
 
 <script type="text/javascript">
 
-    //TODO: fix chart coloring, fix live view
-     var nodes = []
-        var times = []
+
 
       window.onload = function() {
 
+        var all_nodes = []
+        var all_times = []
+          const chartOptions = {
+            layout: {
+                padding: 50
+            },
+            devicePixelRatio: 1.5,
+            animation: false,
+            scales: {
+                xAxes: [{
+                    display: true,
+                    scaleLabel: {
+                        display: true,
+                    },
+                    ticks: {
+                        autoSkip: true,
+                        maxTicksLimit: 20
+                    },
+                }],
+                yAxes: [{
+                    display: true,
+                    scaleLabel: {
+                        display: true,
+                    },
+                    ticks: {
+                                beginAtZero: true,
+                                max: 1
+                            }
+                }],
 
+            },
+
+      }
 
         const accuracyctx = document.getElementById('accuracy_chart').getContext('2d');
-        const accuracyData = {labels: [], datasets: []};
-        const accuracyChart = new Chart(accuracyctx, {type: 'line', data: accuracyData});
+        const accuracyData = {labels: [], datasets: [], options:{animation:false}};
+        const accuracyChart = new Chart(accuracyctx, {type: 'line', data: accuracyData, options:chartOptions});
 
         const precisionctx = document.getElementById('precision_chart').getContext('2d');
         const precisionData = {labels: [], datasets: []};
-        const precisionChart = new Chart(precisionctx, {type: 'line', data: precisionData});
+        const precisionChart = new Chart(precisionctx, {type: 'line', data: precisionData, options:chartOptions});
 
         const f1ctx = document.getElementById('f1_chart').getContext('2d');
         const f1Data = {labels: [], datasets: []};
-        const f1Chart = new Chart(f1ctx, {type: 'line', data: f1Data});
+        const f1Chart = new Chart(f1ctx, {type: 'line', data: f1Data, options:chartOptions});
 
         const recallctx = document.getElementById('recall_chart').getContext('2d');
         const recallData = {labels: [], datasets: []};
-        const recallChart = new Chart(recallctx, {type: 'line', data: recallData});
+        const recallChart = new Chart(recallctx, {type: 'line', data: recallData, options:chartOptions});
 
         var updateInterval = 30
+
+
 
 
         function initialRequest(){
@@ -72,6 +105,16 @@
                 type: "GET",
                 dataType: "json",
                 success: (response) => {
+                     function formatDate(date) {
+                        const year = date.getFullYear()
+                        const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+                        const day = String(date.getDate()).padStart(2, '0');
+                        const hours = String(date.getHours()).padStart(2, '0');
+                        const minutes = String(date.getMinutes()).padStart(2, '0');
+                        const seconds = String(date.getSeconds()).padStart(2, '0');
+
+                        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+                    }
                     function getRandomColor() {
                         const letters = '0123456789ABCDEF';
                         let color = '#';
@@ -80,57 +123,39 @@
                         }
                         return color;
                     }
-                    console.log("Response")
+
+                    new_times = []
+                    new_nodes = []
+
                     response.forEach(function (element) {
-                        if (!nodes.includes(element.address)) {
-                            nodes.push(element.address)
+                        if (!all_nodes.includes(element.address)) {
+                            all_nodes.push(element.address)
+                            new_nodes.push(element.address)
                         }
-                        if (!times.includes(new Date(element.timestamp))) {
-                            times.push(new Date(element.timestamp))
+                        if (!all_times.includes(element.timestamp)) {
+                            all_times.push(element.timestamp)
+                            new_times.push(element.timestamp)
                         }
                     })
-                    console.log(nodes.length)
-                    console.log(times.length)
-                    timeStrings = []
-                    times.forEach(function (time) {
-                        timeStrings.push(time.toLocaleString())
+
+                    new_times.forEach(function (time) {
+                        format = formatDate(new Date(time))
+                        accuracyData.labels.push(format)
+                        recallData.labels.push(format)
+                        precisionData.labels.push(format)
+                        f1Data.labels.push(format)
                     })
-                    accuracyData.labels=timeStrings
-                    recallData.labels=timeStrings
-                    precisionData.labels=timeStrings
-                    f1Data.labels=timeStrings
-                    accuracyData.datasets=[]
-                    recallData.datasets=[]
-                    precisionData.datasets=[]
-                    f1Data.datasets=[]
-                    nodes.forEach(function (node) {
-                        var accuracyRow = []
-                        var precisionRow = []
-                        var f1Row = []
-                        var recallRow = []
-                        times.forEach(function (time) {
-                            var found = false
-                            for (let i = 0; i < response.length; i++) {
-                                var element = response[i];
-                                if ((new Date(element.timestamp).getTime() == time.getTime()) && element.address == node) {
-                                    precisionRow.push(element.precision)
-                                    f1Row.push(element.f1)
-                                    recallRow.push(element.recall)
-                                    accuracyRow.push(element.accuracy)
-                                    found = true
-                                    break;
-                                }
-                            }
-                            if (found === false) {
-                                precisionRow.push(null)
-                                accuracyRow.push(null)  //null
-                                f1Row.push(null)
-                                recallRow.push(null)                            }
-                        })
+
+
+                    new_nodes.forEach(function (node){
                         color = getRandomColor()
+                        nulls = Array(all_times.length-new_times.length).fill(null)
+                        nulls2 = Array(all_times.length-new_times.length).fill(null)
+                        nulls3 = Array(all_times.length-new_times.length).fill(null)
+                        nulls4 = Array(all_times.length-new_times.length).fill(null)
                         accuracyData.datasets.push({
                                   label: node,
-                                  data: accuracyRow,
+                                  data: nulls,
                                   borderColor: color, // Generate random color for each node
                                   backgroundColor: color, // Generate random color for each node
                                   fill: false,
@@ -140,17 +165,14 @@
                                   });
                         precisionData.datasets.push({
                                   label: node,
-                                  data: precisionRow,
+                                  data: nulls2,
                                   borderColor: color, // Generate random color for each node
                                   backgroundColor: color, // Generate random color for each node
                                   fill: false,
-                                  cubicInterpolationMode: 'monotone',
-                                  tension: 0.4,
-                                  spanGaps: true,
                                   });
                         f1Data.datasets.push({
                                   label: node,
-                                  data: f1Row,
+                                  data: nulls3,
                                   borderColor: color, // Generate random color for each node
                                   backgroundColor: color, // Generate random color for each node
                                   fill: false,
@@ -160,7 +182,7 @@
                                   });
                         recallData.datasets.push({
                                   label: node,
-                                  data: recallRow,
+                                  data: nulls4,
                                   borderColor: color, // Generate random color for each node
                                   backgroundColor: color, // Generate random color for each node
                                   fill: false,
@@ -168,6 +190,30 @@
                                   tension: 0.4,
                                   spanGaps: true,
                                   });
+                        console.log("added", node)
+                    })
+
+                    all_nodes.forEach((node, index)=>{
+                        new_times.forEach(function (time) {
+                            var found = false
+                            for (let i = 0; i < response.length; i++) {
+                                var element = response[i];
+                                if ((new Date(element.timestamp).getTime() == new Date(time).getTime()) && element.address == node) {
+                                    precisionData.datasets[index].data.push(element.precision)
+                                    f1Data.datasets[index].data.push(element.f1)
+                                    recallData.datasets[index].data.push(element.recall)
+                                    accuracyData.datasets[index].data.push(element.accuracy)
+                                    found = true
+                                    break;
+                                }
+                            }
+                            if (found == false) {
+                                precisionData.datasets[index].data.push(null)
+                                f1Data.datasets[index].data.push(null)
+                                recallData.datasets[index].data.push(null)
+                                accuracyData.datasets[index].data.push(null)
+                            }
+                        })
                       accuracyChart.update();
                       precisionChart.update();
                       recallChart.update();
@@ -330,7 +376,7 @@
 
 
         initialRequest();
-        setInterval(initialRequest, updateInterval*1000);
+        setInterval(initialRequest, updateInterval*100);
         $(window).resize(function(){
                     initialRequest()
         });

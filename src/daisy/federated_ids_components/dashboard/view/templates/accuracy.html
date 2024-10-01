@@ -269,8 +269,6 @@ function downloadCSV(args) {
                       lineChart.update();
                     })
 
-
-
                     var currentdate = new Date();
                     var datetime = currentdate.getDate() + "/"
                         + (currentdate.getMonth() + 1) + "/"
@@ -392,46 +390,6 @@ function downloadCSV(args) {
 
             })
         }
-
-        function exportTableToCSV(dataTable) {
-            var csvData = [];
-            var numRows = dataTable.getNumberOfRows();
-            var numCols = dataTable.getNumberOfColumns();
-
-            // Extract headers
-            var headers = [];
-            for (var col = 0; col < numCols; col++) {
-                headers.push(dataTable.getColumnLabel(col));
-            }
-            csvData.push(headers.join(','));
-
-            // Extract rows
-            for (var row = 0; row < numRows; row++) {
-                var rowData = [];
-                for (var col = 0; col < numCols; col++) {
-                    rowData.push(dataTable.getValue(row, col));
-                }
-                csvData.push(rowData.join(','));
-            }
-
-            // Create CSV file
-            var csvString = csvData.join('\n');
-            var blob = new Blob([csvString], {type: 'text/csv'});
-            var url = window.URL.createObjectURL(blob);
-
-            // Create a link to download the CSV
-            var a = document.createElement('a');
-            a.setAttribute('hidden', '');
-            a.setAttribute('href', url);
-            a.setAttribute('download', '{{ metric_name }' +
-                '}_data.csv');
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        }
-
-
-
 
 
         initialRequest()
