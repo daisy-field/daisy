@@ -5,12 +5,26 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 from rest_framework import serializers
 
-from api.models import Metrics, Aggregation, Alerts, Prediction, Node, Evaluation
+from api.models import (
+    Metrics,
+    Aggregation,
+    Alerts,
+    Prediction,
+    Node,
+    Evaluation,
+    Metrics_long,
+)
 
 
 class MetricsSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Metrics
+        fields = ["address", "accuracy", "recall", "precision", "f1", "timestamp"]
+
+
+class MetricsLongSerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        model = Metrics_long
         fields = ["address", "accuracy", "recall", "precision", "f1", "timestamp"]
 
 

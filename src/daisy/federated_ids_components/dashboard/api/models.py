@@ -42,11 +42,40 @@ class Metrics(models.Model):
 
     def save(self, *args, **kwargs):
         total_records = Metrics.objects.count()
-        while total_records >= 500:
+        while total_records >= 100:
             pks = Metrics.objects.values_list("pk")[:1]
-            Metrics.objects.filter(pk__in=pks).delete()
+            oldest_record = Metrics.objects.filter(pk__in=pks)[0]
+            Metrics_long.objects.create(
+                address=oldest_record.address,
+                accuracy=oldest_record.accuracy,
+                f1=oldest_record.f1,
+                recall=oldest_record.recall,
+                precision=oldest_record.precision,
+                timestamp=oldest_record.timestamp,
+            )
+            oldest_record.delete()
             print("delete")
             total_records = Metrics.objects.count()
+
+        else:
+            super().save(*args, **kwargs)
+
+
+class Metrics_long(models.Model):
+    address = models.CharField(max_length=255)
+    accuracy = models.FloatField()
+    f1 = models.FloatField()
+    recall = models.FloatField()
+    precision = models.FloatField()
+    timestamp = models.DateTimeField()
+
+    def save(self, *args, **kwargs):
+        total_records = Metrics_long.objects.count()
+        while total_records >= 30000:
+            pks = Metrics_long.objects.values_list("pk")[:1]
+            Metrics.objects.filter(pk__in=pks).delete()
+            print("delete")
+            total_records = Metrics_long.objects.count()
 
         else:
             super().save(*args, **kwargs)
