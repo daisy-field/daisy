@@ -3,12 +3,15 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
+from collections import defaultdict
 
-from api.models import Aggregation, Prediction, Evaluation, Alerts
+from api.models import Aggregation, Prediction, Evaluation, Alerts, Metrics_long
 
 # from dash_bootstrap_templates import load_figure_template
 from django.http import HttpResponseRedirect
 from django.shortcuts import render, redirect, get_object_or_404
+
+import json
 
 
 def index(request):
@@ -217,13 +220,46 @@ def privacy(request):
 
 
 def accuracy(request):
+    data = Metrics_long.objects.all().values()  # or filter() as needed
+
+    # Convert queryset to list of dictionaries (JSON-like structure)
+    data_list = list(data)
+
+    metrics = Metrics_long.objects.all().order_by("timestamp")
+    unique_timestamps = sorted(metrics.values_list("timestamp", flat=True).distinct())
+    unique_timestamps = [
+        timestamp.strftime("%Y-%m-%d %H:%M:%S") for timestamp in unique_timestamps
+    ]  # Format timestamps as strings
+
+    print(unique_timestamps)
+
+    node_data = defaultdict(
+        lambda: [None] * len(unique_timestamps)
+    )  # Initializes lists with 'None'
+    for metric in metrics:
+        timestamp_index = unique_timestamps.index(
+            metric.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        )
+        node_data[metric.address][timestamp_index] = metric.accuracy
+    print(node_data)
+    node_data = dict(node_data)
+
     theme = request.session.get("is_dark_theme")
     smoothing = request.session.get("smoothing")
     interpolation = request.session.get("interpolation")
     return render(
         request,
         "accuracy.html",
-        {"dark_theme": theme, "smoothing": smoothing, "interpolation": interpolation},
+        {
+            "data": data_list,
+            "unique_timestamps": unique_timestamps,
+            "node_data": json.dumps(node_data),
+            "dark_theme": theme,
+            "smoothing": smoothing,
+            "interpolation": interpolation,
+            "metric_text": "Accuracy",
+            "metric_name": "accuracy",
+        },
     )
 
 
@@ -233,8 +269,14 @@ def f1(request):
     theme = request.session.get("is_dark_theme")
     return render(
         request,
-        "f1.html",
-        {"dark_theme": theme, "smoothing": smoothing, "interpolation": interpolation},
+        "metrics.html",
+        {
+            "dark_theme": theme,
+            "smoothing": smoothing,
+            "interpolation": interpolation,
+            "metric_text": "F1-Score",
+            "metric_name": "f1",
+        },
     )
 
 
@@ -244,8 +286,14 @@ def recall(request):
     theme = request.session.get("is_dark_theme")
     return render(
         request,
-        "recall.html",
-        {"dark_theme": theme, "smoothing": smoothing, "interpolation": interpolation},
+        "metrics.html",
+        {
+            "dark_theme": theme,
+            "smoothing": smoothing,
+            "interpolation": interpolation,
+            "metric_text": "Recall",
+            "metric_name": "recall",
+        },
     )
 
 
@@ -255,6 +303,12 @@ def precision(request):
     theme = request.session.get("is_dark_theme")
     return render(
         request,
-        "precision.html",
-        {"dark_theme": theme, "smoothing": smoothing, "interpolation": interpolation},
+        "metrics.html",
+        {
+            "dark_theme": theme,
+            "smoothing": smoothing,
+            "interpolation": interpolation,
+            "metric_text": "Precision",
+            "metric_name": "precision",
+        },
     )
