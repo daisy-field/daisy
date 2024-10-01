@@ -34,127 +34,81 @@
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@0.7.3"></script>
+
 <script type="text/javascript">
-    google.charts.load('current', {'packages': ['corechart']});
-    google.charts.setOnLoadCallback(drawChart);
 
-    var updateInterval = 30
+    //TODO: fix chart coloring, fix live view
+     var nodes = []
+        var times = []
 
-
-    function drawChart() {
-        var accuracyData = google.visualization.arrayToDataTable([
-            ['Time', 'Nodes'],
-            [new Date(), 1000],
-        ]);
-
-        {%if not dark_theme %}
-        var options = {
-            backgroundColor: {fill: 'transparent'},
-            legend: 'top',
-            vAxis:{viewWindow: {
-                        min: 0,
-                         max: 1
-        }},
-        {%if interpolation %}interpolateNulls: true,
-        {%endif%}
-        {%if smoothing %}curveType: 'function',
-        {%endif%}
-
-        };
-        {% else %}
-        var options = {
-            {%if interpolation %}interpolateNulls: true,
-            {%endif%}
-            {%if smoothing %}curveType: 'function',
-            {%endif%}            backgroundColor: 'transparent', // Set background color to transparent
-
-            hAxis: {
-                textStyle: {
-                    color: '#FFFFFF' // Set text color for horizontal axis labels
-                },
-                gridlines: {
-                    color: 'transparent' // Set color of gridlines for horizontal axis
-                }
-            },
-            vAxis: {
-                textStyle: {
-                    color: '#FFFFFF' // Set text color for vertical axis labels
-                },
-                gridlines: {
-                    color: 'transparent' // Set color of gridlines for vertical axis
-                },
-                viewWindow: {
-                        min: 0,
-                         max: 1
-                 }
-            },
-            legend: {
-                position: 'top',
-                textStyle: {
-                    color: '#FFFFFF' // Set text color for legend
-                }
-            },
-            titleTextStyle: {
-                color: '#FFFFFF' // Set text color for chart title
-            }
-        };
-        {%endif %}
-
-        var accuracy_chart = new google.visualization.LineChart(document.getElementById('accuracy_chart'));
-        var f1_chart = new google.visualization.LineChart(document.getElementById('f1_chart'));
-        var precision_chart = new google.visualization.LineChart(document.getElementById('precision_chart'));
-        var recall_chart = new google.visualization.LineChart(document.getElementById('recall_chart'));
+      window.onload = function() {
 
 
-        function sendRequest() {
+
+        const accuracyctx = document.getElementById('accuracy_chart').getContext('2d');
+        const accuracyData = {labels: [], datasets: []};
+        const accuracyChart = new Chart(accuracyctx, {type: 'line', data: accuracyData});
+
+        const precisionctx = document.getElementById('precision_chart').getContext('2d');
+        const precisionData = {labels: [], datasets: []};
+        const precisionChart = new Chart(precisionctx, {type: 'line', data: precisionData});
+
+        const f1ctx = document.getElementById('f1_chart').getContext('2d');
+        const f1Data = {labels: [], datasets: []};
+        const f1Chart = new Chart(f1ctx, {type: 'line', data: f1Data});
+
+        const recallctx = document.getElementById('recall_chart').getContext('2d');
+        const recallData = {labels: [], datasets: []};
+        const recallChart = new Chart(recallctx, {type: 'line', data: recallData});
+
+        var updateInterval = 30
+
+
+        function initialRequest(){
             $.ajax({
-                url: "http://127.0.0.1:8000/metrics/",
+                 url: "http://127.0.0.1:8000/metrics/",
                 type: "GET",
-                async: true,
                 dataType: "json",
                 success: (response) => {
-
-                    accuracyData = google.visualization.arrayToDataTable([
-                        ["Time"],
-                        [new Date()]
-                    ])
-                    var f1Data = google.visualization.arrayToDataTable([
-                        ["Time"],
-                        [new Date()]
-                    ])
-                    var recallData = google.visualization.arrayToDataTable([
-                        ["Time"],
-                        [new Date()]
-                    ])
-                    var precisionData = google.visualization.arrayToDataTable([
-                        ["Time"],
-                        [new Date()]
-                    ])
-
-                    nodes = []
-                    times = []
+                    function getRandomColor() {
+                        const letters = '0123456789ABCDEF';
+                        let color = '#';
+                        for (let i = 0; i < 6; i++) {
+                            color += letters[Math.floor(Math.random() * 16)];
+                        }
+                        return color;
+                    }
+                    console.log("Response")
                     response.forEach(function (element) {
                         if (!nodes.includes(element.address)) {
                             nodes.push(element.address)
                         }
-                        if (!times.includes(element.timestamp)) {
+                        if (!times.includes(new Date(element.timestamp))) {
                             times.push(new Date(element.timestamp))
                         }
                     })
-
-                    nodes.forEach(function (element) {
-                        accuracyData.addColumn('number', element);
-                        recallData.addColumn('number', element);
-                        precisionData.addColumn('number', element);
-                        f1Data.addColumn('number', element);
-                    })
-
+                    console.log(nodes.length)
+                    console.log(times.length)
+                    timeStrings = []
                     times.forEach(function (time) {
-                        var accuracyRow = [time]
-                        var precisionRow = [time]
-                        var f1Row = [time]
-                        var recallRow = [time]
-                        nodes.forEach(function (node) {
+                        timeStrings.push(time.toLocaleString())
+                    })
+                    accuracyData.labels=timeStrings
+                    recallData.labels=timeStrings
+                    precisionData.labels=timeStrings
+                    f1Data.labels=timeStrings
+                    accuracyData.datasets=[]
+                    recallData.datasets=[]
+                    precisionData.datasets=[]
+                    f1Data.datasets=[]
+                    nodes.forEach(function (node) {
+                        var accuracyRow = []
+                        var precisionRow = []
+                        var f1Row = []
+                        var recallRow = []
+                        times.forEach(function (time) {
                             var found = false
                             for (let i = 0; i < response.length; i++) {
                                 var element = response[i];
@@ -171,22 +125,67 @@
                                 precisionRow.push(null)
                                 accuracyRow.push(null)  //null
                                 f1Row.push(null)
-                                recallRow.push(null)
-                            }
-
+                                recallRow.push(null)                            }
                         })
-                        accuracyData.addRow(accuracyRow)
-                        f1Data.addRow(f1Row)
-                        recallData.addRow(recallRow)
-                        precisionData.addRow(precisionRow)
-
+                        color = getRandomColor()
+                        accuracyData.datasets.push({
+                                  label: node,
+                                  data: accuracyRow,
+                                  borderColor: color, // Generate random color for each node
+                                  backgroundColor: color, // Generate random color for each node
+                                  fill: false,
+                                  cubicInterpolationMode: 'monotone',
+                                  tension: 0.4,
+                                  spanGaps: true,
+                                  });
+                        precisionData.datasets.push({
+                                  label: node,
+                                  data: precisionRow,
+                                  borderColor: color, // Generate random color for each node
+                                  backgroundColor: color, // Generate random color for each node
+                                  fill: false,
+                                  cubicInterpolationMode: 'monotone',
+                                  tension: 0.4,
+                                  spanGaps: true,
+                                  });
+                        f1Data.datasets.push({
+                                  label: node,
+                                  data: f1Row,
+                                  borderColor: color, // Generate random color for each node
+                                  backgroundColor: color, // Generate random color for each node
+                                  fill: false,
+                                  cubicInterpolationMode: 'monotone',
+                                  tension: 0.4,
+                                  spanGaps: true,
+                                  });
+                        recallData.datasets.push({
+                                  label: node,
+                                  data: recallRow,
+                                  borderColor: color, // Generate random color for each node
+                                  backgroundColor: color, // Generate random color for each node
+                                  fill: false,
+                                  cubicInterpolationMode: 'monotone',
+                                  tension: 0.4,
+                                  spanGaps: true,
+                                  });
+                      accuracyChart.update();
+                      precisionChart.update();
+                      recallChart.update();
+                      f1Chart.update();
                     })
-                    accuracy_chart.draw(accuracyData, options);
-                    precision_chart.draw(precisionData, options);
-                    f1_chart.draw(f1Data, options);
-                    recall_chart.draw(recallData, options);
 
-                    $("#updated").text("Last update: " + new Date())
+
+
+                    var currentdate = new Date();
+                    var datetime = currentdate.getDate() + "/"
+                        + (currentdate.getMonth() + 1) + "/"
+                        + currentdate.getFullYear() + " -- "
+                        + currentdate.getHours() + ":"
+                        + currentdate.getMinutes() + ":"
+                        + currentdate.getSeconds();
+                    $("#updated").text("Last update: " + datetime)
+
+
 
                 },
                 error: (error) => {
@@ -330,11 +329,11 @@
          }
 
 
-        sendRequest();
-        setInterval(sendRequest, updateInterval*1000);
+        initialRequest();
+        setInterval(initialRequest, updateInterval*1000);
         $(window).resize(function(){
-                    sendRequest()
-    });
+                    initialRequest()
+        });
         getServerStates();
         setInterval(getServerStates, updateInterval*1000);
 
@@ -461,7 +460,7 @@
                 <i class="fas fa-chart-area me-1"></i>
                 F1-Score
             </div>
-            <div id="f1_chart" class="card-body"></div>
+            <canvas id="f1_chart"></canvas>
             <div id="updated4" class="card-footer small text-muted">
                 <a class="small text-secondary stretched-link" href={% url "f1-score" %} >View Details</a>
             </div>
@@ -475,7 +474,7 @@
                 <i class="fas fa-chart-area me-1"></i>
                 Precision
             </div>
-            <div id="precision_chart" class="card-body"></div>
+            <canvas id="precision_chart"></canvas>
             <div id="updated1" class="card-footer small text-muted">
                 <a class="small text-secondary stretched-link" href={% url "precision" %} >View Details</a>
             </div>
@@ -491,7 +490,7 @@
                 <i class="fas fa-chart-area me-1"></i>
                 Recall
             </div>
-            <div id="recall_chart" class="card-body"></div>
+            <canvas id="recall_chart"></canvas>
             <div id="updated2" class="card-footer small text-muted">
                 <a class="small text-secondary stretched-link" href={% url "recall" %} >View Details</a>
             </div>
@@ -505,8 +504,7 @@
                 <i class="fas fa-chart-area me-1"></i>
                 Accuracy
             </div>
-            <div id="accuracy_chart" class="card-body">
-            </div>
+            <canvas id="accuracy_chart"></canvas>
             <div id="updated3" class="card-footer small text-muted">
                 <a class="small text-secondary stretched-link" href={% url "accuracy" %} >View Details</a>
             </div>
