@@ -31,128 +31,245 @@
 {% endblock %}
 
 {% block main %}
+
+
+
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 
-<script type="text/javascript">
-    google.charts.load('current', {'packages': ['corechart']});
-    google.charts.setOnLoadCallback(drawChart);
 
-    function drawChart() {
+<script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@0.7.3"></script>
 
-        {%if not dark_theme %}
-        var options = {
-            backgroundColor: {fill: 'transparent'},
-            legend: 'top',
-            vAxis:{viewWindow: {
-                        min: 0,
-                         max: 1
-        }},
-        {%if interpolation %}interpolateNulls: true,
-        {%endif%}
-        {%if smoothing %}curveType: 'function',
-        {%endif%}
+<script type="text/javascript" >
+//TODO: remove datapoints, improve initial loading, reloading maybe loading in batches
+//try to merge nodes with similar times 
 
-        };
-        {% else %}
-        var options = {
-            {%if interpolation %}interpolateNulls: true,
-            {%endif%}
-            {%if smoothing %}curveType: 'function',
-            {%endif%}
-            backgroundColor: 'transparent', // Set background color to transparent
+  window.onload = function() {
 
-            hAxis: {
-                textStyle: {
-                    color: '#FFFFFF' // Set text color for horizontal axis labels
-                },
-                gridlines: {
-                    color: 'transparent' // Set color of gridlines for horizontal axis
-                },
-            },
-            vAxis: {
-                textStyle: {
-                    color: '#FFFFFF' // Set text color for vertical axis labels
-                },
-                gridlines: {
-                    color: 'transparent' // Set color of gridlines for vertical axis
-                },
-                viewWindow: {
-                        min: 0,
-                         max: 1
-                 }
-            },
-            legend: {
-                position: 'top',
-                textStyle: {
-                    color: '#FFFFFF' // Set text color for legend
-                }
-            },
-            titleTextStyle: {
-                color: '#FFFFFF' // Set text color for chart title
-            }
-        };
-        {%endif %}
+        var nodes = []
+        var times = []
 
-        var chart = new google.visualization.LineChart(document.getElementById('curve_chart'));
 
-        function sendRequest() {
-            $.ajax({
-                url: "http://127.0.0.1:8000/metrics/",
+        const ctx = document.getElementById('lineChart').getContext('2d');
+                    const chartData = {
+                        labels: [], // Time data
+                        datasets: []
+                    };
+
+        const lineChart = new Chart(ctx, {
+                        type: 'line',
+                        data: chartData,
+
+                        options: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Time'
+                                },
+
+                            },
+                            layout: {
+                                padding: 50
+                            },
+                            devicePixelRatio: 1.5,
+                            responsive: true,
+                            tooltip: {
+        mode: 'nearest',
+                                intersect:true,
+    },        animation: false,
+
+                            hover: {
+                                mode: 'nearest',
+                                intersect: true
+                            },
+                            scales: {
+                                xAxes: [{
+                                    display: true,
+                                    scaleLabel: {
+                                        display: true,
+                                    },
+                                    ticks:{
+                                        autoSkip: true,
+                                        maxTicksLimit: 20
+                                    },
+                                }],
+                                yAxes: [{
+                                    display: true,
+                                    scaleLabel: {
+                                        display: true,
+                                    }
+                                }],
+
+                            },
+                            {%if interpolation == True %}
+                             elements: {
+                                 point: {
+                                     radius: 0
+                                 }
+                             },
+                            {%endif%}
+                            plugins: {
+                                zoom: {
+                                    zoom: {
+                                        enabled: false,
+                                        mode: "y",
+                                        speed: 0.1,
+                                        // sensitivity: 0.1,
+                                    }
+
+                                }
+                            }
+
+                        },
+
+                    });
+
+        function getRandomColor() {
+                        const letters = '0123456789ABCDEF';
+                        let color = '#';
+                        for (let i = 0; i < 6; i++) {
+                            color += letters[Math.floor(Math.random() * 16)];
+                        }
+                        return color;
+                    }
+
+        document.getElementById('exportJSON').addEventListener('click', function () {
+            //const selectedNodes = getSelectedNodes();
+             $.ajax({
+                 url: "http://127.0.0.1:8000/metrics/",
                 type: "GET",
                 dataType: "json",
                 success: (response) => {
+                    const jsonStr = JSON.stringify(response);
+                    const blob = new Blob([jsonStr], { type: "application/json" });
+                    const link = document.createElement("a");
+                    link.download = "metrics.json";
+                    link.href = URL.createObjectURL(blob);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
 
-                    var data = google.visualization.arrayToDataTable([
-                        ["Time"],
-                        [new Date()]
-                    ])
+                }
+             })})
 
-                    nodes = []
-                    times =[]
-                    response.forEach(function (element) {
-                        if (!nodes.includes(element.address)) {
-                            nodes.push(element.address)
-                        }
-                        if (!times.includes(new Date(element.timestamp))) {
-                            times.push(new Date(element.timestamp))
-                        }
+
+        document.getElementById('exportImage').addEventListener('click', function () {
+            // Code to export as image goes here
+            console.log("Export as Image");
+            console.log(lineChart.toBase64Image());
+            var a = document.createElement('a');
+            a.href = lineChart.toBase64Image();
+            a.download = '{{ metric_name}}.png';
+            a.click();
+        })
+
+        document.getElementById('exportCSV').addEventListener('click', function () {
+            console.log("Export CSV");
+
+            downloadCSV({
+                filename: "chart-data.csv",
+                chart: lineChart
+            })
+            // Code to download/export CSV can be added here
+        });
+        function convertChartDataToCSV(args) {
+            let result, columnDelimiter, lineDelimiter, labels, data;
+
+            data = args.data.data || null;
+            if (data == null || !data.length) {
+                return null;
+            }
+
+            labels = args.labels || null;
+            if (labels == null || !labels.length) {
+                return null;
+            }
+
+            columnDelimiter = args.columnDelimiter || ',';
+            lineDelimiter = args.lineDelimiter || '\n';
+
+            result = '' + columnDelimiter;
+            result += labels.join(columnDelimiter);
+            result += lineDelimiter;
+
+            //result += args.data.label.toString();
+
+            for (let i = 0; i < data.length; i++) {
+                result += columnDelimiter;
+                result += data[i];
+            }
+            result += lineDelimiter;
+
+            return result;
+        }
+
+function downloadCSV(args) {
+  var data, filename, link;
+  var csv = "";
+  for (var i = 0; i < lineChart.data.datasets.length; i++) {
+    csv += convertChartDataToCSV({
+      data: lineChart.data.datasets[i],
+      labels: chartData.labels
+    });
+  }
+  if (csv == null) return;
+  console.log(csv);
+
+  filename = args.filename || 'chart-data.csv';
+  if (!csv.match(/^data:text\/csv/i)) {
+    csv = 'data:text/csv;charset=utf-8,' + csv;
+  }
+
+  // not sure if anything below this comment works
+  data = encodeURI(csv);
+  link = document.createElement('a');
+  link.setAttribute('href', data);
+  link.setAttribute('download', filename);
+  document.body.appendChild(link); // Required for FF
+  link.click();
+  document.body.removeChild(link);
+}
+    // Helper function to get selected nodes
+    function getSelectedNodes() {
+        const selectedNodes = [];
+        nodes.forEach(node => {
+            const checkbox = document.getElementById(`node-${node.id}`);
+            if (checkbox && checkbox.checked) {
+                selectedNodes.push(node);
+            }
+        });
+        return selectedNodes;
+    }
+        function initialRequest(){
+
+
+                    times = {{ unique_timestamps|safe }};
+                    const nodeData = JSON.parse('{{ node_data|escapejs }}');
+;
+                    nodes = Object.keys(nodeData);
+
+                    chartData.labels = times
+
+                    nodes.forEach(function (node) {
+                        color = getRandomColor()
+                        chartData.datasets.push({
+                                  label: node,
+                                  data: nodeData[node],
+                                  borderColor: color, // Generate random color for each node
+                                  backgroundColor: color, // Generate random color for each node
+
+                                  fill: false,
+                                  {%if smoothing %}
+                                  tension: 0.4,
+                                  {%endif%}
+                                  {%if interpolation %}spanGaps: true,
+                                  {%endif%}
+                              });
+                      lineChart.update();
                     })
-                    console.log(nodes.length)
-                    console.log(times.length)
-
-                    nodes.forEach(function (element) {
-                        data.addColumn('number', element);
-                    })
 
 
-
-
-                    times.forEach(function (time) {
-                        var accuracyRow = [time]
-                        nodes.forEach(function (node) {
-                            var found = false
-                            for (let i = 0; i < response.length; i++) {
-                                var element = response[i];
-                                if ((new Date(element.timestamp).getTime() == time.getTime()) && element.address == node) {
-                                    accuracyRow.push(element.accuracy)
-                                    found = true
-                                    break;
-                                }
-                            }
-                            if (found === false) {
-                                accuracyRow.push(null)  //null
-                            }
-
-                        })
-                        data.addRow(accuracyRow)
-                    })
-
-                    
-                    chart.draw(data, options);
-                    document.getElementById('exportButton').addEventListener('click', function() {
-                    exportTableToCSV(data);
-                      });
 
                     var currentdate = new Date();
                     var datetime = currentdate.getDate() + "/"
@@ -162,6 +279,110 @@
                         + currentdate.getMinutes() + ":"
                         + currentdate.getSeconds();
                     $("#updated").text("Last update: " + datetime)
+
+        }
+
+        function update() {
+            $.ajax({
+                url: "http://127.0.0.1:8000/metrics/",
+                type: "GET",
+                dataType: "json",
+                success: (response) => {
+
+                    new_nodes = []
+                    new_times = []
+
+                    function formatDate(date) {
+                        const year = date.getFullYear()
+                        const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+                        const day = String(date.getDate()).padStart(2, '0');
+                        const hours = String(date.getHours()).padStart(2, '0');
+                        const minutes = String(date.getMinutes()).padStart(2, '0');
+                        const seconds = String(date.getSeconds()).padStart(2, '0');
+
+                        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+                    }
+
+                    response.forEach(function (element) {
+                        if (!nodes.includes(element.address)) {
+                            new_nodes.push(element.address)
+                            nodes.push(element.address)
+                        }
+                        formatted_time = formatDate(new Date(element.timestamp))
+                        if (new Date(times[times.length-1]).getTime()< new Date(formatDate(new Date(element.timestamp))).getTime()){
+                            new_times.push(formatted_time)
+                        }
+                    })
+                    times.concat(new_times)
+
+                    console.log(new_nodes)
+                    console.log(new_times)
+
+                    //add new nodes
+
+                    if(new_nodes.length >0)
+                    {
+                        new_nodes.forEach(function (node){
+                            let nulls = Array(times.length).fill(null)
+                            console.log(nulls)
+                            color = getRandomColor()
+                            chartData.datasets.push({
+                                  label: node,
+                                  borderColor: color, // Generate random color for each node
+                                  backgroundColor: color,
+                                  data:  nulls,
+                                  fill: false,
+                                  {%if interpolation %}
+                                  cubicInterpolationMode: 'monotone',
+                                  tension: 0.4,
+                                  {%endif%}
+                                  {%if smoothing %}spanGaps: true,
+                                  {%endif%}
+                              });
+                            lineChart.update();
+
+                        })
+                        lineChart.update();
+                    }
+                    //add new times
+                    new_times.forEach(function (time) {
+                        chartData.labels.push(time)
+                    })
+
+                    if(new_times.length >0) {
+                        console.log("New Values")
+                        nodes.forEach((node, index) => {
+                            new_times.forEach(function (time) {
+                                var found = false
+                                for (let i = response.length-1; i > 0; i--) {
+                                    var element = response[i];
+                                    if ((formatDate(new Date(element.timestamp)) == time) && element.address == node) {
+                                        chartData.datasets[index].data.push(element.{{ metric_name }});
+                                        console.log(node)
+                                        console.log(index)
+                                        found = true
+                                        break;
+                                    }
+                                }
+                                if (found === false) {
+                                    chartData.datasets[index].data.push(null)  //null
+                                }
+                            })
+                            lineChart.update();
+                        })
+                    }
+
+
+                    var currentdate = new Date();
+                    var datetime = currentdate.getDate() + "/"
+                        + (currentdate.getMonth() + 1) + "/"
+                        + currentdate.getFullYear() + " -- "
+                        + currentdate.getHours() + ":"
+                        + currentdate.getMinutes() + ":"
+                        + currentdate.getSeconds();
+                    $("#updated").text("Last update: " + datetime)
+
+                    lineChart.ctx.canvas.addEventListener('wheel', lineChart._wheelHandler);
 
 
                 },
@@ -202,31 +423,40 @@
             var a = document.createElement('a');
             a.setAttribute('hidden', '');
             a.setAttribute('href', url);
-            a.setAttribute('download', 'accuracy_data.csv');
+            a.setAttribute('download', '{{ metric_name }' +
+                '}_data.csv');
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
         }
-        sendRequest();
-        setInterval(sendRequest, 30000);
 
-    }
+
+
+
+
+        initialRequest()
+      update()
+        setInterval(update, 10000);
+  }
 
 
 </script>
+
 <ol class="breadcrumb mb-4">
     <li class="breadcrumb-item active"></li>
 </ol>
-                         <div class={% if dark_theme %}
+<div class={% if dark_theme %}
         "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
         <div class="card-header">
             <i class="fas fa-chart-area me-1"></i>
-            Accuracy
-            <a style="  float:right;"
-id="exportButton" type="button" class="btn btn-dark">Export data</a>
+            {{ metric_text }}
+                 <a style=" float:right; margin-left:10px;"id="exportCSV" type="button" class="btn btn-secondary">Export CSV</a>
+                <a style=" float:right; margin-left:10px;"id="exportJSON" type="button" class="btn btn-secondary">Export RAW-JSON</a>
+                <a style=" float:right; margin-left:10px;"id="exportImage" type="button" class="btn btn-secondary">Export Image</a>
+
         </div>
         <div class="card-body">
-    <div id="curve_chart" style="width: 100%; height: 500px"></div>
+<canvas id="lineChart"></canvas>
 
         </div>
 
