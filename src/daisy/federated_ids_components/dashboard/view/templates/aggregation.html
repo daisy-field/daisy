@@ -38,7 +38,7 @@
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 
 <script type="text/javascript">
-
+    //TODO: cleanup, replace google charts
     google.charts.load('current', {'packages': ['corechart']});
     google.charts.setOnLoadCallback(drawChart);
 
@@ -97,7 +97,7 @@
 
         function sendRequest() {
             $.ajax({
-                url: "http://127.0.0.1:8000/evaluation/",
+                url: "{{server_url}}",
                 type: "GET",
                 dataType: "json",
                 success: (response) => {
@@ -108,8 +108,8 @@
                     ])
 
                     for (let i = 1; i < response.length; i++) {
-                        console.log(response[i].eval_time, response[i].eval_count);
-                        data.addRow([response[i].eval_time, response[i].eval_count])
+                        console.log(response[i].{{server_time}}, response[i].{{server_count}});
+                        data.addRow([response[i].{{server_time}}, response[i].{{server_count}}])
                     }
                     document.querySelector('.loader').style.display = 'none';
                     document.getElementById('curve_chart').style.display = 'flex';
@@ -150,7 +150,7 @@
         "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
         <div class="card-header">
             <i class="fas fa-chart-area me-1"></i>
-            In Evaluation Participating Nodes
+            In {{server_text}} Participating Nodes
         </div>
         <div class="card-body">
             <div class="loader"></div>
