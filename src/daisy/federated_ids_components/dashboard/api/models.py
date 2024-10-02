@@ -7,8 +7,6 @@ from django.db import models
 
 import uuid
 
-# Create your models here.
-
 
 class Node(models.Model):
     address = models.CharField(max_length=255, unique=True)
@@ -42,7 +40,7 @@ class Metrics(models.Model):
 
     def save(self, *args, **kwargs):
         total_records = Metrics.objects.count()
-        while total_records >= 100:
+        while total_records >= 200:
             pks = Metrics.objects.values_list("pk")[:1]
             oldest_record = Metrics.objects.filter(pk__in=pks)[0]
             Metrics_long.objects.create(
@@ -55,7 +53,6 @@ class Metrics(models.Model):
             )
             oldest_record.delete()
             total_records = Metrics.objects.count()
-
         else:
             super().save(*args, **kwargs)
 
@@ -70,7 +67,7 @@ class Metrics_long(models.Model):
 
     def save(self, *args, **kwargs):
         total_records = Metrics_long.objects.count()
-        while total_records >= 20000:
+        while total_records >= 2000:
             pks = Metrics_long.objects.values_list("pk")[:1]
             Metrics_long.objects.filter(pk__in=pks).delete()
             print("Delete longterm object", total_records)
@@ -126,27 +123,3 @@ class Evaluation(models.Model):
             total_records = Evaluation.objects.count()
         else:
             super().save(*args, **kwargs)
-
-
-# /alert
-# - NodeID
-# - Message
-# - Timestamp
-
-# /metrics
-# - NodeID
-# - Timestamp
-# - Accuracy
-# - F1
-# - Precision
-# - Recall
-
-# /aggregation
-# -
-
-# /evaluation
-# -
-
-# /nodes
-# - NodeID
-# - Timestamp
