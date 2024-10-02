@@ -339,7 +339,8 @@ class CSVFileRelay:
                             )
                         if d_point_counter % 100 == 0:
                             self._logger.debug(
-                                f"Received packet {d_point_counter}. Packet timestamp: {d_point['meta.time']}"
+                                f"Received packet {d_point_counter}. "
+                                f"Packet timestamp: {d_point['meta.time']}"
                             )
                         if d_point_counter < self._header_buffer_size:
                             header_buffer.update(OrderedDict.fromkeys(d_point.keys()))

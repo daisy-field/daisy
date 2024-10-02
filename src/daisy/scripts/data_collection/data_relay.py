@@ -3,7 +3,8 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""This script starts a relay, which passes data to a remote machine for further processing. There it the option to use
+"""This script starts a relay, which passes data to a remote machine for further
+processing. There it the option to use
 locally captured data or use data provided by a remote source.
 
 Author: Jonathan Ackerschewski
@@ -92,7 +93,8 @@ def _parse_args() -> argparse.Namespace:
 
     remote_group = parser.add_argument_group(
         "Remote Source",
-        "These arguments are required for use with remote sources. They specify the data INPUT connection.",
+        "These arguments are required for use with remote sources. They specify the "
+        "data INPUT connection.",
     )
     remote_group.add_argument(
         "--in-local-ip",
@@ -108,7 +110,8 @@ def _parse_args() -> argparse.Namespace:
         type=int,
         metavar="PORT",
         default=10980,
-        help="The port of the local machine, which a remote machine connects to. (Default: 10980)",
+        help="The port of the local machine, which a remote machine connects to. ("
+        "Default: 10980)",
     )
     remote_group.add_argument(
         "--in-remote-ip",
@@ -147,7 +150,8 @@ def _parse_args() -> argparse.Namespace:
         type=str,
         metavar="BPF-FILTER",
         default="",
-        help="Sets a BPF-filter, which will be applied on the captured data. (Default: )",
+        help="Sets a BPF-filter, which will be applied on the captured data. ("
+        "Default: )",
     )
 
     output_group = parser.add_argument_group(
@@ -168,7 +172,8 @@ def _parse_args() -> argparse.Namespace:
         type=int,
         metavar="PORT",
         default=10980,
-        help="The port of the local machine, which a remote machine connects to. (Default: 10980)",
+        help="The port of the local machine, which a remote machine connects to. ("
+        "Default: 10980)",
     )
     output_group.add_argument(
         "--out-remote-ip",
@@ -197,7 +202,8 @@ def _parse_args() -> argparse.Namespace:
         "--io-multithreading",
         "-io-mt",
         action="store_true",
-        help="Enables multi-threading for IO operations. Only relavant for remote data sources.",
+        help="Enables multi-threading for IO operations. Only relavant for remote "
+        "data sources.",
     )
     performance_group.add_argument(
         "--processing-multithreading",
@@ -210,7 +216,8 @@ def _parse_args() -> argparse.Namespace:
 
 
 def create_relay():
-    """Creates a relay, which passes provided data to a remote machine for further processing. There it the option to
+    """Creates a relay, which passes provided data to a remote machine for further
+    processing. There it the option to
     use locally captured data or use data provided by a remote source."""
     args = _parse_args()
 

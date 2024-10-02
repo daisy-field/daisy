@@ -3,8 +3,9 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""This script runs a data collector, which can either capture live data from the local machine or gather data from a
-remote connection. The data will be written into CSV files.
+"""This script runs a data collector, which can either capture live data from the
+local machine or gather data from a remote connection. The data will be written into
+CSV files.
 
 Author: Jonathan Ackerschewski
 Modified: 03.07.2024
@@ -67,7 +68,8 @@ def label_reduce(
                 val = d_point.get(feature, [])
                 if val:
                     logging.error(
-                        f"Got TypeError for feature {feature}, trying to determine if {value} is in "
+                        f"Got TypeError for feature {feature}, trying to determine if "
+                        f"{value} is in "
                         f"{val}. Skipping..."
                     )
                     skip = True
@@ -209,7 +211,8 @@ def _parse_args() -> argparse.Namespace:
         type=int,
         metavar="PORT",
         default=10980,
-        help="The port of the local machine, which a remote machine connects to. (Default: 10980)",
+        help="The port of the local machine, which a remote machine connects to. ("
+        "Default: 10980)",
     )
     remote_group.add_argument(
         "--remote-ip",
@@ -248,7 +251,8 @@ def _parse_args() -> argparse.Namespace:
         type=str,
         metavar="BPF-FILTER",
         default="",
-        help="Sets a BPF-filter, which will be applied on the captured data. (Default: )",
+        help="Sets a BPF-filter, which will be applied on the captured data. ("
+        "Default: )",
     )
 
     output_group = parser.add_argument_group(
@@ -270,7 +274,8 @@ def _parse_args() -> argparse.Namespace:
         type=int,
         metavar="N",
         default=1000,
-        help="Sets the number of packets, which will be used for CSV header discovery. Higher numbers reduce chance of "
+        help="Sets the number of packets, which will be used for CSV header "
+        "discovery. Higher numbers reduce chance of "
         "missing headers, but increase RAM usage. (Default: 1000)",
     )
     output_exclusive_group.add_argument(
@@ -278,8 +283,10 @@ def _parse_args() -> argparse.Namespace:
         "-hf",
         type=str,
         metavar="FILE",
-        help="Sets the headers file location. If this is provided, the auto header discovery is turned off and the "
-        "provided headers will be used instead. Each line is expected to be a feature/header.",
+        help="Sets the headers file location. If this is provided, the auto header "
+        "discovery is turned off and the "
+        "provided headers will be used instead. Each line is expected to be a "
+        "feature/header.",
     )
     output_group.add_argument(
         "--overwrite",
@@ -300,7 +307,8 @@ def _parse_args() -> argparse.Namespace:
         "-ff",
         type=str,
         metavar="FILE",
-        help="Removes the features specified in the given file from each packet. The file is expected to have one "
+        help="Removes the features specified in the given file from each packet. The "
+        "file is expected to have one "
         "feature per line.",
     )
     output_group.add_argument(
@@ -308,7 +316,8 @@ def _parse_args() -> argparse.Namespace:
         "-e",
         type=str,
         metavar="FILE",
-        help="Extracts events for labeling from the given file. Each line is expected to be one event.",
+        help="Extracts events for labeling from the given file. Each line is expected "
+        "to be one event.",
     )
 
     performance_group = parser.add_argument_group(
@@ -318,7 +327,8 @@ def _parse_args() -> argparse.Namespace:
         "--io-multithreading",
         "-io-mt",
         action="store_true",
-        help="Enables multi-threading for IO operations. Only relavant for remote data sources.",
+        help="Enables multi-threading for IO operations. Only relavant for remote "
+        "data sources.",
     )
     performance_group.add_argument(
         "--processing-multithreading",
@@ -331,7 +341,8 @@ def _parse_args() -> argparse.Namespace:
 
 
 def create_collector():
-    """Creates a CSV file relay with all needed structures to provide it with data. There is the option to either use
+    """Creates a CSV file relay with all needed structures to provide it with data.
+    There is the option to either use
     a live data capture on the local machine or to use data from a remote machine."""
     # Args parsing
     args = _parse_args()
@@ -407,7 +418,8 @@ def create_collector():
                         events += [parse_event(event)]
                     except ValueError:
                         logging.warning(
-                            f"A line in the event file could not be parsed. Line: {event}"
+                            f"A line in the event file could not be parsed. Line: "
+                            f"{event}"
                         )
                         continue
         except FileNotFoundError:
@@ -420,7 +432,8 @@ def create_collector():
         logging.info("Found following events:")
         for event in events:
             logging.info(
-                f"Start time: {event[0][0]}, End time: {event[0][1]}, Label: {event[3]}, List of feature equals value: "
+                f"Start time: {event[0][0]}, End time: {event[0][1]}, Label: "
+                f"{event[3]}, List of feature equals value: "
                 f"{event[1]}, List of value in feature: {event[2]}"
             )
 
