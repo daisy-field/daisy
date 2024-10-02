@@ -71,7 +71,6 @@
 <!--                        <li class="nav-item dropdown"><a class="dropdown-item" href="#!"><img src={% static "de.png"%} style="height:10px" alt="English"> German</a></li>-->
                         <li><a class="dropdown-item" href={% url "change_smoothing" %}>{% if smoothing %}<i class="fa-solid fa-toggle-on">{% else %}<i class="fa-solid fa-toggle-off">{% endif %}</i> Curve smoothing</a></li>
                         <li><a class="dropdown-item" href={% url "change_interpolation" %}>{% if interpolation %}<i class="fa-solid fa-toggle-on">{% else %}<i class="fa-solid fa-toggle-off">{% endif %} </i> Curve interpolation</a></li>
-
 <!--                        <li><a class="dropdown-item" href="#!">Activity Log</a></li>-->
 <!--                        <li><hr class="dropdown-divider" /></li>-->
 <!--                        <li><a class="dropdown-item" href="#!">Logout</a></li>-->
@@ -98,21 +97,28 @@
                                 Network
                             </a>
                             <div class="sb-sidenav-menu-heading">Servers</div>
-                            <a class="nav-link" href={% url "aggregate" %}>
+                            <a class="nav-link collapsed" href="#" data-bs-toggle="collapse" data-bs-target="#collapsePages" aria-expanded="false" aria-controls="collapsePages">
+                                <div class="sb-nav-link-icon"><i class="fa-solid fa-server"></i></div>
+                                Servers
+                                <div class="sb-sidenav-collapse-arrow"><i class="fas fa-angle-down"></i></div>
+                            </a>
+                            <div class="collapse" id="collapsePages" aria-labelledby="headingTwo" data-bs-parent="#sidenavAccordion">
+                                <nav class="sb-sidenav-menu-nested nav accordion" id="sidenavAccordionPages">
+                                     <a class="nav-link" href={% url "aggregate" %}>
                             <div class="sb-nav-link-icon"><i class="fa-solid fa-server"></i></div>
-                                Model Aggregation
+                                Model
                             </a>
                             <a class="nav-link" href={% url "predict" %}>
                             <div class="sb-nav-link-icon"><i class="fa-solid fa-server"></i></div>
-                                Prediction Aggregation
+                                Prediction
                             </a>
                             <a class="nav-link" href={% url "evaluate" %}>
                             <div class="sb-nav-link-icon"><i class="fa-solid fa-server"></i></div>
-                                Evaluation Aggregation
+                                Evaluation
                             </a>
-
-
-                             <div class="sb-sidenav-menu-heading">Evaluation</div>
+                                </nav>
+                            </div>
+                            <div class="sb-sidenav-menu-heading">Evaluation</div>
                             <a class="nav-link" href={% url "accuracy" %}>
                                 <div class="sb-nav-link-icon"><i class="fa-solid fa-chart-line"></i></div>
                                 Accuracy
@@ -129,6 +135,11 @@
                                 <div class="sb-nav-link-icon"><i class="fa-solid fa-chart-line"></i></div>
                                 Recall
                             </a>
+                            <div class="sb-sidenav-menu-heading">Addons</div>
+                            <a class="nav-link" href={% url "data" %}>
+                                <div class="sb-nav-link-icon"><i class="fa-solid fa-file-export"></i></div>
+                                Data Controls
+                            </a>
                         </div>
                     </div>
                     <div class="sb-sidenav-footer">
@@ -140,7 +151,6 @@
                 <main>
                     <div class="container-fluid px-4">
                     {% block main %}
-
 
                     {% endblock %}
                     </div>

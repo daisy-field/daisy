@@ -30,4 +30,7 @@ urlpatterns = [
     path("delete/<uuid:alert_id>/", views.delete, name="delete"),
     path("deleteAll/", views.deleteAll, name="deleteAll"),
     path("resolveAll/", views.resolveAll, name="resolveAll"),
+    path("download-csv/", views.download_csv, name="download_csv"),
+    path("data/", views.data, name="data"),
+    path("freestorage", views.freeStorage, name="freeStorage"),
 ]

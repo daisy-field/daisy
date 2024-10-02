@@ -36,20 +36,13 @@
 
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@0.7.3"></script>
 
 <script type="text/javascript" >
-//TODO: remove datapoints, improve initial loading, reloading maybe loading in batches
-//try to merge nodes with similar times
-
   window.onload = function() {
-
         var nodes = []
         var times = []
-
 
         const ctx = document.getElementById('lineChart').getContext('2d');
                     const chartData = {
@@ -74,9 +67,19 @@
                             },
                             devicePixelRatio: 1.5,
                             responsive: true,
+                            tooltip: {
+                                intersect: false,
+                                mode: 'x',
+                                position: 'nearest',
+                            },
+                            interaction: {
+                                mode: 'nearest',   // Show tooltip for nearest point
+                                intersect: false,  // Don't require the point to be exactly under the cursor
+                            },
+                            animation: false,
                             hover: {
                                 mode: 'nearest',
-                                intersect: true
+                                intersect: false
                             },
                             scales: {
                                 xAxes: [{
@@ -93,19 +96,25 @@
                                     display: true,
                                     scaleLabel: {
                                         display: true,
+                                    },
+                                    ticks: {
+                                        beginAtZero: true,
+                                        max: 1
                                     }
                                 }],
 
                             },
+                            {%if interpolation == True %}
                              elements: {
                                  point: {
                                      radius: 0
                                  }
                              },
+                            {%endif%}
                             plugins: {
                                 zoom: {
                                     zoom: {
-                                        enabled: true,
+                                        enabled: false,
                                         mode: "y",
                                         speed: 0.1,
                                         // sensitivity: 0.1,
@@ -127,26 +136,6 @@
                         return color;
                     }
 
-        document.getElementById('exportJSON').addEventListener('click', function () {
-            //const selectedNodes = getSelectedNodes();
-             $.ajax({
-                 url: "http://127.0.0.1:8000/metrics/",
-                type: "GET",
-                dataType: "json",
-                success: (response) => {
-                    const jsonStr = JSON.stringify(response);
-                    const blob = new Blob([jsonStr], { type: "application/json" });
-                    const link = document.createElement("a");
-                    link.download = "metrics.json";
-                    link.href = URL.createObjectURL(blob);
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-
-                }
-             })})
-
-
         document.getElementById('exportImage').addEventListener('click', function () {
             // Code to export as image goes here
             console.log("Export as Image");
@@ -157,141 +146,32 @@
             a.click();
         })
 
-        document.getElementById('exportCSV').addEventListener('click', function () {
-            console.log("Export CSV");
 
-            downloadCSV({
-                filename: "chart-data.csv",
-                chart: lineChart
-            })
-            // Code to download/export CSV can be added here
-        });
-        function convertChartDataToCSV(args) {
-            let result, columnDelimiter, lineDelimiter, labels, data;
-
-            data = args.data.data || null;
-            if (data == null || !data.length) {
-                return null;
-            }
-
-            labels = args.labels || null;
-            if (labels == null || !labels.length) {
-                return null;
-            }
-
-            columnDelimiter = args.columnDelimiter || ',';
-            lineDelimiter = args.lineDelimiter || '\n';
-
-            result = '' + columnDelimiter;
-            result += labels.join(columnDelimiter);
-            result += lineDelimiter;
-
-            //result += args.data.label.toString();
-
-            for (let i = 0; i < data.length; i++) {
-                result += columnDelimiter;
-                result += data[i];
-            }
-            result += lineDelimiter;
-
-            return result;
-        }
-
-function downloadCSV(args) {
-  var data, filename, link;
-  var csv = "";
-  for (var i = 0; i < lineChart.data.datasets.length; i++) {
-    csv += convertChartDataToCSV({
-      data: lineChart.data.datasets[i],
-      labels: chartData.labels
-    });
-  }
-  if (csv == null) return;
-  console.log(csv);
-
-  filename = args.filename || 'chart-data.csv';
-  if (!csv.match(/^data:text\/csv/i)) {
-    csv = 'data:text/csv;charset=utf-8,' + csv;
-  }
-
-  // not sure if anything below this comment works
-  data = encodeURI(csv);
-  link = document.createElement('a');
-  link.setAttribute('href', data);
-  link.setAttribute('download', filename);
-  document.body.appendChild(link); // Required for FF
-  link.click();
-  document.body.removeChild(link);
-}
-    // Helper function to get selected nodes
-    function getSelectedNodes() {
-        const selectedNodes = [];
-        nodes.forEach(node => {
-            const checkbox = document.getElementById(`node-${node.id}`);
-            if (checkbox && checkbox.checked) {
-                selectedNodes.push(node);
-            }
-        });
-        return selectedNodes;
-    }
         function initialRequest(){
-            $.ajax({
-                 url: "http://127.0.0.1:8000/metrics/",
-                type: "GET",
-                dataType: "json",
-                success: (response) => {
+                    times = {{ unique_timestamps|safe }};
+                    const nodeData = JSON.parse('{{ node_data|escapejs }}');
+;
+                    nodes = Object.keys(nodeData);
 
-                    response.forEach(function (element) {
-                        if (!nodes.includes(element.address)) {
-                            nodes.push(element.address)
-                        }
-                        if (!times.includes(new Date(element.timestamp))) {
-                            times.push(new Date(element.timestamp))
-                        }
-                    })
-                    console.log(nodes.length)
-                    console.log(times.length)
-
-                    times.forEach(function (time) {
-                        chartData.labels.push(time.toLocaleString())
-                    })
+                    chartData.labels = times
 
                     nodes.forEach(function (node) {
-
-                        var Row =[]
-                        times.forEach(function (time) {
-                            var found = false
-                            for (let i = 0; i < response.length; i++) {
-                                var element = response[i];
-                                if ((new Date(element.timestamp).getTime() == time.getTime()) && element.address == node) {
-                                    Row.push(element.{{metric_name}})
-                                    found = true
-                                    break;
-                                }
-                            }
-                            if (found === false) {
-                                Row.push(null)  //null
-                            }
-                        })
                         color = getRandomColor()
                         chartData.datasets.push({
                                   label: node,
-                                  data: Row,
-                                  borderColor: color, // Generate random color for each node
-                                  backgroundColor: color, // Generate random color for each node
+                                  data: nodeData[node],
+                                  borderColor: color,
+                                  backgroundColor: color,
 
                                   fill: false,
-                                  {%if interpolation %}
-                                  cubicInterpolationMode: 'monotone',
+                                  {%if smoothing %}
                                   tension: 0.4,
                                   {%endif%}
-                                  {%if smoothing %}spanGaps: true,
+                                  {%if interpolation %}spanGaps: true,
                                   {%endif%}
                               });
                       lineChart.update();
                     })
-
-
 
                     var currentdate = new Date();
                     var datetime = currentdate.getDate() + "/"
@@ -302,14 +182,6 @@ function downloadCSV(args) {
                         + currentdate.getSeconds();
                     $("#updated").text("Last update: " + datetime)
 
-
-
-                },
-                error: (error) => {
-                    console.log(error);
-                }
-
-            })
         }
 
         function update() {
@@ -321,22 +193,32 @@ function downloadCSV(args) {
 
                     new_nodes = []
                     new_times = []
-                    function isInArray(array, value) {
-                        return !!array.find(item => {return item.getTime() == value.getTime()});
+
+                    function formatDate(date) {
+                        const year = date.getFullYear()
+                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                        const day = String(date.getDate()).padStart(2, '0');
+                        const hours = String(date.getHours()).padStart(2, '0');
+                        const minutes = String(date.getMinutes()).padStart(2, '0');
+                        const seconds = String(date.getSeconds()).padStart(2, '0');
+
+                        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
                     }
+
                     response.forEach(function (element) {
                         if (!nodes.includes(element.address)) {
                             new_nodes.push(element.address)
                             nodes.push(element.address)
                         }
-                        if (!isInArray(times, new Date(element.timestamp))) {
-                            new_times.push(new Date(element.timestamp))
-                            times.push(new Date(element.timestamp))
-                            console.log("Found new time")
+                        formatted_time = formatDate(new Date(element.timestamp))
+                        if (new Date(times[times.length-1]).getTime()< new Date(formatDate(new Date(element.timestamp))).getTime()){
+                            new_times.push(formatted_time)
                         }
                     })
-                    console.log(new_nodes.length)
-                    console.log(new_times.length)
+                    times.concat(new_times)
+
+                    console.log(new_nodes)
+                    console.log(new_times)
 
                     //add new nodes
 
@@ -348,7 +230,7 @@ function downloadCSV(args) {
                             color = getRandomColor()
                             chartData.datasets.push({
                                   label: node,
-                                  borderColor: color, // Generate random color for each node
+                                  borderColor: color,
                                   backgroundColor: color,
                                   data:  nulls,
                                   fill: false,
@@ -363,11 +245,9 @@ function downloadCSV(args) {
 
                         })
                         lineChart.update();
-
                     }
-                    //add new times
                     new_times.forEach(function (time) {
-                        chartData.labels.push(time.toLocaleString())
+                        chartData.labels.push(time)
                     })
 
                     if(new_times.length >0) {
@@ -377,7 +257,7 @@ function downloadCSV(args) {
                                 var found = false
                                 for (let i = response.length-1; i > 0; i--) {
                                     var element = response[i];
-                                    if ((new Date(element.timestamp).getTime() == time.getTime()) && element.address == node) {
+                                    if ((formatDate(new Date(element.timestamp)) == time) && element.address == node) {
                                         chartData.datasets[index].data.push(element.{{ metric_name }});
                                         console.log(node)
                                         console.log(index)
@@ -386,13 +266,12 @@ function downloadCSV(args) {
                                     }
                                 }
                                 if (found === false) {
-                                    chartData.datasets[index].data.push(null)  //null
+                                    chartData.datasets[index].data.push(null)
                                 }
                             })
                             lineChart.update();
                         })
                     }
-
 
                     var currentdate = new Date();
                     var datetime = currentdate.getDate() + "/"
@@ -404,9 +283,6 @@ function downloadCSV(args) {
                     $("#updated").text("Last update: " + datetime)
 
                     lineChart.ctx.canvas.addEventListener('wheel', lineChart._wheelHandler);
-                    document.querySelector('.loader').style.display = 'none';
-
-
                 },
                 error: (error) => {
                     console.log(error);
@@ -415,79 +291,25 @@ function downloadCSV(args) {
             })
         }
 
-        function exportTableToCSV(dataTable) {
-            var csvData = [];
-            var numRows = dataTable.getNumberOfRows();
-            var numCols = dataTable.getNumberOfColumns();
-
-            // Extract headers
-            var headers = [];
-            for (var col = 0; col < numCols; col++) {
-                headers.push(dataTable.getColumnLabel(col));
-            }
-            csvData.push(headers.join(','));
-
-            // Extract rows
-            for (var row = 0; row < numRows; row++) {
-                var rowData = [];
-                for (var col = 0; col < numCols; col++) {
-                    rowData.push(dataTable.getValue(row, col));
-                }
-                csvData.push(rowData.join(','));
-            }
-
-            // Create CSV file
-            var csvString = csvData.join('\n');
-            var blob = new Blob([csvString], {type: 'text/csv'});
-            var url = window.URL.createObjectURL(blob);
-
-            // Create a link to download the CSV
-            var a = document.createElement('a');
-            a.setAttribute('hidden', '');
-            a.setAttribute('href', url);
-            a.setAttribute('download', '{{ metric_name }' +
-                '}_data.csv');
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        }
-
-
-
-
 
         initialRequest()
-
-
-        setInterval(update, 20000);
+        update()
+        setInterval(update, 10000);
   }
-
-
 </script>
 
 <ol class="breadcrumb mb-4">
     <li class="breadcrumb-item active"></li>
-</ol>            <div class="loader"></div>
-
-                         <div class={% if dark_theme %}
-        "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
-        <div class="card-header">
-            <i class="fas fa-chart-area me-1"></i>
-            {{ metric_text }}
-                 <a style=" float:right; margin-left:10px;"id="exportCSV" type="button" class="btn btn-secondary">Export CSV</a>
-                <a style=" float:right; margin-left:10px;"id="exportJSON" type="button" class="btn btn-secondary">Export RAW-JSON</a>
-                <a style=" float:right; margin-left:10px;"id="exportImage" type="button" class="btn btn-secondary">Export Image</a>
-
-
-        </div>
-        <div class="card-body">
-<canvas id="lineChart"></canvas>
-
-        </div>
-
-        <div id="updated" class="card-footer small text-muted"></div>
-
-
-
-
+</ol>
+<div class={% if dark_theme %}
+"card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
+<div class="card-header">
+    <i class="fas fa-chart-area me-1"></i>
+    {{ metric_text }}
+    <a style=" float:right; margin-left:10px;" id="exportImage" type="button" class="btn btn-secondary">Export Image</a>
+</div>
+<div class="card-body">
+    <canvas id="lineChart"></canvas>
+</div>
+<div id="updated" class="card-footer small text-muted"></div>
 {% endblock %}

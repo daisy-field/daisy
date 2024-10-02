@@ -36,12 +36,8 @@
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@0.7.3"></script>
 
 <script type="text/javascript">
-
-
-
       window.onload = function() {
 
         var all_nodes = []
@@ -95,10 +91,6 @@
         const recallChart = new Chart(recallctx, {type: 'line', data: recallData, options:chartOptions});
 
         var updateInterval = 30
-
-
-
-
         function initialRequest(){
             $.ajax({
                  url: "http://127.0.0.1:8000/metrics/",
@@ -156,8 +148,8 @@
                         accuracyData.datasets.push({
                                   label: node,
                                   data: nulls,
-                                  borderColor: color, // Generate random color for each node
-                                  backgroundColor: color, // Generate random color for each node
+                                  borderColor: color,
+                                  backgroundColor: color,  
                                   fill: false,
                                   cubicInterpolationMode: 'monotone',
                                   tension: 0.4,
@@ -166,15 +158,15 @@
                         precisionData.datasets.push({
                                   label: node,
                                   data: nulls2,
-                                  borderColor: color, // Generate random color for each node
-                                  backgroundColor: color, // Generate random color for each node
+                                  borderColor: color,  
+                                  backgroundColor: color,  
                                   fill: false,
                                   });
                         f1Data.datasets.push({
                                   label: node,
                                   data: nulls3,
-                                  borderColor: color, // Generate random color for each node
-                                  backgroundColor: color, // Generate random color for each node
+                                  borderColor: color,  
+                                  backgroundColor: color,  
                                   fill: false,
                                   cubicInterpolationMode: 'monotone',
                                   tension: 0.4,
@@ -183,8 +175,8 @@
                         recallData.datasets.push({
                                   label: node,
                                   data: nulls4,
-                                  borderColor: color, // Generate random color for each node
-                                  backgroundColor: color, // Generate random color for each node
+                                  borderColor: color,  
+                                  backgroundColor: color,  
                                   fill: false,
                                   cubicInterpolationMode: 'monotone',
                                   tension: 0.4,
@@ -220,8 +212,6 @@
                       f1Chart.update();
                     })
 
-
-
                     var currentdate = new Date();
                     var datetime = currentdate.getDate() + "/"
                         + (currentdate.getMonth() + 1) + "/"
@@ -230,9 +220,6 @@
                         + currentdate.getMinutes() + ":"
                         + currentdate.getSeconds();
                     $("#updated").text("Last update: " + datetime)
-
-
-
                 },
                 error: (error) => {
                     console.log(error);
@@ -251,7 +238,7 @@
                      var alerts = 0
                      var warnings = 0
 
-                     for (let i = 0; i < response.length; i++) {        //type = danger, warning, info
+                     for (let i = 0; i < response.length; i++) {
                           if (response[i].active == true && response[i].category == "alert"){
                                     alerts = alerts+1
                                var element = document.getElementById("alert-card");
@@ -391,9 +378,6 @@
 
 </script>
 
-
-<br>
-<br>
 <div class={% if dark_theme %}"card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
     <div class="card-header">
         <i class="fa-solid fa-signal"></i>

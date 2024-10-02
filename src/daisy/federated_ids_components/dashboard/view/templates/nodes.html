@@ -41,28 +41,34 @@
     #mynetwork {
         width: 100%;
         height: 700px;
-
-
     }
 </style>
+
 <script type="text/javascript">
     var nodes
     var edges
     nodes = []
     window.addEventListener('load', function () {
 
-    serveroffurl = "{% static 'server_off.png' %}" //"https://freesvg.org/img/1373811890.png"
+        serveroffurl = "{% static 'server_off.png' %}" //"https://freesvg.org/img/1373811890.png"
         serveronurl = "{% static 'server_on.png' %}"
-    url = "https://www.svgrepo.com/show/474391/node.svg"
+        url = "{% static 'node.svg' %}" // "https://www.svgrepo.com/show/474391/node.svg"
 
-    var initEdges = []
-    var initNodes = [{id: 1, shape: "image", image: serveroffurl, label: 'Evaluation Server', color: "#948e8e", size:40},
-                        {id: 2, shape: "image", image: serveroffurl, label: 'Aggregation Server', color: "#948e8e", size: 40},
-                        {id: 3, shape: "image", image: serveroffurl, label: 'Prediction Server', color: "#948e8e", size: 40}]
+        var initEdges = []
+        var initNodes = [{
+            id: 1,
+            shape: "image",
+            image: serveroffurl,
+            label: 'Evaluation Server',
+            color: "#948e8e",
+            size: 40
+        },
+            {id: 2, shape: "image", image: serveroffurl, label: 'Aggregation Server', color: "#948e8e", size: 40},
+            {id: 3, shape: "image", image: serveroffurl, label: 'Prediction Server', color: "#948e8e", size: 40}]
 
-    let request1 = getEval()
-    let request2 = getPred()
-    let request3 = getAgg()
+        let request1 = getEval()
+        let request2 = getPred()
+        let request3 = getAgg()
         Promise.all([request1, request2, request3])
             .then((responses) => {
                 lastEval = responses[0][responses[0].length - 1]["eval_nodes"];
@@ -82,7 +88,7 @@
                     };
                     const edgedict = {from: 1, to: evalPorts[i]};
                     if (!nodeExists(evalPorts[i], initNodes)) {
-                    initNodes.push(nodedict)
+                        initNodes.push(nodedict)
                     }
                     initEdges.push(edgedict)
                 }
@@ -96,7 +102,7 @@
                     };
                     const edgedict = {from: 3, to: predPorts[i]};
                     if (!nodeExists(predPorts[i], initNodes)) {
-                    initNodes.push(nodedict)
+                        initNodes.push(nodedict)
                     }
                     initEdges.push(edgedict)
                 }
@@ -115,41 +121,38 @@
                     initEdges.push(edgedict)
                 }
 
-console.log(initNodes)
-    nodes = new vis.DataSet(initNodes)
-    edges = new vis.DataSet(initEdges)
+                console.log(initNodes)
+                nodes = new vis.DataSet(initNodes)
+                edges = new vis.DataSet(initEdges)
 
-    var container = document.getElementById('mynetwork');
+                var container = document.getElementById('mynetwork');
 
-    var nodedata = {nodes: nodes, edges: edges};
-    var options = {
-            nodes: {
-                font: {
-                    color: {% if dark_theme %} "white" {% else %} "black" {% endif %}  // Default font color for all nodes#
-                },
-                shadow: true,
-
-            },
-            edges: {
-                smooth: {
-                type: 'dynamic'
-                },
-                shadow: true,
-
-            },
-            interaction: {
-                zoomSpeed: 0.5 // Lower this value to reduce the zoom speed (default is 1)
-            },
-        //layout: {
-          //  hierarchical: {
-            //    direction: 'UD',
-              //      nodeSpacing: 150,
-                   // sortMethod:'directed' //hubsize, directed.
-        // }
-        //},
-        };
-    var network = new vis.Network(container, nodedata, options);
-    })
+                var nodedata = {nodes: nodes, edges: edges};
+                var options = {
+                    nodes: {
+                        font: {
+                            color: {% if dark_theme %} "white" {% else %}"black"{% endif %}},
+                        shadow: true,
+                    },
+                    edges: {
+                        smooth: {
+                            type: 'dynamic'
+                        },
+                        shadow: true,
+                    },
+                    interaction: {
+                        zoomSpeed: 0.5 // Lower this value to reduce the zoom speed (default is 1)
+                    },
+                //layout: {
+                //  hierarchical: {
+                //    direction: 'UD',
+                //      nodeSpacing: 150,
+                // sortMethod:'directed' //hubsize, directed.
+                // }
+                //},
+                };
+                var network = new vis.Network(container, nodedata, options);
+            })
     })
 
     function parseText(string){
@@ -180,16 +183,13 @@ console.log(initNodes)
         })
     }
     function edgeExists(fromNodeId, toNodeId, edgesDataSet) {
-        // Retrieve all edges
         let edges = edgesDataSet.get();
-
-        // Loop through edges and check if there's a match
         for (let i = 0; i < edges.length; i++) {
             if (edges[i].from === fromNodeId && edges[i].to === toNodeId) {
-                return true; // Edge exists
+                return true;
             }
         }
-        return false; // Edge doesn't exist
+        return false;
     }
     function updateNodes() {
         let request1 = getEval()
@@ -204,8 +204,7 @@ console.log(initNodes)
                 predPorts = parseText(lastPred);
                 lastAgg = responses[2][responses[2].length - 1]["agg_nodes"];
                 aggPorts = parseText(lastAgg);
-
-                //Add eval nodes, and edges
+                //add evaluation nodes and edges
                 for (let i = 0; i < evalPorts.length; i++) {
                     const nodedict = {
                         id: evalPorts[i],
@@ -220,7 +219,7 @@ console.log(initNodes)
                     if(!edgeExists(1, evalPorts[i], edges))
                     {edges.add(edgedict)}
                 }
-                //add pred nodes and edges
+                //add prediction nodes and edges
                  for (let i = 0; i < predPorts.length; i++) {
                     const nodedict = {
                         id: predPorts[i],
@@ -234,6 +233,7 @@ console.log(initNodes)
                         edges.add(edgedict)
                     }
                 }
+                //add aggregator nodes and edges
                 for (let i = 0; i < aggPorts.length; i++) {
                     const nodedict = {
                         id: aggPorts[i],
@@ -248,7 +248,7 @@ console.log(initNodes)
                     if(!edgeExists(2, aggPorts[i], edges))
                     {edges.add(edgedict)}
                 }
-                //remove nodes and edges
+                //remove old nodes and edges
                 const existingNodes = nodes.get(); // Get all nodes currently in the dataset
                 existingNodes.forEach(node => {
                     if (node.id > 3 && !predPorts.includes(node.id) && !evalPorts.includes(node.id) && !aggPorts.includes(node.id) ) {
@@ -261,11 +261,9 @@ console.log(initNodes)
                     if (node.id > 3 && predPorts.includes(node.id) && !evalPorts.includes(node.id)) {
                         let edge = edges.get({ filter: function(edge) {return edge.from === 1 && edge.to === node.id;}});
                         if (edge.length > 0) {edges.remove(edge[0].id);}                     }
-                // remove edges
-
                 });
 
-                //update Server layouts
+                //update Server layouts to be active
                 const evaltimeDifferenceMs = new Date() - new Date(responses[0][responses[0].length-1].eval_time);
                 const evaldiffMinutes = Math.floor(evaltimeDifferenceMs / (1000 * 60));
                      if(evaldiffMinutes< 1){
@@ -299,7 +297,6 @@ console.log(initNodes)
             });
 
     }
-
     setInterval(updateNodes, 10000);
 </script>
 

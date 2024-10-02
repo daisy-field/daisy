@@ -5,13 +5,21 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 from collections import defaultdict
 
-from api.models import Aggregation, Prediction, Evaluation, Alerts, Metrics_long
+from api.models import (
+    Aggregation,
+    Prediction,
+    Evaluation,
+    Alerts,
+    Metrics_long,
+    Metrics,
+)
 
-# from dash_bootstrap_templates import load_figure_template
 from django.http import HttpResponseRedirect
 from django.shortcuts import render, redirect, get_object_or_404
+from django.http import HttpResponse
 
 import json
+import csv
 
 
 def index(request):
@@ -63,11 +71,6 @@ def index(request):
             "evaluation_time": evaluation_time,
         },
     )
-
-
-_dark_template = "bootstrap_dark"  # "slate"
-_light_template = "bootstrap"  # pulse"
-# load_figure_template([_light_template, _dark_template])
 
 
 def change_theme(request):
@@ -159,8 +162,16 @@ def aggregate(request):
     interpolation = request.session.get("interpolation")
     return render(
         request,
-        "model_aggregation.html",
-        {"dark_theme": theme, "smoothing": smoothing, "interpolation": interpolation},
+        "aggregation.html",
+        {
+            "dark_theme": theme,
+            "smoothing": smoothing,
+            "interpolation": interpolation,
+            "server_count": "agg_count",
+            "server_time": "agg_time",
+            "server_text": "Aggregation",
+            "server_url": "http://127.0.0.1:8000/aggregation/",
+        },
     )
 
 
@@ -170,8 +181,16 @@ def predict(request):
     interpolation = request.session.get("interpolation")
     return render(
         request,
-        "prediction_aggregation.html",
-        {"dark_theme": theme, "smoothing": smoothing, "interpolation": interpolation},
+        "aggregation.html",
+        {
+            "dark_theme": theme,
+            "smoothing": smoothing,
+            "interpolation": interpolation,
+            "server_count": "pred_count",
+            "server_time": "pred_time",
+            "server_text": "Prediction",
+            "server_url": "http://127.0.0.1:8000/prediction/",
+        },
     )
 
 
@@ -181,8 +200,16 @@ def evaluate(request):
     interpolation = request.session.get("interpolation")
     return render(
         request,
-        "evaluation_aggregation.html",
-        {"dark_theme": theme, "smoothing": smoothing, "interpolation": interpolation},
+        "aggregation.html",
+        {
+            "dark_theme": theme,
+            "smoothing": smoothing,
+            "interpolation": interpolation,
+            "server_count": "eval_count",
+            "server_time": "eval_time",
+            "server_text": "Evaluation",
+            "server_url": "http://127.0.0.1:8000/evaluation/",
+        },
     )
 
 
@@ -220,20 +247,16 @@ def privacy(request):
 
 
 def accuracy(request):
-    data = Metrics_long.objects.all().values()  # or filter() as needed
-
-    # Convert queryset to list of dictionaries (JSON-like structure)
+    data = Metrics_long.objects.all().values()
     data_list = list(data)
 
     metrics = Metrics_long.objects.all().order_by("timestamp")
     unique_timestamps = sorted(metrics.values_list("timestamp", flat=True).distinct())
     unique_timestamps = [
         timestamp.strftime("%Y-%m-%d %H:%M:%S") for timestamp in unique_timestamps
-    ]  # Format timestamps as strings
+    ]
 
-    node_data = defaultdict(
-        lambda: [None] * len(unique_timestamps)
-    )  # Initializes lists with 'None'
+    node_data = defaultdict(lambda: [None] * len(unique_timestamps))
     for metric in metrics:
         timestamp_index = unique_timestamps.index(
             metric.timestamp.strftime("%Y-%m-%d %H:%M:%S")
@@ -247,7 +270,7 @@ def accuracy(request):
     interpolation = request.session.get("interpolation")
     return render(
         request,
-        "accuracy.html",
+        "metrics.html",
         {
             "data": data_list,
             "unique_timestamps": unique_timestamps,
@@ -262,20 +285,17 @@ def accuracy(request):
 
 
 def f1(request):
-    data = Metrics_long.objects.all().values()  # or filter() as needed
-
-    # Convert queryset to list of dictionaries (JSON-like structure)
+    data = Metrics_long.objects.all().values()
     data_list = list(data)
 
     metrics = Metrics_long.objects.all().order_by("timestamp")
     unique_timestamps = sorted(metrics.values_list("timestamp", flat=True).distinct())
     unique_timestamps = [
         timestamp.strftime("%Y-%m-%d %H:%M:%S") for timestamp in unique_timestamps
-    ]  # Format timestamps as strings
+    ]
 
-    node_data = defaultdict(
-        lambda: [None] * len(unique_timestamps)
-    )  # Initializes lists with 'None'
+    node_data = defaultdict(lambda: [None] * len(unique_timestamps))
+
     for metric in metrics:
         timestamp_index = unique_timestamps.index(
             metric.timestamp.strftime("%Y-%m-%d %H:%M:%S")
@@ -289,7 +309,7 @@ def f1(request):
     interpolation = request.session.get("interpolation")
     return render(
         request,
-        "accuracy.html",
+        "metrics.html",
         {
             "data": data_list,
             "unique_timestamps": unique_timestamps,
@@ -304,9 +324,8 @@ def f1(request):
 
 
 def recall(request):
-    data = Metrics_long.objects.all().values()  # or filter() as needed
+    data = Metrics_long.objects.all().values()
 
-    # Convert queryset to list of dictionaries (JSON-like structure)
     data_list = list(data)
 
     metrics = Metrics_long.objects.all().order_by("timestamp")
@@ -331,7 +350,7 @@ def recall(request):
     interpolation = request.session.get("interpolation")
     return render(
         request,
-        "accuracy.html",
+        "metrics.html",
         {
             "data": data_list,
             "unique_timestamps": unique_timestamps,
@@ -346,20 +365,17 @@ def recall(request):
 
 
 def precision(request):
-    data = Metrics_long.objects.all().values()  # or filter() as needed
+    data = Metrics_long.objects.all().values()
 
-    # Convert queryset to list of dictionaries (JSON-like structure)
     data_list = list(data)
 
     metrics = Metrics_long.objects.all().order_by("timestamp")
     unique_timestamps = sorted(metrics.values_list("timestamp", flat=True).distinct())
     unique_timestamps = [
         timestamp.strftime("%Y-%m-%d %H:%M:%S") for timestamp in unique_timestamps
-    ]  # Format timestamps as strings
+    ]
 
-    node_data = defaultdict(
-        lambda: [None] * len(unique_timestamps)
-    )  # Initializes lists with 'None'
+    node_data = defaultdict(lambda: [None] * len(unique_timestamps))
     for metric in metrics:
         timestamp_index = unique_timestamps.index(
             metric.timestamp.strftime("%Y-%m-%d %H:%M:%S")
@@ -373,7 +389,7 @@ def precision(request):
     interpolation = request.session.get("interpolation")
     return render(
         request,
-        "accuracy.html",
+        "metrics.html",
         {
             "data": data_list,
             "unique_timestamps": unique_timestamps,
@@ -385,3 +401,94 @@ def precision(request):
             "metric_name": "precision",
         },
     )
+
+
+def data(request):
+    metrics = Metrics_long.objects.all().order_by("address")
+    nodes = sorted(metrics.values_list("address", flat=True).distinct())
+    theme = request.session.get("is_dark_theme")
+    smoothing = request.session.get("smoothing")
+    interpolation = request.session.get("interpolation")
+    trl = Metrics_long.objects.count()
+    tr = Metrics.objects.count()
+    limit_short = 200
+    limit_long = 2000
+    trp = tr / limit_short * 100
+    trlp = trl / limit_long * 100
+    return render(
+        request,
+        "data.html",
+        {
+            "dark_theme": theme,
+            "smoothing": smoothing,
+            "interpolation": interpolation,
+            "nodes": nodes,
+            "total_records": tr,
+            "total_records_long": trl,
+            "long_percentage": trlp,
+            "percentage": trp,
+            "limit_long": limit_long,
+            "limit_short": limit_short,
+        },
+    )
+
+
+def freeStorage(request):
+    Metrics_long.objects.all().delete()
+    Metrics.objects.all().delete()
+    print("Freed Storage")
+    return redirect("data")
+
+
+def download_csv(request):
+    if request.method == "POST":
+        if request.method == "POST":
+            selected_metrics = request.POST.getlist("metrics")
+            selected_nodes = request.POST.getlist("nodes")
+            metrics = Metrics_long.objects.filter(address__in=selected_nodes).order_by(
+                "timestamp"
+            )
+
+            unique_timestamps = sorted(
+                metrics.values_list("timestamp", flat=True).distinct()
+            )
+            unique_timestamps = [
+                timestamp.strftime("%Y-%m-%d %H:%M:%S")
+                for timestamp in unique_timestamps
+            ]
+
+            node_data = defaultdict(
+                lambda: defaultdict(
+                    lambda: {metric: None for metric in selected_metrics}
+                )
+            )
+
+            for metric in metrics:
+                timestamp_str = metric.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+                for selected_metric in selected_metrics:
+                    node_data[metric.address][timestamp_str][selected_metric] = getattr(
+                        metric, selected_metric
+                    )
+
+            response = HttpResponse(content_type="text/csv")
+            response["Content-Disposition"] = 'attachment; filename="data.csv"'
+
+            writer = csv.writer(response)
+
+            header = ["Timestamp"]
+            for node in selected_nodes:
+                for metric in selected_metrics:
+                    header.append(f"{metric.capitalize()}-{node}")
+            writer.writerow(header)
+
+            for timestamp in unique_timestamps:
+                row = [timestamp]
+                for node in selected_nodes:
+                    for metric in selected_metrics:
+                        value = node_data[node][timestamp].get(metric)
+                        row.append(
+                            value if value is not None else "N/A"
+                        )  # Replace None with 'N/A'
+                writer.writerow(row)
+
+            return response
