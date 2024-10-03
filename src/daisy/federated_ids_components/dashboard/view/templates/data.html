@@ -72,7 +72,7 @@
         </div>
     </div>
     <br>
-    <button class="btn btn-danger" type="submit" onclick="confirmClearStorage()">Clear Storage</button>
+    <button class="btn btn-danger" type="submit" onclick="confirmClearStorage()"> <i class="fa-solid fa-trash"></i> Clear Storage</button>
 </div>
 <div id="updated1" class="card-footer small text-muted"></div>
 </div>
@@ -81,7 +81,7 @@
 <div class={% if dark_theme %}
 "card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
 <div class="card-header">
-    <i class="fas fa-chart-area me-1"></i>
+<i class="fa-solid fa-file-export"></i>
     Export
 </div>
 <div class="card-body">
@@ -100,7 +100,7 @@
         {% endfor %}
         <br>
 
-        <button class="btn btn-secondary" type="submit">Download CSV</button>
+        <button class="btn btn-secondary" type="submit"><i class="fa-solid fa-download"></i> Download CSV</button>
     </form>
 </div>
 
