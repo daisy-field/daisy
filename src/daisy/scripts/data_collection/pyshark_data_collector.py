@@ -22,6 +22,7 @@ from daisy.data_sources import (
     LivePysharkHandler,
     SimpleRemoteSourceHandler,
     CSVFileRelay,
+    DataSourceRelay,
 )
 from daisy.communication import StreamEndpoint
 
@@ -148,6 +149,24 @@ def _parse_args() -> argparse.Namespace:
         help="Collects data from a remotely connected machine.",
     )
 
+    destination_group = parser.add_argument_group(
+        "Data Destination", "These arguments define which destination the data use."
+    )
+    destination_group = destination_group.add_mutually_exclusive_group(required=True)
+    destination_group.add_argument(
+        "--to-file",
+        action="store_true",
+        dest="toFile",
+        help="Sends the collected data to a CSV file.",
+    )
+    destination_group.add_argument(
+        "--relay",
+        "--remote-destination",
+        action="store_false",
+        dest="relay",
+        help="Sends the collected data to a remotely connected machine.",
+    )
+
     logging_group_main = parser.add_argument_group(
         "Logging", "These arguments define the log level"
     )
@@ -184,7 +203,7 @@ def _parse_args() -> argparse.Namespace:
         action="count",
         default=0,
         dest="loglevel",
-        help="Increases verbosity with each occurance up to level 3.",
+        help="Increases verbosity with each occurrence up to level 3.",
     )
     logging_group_main.add_argument(
         "--log-file",
@@ -255,19 +274,20 @@ def _parse_args() -> argparse.Namespace:
         "Default: )",
     )
 
-    output_group = parser.add_argument_group(
-        "Output Configuration", "These arguments configure the output."
+    output_file_group = parser.add_argument_group(
+        "Output File Configuration", "These arguments configure the output file."
     )
-    output_group.add_argument(
-        "--output",
-        "-out",
+    output_file_group.add_argument(
+        "--output-file",
+        "-outf",
         type=str,
         metavar="FILE",
         required=True,
+        dest="outputFile",
         help="sets the output file location.",
     )
-    output_exclusive_group = output_group.add_mutually_exclusive_group()
-    output_exclusive_group.add_argument(
+    output_file_exclusive_group = output_file_group.add_mutually_exclusive_group()
+    output_file_exclusive_group.add_argument(
         "--csv-header-buffer",
         "--buffer",
         "-b",
@@ -278,7 +298,7 @@ def _parse_args() -> argparse.Namespace:
         "discovery. Higher numbers reduce chance of "
         "missing headers, but increase RAM usage. (Default: 1000)",
     )
-    output_exclusive_group.add_argument(
+    output_file_exclusive_group.add_argument(
         "--headers-file",
         "-hf",
         type=str,
@@ -288,13 +308,13 @@ def _parse_args() -> argparse.Namespace:
         "provided headers will be used instead. Each line is expected to be a "
         "feature/header.",
     )
-    output_group.add_argument(
+    output_file_group.add_argument(
         "--overwrite",
         "-o",
         action="store_true",
         help="Set this, to overwrite existing CSV files.",
     )
-    output_group.add_argument(
+    output_file_group.add_argument(
         "--separator",
         "-s",
         type=str,
@@ -302,7 +322,7 @@ def _parse_args() -> argparse.Namespace:
         default=",",
         help="Sets the separator for the CSV file. (Default: ,)",
     )
-    output_group.add_argument(
+    output_file_group.add_argument(
         "--feature-filter",
         "-ff",
         type=str,
@@ -311,13 +331,54 @@ def _parse_args() -> argparse.Namespace:
         "file is expected to have one "
         "feature per line.",
     )
-    output_group.add_argument(
+    output_file_group.add_argument(
         "--events",
         "-e",
         type=str,
         metavar="FILE",
         help="Extracts events for labeling from the given file. Each line is expected "
         "to be one event.",
+    )
+
+    output_relay_group = parser.add_argument_group(
+        "Output Relay Configuration", "These arguments configure the OUTPUT connection."
+    )
+    output_relay_group.add_argument(
+        "--out-local-ip",
+        "-out-ip",
+        type=str,
+        metavar="IP-ADDRESS",
+        required=True,
+        help="The IP of the local machine, which a remote machine connects to.",
+    )
+    output_relay_group.add_argument(
+        "--out-local-port",
+        "--out-port",
+        "-out-p",
+        type=int,
+        metavar="PORT",
+        default=10980,
+        help="The port of the local machine, which a remote machine connects to. ("
+        "Default: 10980)",
+    )
+    output_relay_group.add_argument(
+        "--out-remote-ip",
+        "--out-target-ip",
+        "--out-target",
+        "-out-tip",
+        type=str,
+        metavar="IP-ADDRESS",
+        required=True,
+        help="The IP of the remote machine.",
+    )
+    output_relay_group.add_argument(
+        "--out-remote-port",
+        "--out-target-port",
+        "-out-tp",
+        type=int,
+        metavar="PORT",
+        default=10980,
+        help="The port of the remote machine. (Default: 10980)",
     )
 
     performance_group = parser.add_argument_group(
@@ -437,35 +498,56 @@ def create_collector():
                 f"{event[1]}, List of value in feature: {event[2]}"
             )
 
-    data_processor = SimpleDataProcessor(
-        map_fn=pyshark_map_fn(),
-        filter_fn=lambda x: remove_filter(x, f_features),
-        reduce_fn=lambda x: label_reduce(x, events, default_label="benign"),
-    )
+    headers = None
+    if args.headers_file is not None:
+        with open(args.headers_file, "r") as headers_file:
+            headers = tuple([line.strip() for line in headers_file])
+
+    if args.toFile:
+        data_processor = SimpleDataProcessor(
+            map_fn=pyshark_map_fn(),
+            filter_fn=lambda x: remove_filter(x, f_features),
+            reduce_fn=lambda x: label_reduce(x, events, default_label="benign"),
+        )
+    else:
+        data_processor = SimpleDataProcessor(
+            map_fn=lambda x: x, filter_fn=lambda x: x, reduce_fn=lambda x: x
+        )
+
     data_source = DataSource(
         source_handler=data_handler,
         data_processor=data_processor,
         name="data_collector:data_source",
         multithreading=args.processing_multithreading,
     )
-    headers = None
-    if args.headers_file is not None:
-        with open(args.headers_file, "r") as headers_file:
-            headers = tuple([line.strip() for line in headers_file])
-    csv_file_relay = CSVFileRelay(
-        data_source=data_source,
-        target_file=args.output,
-        name="data_collector:csv_file_relay",
-        header_buffer_size=args.csv_header_buffer,
-        headers=headers,
-        overwrite_file=args.overwrite,
-        separator=args.separator,
-        default_missing_value="",
-    )
 
-    csv_file_relay.start()
+    if args.toFile:
+        relay = CSVFileRelay(
+            data_source=data_source,
+            target_file=args.outputFile,
+            name="data_collector:csv_file_relay",
+            header_buffer_size=args.csv_header_buffer,
+            headers=headers,
+            overwrite_file=args.overwrite,
+            separator=args.separator,
+            default_missing_value="",
+        )
+    else:
+        stream_endpoint_out = StreamEndpoint(
+            name="data_relay:stream_endpoint_out",
+            addr=(args.out_local_ip, args.out_local_port),
+            remote_addr=(args.out_remote_ip, args.out_remote_port),
+            acceptor=False,
+        )
+        relay = DataSourceRelay(
+            data_source=data_source,
+            endpoint=stream_endpoint_out,
+            name="data_relay:data_relay",
+        )
+
+    relay.start()
     input("Press Enter to stop server...")
-    csv_file_relay.stop()
+    relay.stop()
 
 
 if __name__ == "__main__":
