@@ -18,6 +18,8 @@ import re
 from daisy.data_sources import (
     DataSource,
     SimpleDataProcessor,
+    IdentityDataProcessor,
+    remove_filter_fn,
     pyshark_map_fn,
     LivePysharkHandler,
     SimpleRemoteSourceHandler,
@@ -25,18 +27,6 @@ from daisy.data_sources import (
     DataSourceRelay,
 )
 from daisy.communication import StreamEndpoint
-
-
-def remove_filter(d_point: dict, f_features: list) -> dict:
-    """Takes a packet and removes all given features from it.
-
-    :param d_point: Dictionary of packet data.
-    :param f_features: List of features to remove.
-    :return: Dictionary of packet with features removed.
-    """
-    for feature in f_features:
-        d_point.pop(feature, None)
-    return d_point
 
 
 def label_reduce(
@@ -401,12 +391,8 @@ def _parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def create_collector():
-    """Creates a CSV file relay with all needed structures to provide it with data.
-    There is the option to either use
-    a live data capture on the local machine or to use data from a remote machine."""
-    # Args parsing
-    args = _parse_args()
+def check_args(args):
+    """Performs a quick check of some arguments"""
 
     match args.loglevel:
         case 0:
@@ -438,8 +424,12 @@ def create_collector():
             logging.error("You must specify a local and remote IP address.")
             exit(1)
 
+
+def create_data_handler(args):
+    """Creates and returns the data handler"""
+
     if args.localSource:
-        data_handler = LivePysharkHandler(
+        return LivePysharkHandler(
             name="data_collector:live_data_handler",
             interfaces=args.interfaces,
             bpf_filter=args.filter,
@@ -452,9 +442,14 @@ def create_collector():
             acceptor=True,
             multithreading=args.io_multithreading,
         )
-        data_handler = SimpleRemoteSourceHandler(
+        return SimpleRemoteSourceHandler(
             endpoint=stream_endpoint, name="data_collector:remote_data_handler"
         )
+
+
+def read_collection_files(args):
+    """Reads and parses the feature file, headers file and event file and returns the three in the order
+    f_features, events, headers."""
 
     if not args.feature_filter:
         f_features = []
@@ -503,26 +498,29 @@ def create_collector():
         with open(args.headers_file, "r") as headers_file:
             headers = tuple([line.strip() for line in headers_file])
 
+    return f_features, events, headers
+
+
+def create_data_processor(args, f_features, events):
+    """Creates the data processor, which either processes the data points on the machine the data is written to file
+    or returns the data points unprocessed for relaying to another machine."""
+
     if args.toFile:
-        data_processor = SimpleDataProcessor(
+        return SimpleDataProcessor(
             map_fn=pyshark_map_fn(),
-            filter_fn=lambda x: remove_filter(x, f_features),
+            filter_fn=remove_filter_fn(f_features),
             reduce_fn=lambda x: label_reduce(x, events, default_label="benign"),
         )
     else:
-        data_processor = SimpleDataProcessor(
-            map_fn=lambda x: x, filter_fn=lambda x: x, reduce_fn=lambda x: x
-        )
+        return IdentityDataProcessor()
 
-    data_source = DataSource(
-        source_handler=data_handler,
-        data_processor=data_processor,
-        name="data_collector:data_source",
-        multithreading=args.processing_multithreading,
-    )
+
+def create_relay(args, data_source, headers):
+    """Creates the relay. This is either a CSVFileRelay if the data should be written to file or a DataSourceRelay
+    if the data should be transferred to another machine."""
 
     if args.toFile:
-        relay = CSVFileRelay(
+        return CSVFileRelay(
             data_source=data_source,
             target_file=args.outputFile,
             name="data_collector:csv_file_relay",
@@ -539,11 +537,33 @@ def create_collector():
             remote_addr=(args.out_remote_ip, args.out_remote_port),
             acceptor=False,
         )
-        relay = DataSourceRelay(
+        return DataSourceRelay(
             data_source=data_source,
             endpoint=stream_endpoint_out,
             name="data_relay:data_relay",
         )
+
+
+def create_collector():
+    """Creates a CSV file relay with all needed structures to provide it with data.
+    There is the option to either use
+    a live data capture on the local machine or to use data from a remote machine."""
+    # Args parsing
+    args = _parse_args()
+    check_args(args)
+
+    data_handler = create_data_handler(args)
+    f_features, events, headers = read_collection_files(args)
+    data_processor = create_data_processor(args, f_features, events)
+
+    data_source = DataSource(
+        source_handler=data_handler,
+        data_processor=data_processor,
+        name="data_collector:data_source",
+        multithreading=args.processing_multithreading,
+    )
+
+    relay = create_relay(args, data_source, headers)
 
     relay.start()
     input("Press Enter to stop server...")

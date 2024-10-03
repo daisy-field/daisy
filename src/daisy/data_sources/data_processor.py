@@ -141,3 +141,49 @@ class SimpleDataProcessor(DataProcessor):
 
     def reduce(self, d_point: dict) -> np.ndarray | dict:
         return self._reduce_fn(d_point)
+
+
+class IdentityDataProcessor(DataProcessor):
+    """An implementation of the DataProcessor, which returns the data it receives without any processing."""
+
+    def __init__(self, name: str = ""):
+        """Creates an IdentityDataProcessor by overwriting the process implementation of the DataProcessor.
+
+        :param name: Name for logging purposes.
+        """
+        super().__init__(name)
+
+    def map(self, o_point: object) -> dict:
+        return o_point
+
+    def filter(self, d_point: dict) -> dict:
+        return d_point
+
+    def reduce(self, d_point: dict) -> np.ndarray | dict:
+        return d_point
+
+    def process(self, o_point: object) -> np.ndarray | dict:
+        """Returns the provided data point as is."""
+        return o_point
+
+
+def remove_filter_fn(f_features: list) -> Callable[[dict], dict]:
+    """Takes a data point as a dictionary and removes all given features from it.
+
+    :param d_point: Dictionary of data point.
+    :param f_features: List of features to remove.
+    :return: Dictionary of data point with features removed.
+    """
+    return lambda d_point: _remove_filter_fn(d_point, f_features)
+
+
+def _remove_filter_fn(d_point: dict, f_features: list) -> dict:
+    """Takes a data point and removes all given features from it.
+
+    :param d_point: Dictionary of data point.
+    :param f_features: List of features to remove.
+    :return: Dictionary of data point with features removed.
+    """
+    for feature in f_features:
+        d_point.pop(feature, None)
+    return d_point

@@ -32,6 +32,8 @@ __all__ = [
     "SimpleRemoteSourceHandler",
     "DataProcessor",
     "SimpleDataProcessor",
+    "IdentityDataProcessor",
+    "remove_filter_fn",
     "DataSourceRelay",
     "CSVFileRelay",
     "DataSource",
@@ -46,7 +48,12 @@ __all__ = [
 ]
 
 from .data_handler import SourceHandler, SimpleSourceHandler, SimpleRemoteSourceHandler
-from .data_processor import DataProcessor, SimpleDataProcessor
+from .data_processor import (
+    DataProcessor,
+    SimpleDataProcessor,
+    IdentityDataProcessor,
+    remove_filter_fn,
+)
 from .data_relay import DataSourceRelay, CSVFileRelay
 from .data_source import DataSource
 from .network_traffic import (
