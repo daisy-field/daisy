@@ -174,6 +174,7 @@ class FederatedOnlineAggregator(ABC):
         if self._dashboard_url is None:
             return
         try:
+            # FIXME HTTP URLs hardcoded should be removed @seraphin
             _ = requests.post(
                 url="http://" + self._dashboard_url + ":8000" + ressource, data=data
             )
@@ -564,7 +565,7 @@ class FederatedPredictionAggregator(FederatedValueAggregator):
                     "pred_nodes": str(self._aggr_serv.poll_connections()[1]),
                 },  # TODO get correct value for pred_count
             )
-
+            # FIXME Cleanse duplicate code fragments
             try:
                 nodes = self._aggr_serv.poll_connections()[0].items()
                 if len(nodes) == 0:
@@ -608,7 +609,7 @@ class FederatedPredictionAggregator(FederatedValueAggregator):
             self._logger.debug(f"Prediction received from {node}: {t}")
             values.append(t)
 
-            # TODO @seraphin adjust values to report (see blow)
+            # TODO @seraphin adjust values to report (see below)
             if y_pred[i]:
                 self._update_dashboard(
                     "/alert/",
@@ -619,7 +620,8 @@ class FederatedPredictionAggregator(FederatedValueAggregator):
                         "category": "alert",
                         "active": True,
                         "message": "Packet content: "
-                        + ",".join(str(x) for x in x_data[i]),  # "Alert raised!",
+                        + ",".join(str(x) for x in x_data[i]),
+                        # "Alert raised!",
                     },
                 )
         return values
@@ -634,6 +636,8 @@ class FederatedEvaluationAggregator(FederatedValueAggregator):
     metric values of the ConfMatrSlidingWindowEvaluation metric class (see the
     evaluation subpackage) are directly forwarded to the dashboard to be displayed,
     if they are used by a reporting IDS node.
+
+    TODO: indepth review of aggregator
     """
 
     def __init__(
@@ -676,6 +680,7 @@ class FederatedEvaluationAggregator(FederatedValueAggregator):
                 },  # TODO get correct value for eval_count
             )
 
+            # FIXME Cleanse duplicate code fragments
             try:
                 nodes = self._aggr_serv.poll_connections()[0].items()
                 if len(nodes) == 0:
@@ -711,6 +716,7 @@ class FederatedEvaluationAggregator(FederatedValueAggregator):
         """
         self._logger.debug(f"Evaluation metrics received from {node}: {msg}")
 
+        # FIXME return to dynamic version instead of hardcoded metrics!
         if "conf_matrix_online_evaluation" in msg:
             conf_matrix = msg["conf_matrix_online_evaluation"]
             self._update_dashboard(
