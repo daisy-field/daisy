@@ -5,11 +5,20 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 from django.contrib import admin
 
-from .models import Metrics, Aggregation, Prediction, Alerts, Node
+from .models import (
+    Metrics,
+    Aggregation,
+    Prediction,
+    Alerts,
+    Node,
+    Evaluation,
+    Metrics_long,
+)
 
 admin.site.register(Metrics)
+admin.site.register(Metrics_long)
 admin.site.register(Aggregation)
 admin.site.register(Prediction)
+admin.site.register(Evaluation)
 admin.site.register(Alerts)
 admin.site.register(Node)
-# Register your models here.

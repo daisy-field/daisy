@@ -5,6 +5,7 @@
   ~ License, v. 2.0. If a copy of the MPL was not distributed with this
   ~ file, You can obtain one at https://mozilla.org/MPL/2.0/.
   -->
+
 {% extends "./base.html" %}
 {% block body_theme %}
 {% if dark_theme %}
@@ -34,153 +35,191 @@
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
+
 <script type="text/javascript">
-    google.charts.load('current', {'packages': ['corechart']});
-    google.charts.setOnLoadCallback(drawChart);
+      window.onload = function() {
 
-    function drawChart() {
-        var accuracyData = google.visualization.arrayToDataTable([
-            ['Time', 'Nodes'],
-            ['2004', 1000],
-        ]);
-
-        {%if not dark_theme %}
-        var options = {
-            curveType: 'function',
-            backgroundColor: {fill: 'transparent'},
-            legend: 'bottom',
-
-        };
-        {% else %}
-        var options = {
-            backgroundColor: 'transparent', // Set background color to transparent
-            curveType: 'function',
-
-
-            hAxis: {
-                textStyle: {
-                    color: '#FFFFFF' // Set text color for horizontal axis labels
-                },
-                gridlines: {
-                    color: '#444444' // Set color of gridlines for horizontal axis
-                }
+        var all_nodes = []
+        var all_times = []
+          const chartOptions = {
+            layout: {
+                padding: 50
             },
-            vAxis: {
-                textStyle: {
-                    color: '#FFFFFF' // Set text color for vertical axis labels
-                },
-                gridlines: {
-                    color: 'transparent' // Set color of gridlines for vertical axis
-                }
+            devicePixelRatio: 1.5,
+            animation: false,
+            scales: {
+                xAxes: [{
+                    display: true,
+                    scaleLabel: {
+                        display: true,
+                    },
+                    ticks: {
+                        autoSkip: true,
+                        maxTicksLimit: 20
+                    },
+                }],
+                yAxes: [{
+                    display: true,
+                    scaleLabel: {
+                        display: true,
+                    },
+                    ticks: {
+                                beginAtZero: true,
+                                max: 1
+                            }
+                }],
+
             },
-            legend: {
-                position: 'top',
-                textStyle: {
-                    color: '#FFFFFF' // Set text color for legend
-                }
-            },
-            titleTextStyle: {
-                color: '#FFFFFF' // Set text color for chart title
-            }
-        };
-        {%endif %}
 
-        var accuracy_chart = new google.visualization.LineChart(document.getElementById('accuracy_chart'));
-        var f1_chart = new google.visualization.LineChart(document.getElementById('f1_chart'));
-        var precision_chart = new google.visualization.LineChart(document.getElementById('precision_chart'));
-        var recall_chart = new google.visualization.LineChart(document.getElementById('recall_chart'));
+      }
 
+        const accuracyctx = document.getElementById('accuracy_chart').getContext('2d');
+        const accuracyData = {labels: [], datasets: [], options:{animation:false}};
+        const accuracyChart = new Chart(accuracyctx, {type: 'line', data: accuracyData, options:chartOptions});
 
-        function sendRequest() {
+        const precisionctx = document.getElementById('precision_chart').getContext('2d');
+        const precisionData = {labels: [], datasets: []};
+        const precisionChart = new Chart(precisionctx, {type: 'line', data: precisionData, options:chartOptions});
+
+        const f1ctx = document.getElementById('f1_chart').getContext('2d');
+        const f1Data = {labels: [], datasets: []};
+        const f1Chart = new Chart(f1ctx, {type: 'line', data: f1Data, options:chartOptions});
+
+        const recallctx = document.getElementById('recall_chart').getContext('2d');
+        const recallData = {labels: [], datasets: []};
+        const recallChart = new Chart(recallctx, {type: 'line', data: recallData, options:chartOptions});
+
+        var updateInterval = 30
+        function initialRequest(){
             $.ajax({
-                url: "http://127.0.0.1:8000/metrics/",
+                 url: "http://127.0.0.1:8000/metrics/",
                 type: "GET",
                 dataType: "json",
                 success: (response) => {
+                     function formatDate(date) {
+                        const year = date.getFullYear()
+                        const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+                        const day = String(date.getDate()).padStart(2, '0');
+                        const hours = String(date.getHours()).padStart(2, '0');
+                        const minutes = String(date.getMinutes()).padStart(2, '0');
+                        const seconds = String(date.getSeconds()).padStart(2, '0');
 
-                    accuracyData = google.visualization.arrayToDataTable([
-                        ["Time"],
-                        [""]
-                    ])
-                    var f1Data = google.visualization.arrayToDataTable([
-                        ["Time"],
-                        [""]
-                    ])
-                    var recallData = google.visualization.arrayToDataTable([
-                        ["Time"],
-                        [""]
-                    ])
-                    var precisionData = google.visualization.arrayToDataTable([
-                        ["Time"],
-                        [""]
-                    ])
+                        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+                    }
+                    function getRandomColor() {
+                        const letters = '0123456789ABCDEF';
+                        let color = '#';
+                        for (let i = 0; i < 6; i++) {
+                            color += letters[Math.floor(Math.random() * 16)];
+                        }
+                        return color;
+                    }
 
-                    nodes = []
+                    new_times = []
+                    new_nodes = []
+
                     response.forEach(function (element) {
-                        if (!nodes.includes(element.address)) {
-                            nodes.push(element.address)
+                        if (!all_nodes.includes(element.address)) {
+                            all_nodes.push(element.address)
+                            new_nodes.push(element.address)
+                        }
+                        if (!all_times.includes(element.timestamp)) {
+                            all_times.push(element.timestamp)
+                            new_times.push(element.timestamp)
                         }
                     })
-                    times = []
-                    response.forEach(function (element) {
-                        if (!times.includes(element.timestamp)) {
-                            times.push(element.timestamp)
-                        }
+
+                    new_times.forEach(function (time) {
+                        format = formatDate(new Date(time))
+                        accuracyData.labels.push(format)
+                        recallData.labels.push(format)
+                        precisionData.labels.push(format)
+                        f1Data.labels.push(format)
                     })
 
-                    nodes.forEach(function (element) {
-                        accuracyData.addColumn('number', element);
-                        recallData.addColumn('number', element);
-                        precisionData.addColumn('number', element);
-                        f1Data.addColumn('number', element);
+
+                    new_nodes.forEach(function (node){
+                        color = getRandomColor()
+                        nulls = Array(all_times.length-new_times.length).fill(null)
+                        nulls2 = Array(all_times.length-new_times.length).fill(null)
+                        nulls3 = Array(all_times.length-new_times.length).fill(null)
+                        nulls4 = Array(all_times.length-new_times.length).fill(null)
+                        accuracyData.datasets.push({
+                                  label: node,
+                                  data: nulls,
+                                  borderColor: color,
+                                  backgroundColor: color,  
+                                  fill: false,
+                                  cubicInterpolationMode: 'monotone',
+                                  tension: 0.4,
+                                  spanGaps: true,
+                                  });
+                        precisionData.datasets.push({
+                                  label: node,
+                                  data: nulls2,
+                                  borderColor: color,  
+                                  backgroundColor: color,  
+                                  fill: false,
+                                  });
+                        f1Data.datasets.push({
+                                  label: node,
+                                  data: nulls3,
+                                  borderColor: color,  
+                                  backgroundColor: color,  
+                                  fill: false,
+                                  cubicInterpolationMode: 'monotone',
+                                  tension: 0.4,
+                                  spanGaps: true,
+                                  });
+                        recallData.datasets.push({
+                                  label: node,
+                                  data: nulls4,
+                                  borderColor: color,  
+                                  backgroundColor: color,  
+                                  fill: false,
+                                  cubicInterpolationMode: 'monotone',
+                                  tension: 0.4,
+                                  spanGaps: true,
+                                  });
+                        console.log("added", node)
                     })
 
-                    times.forEach(function (time) {
-                        var accuracyRow = [time]
-                        var precisionRow = [time]
-                        var f1Row = [time]
-                        var recallRow = [time]
-                        nodes.forEach(function (node) {
+                    all_nodes.forEach((node, index)=>{
+                        new_times.forEach(function (time) {
                             var found = false
-                            response.forEach(function (element) {
-                                //console.log(element.time, element.address, time, node)
-                                if (element.timestamp == time && element.address == node) {
-                                    precisionRow.push(element.precision)
-                                    f1Row.push(element.f1)
-                                    recallRow.push(element.recall)
-                                    accuracyRow.push(element.accuracy)
+                            for (let i = 0; i < response.length; i++) {
+                                var element = response[i];
+                                if ((new Date(element.timestamp).getTime() == new Date(time).getTime()) && element.address == node) {
+                                    precisionData.datasets[index].data.push(element.precision)
+                                    f1Data.datasets[index].data.push(element.f1)
+                                    recallData.datasets[index].data.push(element.recall)
+                                    accuracyData.datasets[index].data.push(element.accuracy)
                                     found = true
-                                    console.log("Found")
+                                    break;
                                 }
-                            })
-                            if (found === false) {
-                                precisionRow.push(0)
-                                accuracyRow.push(0)  //null
-                                f1Row.push(0)
-                                recallRow.push(0)
                             }
-
+                            if (found == false) {
+                                precisionData.datasets[index].data.push(null)
+                                f1Data.datasets[index].data.push(null)
+                                recallData.datasets[index].data.push(null)
+                                accuracyData.datasets[index].data.push(null)
+                            }
                         })
-                        accuracyData.addRow(accuracyRow)
-                        f1Data.addRow(f1Row)
-                        recallData.addRow(recallRow)
-                        precisionData.addRow(precisionRow)
-
+                      accuracyChart.update();
+                      precisionChart.update();
+                      recallChart.update();
+                      f1Chart.update();
                     })
-                    accuracy_chart.draw(accuracyData, options);
-                    precision_chart.draw(precisionData, options);
-                    f1_chart.draw(f1Data, options);
-                    recall_chart.draw(recallData, options);
 
                     var currentdate = new Date();
-                    var datetime = +currentdate.getDate() + "/"
+                    var datetime = currentdate.getDate() + "/"
                         + (currentdate.getMonth() + 1) + "/"
                         + currentdate.getFullYear() + " -- "
                         + currentdate.getHours() + ":"
                         + currentdate.getMinutes() + ":"
                         + currentdate.getSeconds();
                     $("#updated").text("Last update: " + datetime)
-
                 },
                 error: (error) => {
                     console.log(error);
@@ -192,13 +231,14 @@
              $.ajax({
                  url: "http://127.0.0.1:8000/alert/",
                  type: "GET",
+                 async: true,
                  dataType: "json",
                  success: (response) => {
 
                      var alerts = 0
                      var warnings = 0
 
-                     for (let i = 0; i < response.length; i++) {        //type = danger, warning, info
+                     for (let i = 0; i < response.length; i++) {
                           if (response[i].active == true && response[i].category == "alert"){
                                     alerts = alerts+1
                                var element = document.getElementById("alert-card");
@@ -228,19 +268,115 @@
 
              })
          }
+         function getServerStates() {
+             $.ajax({
+                 url: "http://127.0.0.1:8000/aggregation/",
+                 type: "GET",
+                 async: true,
+                 dataType: "json",
+                 success: (response) => {
+                     const givenDate = new Date(response[response.length-1].agg_time);
+                     const timeDifferenceMs = new Date() - givenDate;
+                     const diffMinutes = Math.floor(timeDifferenceMs / (1000 * 60));
+                     if(diffMinutes< 1){
+                         var element = document.getElementById("agg_box");
+                         document.getElementById("agg_status").innerText = response[response.length-1].agg_status;
+                         document.getElementById("agg_count").innerText = response[response.length-1].agg_count;
+                         element.classList.add("bg-success");
+                         element.classList.remove("bg-warning");
+                     }
+                     else{
+                         var element = document.getElementById("agg_box");
+                         document.getElementById("agg_status").innerText = "Offline";
+                         document.getElementById("agg_count").innerText = "-";
+                         element.classList.remove("bg-success");
+                         element.classList.add("bg-warning");
+                     }
+                     document.getElementById("agg_time").innerText = (new Date(response[response.length-1].agg_time)).toLocaleString();
+                     },
+                 error: (error) => {
+                     console.log(error);
+                 }
+             })
+             $.ajax({
+                 url: "http://127.0.0.1:8000/prediction/",
+                 type: "GET",
+                 async: true,
 
-        sendRequest();
-        setInterval(sendRequest, 3000);
+                 dataType: "json",
+                 success: (response) => {
+                     const givenDate = new Date(response[response.length-1].pred_time);
+                     const timeDifferenceMs = new Date() - givenDate;
+                     const diffMinutes = Math.floor(timeDifferenceMs / (1000 * 60));
+                     if(diffMinutes< 1){
+                         var element = document.getElementById("pred_box");
+                         document.getElementById("pred_status").innerText = response[response.length-1].pred_status;
+                         document.getElementById("pred_count").innerText = response[response.length-1].pred_count;
+                         element.classList.add("bg-success");
+                         element.classList.remove("bg-warning");
+                     }
+                     else{
+                          var element = document.getElementById("pred_box");
+                          document.getElementById("pred_status").innerText = "Offline";
+                          document.getElementById("pred_count").innerText = "-";
+                          element.classList.remove("bg-success");
+                          element.classList.add("bg-warning");
+                     }
+                     document.getElementById("pred_time").innerText = (new Date(response[response.length-1].pred_time)).toLocaleString();
+                     },
+                 error: (error) => {
+                     console.log(error);
+                 }
+             })
+             $.ajax({
+                 url: "http://127.0.0.1:8000/evaluation/",
+                 type: "GET",
+                 dataType: "json",
+                 async: true,
+
+                 success: (response) => {
+                     const givenDate = new Date(response[response.length-1].eval_time);
+                     const timeDifferenceMs = new Date() - givenDate;
+                     const diffMinutes = Math.floor(timeDifferenceMs / (1000 * 60));
+                     if(diffMinutes< 1){
+                         var element = document.getElementById("eval_box");
+                         document.getElementById("eval_status").innerText = response[response.length-1].eval_status;
+                         document.getElementById("eval_count").innerText = response[response.length-1].eval_count;
+                         element.classList.add("bg-success");
+                         element.classList.remove("bg-warning");
+                     }
+                     else{
+                          var element = document.getElementById("eval_box");
+                          document.getElementById("eval_status").innerText = "Offline";
+                          document.getElementById("eval_count").innerText = "-";
+                          element.classList.remove("bg-success");
+                          element.classList.add("bg-warning");
+                     }
+                     document.getElementById("eval_time").innerText = (new Date(response[response.length-1].eval_time)).toLocaleString();
+                     },
+                 error: (error) => {
+                     console.log(error);
+                 }
+             })
+
+         }
+
+
+        initialRequest();
+        setInterval(initialRequest, updateInterval*100);
+        $(window).resize(function(){
+                    initialRequest()
+        });
+        getServerStates();
+        setInterval(getServerStates, updateInterval*1000);
 
         getAlerts();
-        setInterval(getAlerts, 3000);
+        setInterval(getAlerts, updateInterval* 1000);
 
     }
 
 
 </script>
-
-
 <br>
 <br>
 <div class={% if dark_theme %}"card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
@@ -251,18 +387,18 @@
     <div class="card-body">
         <div class="row">
 
-            <div class="col-xl-4 col-md-4">
-                <div class="card bg-success text-white mb-4" style="height:6cm;  display:flex">
-                    <div class="card-header"><i class="fa-solid fa-server"></i> Model Aggregation:</div>
+            <div class="col-xl-3 col-md-6">
+                <div id="agg_box" class="card bg-warning text-white mb-4" style="height:6cm;  display:flex">
+                    <div class="card-header"><i class="fa-solid fa-server"></i> Model Aggregation</div>
                     <div class="card-body">
                         <div class="row">
                             <div class="col-xl-8 col-md-6">
-                                Status: {{agg_status}} <br>
-                                Last connection: <br>{{agg_time}}
+                                 <div id="agg_status"></div> <br>
+                                Last connection: <div id="agg_time"></div>
                             </div>
                             <div class="col-xl-4 col-md-6">
-                                Connections:
-                                <p style="font-size:40px;">{{agg_count}}</p>
+                                Nodes:
+                                <p style="font-size:40px;" id="agg_count"></p>
                             </div>
                         </div>
                     </div>
@@ -273,18 +409,40 @@
                 </div>
             </div>
 
-            <div class="col-xl-4 col-md-4">
-                <div class="card bg-success text-white mb-4" style="height:6cm;  display:flex">
-                    <div class="card-header"><i class="fa-solid fa-chart-line"></i> Prediction Aggregation:</div>
+            <div class="col-xl-3 col-md-6">
+                <div id="pred_box" class="card bg-warning text-white mb-4" style="height:6cm;  display:flex">
+                    <div class="card-header"><i class="fa-solid fa-server"></i> Prediction Aggregation</div>
                     <div class="card-body">
                         <div class="row">
                             <div class="col-xl-8 col-md-6">
-                                Status: {{prediction_status}} <br>
-                                Last connection: {{prediction_time}}
+                                <div id="pred_status"></div><br>
+                                Last connection:<div id="pred_time"></div>
                             </div>
                             <div class="col-xl-4 col-md-6">
-                                Connections:
-                                <p style="font-size:40px;">{{prediction_count}}</p>
+                                Nodes:
+                                <p style="font-size:40px;" id="pred_count"></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer d-flex align-items-center justify-content-between">
+                        <a class="small text-white stretched-link" href={% url "predict" %} >View Details</a>
+                        <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <div id="eval_box" class="card bg-warning text-white mb-4" style="height:6cm;  display:flex">
+                    <div class="card-header"><i class="fa-solid fa-chart-line"></i> Evaluation Aggregation</div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-xl-8 col-md-6">
+                                <div id="eval_status"></div><br>
+                                Last connection:<div id="eval_time"></div>
+                            </div>
+                            <div class="col-xl-4 col-md-6">
+                                Nodes:
+                                <p style="font-size:40px;" id="eval_count"></p>
                             </div>
                         </div>
                     </div>
@@ -296,30 +454,24 @@
             </div>
 
 
-            <div class="col-xl-2 col-md-2">
-                <div id="warning-card" class="card bg-secondary text-white mb-4" style="height:6cm;  display:flex">
-                    <div class="card-header"><i class="fa-solid fa-triangle-exclamation"></i> Warnings:</div>
+            <div class="col-xl-3 col-md-6">
+                <div id="warning-card" class="card bg-secondary text-white mb-4" style="height:2.7cm;  display:flex">
+                    <div class="card-header"><i class="fa-solid fa-triangle-exclamation"></i> Warnings</div>
                     <div class="card-body">
-                        <p id ="warning_box" style="font-size:40px;"></p>
+                        <div id ="warning_box" style="font-size:30px; margin-top: -0.3cm"></div>
                     </div>
-                    <div class="card-footer d-flex align-items-center justify-content-between">
-                        <a class="small text-white stretched-link" href={% url "alerts" %} >View Details</a>
-                        <div class="small text-white"><i class="fas fa-angle-right"></i></div>
-                    </div>
-                </div>
-            </div>
+                    <a class="small text-white stretched-link" href={% url "alerts" %} ></a>
 
-            <div class="col-xl-2 col-md-2">
-                <div  id="alert-card" class="card bg-secondary text-white mb-4" style="height:6cm; display:flex">
-                    <div class="card-header"><i class="fa-solid fa-skull-crossbones"></i> Alerts:
+                </div>
+
+                <div  id="alert-card" class="card bg-secondary text-white mb-4" style="height:2.7cm; display:flex">
+                    <div class="card-header"><i class="fa-solid fa-skull-crossbones"></i> Alerts
                     </div>
                     <div class="card-body">
-                        <p id ="alert_box"  style="font-size:40px;"></p>
+                        <p id ="alert_box"  style="font-size:30px; margin-top: -0.3cm"></p>
                     </div>
-                    <div class="card-footer d-flex align-items-center justify-content-between">
-                        <a class="small text-white stretched-link" href={% url "alerts" %} >View Details</a>
-                        <div class="small text-white"><i class="fas fa-angle-right"></i></div>
-                    </div>
+                                        <a class="small text-white stretched-link" href={% url "alerts" %} ></a>
+
                 </div>
             </div>
 
@@ -339,7 +491,7 @@
                 <i class="fas fa-chart-area me-1"></i>
                 F1-Score
             </div>
-            <div id="f1_chart" class="card-body"></div>
+            <canvas id="f1_chart"></canvas>
             <div id="updated4" class="card-footer small text-muted">
                 <a class="small text-secondary stretched-link" href={% url "f1-score" %} >View Details</a>
             </div>
@@ -353,7 +505,7 @@
                 <i class="fas fa-chart-area me-1"></i>
                 Precision
             </div>
-            <div id="precision_chart" class="card-body"></div>
+            <canvas id="precision_chart"></canvas>
             <div id="updated1" class="card-footer small text-muted">
                 <a class="small text-secondary stretched-link" href={% url "precision" %} >View Details</a>
             </div>
@@ -369,7 +521,7 @@
                 <i class="fas fa-chart-area me-1"></i>
                 Recall
             </div>
-            <div id="recall_chart" class="card-body"></div>
+            <canvas id="recall_chart"></canvas>
             <div id="updated2" class="card-footer small text-muted">
                 <a class="small text-secondary stretched-link" href={% url "recall" %} >View Details</a>
             </div>
@@ -383,8 +535,7 @@
                 <i class="fas fa-chart-area me-1"></i>
                 Accuracy
             </div>
-            <div id="accuracy_chart" class="card-body">
-            </div>
+            <canvas id="accuracy_chart"></canvas>
             <div id="updated3" class="card-footer small text-muted">
                 <a class="small text-secondary stretched-link" href={% url "accuracy" %} >View Details</a>
             </div>

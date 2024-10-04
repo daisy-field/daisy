@@ -16,7 +16,7 @@ from collections import deque
 from typing import Self
 
 import tensorflow as tf
-from tensorflow import keras
+from tensorflow import keras, Tensor
 
 
 class SlidingWindowEvaluation(keras.metrics.Metric, ABC):
@@ -175,7 +175,7 @@ class ConfMatrSlidingWindowEvaluation(SlidingWindowEvaluation):
         self._tn = 0
 
     # noinspection DuplicatedCode
-    def result(self) -> dict[str, float]:
+    def result(self) -> dict[str, Tensor]:
         """Based on the accumulated confusion matrix, computes its derived scalar
         metrics and returns them.
 
