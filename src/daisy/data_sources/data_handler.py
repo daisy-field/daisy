@@ -17,7 +17,9 @@ Modified: 16.04.24
 
 import logging
 from abc import ABC, abstractmethod
+from io import TextIOWrapper
 from typing import Iterator
+import csv
 
 from daisy.communication import StreamEndpoint
 
@@ -155,3 +157,91 @@ class SimpleRemoteSourceHandler(SourceHandler):
         :return: Endpoint generator object for data points as objects.
         """
         return self._endpoint.__iter__()
+
+
+class CSVFileSourceHandler(SourceHandler):
+    """This implementation of the SourceHandler reads one or multiple CSV files and yields their content.
+    The output of this class are dictionaries containing the headers (first row) of the CSV files as the keys
+    and the line as the values. Each CSV is, therefore, expected to have a header line as the first row.
+    """
+
+    _files: str | list[str]
+    _is_file_list: bool
+    _cur_index: int
+    _cur_handle: TextIOWrapper | None
+    _cur_csv: csv.reader
+    _cur_headers: list[str]
+
+    def __init__(self, files: str | list[str], name: str = ""):
+        """Creates an instance of the CSVFileSourceHandler class. Either a single file or a list of files are
+        expected as the input.
+
+        :param files: Either a single CSV file or a list of CSV files to read.
+        """
+        super().__init__(name)
+
+        self._logger.info("Initializing CSV file handler...")
+        self._files = files
+        self._cur_handle = None
+        if isinstance(files, str):
+            self._is_file_list = False
+        if isinstance(files, list):
+            self._is_file_list = True
+        self._logger.info("CSV file handler initialized.")
+
+    def open(self):
+        """Starts the CSVFileSourceHandler by setting required parameters."""
+        self._logger.info("Opening CSV file handler...")
+        self._cur_index = -1
+
+    def close(self):
+        """Closes the CSVFileSourceHandler."""
+        self._logger.info("Closing CSV file handler...")
+        if self._cur_handle:
+            self._cur_handle.close()
+            self._cur_handle = None
+
+    def _open_next_file(self):
+        """Opens the next CSV file to read. First, the last read file is closed. Afterwards, the next CSV file is
+        opened and the headers are extracted."""
+        self._logger.info("Opening next CSV file...")
+        if self._cur_handle:
+            self._cur_handle.close()
+            self._cur_handle = None
+        self._cur_index += 1
+
+        if self._is_file_list:
+            next_file = self._files[self._cur_index]
+        else:
+            next_file = self._files
+
+        self._cur_handle = open(next_file, "r")
+        self._cur_csv = csv.reader(self._cur_handle)
+
+        self._cur_headers = next(self._cur_csv)
+        self._logger.info("Next CSV file opened and headers extracted.")
+
+    @staticmethod
+    def _line_to_dict(line, header) -> dict[str, object]:
+        """Converts a line into a dictionary using the provided headers.
+
+        :param line: The line to convert.
+        :param header: The headers to use as the keys.
+        :return: A dictionary containing the headers as keys and the line as values."""
+        cur_dict = {}
+        if len(line) != len(header):
+            pass
+        for header_counter in range(len(header)):
+            cur_dict[header[header_counter]] = line[header_counter]
+        return cur_dict
+
+    def __iter__(self) -> Iterator[object]:
+        """Iterates through provided CSV files and yields each line as a dictionary."""
+        while (not self._is_file_list and self._cur_index < 0) or (
+            self._is_file_list and self._cur_index < len(self._files) - 1
+        ):
+            self._open_next_file()
+            for line in self._cur_csv:
+                cur_dict = self._line_to_dict(line, self._cur_headers)
+                yield cur_dict
+        self._logger.info("All CSV files exhausted.")
