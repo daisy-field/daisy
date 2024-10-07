@@ -350,7 +350,7 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
         self._update_dashboard(
             "/aggregation/",
             {
-                "agg_status": "Operational",  # TODO add len(client_models)
+                "agg_status": "Operational",
                 "agg_count": len(self._aggr_serv.poll_connections()[1].values()),
                 "agg_nodes": str(self._aggr_serv.poll_connections()[1]),
             },
@@ -415,7 +415,7 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
         self._update_dashboard(
             "/aggregation/",
             {
-                "agg_status": "Operational",  # TODO add len(client_models)
+                "agg_status": "Operational",  # TODO @seraphin bug fix
                 "agg_count": len(clients),
                 "agg_nodes": clients,
             },
@@ -572,15 +572,13 @@ class FederatedPredictionAggregator(FederatedValueAggregator):
         """
         self._logger.info("Starting result aggregation loop...")
         while self._started:
-            # TODO @seraphin report heartbeat (agg status?), incl. active connections
-            # TODO add client number
             self._update_dashboard(
-                "/prediction/",  # ADD CORRECT PATH
+                "/prediction/",
                 {
                     "pred_status": "Operational",
                     "pred_count": len(self._aggr_serv.poll_connections()[1].values()),
                     "pred_nodes": str(self._aggr_serv.poll_connections()[1]),
-                },  # TODO get correct value for pred_count
+                },
             )
             if not self._receive_node_msgs():
                 break
@@ -607,19 +605,15 @@ class FederatedPredictionAggregator(FederatedValueAggregator):
             self._logger.debug(f"Prediction received from {node}: {t}")
             values.append(t)
 
-            # TODO @seraphin adjust values to report (see below)
             if y_pred[i]:
                 self._update_dashboard(
                     "/alert/",
                     {
-                        "address": str(node[0])
-                        + ":"
-                        + str(node[1]),  # ADD NODE WHO REPORTED ALERT
+                        "address": str(node[0]) + ":" + str(node[1]),
                         "category": "alert",
                         "active": True,
                         "message": "Packet content: "
                         + ",".join(str(x) for x in x_data[i]),
-                        # "Alert raised!",
                     },
                 )
         return values
@@ -672,12 +666,12 @@ class FederatedEvaluationAggregator(FederatedValueAggregator):
         self._logger.info("Starting result aggregation loop...")
         while self._started:
             self._update_dashboard(
-                "/evaluation/",  # ADD CORRECT PATH
+                "/evaluation/",
                 {
                     "eval_status": "Operational",
                     "eval_count": len(self._aggr_serv.poll_connections()[1].values()),
                     "eval_nodes": str(self._aggr_serv.poll_connections()[1]),
-                },  # TODO get correct value for eval_count
+                },
             )
 
             if not self._receive_node_msgs():
