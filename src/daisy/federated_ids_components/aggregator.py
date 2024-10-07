@@ -174,10 +174,7 @@ class FederatedOnlineAggregator(ABC):
         if self._dashboard_url is None:
             return
         try:
-            # FIXME HTTP URLs hardcoded should be removed @seraphin
-            _ = requests.post(
-                url="http://" + self._dashboard_url + ":8000" + ressource, data=data
-            )
+            _ = requests.post(url=self._dashboard_url + ressource, data=data)
         except requests.exceptions.RequestException as e:
             self._logger.warning(f"Dashboard server not reachable: {e}")
 
@@ -278,7 +275,6 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
                         "asynchronous aggregation requests..."
                     )
                     self._async_aggr()
-                    # FIXME this is getting spammed if there are no read ready clients
             except RuntimeError:
                 # stop() was called
                 break
@@ -348,6 +344,7 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
             client.send(global_model)
         self._logger.info("Sending aggregated global model to dashboard ")
 
+        # FIXME check reported metrics
         self._update_dashboard(
             "/aggregation/",
             {
@@ -412,6 +409,7 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
         for client in clients:
             client.send(global_model)
 
+        # FIXME check reported metrics
         self._update_dashboard(
             "/aggregation/",
             {
@@ -572,6 +570,7 @@ class FederatedPredictionAggregator(FederatedValueAggregator):
         """
         self._logger.info("Starting result aggregation loop...")
         while self._started:
+            # FIXME check reported metrics
             self._update_dashboard(
                 "/prediction/",
                 {
@@ -665,6 +664,7 @@ class FederatedEvaluationAggregator(FederatedValueAggregator):
         """
         self._logger.info("Starting result aggregation loop...")
         while self._started:
+            # FIXME check reported metrics
             self._update_dashboard(
                 "/evaluation/",
                 {
