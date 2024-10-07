@@ -390,10 +390,8 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
             if model is not None
         ]
 
-        if (
-            len(client_models) == 0
-            or self._num_clients is not None
-            and len(client_models) < self._num_clients
+        if len(client_models) == 0 or (
+            self._num_clients is not None and len(client_models) < self._num_clients
         ):
             self._logger.info(
                 f"Insufficient number of client models [{len(client_models)}] "
