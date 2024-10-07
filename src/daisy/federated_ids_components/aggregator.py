@@ -293,6 +293,9 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
         created global model is sent back to all available clients.
         """
         clients = self._aggr_serv.poll_connections()[1].values()
+        if len(clients) == 0:
+            self._logger.info("No clients available for aggregation step!")
+            sleep(1)
         if self._num_clients is not None:
             if len(clients) < self._num_clients:
                 self._logger.info(
@@ -362,6 +365,9 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
         requested an aggregation step.
         """
         clients = self._aggr_serv.poll_connections()[0].values()
+        if len(clients) == 0:
+            self._logger.info("No clients available for aggregation step!")
+            sleep(1)
         if self._num_clients is not None and len(clients) < self._num_clients:
             self._logger.info(
                 f"Insufficient read-ready clients [{len(clients)}] "
@@ -472,32 +478,41 @@ class FederatedValueAggregator(FederatedOnlineAggregator):
         self._aggr_values = {}
 
     def create_fed_aggr(self):
-        """Starts the loop to continuously poll the federated nodes for new values to
-        receive and process, before adding them to the datastructure.
+        """Starts the aggregation loop to continuously poll the federated nodes for
+        new values to receive and process, before adding them to the datastructure.
         """
         self._logger.info("Starting result aggregation loop...")
         while self._started:
-            try:
-                nodes = self._aggr_serv.poll_connections()[0].items()
-                if len(nodes) == 0:
-                    sleep(self._timeout)
-                    continue
-
-                for node, node_ep in nodes:
-                    if node not in self._aggr_values:
-                        self._aggr_values[node] = deque(maxlen=self._window_size)
-                    try:
-                        while True:
-                            new_values = self.process_node_msg(
-                                node, node_ep.receive(timeout=0)
-                            )
-                            self._aggr_values[node].extend(new_values)
-                    except (RuntimeError, TimeoutError):
-                        pass
-            except RuntimeError:
-                # stop() was called
+            if not self._receive_node_msgs():
                 break
         self._logger.info("Result aggregation loop stopped.")
+
+    def _receive_node_msgs(self) -> bool:
+        """Polls all connected federate nodes, receiving and processing all values
+        of those from which new values can be received.
+
+        :return: True as long server is running (stop() has not been called).
+        """
+        try:
+            nodes = self._aggr_serv.poll_connections()[0].items()
+            if len(nodes) == 0:
+                sleep(self._timeout)
+                return True
+
+            for node, node_ep in nodes:
+                if node not in self._aggr_values:
+                    self._aggr_values[node] = deque(maxlen=self._window_size)
+                try:
+                    while True:
+                        new_values = self.process_node_msg(
+                            node, node_ep.receive(timeout=0)
+                        )
+                        self._aggr_values[node].extend(new_values)
+                except (RuntimeError, TimeoutError):
+                    pass
+        except RuntimeError:
+            # stop() was called
+            return False
 
     def process_node_msg(self, node: tuple[str, int], msg) -> list:
         """Converts a singular received message from a federated node into a list of
@@ -550,8 +565,10 @@ class FederatedPredictionAggregator(FederatedValueAggregator):
         )
 
     def create_fed_aggr(self):
-        """Starts the loop to continuously poll the federated nodes for new values to
-        receive and process, before adding them to the datastructure.
+        """Starts the loop to continuously poll the federated nodes for new predictions
+        to receive and process, before adding them to the datastructure and reporting
+        them to the dashboard. Also reports the overall status of the network and the
+        connected nodes to the dashboard if available.
         """
         self._logger.info("Starting result aggregation loop...")
         while self._started:
@@ -565,26 +582,7 @@ class FederatedPredictionAggregator(FederatedValueAggregator):
                     "pred_nodes": str(self._aggr_serv.poll_connections()[1]),
                 },  # TODO get correct value for pred_count
             )
-            # FIXME Cleanse duplicate code fragments
-            try:
-                nodes = self._aggr_serv.poll_connections()[0].items()
-                if len(nodes) == 0:
-                    sleep(self._timeout)
-                    continue
-
-                for node, node_ep in nodes:
-                    if node not in self._aggr_values:
-                        self._aggr_values[node] = deque(maxlen=self._window_size)
-                    try:
-                        while True:
-                            new_values = self.process_node_msg(
-                                node, node_ep.receive(timeout=0)
-                            )
-                            self._aggr_values[node].extend(new_values)
-                    except (RuntimeError, TimeoutError):
-                        pass
-            except RuntimeError:
-                # stop() was called
+            if not self._receive_node_msgs():
                 break
         self._logger.info("Result aggregation loop stopped.")
 
@@ -666,8 +664,10 @@ class FederatedEvaluationAggregator(FederatedValueAggregator):
         )
 
     def create_fed_aggr(self):
-        """Starts the loop to continuously poll the federated nodes for new values to
-        receive and process, before adding them to the datastructure.
+        """Starts the loop to continuously poll the federated nodes for new evaluation
+        metric results to receive and process, before adding them to the datastructure
+        and reporting them to the dashboard. Also reports the overall status of the
+        network and the connected nodes to the dashboard if available.
         """
         self._logger.info("Starting result aggregation loop...")
         while self._started:
@@ -680,26 +680,7 @@ class FederatedEvaluationAggregator(FederatedValueAggregator):
                 },  # TODO get correct value for eval_count
             )
 
-            # FIXME Cleanse duplicate code fragments
-            try:
-                nodes = self._aggr_serv.poll_connections()[0].items()
-                if len(nodes) == 0:
-                    sleep(self._timeout)
-                    continue
-
-                for node, node_ep in nodes:
-                    if node not in self._aggr_values:
-                        self._aggr_values[node] = deque(maxlen=self._window_size)
-                    try:
-                        while True:
-                            new_values = self.process_node_msg(
-                                node, node_ep.receive(timeout=0)
-                            )
-                            self._aggr_values[node].extend(new_values)
-                    except (RuntimeError, TimeoutError):
-                        pass
-            except RuntimeError:
-                # stop() was called
+            if not self._receive_node_msgs():
                 break
         self._logger.info("Result aggregation loop stopped.")
 
