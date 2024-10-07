@@ -296,6 +296,7 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
         if len(clients) == 0:
             self._logger.info("No clients available for aggregation step!")
             sleep(1)
+            return
         if self._num_clients is not None:
             if len(clients) < self._num_clients:
                 self._logger.info(
@@ -368,6 +369,7 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
         if len(clients) == 0:
             self._logger.info("No clients available for aggregation step!")
             sleep(1)
+            return
         if self._num_clients is not None and len(clients) < self._num_clients:
             self._logger.info(
                 f"Insufficient read-ready clients [{len(clients)}] "
