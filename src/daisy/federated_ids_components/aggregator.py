@@ -656,6 +656,7 @@ class FederatedEvaluationAggregator(FederatedValueAggregator):
         """
         self._logger.info("Starting result aggregation loop...")
         while self._started:
+            self._logger.warning("Dashboard Reporting...")
             # FIXME check reported metrics
             self._update_dashboard(
                 "/evaluation/",
@@ -665,6 +666,7 @@ class FederatedEvaluationAggregator(FederatedValueAggregator):
                     "eval_nodes": str(self._aggr_serv.poll_connections()[1]),
                 },
             )
+            self._logger.warning("Dashboard Reported...")
 
             if not self._receive_node_msgs():
                 break
