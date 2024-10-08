@@ -275,6 +275,18 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
                         "asynchronous aggregation requests..."
                     )
                     self._async_aggr()
+
+                # FIXME Check reported metrics
+                self._update_dashboard(
+                    "/aggregation/",
+                    {
+                        "agg_status": "Operational",
+                        "agg_count": len(
+                            self._aggr_serv.poll_connections()[1].values()
+                        ),
+                        "agg_nodes": str(self._aggr_serv.poll_connections()[1]),
+                    },
+                )
             except RuntimeError:
                 # stop() was called
                 break
@@ -344,16 +356,6 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
             client.send(global_model)
         self._logger.info("Sending aggregated global model to dashboard ")
 
-        # FIXME check reported metrics
-        self._update_dashboard(
-            "/aggregation/",
-            {
-                "agg_status": "Operational",
-                "agg_count": len(self._aggr_serv.poll_connections()[1].values()),
-                "agg_nodes": str(self._aggr_serv.poll_connections()[1]),
-            },
-        )
-
     def _async_aggr(self):
         """Performs an asynchronous federated aggregation step, i.e. checking whether
         a sufficient number of clients sent their local models to the server,
@@ -408,16 +410,6 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
         )
         for client in clients:
             client.send(global_model)
-
-        # FIXME check reported metrics
-        self._update_dashboard(
-            "/aggregation/",
-            {
-                "agg_status": "Operational",  # TODO @seraphin bug fix
-                "agg_count": len(clients),
-                "agg_nodes": clients,
-            },
-        )
 
 
 class FederatedValueAggregator(FederatedOnlineAggregator):
