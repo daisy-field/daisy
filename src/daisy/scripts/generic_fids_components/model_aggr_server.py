@@ -77,7 +77,7 @@ def _parse_args() -> argparse.Namespace:
     )
     aggr_options.add_argument(
         "--dashboardURL",
-        default=None,
+        default="http://localhost:8000",
         metavar="",
         help="IP of (external) dashboard server",
     )
