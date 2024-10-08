@@ -503,6 +503,7 @@ class FederatedValueAggregator(FederatedOnlineAggregator):
         except RuntimeError:
             # stop() was called
             return False
+        return True
 
     def process_node_msg(self, node: tuple[str, int], msg) -> list:
         """Converts a singular received message from a federated node into a list of
