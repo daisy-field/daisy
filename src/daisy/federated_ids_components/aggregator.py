@@ -276,7 +276,6 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
                     )
                     self._async_aggr()
 
-                # FIXME Check reported metrics
                 self._update_dashboard(
                     "/aggregation/",
                     {
@@ -284,7 +283,7 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
                         "agg_count": len(
                             self._aggr_serv.poll_connections()[1].values()
                         ),
-                        "agg_nodes": str(self._aggr_serv.poll_connections()[1]),
+                        "agg_nodes": str(self._aggr_serv.poll_connections()[1].keys()),
                     },
                 )
             except RuntimeError:
@@ -303,7 +302,6 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
         clients = self._aggr_serv.poll_connections()[1].values()
         if len(clients) == 0:
             self._logger.info("No clients available for aggregation step!")
-            sleep(1)
             return
         if self._num_clients is not None:
             if len(clients) < self._num_clients:
@@ -432,6 +430,8 @@ class FederatedValueAggregator(FederatedOnlineAggregator):
 
     Note that the base class could be extended in various other ways as well,
     it is recommended to put such functionality into the setup() and cleanup() methods.
+    Finally create_fed_aggr() may also be extended to add additional functionality
+    during the aggregation loop before _receive_node_msgs() is called.
     """
 
     _aggr_values: dict[tuple[str, int], deque]
@@ -541,7 +541,7 @@ class FederatedPredictionAggregator(FederatedValueAggregator):
         """Creates a new federated prediction aggregator.
 
         :param addr: Address of aggregation server for federated nodes to report to.
-        :param name: Name of federated value aggregator for logging purposes.
+        :param name: Name of federated prediction aggregator for logging purposes.
         :param timeout: Timeout for waiting to receive message from federated nodes.
         :param window_size: Maximum number of latest received entries stored for each
         federated node.
@@ -563,13 +563,12 @@ class FederatedPredictionAggregator(FederatedValueAggregator):
         """
         self._logger.info("Starting result aggregation loop...")
         while self._started:
-            # FIXME check reported metrics
             self._update_dashboard(
                 "/prediction/",
                 {
                     "pred_status": "Operational",
                     "pred_count": len(self._aggr_serv.poll_connections()[1].values()),
-                    "pred_nodes": str(self._aggr_serv.poll_connections()[1]),
+                    "pred_nodes": str(self._aggr_serv.poll_connections()[1].keys()),
                 },
             )
             if not self._receive_node_msgs():
@@ -620,8 +619,6 @@ class FederatedEvaluationAggregator(FederatedValueAggregator):
     metric values of the ConfMatrSlidingWindowEvaluation metric class (see the
     evaluation subpackage) are directly forwarded to the dashboard to be displayed,
     if they are used by a reporting IDS node.
-
-    TODO: indepth review of aggregator
     """
 
     def __init__(
@@ -635,7 +632,7 @@ class FederatedEvaluationAggregator(FederatedValueAggregator):
         """Creates a new federated evaluation aggregator.
 
         :param addr: Address of aggregation server for federated nodes to report to.
-        :param name: Name of federated value aggregator for logging purposes.
+        :param name: Name of federated evaluation aggregator for logging purposes.
         :param timeout: Timeout for waiting to receive message from federated nodes.
         :param window_size: Maximum number of latest received entries stored for each
         federated node.
@@ -657,13 +654,12 @@ class FederatedEvaluationAggregator(FederatedValueAggregator):
         """
         self._logger.info("Starting result aggregation loop...")
         while self._started:
-            # FIXME check reported metrics
             self._update_dashboard(
                 "/evaluation/",
                 {
                     "eval_status": "Operational",
                     "eval_count": len(self._aggr_serv.poll_connections()[1].values()),
-                    "eval_nodes": str(self._aggr_serv.poll_connections()[1]),
+                    "eval_nodes": str(self._aggr_serv.poll_connections()[1].keys()),
                 },
             )
 
