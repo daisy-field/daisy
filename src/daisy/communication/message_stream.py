@@ -1202,8 +1202,8 @@ class StreamEndpoint:
         :param endpoints: Iterable of endpoints to receive objects from.
         :param obj_type: Type of objects to receive. If none given, receives the latest
         message of any type.
-        :return: Dictionary of each endpoint and their respective received object,
-        None if nothing received for endpoint.
+        :return: Dictionary of each endpoint and their respective latest received
+        object, None if nothing received for endpoint.
         """
         ep_objs = {}
         for endpoint in endpoints:
