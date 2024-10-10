@@ -30,6 +30,7 @@ __all__ = [
     "SourceHandler",
     "SimpleSourceHandler",
     "SimpleRemoteSourceHandler",
+    "CSVFileSourceHandler",
     "DataProcessor",
     "SimpleDataProcessor",
     "IdentityDataProcessor",
@@ -47,7 +48,12 @@ __all__ = [
     "create_pyshark_processor",
 ]
 
-from .data_handler import SourceHandler, SimpleSourceHandler, SimpleRemoteSourceHandler
+from .data_handler import (
+    SourceHandler,
+    SimpleSourceHandler,
+    SimpleRemoteSourceHandler,
+    CSVFileSourceHandler,
+)
 from .data_processor import (
     DataProcessor,
     SimpleDataProcessor,
