@@ -7,7 +7,7 @@
 any data source (see the docstring of the data source class), that prepares the data
 points for further (ML) tasks in streaming-manner. Supports generic functions,
 that are chained together in groups of three (following the map, filter,
-reduce pattern). Note each kind of may needs its own implementations of the
+reduce pattern). Note each kind of may need its own implementations of the
 DataProcessor class.
 
 Author: Fabian Hofmann, Jonathan Ackerschewski
@@ -141,3 +141,24 @@ class SimpleDataProcessor(DataProcessor):
 
     def reduce(self, d_point: dict) -> np.ndarray | dict:
         return self._reduce_fn(d_point)
+
+
+def remove_filter_fn(f_features: list) -> Callable[[dict], dict]:
+    """Takes a data point as a dictionary and removes all given features from it.
+
+    :param f_features: List of features to remove.
+    :return: Dictionary of data point with features removed.
+    """
+    return lambda d_point: _remove_filter_fn(d_point, f_features)
+
+
+def _remove_filter_fn(d_point: dict, f_features: list) -> dict:
+    """Takes a data point and removes all given features from it.
+
+    :param d_point: Dictionary of data point.
+    :param f_features: List of features to remove.
+    :return: Dictionary of data point with features removed.
+    """
+    for feature in f_features:
+        d_point.pop(feature, None)
+    return d_point
