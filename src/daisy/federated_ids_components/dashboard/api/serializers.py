@@ -5,7 +5,15 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 from rest_framework import serializers
 
-from api.models import Metrics, Aggregation, Alerts, Prediction, Node
+from api.models import (
+    Metrics,
+    Aggregation,
+    Alerts,
+    Prediction,
+    Node,
+    Evaluation,
+    Metrics_long,
+)
 
 
 class MetricsSerializer(serializers.HyperlinkedModelSerializer):
@@ -14,22 +22,34 @@ class MetricsSerializer(serializers.HyperlinkedModelSerializer):
         fields = ["address", "accuracy", "recall", "precision", "f1", "timestamp"]
 
 
+class MetricsLongSerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        model = Metrics_long
+        fields = ["address", "accuracy", "recall", "precision", "f1", "timestamp"]
+
+
 class AggregationSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Aggregation
-        fields = ["agg_status", "agg_count", "agg_time"]
+        fields = ["agg_status", "agg_count", "agg_time", "agg_nodes"]
 
 
 class PredictionSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Prediction
-        fields = ["pred_status", "pred_count", "pred_time"]
+        fields = ["pred_status", "pred_count", "pred_time", "pred_nodes"]
+
+
+class EvaluationSerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        model = Evaluation
+        fields = ["eval_status", "eval_count", "eval_time", "eval_nodes"]
 
 
 class AlertsSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Alerts
-        fields = ["category", "active", "timestamp", "message"]
+        fields = ["id", "address", "category", "active", "timestamp", "message"]
 
 
 class NodeSerializer(serializers.HyperlinkedModelSerializer):

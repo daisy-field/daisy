@@ -72,7 +72,7 @@ class FederatedOnlineNode(ABC):
 
     _label_split: int
     _supervised: bool
-    _metrics: list[tf.metrics.Metric]
+    _metrics: list[tf.keras.metrics.Metric]
 
     _eval_serv: Optional[StreamEndpoint]
     _aggr_serv: Optional[StreamEndpoint]
@@ -313,8 +313,14 @@ class FederatedOnlineNode(ABC):
             self._logger.debug(
                 f"AsyncLearner: Evaluation results for minibatch: {eval_res}"
             )
+            # FIXME check tensor transformation to numpy and if this always works!
             if self._eval_serv is not None:
-                self._eval_serv.send(eval_res)
+                self._eval_serv.send(
+                    {
+                        metric.name: {x: y.numpy() for x, y in metric.result().items()}
+                        for metric in self._metrics
+                    }
+                )
 
         self._model.fit(x_data, y_true)
         self._logger.debug("AsyncLearner: Minibatch processed, cleaning window ...")

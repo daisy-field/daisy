@@ -29,7 +29,7 @@ Note, generally it is recommended to use a virtual environment for any python pr
 git clone https://github.com/daisy-field/daisy.git
 
 pip install /path/to/daisy
-pip install pip install /path/to/daisy[cuda]  # gpu support
+pip install /path/to/daisy[cuda]  # gpu support
 ```
 
 Afterward, the demo scripts are added to the shell path and may be executed, such as:
