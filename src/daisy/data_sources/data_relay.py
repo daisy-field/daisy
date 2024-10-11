@@ -338,10 +338,7 @@ class CSVFileRelay:
                                 "Received data point that is not  of type dictionary."
                             )
                         if d_point_counter % 100 == 0:
-                            self._logger.debug(
-                                f"Received packet {d_point_counter}. "
-                                f"Packet timestamp: {d_point['meta.time']}"
-                            )
+                            self._logger.debug(f"Received packet {d_point_counter}. ")
                         if d_point_counter < self._header_buffer_size:
                             header_buffer.update(OrderedDict.fromkeys(d_point.keys()))
                             d_point_buffer += [d_point]

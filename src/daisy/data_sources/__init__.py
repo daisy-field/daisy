@@ -33,7 +33,6 @@ __all__ = [
     "CSVFileSourceHandler",
     "DataProcessor",
     "SimpleDataProcessor",
-    "IdentityDataProcessor",
     "remove_filter_fn",
     "DataSourceRelay",
     "CSVFileRelay",
@@ -57,7 +56,6 @@ from .data_handler import (
 from .data_processor import (
     DataProcessor,
     SimpleDataProcessor,
-    IdentityDataProcessor,
     remove_filter_fn,
 )
 from .data_relay import DataSourceRelay, CSVFileRelay

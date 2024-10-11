@@ -7,7 +7,7 @@
 any data source (see the docstring of the data source class), that prepares the data
 points for further (ML) tasks in streaming-manner. Supports generic functions,
 that are chained together in groups of three (following the map, filter,
-reduce pattern). Note each kind of may needs its own implementations of the
+reduce pattern). Note each kind of may need its own implementations of the
 DataProcessor class.
 
 Author: Fabian Hofmann, Jonathan Ackerschewski
@@ -143,34 +143,9 @@ class SimpleDataProcessor(DataProcessor):
         return self._reduce_fn(d_point)
 
 
-class IdentityDataProcessor(DataProcessor):
-    """An implementation of the DataProcessor, which returns the data it receives without any processing."""
-
-    def __init__(self, name: str = ""):
-        """Creates an IdentityDataProcessor by overwriting the process implementation of the DataProcessor.
-
-        :param name: Name for logging purposes.
-        """
-        super().__init__(name)
-
-    def map(self, o_point: object) -> dict:
-        return o_point
-
-    def filter(self, d_point: dict) -> dict:
-        return d_point
-
-    def reduce(self, d_point: dict) -> np.ndarray | dict:
-        return d_point
-
-    def process(self, o_point: object) -> np.ndarray | dict:
-        """Returns the provided data point as is."""
-        return o_point
-
-
 def remove_filter_fn(f_features: list) -> Callable[[dict], dict]:
     """Takes a data point as a dictionary and removes all given features from it.
 
-    :param d_point: Dictionary of data point.
     :param f_features: List of features to remove.
     :return: Dictionary of data point with features removed.
     """

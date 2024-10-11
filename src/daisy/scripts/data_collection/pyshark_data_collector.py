@@ -18,7 +18,6 @@ import re
 from daisy.data_sources import (
     DataSource,
     SimpleDataProcessor,
-    IdentityDataProcessor,
     remove_filter_fn,
     pyshark_map_fn,
     LivePysharkHandler,
@@ -117,7 +116,7 @@ def _parse_args() -> argparse.Namespace:
     :return: Parsed arguments.
     """
     parser = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+        description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
     source_group = parser.add_argument_group(
@@ -448,8 +447,9 @@ def create_data_handler(args):
 
 
 def read_collection_files(args):
-    """Reads and parses the feature file, headers file and event file and returns the three in the order
-    f_features, events, headers."""
+    """Reads and parses the feature file, headers file and event file and returns the
+    three in the order f_features, events, headers.
+    """
 
     if not args.feature_filter:
         f_features = []
@@ -502,8 +502,10 @@ def read_collection_files(args):
 
 
 def create_data_processor(args, f_features, events):
-    """Creates the data processor, which either processes the data points on the machine the data is written to file
-    or returns the data points unprocessed for relaying to another machine."""
+    """Creates the data processor, which either processes the data points on the
+    machine the data is written to file or returns the data points unprocessed
+    for relaying to another machine.
+    """
 
     if args.toFile:
         return SimpleDataProcessor(
@@ -512,12 +514,13 @@ def create_data_processor(args, f_features, events):
             reduce_fn=lambda x: label_reduce(x, events, default_label="benign"),
         )
     else:
-        return IdentityDataProcessor()
+        return SimpleDataProcessor()
 
 
 def create_relay(args, data_source, headers):
-    """Creates the relay. This is either a CSVFileRelay if the data should be written to file or a DataSourceRelay
-    if the data should be transferred to another machine."""
+    """Creates the relay. This is either a CSVFileRelay if the data should be written
+    to file or a DataSourceRelay if the data should be transferred to another machine.
+    """
 
     if args.toFile:
         return CSVFileRelay(
