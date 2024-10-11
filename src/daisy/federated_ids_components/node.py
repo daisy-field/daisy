@@ -97,7 +97,7 @@ class FederatedOnlineNode(ABC):
         name: str = "",
         label_split: int = 2**32,
         supervised: bool = False,
-        metrics: list[tf.metrics.Metric] = None,
+        metrics: list[tf.keras.metrics.Metric] = None,
         eval_server: tuple[str, int] = None,
         aggr_server: tuple[str, int] = None,
         sync_mode: bool = True,
@@ -313,7 +313,6 @@ class FederatedOnlineNode(ABC):
             self._logger.debug(
                 f"AsyncLearner: Evaluation results for minibatch: {eval_res}"
             )
-            # FIXME check tensor transformation to numpy and if this always works!
             if self._eval_serv is not None:
                 self._eval_serv.send(
                     {
@@ -418,7 +417,7 @@ class FederatedOnlineClient(FederatedOnlineNode):
         name: str = "",
         label_split: int = 2**32,
         supervised: bool = False,
-        metrics: list[tf.metrics.Metric] = None,
+        metrics: list[tf.keras.metrics.Metric] = None,
         eval_server: tuple[str, int] = None,
         aggr_server: tuple[str, int] = None,
         sync_mode: bool = True,
@@ -613,7 +612,7 @@ class FederatedOnlinePeer(FederatedOnlineNode):
         name: str = "",
         label_split: int = 2**32,
         supervised: bool = False,
-        metrics: list[tf.metrics] = None,
+        metrics: list[tf.keras.metrics.Metric] = None,
         eval_server: tuple[str, int] = None,
         aggr_server: tuple[str, int] = None,
         sync_mode: bool = True,
