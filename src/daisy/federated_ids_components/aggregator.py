@@ -679,18 +679,12 @@ class FederatedEvaluationAggregator(FederatedValueAggregator):
         :return: Message as received.
         """
         self._logger.debug(f"Evaluation metrics received from {node}: {msg}")
-
-        # FIXME return to dynamic version instead of hardcoded metrics!
-        if "conf_matrix_online_evaluation" in msg:
-            conf_matrix = msg["conf_matrix_online_evaluation"]
-            self._update_dashboard(
-                "/metrics/",
-                {
-                    "address": node,
-                    "accuracy": conf_matrix["accuracy"],
-                    "recall": conf_matrix["recall"],
-                    "precision": conf_matrix["precision"],
-                    "f1": conf_matrix["f1 measure"],
-                },
-            )
+        metrics = msg
+        data = {"address": node}
+        for metric_name, metric in metrics.items():
+            if isinstance(metric, dict):
+                data = data | metric
+            else:
+                data[metric_name] = metric
+        self._update_dashboard("/metrics/", data)
         return msg
