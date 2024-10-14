@@ -1614,7 +1614,9 @@ class EndpointServer:
             self.stop()
 
 
-def _convert_addr_to_name(addr: tuple) -> tuple[str, int]:
+def _convert_addr_to_name(
+    addr: tuple[str, int] | tuple[str, int, int, int],
+) -> tuple[str, int]:
     """Translates a socket address, which is either a 2-tuple (ipv4) or a 4-tuple (ipv6)
     into a 2-tuple (host, port). Tries to resolve the host to its (DNS)
     hostname, otherwise keeps the numeric representation. Ports/Services are always
