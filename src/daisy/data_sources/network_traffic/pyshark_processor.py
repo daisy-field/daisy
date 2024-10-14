@@ -212,8 +212,11 @@ def _pyshark_reduce_fn(
     for key, value in d_point.items():
         if not isinstance(value, int | float):
             value = nn_aggregator(key, value)
-        if np.isnan(value):
-            value = 0
+        try:
+            if np.isnan(value):
+                value = 0
+        except TypeError as e:
+            raise ValueError(f"Invalid k/v pair: {key}, {value}") from e
         l_point.append(value)
     return np.asarray(l_point)
 
