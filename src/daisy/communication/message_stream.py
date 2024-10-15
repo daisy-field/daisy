@@ -31,6 +31,7 @@ import threading
 from time import sleep, time
 from typing import Callable, Iterable, Optional, Self
 
+# noinspection PyUnresolvedReferences
 from lz4.frame import compress, decompress
 
 
