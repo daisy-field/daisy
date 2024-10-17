@@ -16,54 +16,41 @@ from typing import Callable
 from pyparsing import (
     ParserElement,
     Word,
-    alphas,
     oneOf,
     Suppress,
     Forward,
     Group,
     Optional,
     ParseResults,
+    printables,
 )
-# TODO add logging
+import logging
 
 
 class Event:
-    _start_time: datetime
-    _end_time: datetime
-    _label: str
-    _condition_fn: Callable[[dict, dict], bool]
+    start_time: datetime
+    end_time: datetime
+    label: str
+    _condition_fn: Callable[[list[dict]], bool]
 
     def __init__(
         self,
         start_time: datetime,
         end_time: datetime,
         label: str,
-        condition_fn: Callable[[dict, dict], bool],
+        condition_fn: Callable[[list[dict]], bool],
     ):
-        self._start_time = start_time
-        self._end_time = end_time
-        self._label = label
+        self.start_time = start_time
+        self.end_time = end_time
+        self.label = label
         self._condition_fn = condition_fn
 
-    def evaluate(self, meta_information: dict, data_point: dict) -> bool:
-        return self._condition_fn(meta_information, data_point)
-
-    def label(
-        self,
-        timestamp: datetime,
-        meta_information: dict,
-        data_point: dict,
-        label_feature: str = "label",
-    ) -> dict:
-        if self._start_time < timestamp < self._end_time and self.evaluate(
-            meta_information, data_point
-        ):
-            data_point[label_feature] = self._label
-        return data_point
+    def evaluate(self, data: list[dict]) -> bool:
+        return self._condition_fn(data)
 
 
 class EventParser:
-    _comparators: list[str] = ["=", "in", "<", ">", "<=", ">="]
+    _comparators: list[str] = ["=", "in"]
     _binary_operators: list[str] = ["and", "or"]
     _unary_operators: list[str] = ["not"]
 
@@ -78,14 +65,19 @@ class EventParser:
         ParserElement.enablePackrat()
         sys.setrecursionlimit(3000)
 
-        word = Word(alphas)
+        base_word = Word(printables, exclude_chars="[] !\"'<=>\\()")
+        bracket_word = Word(printables + " ", exclude_chars="[]!\"'<=>\\()")
+
         comparator = oneOf(self._comparators)
         boperator = oneOf(self._binary_operators)
         uoperator = oneOf(self._unary_operators)
         lpar = Suppress("(")
         rpar = Suppress(")")
+        lbr = Suppress("[")
+        rbr = Suppress("]")
 
         self._parser = Forward()
+        word = base_word | lbr + bracket_word + rbr
         operand = Group(word(self._var1) + comparator(self._op) + word(self._var2))
         pars = operand | lpar + self._parser + rpar
 
@@ -93,11 +85,13 @@ class EventParser:
             pars(self._var1) + Optional(boperator(self._op) + self._parser(self._var2))
         ) | Group(uoperator(self._op) + pars(self._var1))
 
-    def parse(self, expression: str) -> Callable[[dict, dict], bool]:
+    def parse(self, expression: str) -> Callable[[list[dict]], bool]:
         tree = self._parser.parseString(expression, parseAll=True)
         return self._process_child(tree)
 
-    def _process_child(self, tree: ParseResults) -> Callable[[dict, dict], bool]:
+    def _process_child(self, tree: ParseResults) -> Optional(
+        Callable[[list[dict]], bool]
+    ):
         result = {}
         if isinstance(tree, ParseResults):
             # Evaluate all children first
@@ -114,22 +108,22 @@ class EventParser:
 
     def _create_fn(
         self, dictionary: dict, result: dict
-    ) -> Callable[[dict, dict], bool]:
-        if self._op not in dict:
+    ) -> Callable[[list[dict]], bool]:
+        if self._op not in dictionary:
             return list(result.values())[0]
 
-        operation = dict[self._op]
+        operation = dictionary[self._op]
 
         if operation in self._binary_operators:
             match operation:
                 case "and":
-                    return lambda meta_information, data_point: result[self._var1](
-                        meta_information, data_point
-                    ) and result[self._var2](meta_information, data_point)
+                    return lambda data: result[self._var1](data) and result[self._var2](
+                        data
+                    )
                 case "or":
-                    return lambda meta_information, data_point: result[self._var1](
-                        meta_information, data_point
-                    ) or result[self._var2](meta_information, data_point)
+                    return lambda data: result[self._var1](data) or result[self._var2](
+                        data
+                    )
 
                 case _:
                     raise NotImplementedError(
@@ -139,9 +133,7 @@ class EventParser:
         if operation in self._unary_operators:
             match operation:
                 case "not":
-                    return lambda meta_information, data_point: not result[self._var1](
-                        meta_information, data_point
-                    )
+                    return lambda data: not result[self._var1](data)
 
                 case _:
                     raise NotImplementedError(
@@ -149,10 +141,86 @@ class EventParser:
                     )
 
         if operation in self._comparators:
-            pass
-        # TODO add functionality for the comparators
+            match operation:
+                case "=":
+                    return (
+                        lambda data: get_value(dictionary[self._var1][0], data)
+                        == dictionary[self._var2][0]
+                    )
+                case "in":
+                    return (
+                        lambda data: dictionary[self._var1][0]
+                        in get_value(dictionary[self._var2][0], data)
+                        if get_value(dictionary[self._var2][0], data)
+                        else False
+                    )
+
+                case _:
+                    raise NotImplementedError(
+                        f"Operation {operation} not supported in EventParser."
+                    )
 
         # This should be impossible to reach, since the parser should throw an error already
         raise NotImplementedError(
             f"Operation {operation} not supported in EventParser."
         )
+
+
+def get_value(feature: str, data: list[dict]) -> object:
+    for dictionary in data:
+        if feature in dictionary:
+            return dictionary[feature]
+    raise KeyError(f"Could not find {feature} in {data}")
+
+
+class EventHandler:
+    _parser: EventParser
+    _events: list[Event]
+    _default_label: str
+    _hide_errors: bool
+
+    def __init__(
+        self, default_label: str = "benign", hide_errors: bool = False, name: str = ""
+    ):
+        self._logger = logging.getLogger(name)
+
+        self._parser = EventParser()
+        self._events = []
+        self._default_label = default_label
+        self._hide_errors = hide_errors
+
+    def add_event(
+        self, start_time: datetime, end_time: datetime, label: str, condition: str = ""
+    ):
+        self._logger.debug(f"Adding new event with condition {condition}")
+        if condition:
+            self._events.append(
+                Event(start_time, end_time, label, self._parser.parse(condition))
+            )
+        else:
+            self._events.append(Event(start_time, end_time, label, lambda _: True))
+
+    def process(
+        self,
+        timestamp: datetime,
+        data: list[dict],
+        data_point: dict,
+        label_feature: str = "label",
+    ) -> dict:
+        labeled = False
+        for event in reversed(self._events):
+            if event.start_time < timestamp < event.end_time:
+                try:
+                    match = event.evaluate(data)
+                    if match:
+                        data_point[label_feature] = event.label
+                        labeled = True
+                        break
+                except (NotImplementedError, KeyError) as e:
+                    self._logger.error(f"Error while evaluating event: {e}")
+                    if not self._hide_errors:
+                        raise e
+        if not labeled:
+            data_point[label_feature] = self._default_label
+
+        return data_point

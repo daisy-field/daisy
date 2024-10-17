@@ -45,6 +45,7 @@ __all__ = [
     "pyshark_filter_fn",
     "pyshark_reduce_fn",
     "create_pyshark_processor",
+    "EventHandler",
 ]
 
 from .data_handler import (
@@ -70,3 +71,4 @@ from .network_traffic import (
     pyshark_reduce_fn,
     create_pyshark_processor,
 )
+from .events import EventHandler
