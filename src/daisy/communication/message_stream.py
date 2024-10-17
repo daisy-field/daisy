@@ -7,7 +7,7 @@
 endpoints over BSD sockets. Supports SSL (soon) and LZ4 compression.
 
 Author: Fabian Hofmann
-Modified: 29.04.24
+Modified: 16.10.24
 """
 # TODO Future Work: SSL https://docs.python.org/3/library/ssl.html
 # TODO Future Work: Defining granularity of logging in inits
@@ -31,6 +31,7 @@ import threading
 from time import sleep, time
 from typing import Callable, Iterable, Optional, Self
 
+# noinspection PyUnresolvedReferences
 from lz4.frame import compress, decompress
 
 
