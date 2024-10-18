@@ -13,6 +13,7 @@ Modified: 18.10.2024
 # TODO Future Work: Defining granularity of logging in inits
 
 import logging
+from collections.abc import MutableMapping
 from typing import Callable
 
 
@@ -62,3 +63,47 @@ def remove_feature(d_point: dict, f_features: list) -> dict:
     for feature in f_features:
         d_point.pop(feature, None)
     return d_point
+
+
+def flatten_dict(
+    dictionary: (dict, list),
+    seperator: str = ".",
+    par_key: str = "",
+) -> dict:
+    """Creates a flat dictionary (a dictionary without sub-dictionaries) from the
+    given dictionary. The keys of sub-dictionaries are merged into the parent
+    dictionary by combining the keys and adding a seperator: {a: {b: c, d: e}, f: g}
+    becomes {a.b: c, a.d: e, f: g} assuming the seperator as '.'. However,
+    redundant parent keys are greedily eliminated from the dictionary.
+
+    :param dictionary: The dictionary to flatten.
+    :param seperator: The seperator to use.
+    :param par_key: The key of the parent dictionary.
+    :return: A flat dictionary with keys merged and seperated using the seperator.
+    :raises ValueError: If there are key-collisions by greedily flattening the
+    dictionary.
+    """
+    items = {}
+    for key, val in dictionary.items():
+        cur_key = (
+            par_key + seperator + key
+            if par_key != "" and not key.startswith(par_key + seperator)
+            else key
+        )
+        if isinstance(val, MutableMapping):
+            sub_items = flatten_dict(val, par_key=cur_key, seperator=seperator)
+            for subkey in sub_items.keys():
+                if subkey in items:
+                    raise ValueError(
+                        f"Key collision in dictionary "
+                        f"({subkey, sub_items[subkey]} vs {subkey, items[subkey]})!"
+                    )
+            items.update(sub_items)
+        else:
+            if cur_key in items:
+                raise ValueError(
+                    f"Key collision in dictionary ({cur_key, val} "
+                    f"vs {cur_key, items[cur_key]})!"
+                )
+            items.update({cur_key: val})
+    return items

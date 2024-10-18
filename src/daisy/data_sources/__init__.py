@@ -32,6 +32,7 @@ __all__ = [
     "CSVFileSourceHandler",
     "DataProcessor",
     "remove_feature",
+    "flatten_dict",
     "DataSourceRelay",
     "CSVFileRelay",
     "DataSource",
@@ -54,6 +55,7 @@ from .data_handler import (
 from .data_processor import (
     DataProcessor,
     remove_feature,
+    flatten_dict,
 )
 from .data_relay import DataSourceRelay, CSVFileRelay
 from .data_source import DataSource
