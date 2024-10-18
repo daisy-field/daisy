@@ -161,20 +161,20 @@ class FederatedOnlineAggregator(ABC):
         """
         raise NotImplementedError
 
-    def _update_dashboard(self, ressource: str, data: dict):
-        """Updates a specific ressource of the dashboard, if given and available with
+    def _update_dashboard(self, resource: str, data: dict):
+        """Updates a specific resource of the dashboard, if given and available with
         given data. Note that both the available resources and the to be reported
         data is determined by the dashboard's endpoints, and must be
         adjusted/extended if more data is to be reported than current functionality
         allows (see dashboard subpackage)
 
-        :param ressource: URL-suffix to ressource.
+        :param resource: URL-suffix to resource.
         :param data: Data to report.
         """
         if self._dashboard_url is None:
             return
         try:
-            _ = requests.post(url=self._dashboard_url + ressource, data=data)
+            _ = requests.post(url=self._dashboard_url + resource, data=data)
         except requests.exceptions.RequestException as e:
             self._logger.warning(f"Dashboard server not reachable: {e}")
 
@@ -430,7 +430,7 @@ class FederatedValueAggregator(FederatedOnlineAggregator):
 
     Note that the base class could be extended in various other ways as well,
     it is recommended to put such functionality into the setup() and cleanup() methods.
-    Finally create_fed_aggr() may also be extended to add additional functionality
+    Finally, create_fed_aggr() may also be extended to add additional functionality
     during the aggregation loop before _receive_node_msgs() is called.
     """
 
@@ -522,7 +522,7 @@ class FederatedValueAggregator(FederatedOnlineAggregator):
 
 class FederatedPredictionAggregator(FederatedValueAggregator):
     """Aggregator for prediction values from a federated IDS. Since federated IDS
-    nodes report their predictions in minibatches, each message received from a node
+    nodes report their predictions in mini-batches, each message received from a node
     contains a multitude of values, which must be fragmented first, before they can
     be stored.
 

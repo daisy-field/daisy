@@ -3,7 +3,10 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""TODO @Jonathan
+"""This package contains scripts for collecting traffic.
+
+    * Pyshark data collector - collects live network traffic using pyshark, processes
+        it and stores it in a CSV file.
 
 Author: Jonathan Ackerschewski
 Modified: 11.10.2024

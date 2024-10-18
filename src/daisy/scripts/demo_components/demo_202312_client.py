@@ -46,9 +46,9 @@ import pathlib
 import tensorflow as tf
 
 from daisy.data_sources import (
-    DataSource,
+    DataHandler,
     DataProcessor,
-    PcapHandler,
+    PcapDataSource,
     march23_events,
     packet_to_dict,
     remove_feature,
@@ -184,7 +184,9 @@ def create_client():
         aggr_serv = (args.aggrServ, args.aggrServPort)
 
     # Datasource
-    handler = PcapHandler(f"{args.pcapBasePath}/diginet-cohda-box-dsrc{args.clientId}")
+    source = PcapDataSource(
+        f"{args.pcapBasePath}/diginet-cohda-box-dsrc{args.clientId}"
+    )
     processor = (
         DataProcessor()
         .add_func(lambda o_point: packet_to_dict(o_point))
@@ -194,7 +196,7 @@ def create_client():
         )
         .add_func(lambda o_point: dict_to_numpy_array(o_point, default_nn_aggregator))
     )
-    data_source = DataSource(source_handler=handler, data_processor=processor)
+    data_handler = DataHandler(data_source=source, data_processor=processor)
 
     # Model
     optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
@@ -214,7 +216,7 @@ def create_client():
 
     # Client
     client = FederatedOnlineClient(
-        data_source=data_source,
+        data_handler=data_handler,
         batch_size=args.batchSize,
         model=model,
         label_split=65,
