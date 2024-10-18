@@ -37,6 +37,10 @@ class Metrics(models.Model):
     recall = models.FloatField()
     precision = models.FloatField()
     timestamp = models.DateTimeField(auto_now_add=True)
+    true_negative_rate = models.FloatField()
+    false_negative_rate = models.FloatField()
+    negative_predictive_value = models.FloatField()
+    false_positive_rate = models.FloatField()
 
     def save(self, *args, **kwargs):
         total_records = Metrics.objects.count()
@@ -50,6 +54,10 @@ class Metrics(models.Model):
                 recall=oldest_record.recall,
                 precision=oldest_record.precision,
                 timestamp=oldest_record.timestamp,
+                true_negative_rate=oldest_record.true_negative_rate,
+                false_negative_rate=oldest_record.false_negative_rate,
+                negative_predictive_value=oldest_record.negative_predictive_value,
+                false_positive_rate=oldest_record.false_positive_rate,
             )
             oldest_record.delete()
             total_records = Metrics.objects.count()
@@ -64,6 +72,10 @@ class Metrics_long(models.Model):
     recall = models.FloatField()
     precision = models.FloatField()
     timestamp = models.DateTimeField()
+    true_negative_rate = models.FloatField()
+    false_negative_rate = models.FloatField()
+    negative_predictive_value = models.FloatField()
+    false_positive_rate = models.FloatField()
 
     def save(self, *args, **kwargs):
         total_records = Metrics_long.objects.count()
