@@ -212,54 +212,89 @@ class EventParser:
         operation = dictionary[self._op]
 
         if operation in self._binary_operators:
-            match operation:
-                case "and":
-                    return lambda data: result[self._var1](data) and result[self._var2](
-                        data
-                    )
-                case "or":
-                    return lambda data: result[self._var1](data) or result[self._var2](
-                        data
-                    )
-
-                case _:
-                    raise NotImplementedError(
-                        f"Operation {operation} not supported in EventParser."
-                    )
+            return self._create_binary_fn(result, operation)
 
         if operation in self._unary_operators:
-            match operation:
-                case "not":
-                    return lambda data: not result[self._var1](data)
-
-                case _:
-                    raise NotImplementedError(
-                        f"Operation {operation} not supported in EventParser."
-                    )
+            return self._create_unary_fn(result, operation)
 
         if operation in self._comparators:
-            match operation:
-                case "=":
-                    return (
-                        lambda data: get_value(dictionary[self._var1][0], data)
-                        == dictionary[self._var2][0]
-                    )
-                case "in":
-                    return (
-                        lambda data: dictionary[self._var1][0]
-                        in get_value(dictionary[self._var2][0], data)
-                        if get_value(dictionary[self._var2][0], data)
-                        else False
-                    )
-
-                case _:
-                    raise NotImplementedError(
-                        f"Operation {operation} not supported in EventParser."
-                    )
+            return self._create_comparator_fn(dictionary, operation)
 
         raise NotImplementedError(
             f"Operation {operation} not supported in EventParser."
         )
+
+    def _create_binary_fn(
+        self, result: dict, operation: str
+    ) -> Callable[[list[dict]], bool]:
+        """Creates the binary function part. The results of previous runs of the
+        create_fn method are used in this function to combine them using binary
+        functions (and, or operators).
+
+        :param result: A dictionary containing the results of previous runs
+        :param operation: The operation to perform
+        """
+        match operation:
+            case "and":
+                return lambda data: result[self._var1](data) and result[self._var2](
+                    data
+                )
+            case "or":
+                return lambda data: result[self._var1](data) or result[self._var2](data)
+
+            case _:
+                raise NotImplementedError(
+                    f"Operation {operation} not supported in EventParser."
+                )
+
+    def _create_unary_fn(
+        self, result: dict, operation: str
+    ) -> Callable[[list[dict]], bool]:
+        """Creates the unary function part. The results of previous runs of the
+        create_fn method are used in this function to combine them using unary
+        functions (not operator).
+
+        :param result: A dictionary containing the results of previous runs
+        :param operation: The operation to perform
+        """
+        match operation:
+            case "not":
+                return lambda data: not result[self._var1](data)
+
+            case _:
+                raise NotImplementedError(
+                    f"Operation {operation} not supported in EventParser."
+                )
+
+    def _create_comparator_fn(
+        self, dictionary: dict, operation: str
+    ) -> Callable[[list[dict]], bool]:
+        """Creates the comparisons for the function. The dictionary should contain
+        a feature, operation, and value. Based on the comparator, a function is
+        returned, which performs the desired comparison.
+
+        :param dictionary: A dictionary containing a feature and value to use for the
+        generated function
+        :param operation: The operation to perform
+        """
+        match operation:
+            case "=":
+                return (
+                    lambda data: get_value(dictionary[self._var1][0], data)
+                    == dictionary[self._var2][0]
+                )
+            case "in":
+                return (
+                    lambda data: dictionary[self._var1][0]
+                    in get_value(dictionary[self._var2][0], data)
+                    if get_value(dictionary[self._var2][0], data)
+                    else False
+                )
+
+            case _:
+                raise NotImplementedError(
+                    f"Operation {operation} not supported in EventParser."
+                )
 
 
 def get_value(feature: str, data: list[dict]) -> object:
