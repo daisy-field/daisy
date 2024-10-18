@@ -11,8 +11,7 @@ provided interfaces to enable this framework for various use-cases.
     * DataSource - Core class of any data source, union of DataProcessor, SourceHandler.
     * SourceHandler - Interface class. Implementations must provide data point
     objects in generator-like fashion.
-    * DataProcessor - Interface class. Implementations must process data point
-    objects into vectors (numpy arrays).
+    * DataProcessor - Processor for data points. Processing functions must be provided.
     * DataSourceRelay - Second core class that allows the processing and forwarding
     of data points to another host.
     * CSVFileRelay - Third core class that allows the export of data points to CSV.
@@ -23,7 +22,7 @@ Currently, the following sub-packages are offering interface implementations:
     originating from t-/wireshark or pcaps. See the subpackage documentation for more.
 
 Author: Fabian Hofmann, Jonathan Ackerschewski, Seraphin Zunzer
-Modified: 16.04.24
+Modified: 18.10.2024
 """
 
 __all__ = [
@@ -32,8 +31,7 @@ __all__ = [
     "SimpleRemoteSourceHandler",
     "CSVFileSourceHandler",
     "DataProcessor",
-    "SimpleDataProcessor",
-    "remove_filter_fn",
+    "remove_feature",
     "DataSourceRelay",
     "CSVFileRelay",
     "DataSource",
@@ -55,8 +53,7 @@ from .data_handler import (
 )
 from .data_processor import (
     DataProcessor,
-    SimpleDataProcessor,
-    remove_filter_fn,
+    remove_feature,
 )
 from .data_relay import DataSourceRelay, CSVFileRelay
 from .data_source import DataSource
