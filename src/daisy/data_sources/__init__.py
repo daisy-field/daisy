@@ -25,7 +25,7 @@ Currently, the following sub-packages are offering interface implementations:
     originating from t-/wireshark or pcaps. See the subpackage documentation for more.
 
 Author: Fabian Hofmann, Jonathan Ackerschewski, Seraphin Zunzer
-Modified: 16.04.24
+Modified: 18.10.2024
 """
 
 __all__ = [

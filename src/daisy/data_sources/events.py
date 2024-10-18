@@ -8,7 +8,7 @@ user to create events. Each event contains a string with conditions used to dete
 whether a data point should be labeled.
 
 Author: Jonathan Ackerschewski
-Modified: 14.10.24
+Modified: 18.10.24
 """
 
 import logging
