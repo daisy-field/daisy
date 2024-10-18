@@ -34,6 +34,7 @@ __all__ = [
     "default_f_features",
     "march23_events",
     "label_data_point",
+    "default_nn_aggregator",
 ]
 
 from .demo_202312 import default_f_features, march23_events, label_data_point
@@ -43,4 +44,5 @@ from .pyshark_processor import (
     dict_to_numpy_array,
     packet_to_dict,
     dict_to_json,
+    default_nn_aggregator,
 )

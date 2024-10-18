@@ -15,17 +15,17 @@ import argparse
 import logging
 import re
 
+from daisy.communication import StreamEndpoint
 from daisy.data_sources import (
     DataSource,
-    SimpleDataProcessor,
-    remove_filter_fn,
-    pyshark_map_fn,
+    DataProcessor,
+    packet_to_dict,
+    remove_feature,
     LivePysharkHandler,
     SimpleRemoteSourceHandler,
     CSVFileRelay,
     DataSourceRelay,
 )
-from daisy.communication import StreamEndpoint
 
 
 def label_reduce(
@@ -508,13 +508,16 @@ def create_data_processor(args, f_features, events):
     """
 
     if args.toFile:
-        return SimpleDataProcessor(
-            map_fn=pyshark_map_fn(),
-            filter_fn=remove_filter_fn(f_features),
-            reduce_fn=lambda x: label_reduce(x, events, default_label="benign"),
+        return (
+            DataProcessor()
+            .add_func(lambda o_point: packet_to_dict(o_point))
+            .add_func(lambda o_point: remove_feature(o_point, f_features))
+            .add_func(
+                lambda o_point: label_reduce(o_point, events, default_label="benign")
+            )
         )
     else:
-        return SimpleDataProcessor()
+        return DataProcessor()
 
 
 def create_relay(args, data_source, headers):

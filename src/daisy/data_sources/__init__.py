@@ -45,6 +45,7 @@ __all__ = [
     "default_f_features",
     "march23_events",
     "label_data_point",
+    "default_nn_aggregator",
 ]
 
 from .data_handler import (
@@ -70,4 +71,5 @@ from .network_traffic import (
     default_f_features,
     march23_events,
     label_data_point,
+    default_nn_aggregator,
 )

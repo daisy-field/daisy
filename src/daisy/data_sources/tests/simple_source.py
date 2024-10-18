@@ -16,7 +16,7 @@ import logging
 from daisy.data_sources import (
     DataSource,
     CSVFileRelay,
-    SimpleDataProcessor,
+    DataProcessor,
     SimpleSourceHandler,
 )
 
@@ -27,7 +27,7 @@ def source_writer():
     """
     _list = [{"a": 2}, {"a": 3}, {"a": 3}, {"a": 4}, {"a": 5}]
     handler = SimpleSourceHandler(iter(_list))
-    processor = SimpleDataProcessor()
+    processor = DataProcessor()
 
     with DataSource(
         source_handler=handler, data_processor=processor, multithreading=True
@@ -46,7 +46,7 @@ def source_status():
     is complete."""
     _list = [{"a": 2}, {"a": 3}, {"a": 3}, {"a": 4}, {"a": 5}]
     handler = SimpleSourceHandler(iter(_list))
-    processor = SimpleDataProcessor()
+    processor = DataProcessor()
 
     d = DataSource(
         source_handler=handler, data_processor=processor, multithreading=True
@@ -64,7 +64,7 @@ def list_source():
     """
     _list = [{"a": 2}, {"a": 3}, {"a": 3}, {"a": 4}, {"a": 5}]
     handler = SimpleSourceHandler(iter(_list))
-    processor = SimpleDataProcessor()
+    processor = DataProcessor()
 
     with DataSource(
         source_handler=handler, data_processor=processor, multithreading=True

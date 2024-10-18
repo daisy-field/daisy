@@ -17,9 +17,15 @@ import logging
 
 from daisy.data_sources import (
     DataSource,
+    DataProcessor,
+    packet_to_dict,
+    remove_feature,
+    default_f_features,
+    label_data_point,
+    dict_to_numpy_array,
+    default_nn_aggregator,
     CSVFileRelay,
     PcapHandler,
-    CohdaProcessor,
     march23_events,
 )
 
@@ -34,8 +40,11 @@ def pyshark_writer():  # TODO
     source to a csv file that runs until processing all data points.
     """
     handler = PcapHandler(file_path)
-    processor = CohdaProcessor(
-        client_id=2, events=march23_events, reduce_fn=lambda o_point: o_point
+    processor = (
+        DataProcessor()
+        .add_func(lambda o_point: packet_to_dict(o_point))
+        .add_func(lambda o_point: remove_feature(o_point, default_f_features))
+        .add_func(lambda o_point: label_data_point(2, march23_events, o_point))
     )
 
     with DataSource(
@@ -54,7 +63,13 @@ def pyshark_printer():  # TODO
     wrapped in a pcap source handler and using the cohda processor to label it.
     """
     handler = PcapHandler(file_path)
-    processor = CohdaProcessor(client_id=2, events=march23_events)
+    processor = (
+        DataProcessor()
+        .add_func(lambda o_point: packet_to_dict(o_point))
+        .add_func(lambda o_point: remove_feature(o_point, default_f_features))
+        .add_func(lambda o_point: label_data_point(2, march23_events, o_point))
+        .add_func(lambda o_point: dict_to_numpy_array(o_point, default_nn_aggregator))
+    )
 
     with DataSource(
         source_handler=handler, data_processor=processor, multithreading=True
