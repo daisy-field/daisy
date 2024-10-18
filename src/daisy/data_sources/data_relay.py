@@ -3,9 +3,9 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""A number of useful tools tht build on top of the data source module, to provide
+"""A number of useful tools tht build on top of the data handler module, to provide
 relays of data points, either over a network over communication endpoints or directly
-to a local file(s) on disk. Both wrap around DataSource and thus process the data
+to a local file(s) on disk. Both wrap around DataHandler and thus process the data
 stream as it yields data points. Can be used for arbitrarily large arbitrary data
 streams.
 
@@ -20,22 +20,22 @@ from collections import OrderedDict
 from pathlib import Path
 
 from daisy.communication import StreamEndpoint
-from .data_source import DataSource
+from .data_handler import DataHandler
 
 
-class DataSourceRelay:
-    """A union of a data source and a stream endpoint to retrieve data points from
+class DataHandlerRelay:
+    """A union of a data handler and a stream endpoint to retrieve data points from
     the former and relay them over the latter. This allows the disaggregation of the
-    actual datasource from the other processing steps. For example, the relay could
+    actual data handler from the other processing steps. For example, the relay could
     be deployed with our without an actual processor on another host and the data is
-    forwarded over the network to another host running a data source with a
-    SimpleRemoteSourceHandler to receive and further process the data. This chain
+    forwarded over the network to another host running a data handler with a
+    SimpleRemoteDataSource to receive and further process the data. This chain
     could also be continued beyond a single host pair.
     """
 
     _logger: logging.Logger
 
-    _data_source: DataSource
+    _data_handler: DataHandler
     _endpoint: StreamEndpoint
 
     _relay: threading.Thread
@@ -43,28 +43,28 @@ class DataSourceRelay:
     _completed = threading.Event
 
     def __init__(
-        self, data_source: DataSource, endpoint: StreamEndpoint, name: str = ""
+        self, data_handler: DataHandler, endpoint: StreamEndpoint, name: str = ""
     ):
-        """Creates a new data source relay.
+        """Creates a new data handler relay.
 
-        :param data_source: Data source to relay data points from.
+        :param data_handler: Data handler to relay data points from.
         :param endpoint: Streaming endpoint to which data points are relayed to.
         :param name: Name of data source relay for logging purposes.
         """
         self._logger = logging.getLogger(name)
-        self._logger.info("Initializing data source relay...")
+        self._logger.info("Initializing data handler relay...")
 
         self._started = False
         self._completed = threading.Event()
 
-        self._data_source = data_source
+        self.data_handler = data_handler
         self._endpoint = endpoint
 
-        self._logger.info("Data source relay initialized.")
+        self._logger.info("Data handler relay initialized.")
 
     def start(self, blocking: bool = False):
-        """Starts the data source relay along any other objects in this union (data
-        source, endpoint). Non-blocking, as the relay is started in the background to
+        """Starts the data handler relay along any other objects in this union (data
+        handler, endpoint). Non-blocking, as the relay is started in the background to
         allow the stopping of it afterward.
 
         :param blocking: Whether the relay should block until all data points have
@@ -73,13 +73,13 @@ class DataSourceRelay:
         every data point and may be closed. Only useful when calling start()
         non-blocking, otherwise it is implicitly used to wait for completion.
         """
-        self._logger.info("Starting data source relay...")
+        self._logger.info("Starting data handler relay...")
         if self._started:
             raise RuntimeError("Relay has already been started!")
         self._started = True
         self._completed.clear()
         try:
-            self._data_source.open()
+            self.data_handler.open()
         except RuntimeError:
             pass
         try:
@@ -89,7 +89,7 @@ class DataSourceRelay:
 
         self._relay = threading.Thread(target=self._create_relay, daemon=True)
         self._relay.start()
-        self._logger.info("Data source relay started.")
+        self._logger.info("Data handler relay started.")
 
         if blocking:
             self._completed.wait()
@@ -97,16 +97,16 @@ class DataSourceRelay:
         return self._completed
 
     def stop(self):
-        """Closes and stops the data source and the endpoint and joins the relay
+        """Closes and stops the data handler and the endpoint and joins the relay
         thread into the current thread. Can be restarted (and stopped) and arbitrary
         amount of times.
         """
-        self._logger.info("Stopping data source relay...")
+        self._logger.info("Stopping data handler relay...")
         if not self._started:
             raise RuntimeError("Endpoint has not been started!")
         self._started = False
         try:
-            self._data_source.close()
+            self.data_handler.close()
         except RuntimeError:
             pass
         try:
@@ -115,14 +115,14 @@ class DataSourceRelay:
             pass
 
         self._relay.join()
-        self._logger.info("Data source relay stopped.")
+        self._logger.info("Data handler relay stopped.")
 
     def _create_relay(self):
-        """Actual relay, directly forwards data points from its data source to its
+        """Actual relay, directly forwards data points from its data handler to its
         endpoint (both might be async).
         """
-        self._logger.info("Starting to relay data points from data source...")
-        for d_point in self._data_source:
+        self._logger.info("Starting to relay data points from data handler...")
+        for d_point in self._data_handler:
             try:
                 self._endpoint.send(d_point)
             except RuntimeError:
@@ -137,18 +137,17 @@ class DataSourceRelay:
 
 
 class CSVFileRelay:
-    """A union of a data source and a (csv) file handler to retrieve data points form
+    """A union of a data handler and a (csv) file handler to retrieve data points from
     the former and storing them in the file. This allows the pre-processing of data
     points from a stream and re-using them at a later time by replaying the file.
 
     Note that such a relay requires an intact dictionary containing values for all
-    fields of the data point header's parameters, i.e. the reduce() function of any
-    DataProcessor of the DataSource must not transform it into a numpy vector.
+    fields of the data point header's parameters.
     """
 
     _logger: logging.Logger
 
-    _data_source: DataSource
+    _data_handler: DataHandler
     _file: Path
     _header_buffer_size: int
     _headers: tuple[str, ...]
@@ -162,7 +161,7 @@ class CSVFileRelay:
 
     def __init__(
         self,
-        data_source: DataSource,
+        data_handler: DataHandler,
         target_file: str,
         name: str = "",
         header_buffer_size: int = 1000,
@@ -173,8 +172,8 @@ class CSVFileRelay:
     ):
         """Creates a new CSV file relay.
 
-        :param data_source: The data source providing the data points to write to
-        file. The processor used by the data source is expected to return data points
+        :param data_handler: The data handler providing the data points to write to
+        file. The processor used by the data handler is expected to return data points
         as a dictionary containing all values for all fields in the header's parameter.
         :param target_file: The path to the (new) CSV file. The parent directories
         will be created if not existent.
@@ -226,7 +225,7 @@ class CSVFileRelay:
             if not overwrite_file:
                 raise ValueError("File already exists and should not be overwritten.")
 
-        self._data_source = data_source
+        self._data_handler = data_handler
         self._separator = separator
         if headers is not None:
             self._header_buffer_size = 0
@@ -241,7 +240,7 @@ class CSVFileRelay:
         self._logger.info("File relay initialized.")
 
     def start(self, blocking: bool = False):
-        """Starts the data source relay along the data source itself. Non-blocking,
+        """Starts the csv file relay along the data source itself. Non-blocking,
         as the relay is started in the background to allow the stopping of it afterward.
 
         :param blocking: Whether the relay should block until all data points have
@@ -256,7 +255,7 @@ class CSVFileRelay:
         self._started = True
         self._completed.clear()
         try:
-            self._data_source.open()
+            self._data_handler.open()
         except RuntimeError:
             pass
 
@@ -272,7 +271,7 @@ class CSVFileRelay:
         return self._completed
 
     def stop(self):
-        """Closes and stops the data source and joins the relay thread into the
+        """Closes and stops the data handler and joins the relay thread into the
         current thread. Can be restarted (and stopped) and arbitrary amount of times.
 
         Note that stopping the relay will not reset the csv file, only recreating it
@@ -283,7 +282,7 @@ class CSVFileRelay:
             raise RuntimeError("Relay has not been started!")
         self._started = False
         try:
-            self._data_source.close()
+            self._data_handler.close()
         except RuntimeError:
             pass
 
@@ -328,7 +327,7 @@ class CSVFileRelay:
             if self._headers_provided:
                 file.write(f"{self._separator.join(self._headers)}\n")
             try:
-                for d_point in self._data_source:
+                for d_point in self._data_handler:
                     try:
                         if not self._started:
                             # stop was called

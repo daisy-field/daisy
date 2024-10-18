@@ -8,11 +8,11 @@ preprocessing for further (ML) tasks. The data source module is the core of the
 package while modules and further subpackages are implementations/extensions of the
 provided interfaces to enable this framework for various use-cases.
 
-    * DataSource - Core class of any data source, union of DataProcessor, SourceHandler.
-    * SourceHandler - Interface class. Implementations must provide data point
+    * DataHandler - Core class of any data handler, union of DataProcessor, DataSource.
+    * DataSource - Interface class. Implementations must provide data point
     objects in generator-like fashion.
     * DataProcessor - Processor for data points. Processing functions must be provided.
-    * DataSourceRelay - Second core class that allows the processing and forwarding
+    * DataHandlerRelay - Second core class that allows the processing and forwarding
     of data points to another host.
     * CSVFileRelay - Third core class that allows the export of data points to CSV.
 
@@ -26,18 +26,18 @@ Modified: 18.10.2024
 """
 
 __all__ = [
-    "SourceHandler",
-    "SimpleSourceHandler",
-    "SimpleRemoteSourceHandler",
-    "CSVFileSourceHandler",
+    "DataSource",
+    "SimpleDataSource",
+    "SimpleRemoteDataSource",
+    "CSVFileDataSource",
     "DataProcessor",
     "remove_feature",
     "flatten_dict",
-    "DataSourceRelay",
+    "DataHandlerRelay",
     "CSVFileRelay",
-    "DataSource",
-    "LivePysharkHandler",
-    "PcapHandler",
+    "DataHandler",
+    "LivePysharkDataSource",
+    "PcapDataSource",
     "create_pyshark_processor",
     "dict_to_numpy_array",
     "packet_to_dict",
@@ -48,22 +48,22 @@ __all__ = [
     "default_nn_aggregator",
 ]
 
-from .data_handler import (
-    SourceHandler,
-    SimpleSourceHandler,
-    SimpleRemoteSourceHandler,
-    CSVFileSourceHandler,
-)
+from .data_handler import DataHandler
 from .data_processor import (
     DataProcessor,
     remove_feature,
     flatten_dict,
 )
-from .data_relay import DataSourceRelay, CSVFileRelay
-from .data_source import DataSource
+from .data_relay import DataHandlerRelay, CSVFileRelay
+from .data_source import (
+    DataSource,
+    SimpleDataSource,
+    SimpleRemoteDataSource,
+    CSVFileDataSource,
+)
 from .network_traffic import (
-    LivePysharkHandler,
-    PcapHandler,
+    LivePysharkDataSource,
+    PcapDataSource,
     create_pyshark_processor,
     dict_to_numpy_array,
     packet_to_dict,

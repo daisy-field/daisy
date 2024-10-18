@@ -16,7 +16,7 @@ Modified: 07.06.24
 import logging
 
 from daisy.data_sources import (
-    DataSource,
+    DataHandler,
     DataProcessor,
     packet_to_dict,
     remove_feature,
@@ -25,7 +25,7 @@ from daisy.data_sources import (
     dict_to_numpy_array,
     default_nn_aggregator,
     CSVFileRelay,
-    PcapHandler,
+    PcapDataSource,
     march23_events,
 )
 
@@ -35,11 +35,11 @@ file_path = (
 )
 
 
-def pyshark_writer():  # TODO
+def pyshark_writer():
     """Creates and starts a file relay to write the contents of a pyshark file data
     source to a csv file that runs until processing all data points.
     """
-    handler = PcapHandler(file_path)
+    source = PcapDataSource(file_path)
     processor = (
         DataProcessor()
         .add_func(lambda o_point: packet_to_dict(o_point))
@@ -47,22 +47,22 @@ def pyshark_writer():  # TODO
         .add_func(lambda o_point: label_data_point(2, march23_events, o_point))
     )
 
-    with DataSource(
-        source_handler=handler, data_processor=processor, multithreading=True
-    ) as source:
+    with DataHandler(
+        data_source=source, data_processor=processor, multithreading=True
+    ) as handler:
         relay = CSVFileRelay(
-            data_source=source,
+            data_handler=handler,
             target_file="test_pcap.csv",
             overwrite_file=True,
         )
         relay.start(blocking=True)
 
 
-def pyshark_printer():  # TODO
-    """Creates and starts a data source from a directory of pcap files,
-    wrapped in a pcap source handler and using the cohda processor to label it.
+def pyshark_printer():
+    """Creates and starts a data handler from a directory of pcap files,
+    wrapped in a pcap data source and using the cohda processor to label it.
     """
-    handler = PcapHandler(file_path)
+    source = PcapDataSource(file_path)
     processor = (
         DataProcessor()
         .add_func(lambda o_point: packet_to_dict(o_point))
@@ -71,10 +71,10 @@ def pyshark_printer():  # TODO
         .add_func(lambda o_point: dict_to_numpy_array(o_point, default_nn_aggregator))
     )
 
-    with DataSource(
-        source_handler=handler, data_processor=processor, multithreading=True
-    ) as source:
-        for item in source:
+    with DataHandler(
+        data_source=source, data_processor=processor, multithreading=True
+    ) as handler:
+        for item in handler:
             print(item)
 
 
