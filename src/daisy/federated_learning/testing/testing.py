@@ -76,13 +76,9 @@ match model_type:
         test_data = np.random.rand(1000, 6)
         model.evaluate(test_data, test_data)
 
-        print(model.get_weights()[4])
-        print(model2.get_weights()[2])
         aggregator = LCAggregator({0: model.layers, 1: model2.layers})
         aggregation_result = aggregator.aggregate(
              (0, model.get_weights()), [(1, model2.get_weights())])
-
-        print(aggregation_result[4])
 
         model.set_weights(aggregation_result)
         model.evaluate(test_data, test_data)

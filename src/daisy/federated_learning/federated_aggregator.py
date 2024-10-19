@@ -245,31 +245,29 @@ class EMAggregator(ModelAggregator):
 
 
 class LCAggregator(Aggregator):
+    """Layerswise commonality aggregator
+
+    """
     _commonalities = {}
 
     def __init__(self, models: dict[int, list[Model]]):
-        """ Creates a new layerwise aggregator.
+        """ Creates a new layerwise aggregator. Builds the layer information of all models layers.
+        Finds commonalities between the different models from the layer information.
 
         :param models: dictionary of model layers with their respective archetype id
         """
-        self._fed_avg = FedAvgAggregator()
-
         for model_key in models.keys():
             # Build the information about the model layers of the current archetype
-            layers = self.build_own_information(models[model_key], model_key)
+            layers = self.build_model_information(models[model_key], model_key)
 
             # Go through all other models and add their respective similarities
             for other_key in self._commonalities.keys():
                 if other_key == model_key:
-                    all_layers = np.arange(len(self._commonalities[model_key]['weight_indices'])).tolist()
-                    self._commonalities[model_key][other_key] = all_layers
-                    self._commonalities[other_key][model_key] = all_layers
                     continue
 
                 # Find layerwise commonalities between two model architectures
                 other_layers = self._commonalities[other_key]['layers']
-                sequence_len, sequence_start_own, sequence_start_other = (
-                    self.find_layer_similarities(layers, other_layers))
+                sequence_len, sequence_start_own, sequence_start_other = self.match_layers((layers, other_layers))
 
                 # Get indices of layers to share
                 shareable_layers = np.arange(sequence_start_own, sequence_start_own + sequence_len, dtype=int)
@@ -280,8 +278,14 @@ class LCAggregator(Aggregator):
 
         print(self._commonalities)
 
-    def build_own_information(self, model, model_key) -> list[str]:
-        # Construct the layer list with information for each layer
+    def build_model_information(self, model, model_key) -> list[str]:
+        """Construct the layer list with information for each layer
+        Also match which weights belong to the different layers.
+
+        :param model: List of the layers of the models
+        :param model_key: Key of the model archetype
+        :return: Layers converted into a comparable string representation
+        """
         layers = []
         weight_indices = []
         for i, layer in enumerate(model):
@@ -293,20 +297,20 @@ class LCAggregator(Aggregator):
         self._commonalities[model_key] = {
             'layers': layers,
             'weight_indices': weight_indices,
+            model_key: np.arange(len(weight_indices)),
         }
-
         return layers
 
     @staticmethod
-    def find_layer_similarities(own_layers: list[str], other_layers: list[str]) -> (int, int, int):
-        match = SequenceMatcher(None, own_layers, other_layers).find_longest_match()
+    def match_layers(layers: (list[str], list[str])) -> (int, int, int):
+
+        match = SequenceMatcher(None, layers[0], layers[1]).find_longest_match()
         return match.size if match.size > 2 else 0, match.a, match.b
 
     def get_relevant_weights(self, model_ids: (int, int), layer_indices: np.ndarray):
-        occurrences = []
-        for index in layer_indices:
-            occurrences.extend(np.where(index == self._commonalities[model_ids[0]]['weight_indices'])[0].tolist())
-        self._commonalities[model_ids[0]][model_ids[1]] = occurrences
+        occurrences = \
+            [np.where(index == self._commonalities[model_ids[0]]['weight_indices'])[0] for index in layer_indices]
+        self._commonalities[model_ids[0]][model_ids[1]] = np.concatenate(occurrences).tolist()
 
     def get_aggregation_list(self, base_model: (int, list[np.ndarray]),
                              models_parameters: list[(int, list[np.ndarray])]) -> (list[list[np.ndarray]], list[float]):
@@ -321,6 +325,8 @@ class LCAggregator(Aggregator):
 
             # Get the relevant weights from the model
             relevant_layers = self._commonalities[model_id][base_id]
+            print(type(relevant_layers))
+            print(type(model_weights))
             relevant_weights = [model_weights[idx] for idx in relevant_layers]
             weight_factor = len(relevant_layers) / len(aggregation_list)
 
@@ -328,16 +334,10 @@ class LCAggregator(Aggregator):
             for (j, idx) in enumerate(relevant_layers):
                 aggregation_list[idx].append(relevant_weights[j] * weight_factor)
                 weight_list[idx] += weight_factor
-
         return aggregation_list, weight_list
 
     def aggregate(self, base_model: (int, list[np.ndarray]), models_parameters: list[(int, list[np.ndarray])]) \
             -> list[np.ndarray]:
 
         aggregation_list, weight_list = self.get_aggregation_list(base_model, models_parameters)
-
-        for (j, layer) in enumerate(aggregation_list):
-            aggregation_list[j] = sum(layer) / weight_list[j]
-
-        print(weight_list[4])
-        return aggregation_list
+        return [sum(layer) / weight_list[j] for (j, layer) in enumerate(aggregation_list)]
