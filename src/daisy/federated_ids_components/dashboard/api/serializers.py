@@ -19,13 +19,35 @@ from api.models import (
 class MetricsSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Metrics
-        fields = ["address", "accuracy", "recall", "precision", "f1", "timestamp"]
+        fields = [
+            "address",
+            "accuracy",
+            "recall",
+            "precision",
+            "f1",
+            "timestamp",
+            "true_negative_rate",
+            "false_negative_rate",
+            "negative_predictive_value",
+            "false_positive_rate",
+        ]
 
 
 class MetricsLongSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Metrics_long
-        fields = ["address", "accuracy", "recall", "precision", "f1", "timestamp"]
+        fields = [
+            "address",
+            "accuracy",
+            "recall",
+            "precision",
+            "f1",
+            "timestamp",
+            "true_negative_rate",
+            "false_negative_rate",
+            "negative_predictive_value",
+            "false_positive_rate",
+        ]
 
 
 class AggregationSerializer(serializers.HyperlinkedModelSerializer):
