@@ -67,7 +67,9 @@ authors = [
 # maintains the project, and a valid email address corresponding to the name
 # listed.
 maintainers = [
-    { name = "Fabian Hofmann", email = "fabian.hofmann@dai-labor.de" }
+    { name = "Fabian Hofmann", email = "fabian.hofmann@dai-labor.de" },
+    { name = "Jonathan Ackerschewski", email = "jonathan.ackerschewski@dai-labor.de" },
+    { name = "Seraphin Zunzer", email = "SeraphinJasper.Zunzer@gt-arc.com" },
 ]
 
 # Classifiers help users find your project by categorizing it.
