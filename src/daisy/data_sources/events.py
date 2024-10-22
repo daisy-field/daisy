@@ -3,11 +3,11 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""Implementation of events used for labeling data. The event handlercan be used by the
+"""Implementation of events used for labeling data. The event handler can be used by the
 user to create events. Each event contains a string with conditions used to determine
 whether a data point should be labeled.
 
-Author: Jonathan Ackerschewski
+Author: Jonathan Ackerschewski, Fabian Hofmann
 Modified: 18.10.24
 """
 
@@ -30,9 +30,9 @@ from pyparsing import (
 
 
 class Event:
-    """A storage class for an event. Contains the start and end times of the event, the
-    label, and the conditions as a function. The condition function should evaluate to
-    true, if the data point falls within the event and false otherwise.
+    """Specific event, with a start and an end timestamp, its label, and conditions
+    whether a data point should be labeled as such (function evaluating to true if
+    that is the case, false otherwise).
     """
 
     start_time: datetime
@@ -51,10 +51,10 @@ class Event:
         points evaluated true by the condition function should be labeled with the
         provided label.
 
-        :param start_time: The start time of the event.
-        :param end_time: The end time of the event.
-        :param label: The label by which data points should be labeled.
-        :param condition_fn: The condition function used to evaluate if a data point
+        :param start_time: Start time of event.
+        :param end_time: End time of event.
+        :param label: Label by which data points falling in the event should be labeled.
+        :param condition_fn: Condition function used to evaluate if a given data point
         falls within the event.
         """
         self.start_time = start_time
@@ -83,9 +83,8 @@ class Event:
 
 
 class EventParser:
-    """This parser is used to parse conditions for events. It takes an expression,
-    parses it, and returns a function, which evaluates if a given data point fulfils
-    the condition.
+    """Parser for conditions of events. It takes an expression, parses it, and returns
+    a function, which evaluates if a given data point fulfils the condition.
 
     The condition has to follow the following grammar:
     exp := pars + (binary_op + pars)? |
@@ -99,7 +98,7 @@ class EventParser:
     binary_op := 'and' | 'or'
     unary_op := 'not'
 
-    For comparators the feature in the dictionary is always expected on the left side
+    For comparators, the feature in the dictionary is always expected on the left side
     of the comparator, except with the 'in' operator, where it is expected on the right.
 
     Some example expressions are:
@@ -269,7 +268,7 @@ class EventParser:
     def _create_comparator_fn(
         self, dictionary: dict, operation: str
     ) -> Callable[[list[dict]], bool]:
-        """Creates the comparisons for the function. The dictionary should contain
+        """Creates the comparisons of the function. The dictionary should contain
         a feature, operation, and value. Based on the comparator, a function is
         returned, which performs the desired comparison.
 
@@ -280,14 +279,14 @@ class EventParser:
         match operation:
             case "=":
                 return (
-                    lambda data: get_value(dictionary[self._var1][0], data)
+                    lambda data: _get_value(dictionary[self._var1][0], data)
                     == dictionary[self._var2][0]
                 )
             case "in":
                 return (
                     lambda data: dictionary[self._var1][0]
-                    in get_value(dictionary[self._var2][0], data)
-                    if get_value(dictionary[self._var2][0], data)
+                    in _get_value(dictionary[self._var2][0], data)
+                    if _get_value(dictionary[self._var2][0], data)
                     else False
                 )
 
@@ -297,24 +296,11 @@ class EventParser:
                 )
 
 
-def get_value(feature: str, data: list[dict]) -> object:
-    """Iterates through the provided dictionaries and returns the value of the first
-    occurrence of the provided feature.
-
-    :param feature: The feature to find
-    :param data: A list of dictionaries to search for the feature
-    """
-    for dictionary in data:
-        if feature in dictionary:
-            return dictionary[feature]
-    raise KeyError(f"Could not find {feature} in {data}")
-
-
 class EventHandler:
-    """The event handler is used to create events and label data points. Events can be
-    added to the class using the `add_event` method. The events are matched to the
-    data points in the added order. The first matching event will be used to label
-    the data point.
+    """Event handler used to create events and automatically label data points. Events
+    can be added to the class using the add_event() method. The events are matched to
+    data points in added order, i.e. first matching event will be used to label
+    a given data point.
     """
 
     _parser: EventParser
@@ -325,18 +311,13 @@ class EventHandler:
     def __init__(
         self, default_label: str = "benign", hide_errors: bool = False, name: str = ""
     ):
-        """Creates an event handler used to label data points. The handler is provided
-        with a default label to use and if errors should be hidden. The events use a
-        condition function which evaluates each data point. This function can throw
-        key errors if the provided data point does not contain features used by the
-        condition function. The hide errors parameter catches the errors and only
-        prints the error in the logs to prevent a long-running code from crashing.
-        Since it cannot be decided if the data point fulfills the event in this case,
-        the data point will be labeled with an error.
+        """Creates an event handler used to label data points.
 
-        :param default_label: This label is used when no event matches the data point
-        :param hide_errors: Catches exceptions in the process method and only prints
-        errors to the logs instead.
+        :param default_label: Label used when no event matches data point.
+        :param hide_errors: Catches any key errors occurring in process() method when
+        encountering data points not containing features used by the conditions of
+        an event, only printing them out in the logs instead of exciting, labeling
+        the data point as erroneous.
         """
         self._logger = logging.getLogger(name)
 
@@ -350,14 +331,14 @@ class EventHandler:
     ):
         """Adds an event to the event handler. The events will be evaluated in the
         order they are provided. Each event has a start and end time, a label that will
-        be used to label the data point and an optional condition. The condition is
-        a string and has to follow a certain grammar, which is explained in detail in
-        the EventParser documentation.
+        be used to label data points that fall under that event, and an optional
+        condition. The condition is a string and has to follow a certain grammar,
+        which is explained in detail in the EventParser.
 
-        :param start_time: The start time of the event
-        :param end_time: The end time of the event
-        :param label: The label of the event
-        :param condition: The condition of the event
+        :param start_time: Start time of event.
+        :param end_time: End time of event.
+        :param label: Label of event.
+        :param condition: Condition(s) data points have to fulfill for this event.
         """
         self._logger.debug(f"Adding new event with condition {condition}")
         if condition:
@@ -384,12 +365,11 @@ class EventHandler:
         If an error occurs with the condition of an event, the data point will be
         labeled with the error label.
 
-        :param timestamp: The timestamp of the data point
-        :param data: The data point and meta information
-        :param data_point: The data point, used for labeling
-        :param label_feature: The feature in the data point where the label will be
-        placed
-        :param error_label: The label to use in case of an error
+        :param timestamp: Timestamp of data point.
+        :param data: Data point and meta information.
+        :param data_point: Data point used for labeling.
+        :param label_feature: Feature in data point for which label will be set.
+        :param error_label: Error label to use.
         """
         labeled = False
         for event in self._events:
@@ -410,3 +390,16 @@ class EventHandler:
             data_point[label_feature] = self._default_label
 
         return data_point
+
+
+def _get_value(feature: str, data: list[dict]) -> object:
+    """Iterates through the provided dictionaries and returns the value of the first
+    occurrence of the provided feature.
+
+    :param feature: The feature to find
+    :param data: List of dictionaries to search for the feature
+    """
+    for dictionary in data:
+        if feature in dictionary:
+            return dictionary[feature]
+    raise KeyError(f"Could not find {feature} in {data}")

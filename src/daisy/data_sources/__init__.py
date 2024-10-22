@@ -17,7 +17,7 @@ provided interfaces to enable this framework for various use-cases.
     of data points to another host.
     * CSVFileRelay - Third core class that allows the export of data points to CSV.
     * CSVFileDataHandler - Allows import of data points from CSV files.
-    * EventHandler - Provides functionality for labeling data points.
+    * EventHandler - Provides functionality for labeling data streams automatically.
 
 Currently, the following sub-packages are offering interface implementations:
 
@@ -25,7 +25,7 @@ Currently, the following sub-packages are offering interface implementations:
     originating from t-/wireshark or pcaps. See the subpackage documentation for more.
 
 Author: Fabian Hofmann, Jonathan Ackerschewski, Seraphin Zunzer
-Modified: 18.10.2024
+Modified: 22.10.2024
 """
 
 __all__ = [
