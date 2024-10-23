@@ -19,6 +19,7 @@ Modified: 19.04.24
 import ipaddress
 import json
 import logging
+import sys
 from collections import defaultdict
 from collections.abc import MutableMapping
 from ipaddress import AddressValueError
@@ -104,9 +105,10 @@ default_f_features = (
 
 
 def default_nn_aggregator(key: str, value: object) -> int:
-    """Simple, exemplary value aggregator. Takes a non-numerical key-value pair and
-    attempts to converted it into an integer. This example does not take the key into
-    account, but only checks the types of the value to proceed.
+    """Simple, exemplary value aggregator. Takes a non-numerical (i.e. string) key-value
+    pair and attempts to converted it into an integer. This example does not take
+    the key into account, but only checks the types of the value to proceed. Note,
+    that ipv6 are lazily converted to 32 bit (collisions may occur).
 
     :param key: Name of pair, which always a string.
     :param value: Arbitrary non-numerical value to be converted.
@@ -123,7 +125,7 @@ def default_nn_aggregator(key: str, value: object) -> int:
         except AddressValueError:
             pass
         try:
-            return int(ipaddress.IPv6Address(value))
+            return int(ipaddress.IPv6Address(value)) % sys.maxsize
         except AddressValueError:
             pass
         try:
@@ -180,7 +182,7 @@ def pyshark_filter_fn(
 def _pyshark_filter_fn(d_point: dict, f_features: tuple[str, ...]) -> dict:
     """Helper function, that filters each data point according to a pre-defined filter.
 
-    :param d_point: The data point as a dictionary
+    :param d_point: The data point as a dictionary~
     :param f_features: The filter to use
     """
     return {f_feature: d_point.pop(f_feature, np.nan) for f_feature in f_features}
@@ -212,8 +214,11 @@ def _pyshark_reduce_fn(
     for key, value in d_point.items():
         if not isinstance(value, int | float):
             value = nn_aggregator(key, value)
-        if np.isnan(value):
-            value = 0
+        try:
+            if np.isnan(value):
+                value = 0
+        except TypeError as e:
+            raise ValueError(f"Invalid k/v pair: {key}, {value}") from e
         l_point.append(value)
     return np.asarray(l_point)
 

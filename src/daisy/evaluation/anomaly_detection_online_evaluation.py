@@ -190,7 +190,7 @@ class ConfMatrSlidingWindowEvaluation(SlidingWindowEvaluation):
         fpr = tf.math.divide_no_nan(self._fp, (self._fp + self._tn))
         f1 = tf.math.divide_no_nan(2 * self._tp, (2 * self._tp + self._fp + self._fn))
 
-        metrics = {
+        return {
             "accuracy": accuracy,
             "recall": recall,
             "true negative rate": tnr,
@@ -198,10 +198,8 @@ class ConfMatrSlidingWindowEvaluation(SlidingWindowEvaluation):
             "negative predictive value": npv,
             "false negative rate": fnr,
             "false positive rate": fpr,
-            "f1 measure": f1,
+            "f1": f1,
         }
-        metrics = {m_name: tf.constant(m_value) for m_name, m_value in metrics.items()}
-        return metrics
 
 
 class TFMetricSlidingWindowEvaluation(SlidingWindowEvaluation):

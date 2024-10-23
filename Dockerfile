@@ -31,7 +31,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive  \
     && rm -rf /var/cache/apt/archives /var/lib/apt/lists
 
 # Import of CPU Dependencies:
-FROM base as base-cpu
+FROM base AS base-cpu
 COPY --from=setup /app/venv /app/venv
 
 # Import of GPU Dependencies:
