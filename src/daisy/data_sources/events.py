@@ -162,7 +162,8 @@ class EventParser:
         """Parses the given expression and returns a function that evaluates data points
         passed to it. This method can raise a parse error if the expression is invalid.
 
-        :param expression: The expression (condition) to parse
+        :param expression: Expression (condition) to parse.
+        :raises ParseError: Any condition/expression does not follow parser's grammar.
         """
         tree = self._parser.parseString(expression, parseAll=True)
         return self._process_child(tree)
@@ -202,8 +203,10 @@ class EventParser:
         The returned function can raise key errors if the dictionaries passed to it
         do not contain the keys required by the generated function.
 
-        :param dictionary: The dictionary used to evaluate the function to generate
-        :param result: A dictionary containing results of previous runs of this function
+        :param dictionary: Dictionary used to evaluate the function to generate.
+        :param result: Dictionary containing results of previous runs of this function.
+        :raises NotImplementedError: Operators used are unsupported by this class.
+        Only happens when class has been modified/overridden.
         """
         if self._op not in dictionary:
             return list(result.values())[0]
@@ -230,8 +233,10 @@ class EventParser:
         create_fn method are used in this function to combine them using binary
         functions (and, or operators).
 
-        :param result: A dictionary containing the results of previous runs
-        :param operation: The operation to perform
+        :param result: Dictionary containing the results of previous runs.
+        :param operation: Operation to perform.
+        :raises NotImplementedError: Operators used are unsupported by this class.
+        Only happens when class has been modified/overridden.
         """
         match operation:
             case "and":
@@ -240,7 +245,6 @@ class EventParser:
                 )
             case "or":
                 return lambda data: result[self._var1](data) or result[self._var2](data)
-
             case _:
                 raise NotImplementedError(
                     f"Operation {operation} not supported in EventParser."
@@ -253,13 +257,14 @@ class EventParser:
         create_fn method are used in this function to combine them using unary
         functions (not operator).
 
-        :param result: A dictionary containing the results of previous runs
-        :param operation: The operation to perform
+        :param result: Dictionary containing the results of previous runs
+        :param operation: Operation to perform.
+        :raises NotImplementedError: Operators used are unsupported by this class.
+        Only happens when class has been modified/overridden.
         """
         match operation:
             case "not":
                 return lambda data: not result[self._var1](data)
-
             case _:
                 raise NotImplementedError(
                     f"Operation {operation} not supported in EventParser."
@@ -272,9 +277,11 @@ class EventParser:
         a feature, operation, and value. Based on the comparator, a function is
         returned, which performs the desired comparison.
 
-        :param dictionary: A dictionary containing a feature and value to use for the
-        generated function
-        :param operation: The operation to perform
+        :param dictionary: Dictionary containing feature and value to use for the
+        generated function.
+        :param operation: Operation to perform.
+        :raises NotImplementedError: Operators used are unsupported by this class.
+        Only happens when class has been modified/overridden.
         """
         match operation:
             case "=":
@@ -289,7 +296,6 @@ class EventParser:
                     if _get_value(dictionary[self._var2][0], data)
                     else False
                 )
-
             case _:
                 raise NotImplementedError(
                     f"Operation {operation} not supported in EventParser."
@@ -353,44 +359,44 @@ class EventHandler:
     def process(
         self,
         timestamp: datetime,
-        data: list[dict],
         data_point: dict,
+        meta_data: list[dict] = None,
         label_feature: str = "label",
         error_label: str = "error",
     ) -> dict:
         """Iterates through all events and checks for each event if it applies to
         the provided data point. If it does, the data point will be labeled with the
         label provided by the event. If no event matches the data point, it will be
-        labeled with the default label. The timestamp is used to determine if the data
-        point is within the specified time range of the events. The data parameter can
-        contain multiple dictionaries, but at least should contain the data point.
-        If an error occurs with the condition of an event, the data point will be
-        labeled with the error label.
+        labeled with the default label.
 
         :param timestamp: Timestamp of data point.
-        :param data: Data point and meta information.
-        :param data_point: Data point used for labeling.
+        :param data_point: Data point to label.
+        :param meta_data: Additional meta information to label data point. Has
+        preference over data point when checking conditions.
         :param label_feature: Feature in data point for which label will be set.
-        :param error_label: Error label to use.
+        :param error_label: Error label to use if an error is encountered during
+        processing and errors are suppressed.
+        :return: Labelled data point.
+        :raises KeyError: Data points does not contain feature used by a conditions and
+        errors are not suppressed, i.e. redirected to log + data point is assigned
+        the error label.
         """
-        labeled = False
+        if meta_data is None:
+            meta_data = []
+        data = meta_data + [data_point]
+
         for event in self._events:
             try:
-                match = event.evaluate(timestamp, data)
-                if match:
+                if event.evaluate(timestamp, data):
                     data_point[label_feature] = event.label
-                    labeled = True
-                    break
-            except (NotImplementedError, KeyError) as e:
-                self._logger.error(f"Error while evaluating event: {e}")
-                data_point[label_feature] = error_label
-                labeled = True
+                    return data_point
+            except KeyError as e:
                 if not self._hide_errors:
                     raise e
-                break
-        if not labeled:
-            data_point[label_feature] = self._default_label
-
+                self._logger.error(f"Error while evaluating event: {e}")
+                data_point[label_feature] = error_label
+                return data_point
+        data_point[label_feature] = self._default_label
         return data_point
 
 
@@ -398,8 +404,8 @@ def _get_value(feature: str, data: list[dict]) -> object:
     """Iterates through the provided dictionaries and returns the value of the first
     occurrence of the provided feature.
 
-    :param feature: The feature to find
-    :param data: List of dictionaries to search for the feature
+    :param feature: The feature to find.
+    :param data: List of dictionaries to search for the feature.
     """
     for dictionary in data:
         if feature in dictionary:
