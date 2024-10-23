@@ -312,14 +312,23 @@ class EventHandler:
     _parser: EventParser
     _events: list[Event]
     _default_label: str
+    _label_feature: str
+    _error_label: str
     _hide_errors: bool
 
     def __init__(
-        self, default_label: str = "benign", hide_errors: bool = False, name: str = ""
+        self,
+        default_label: str = "benign",
+        label_feature: str = "label",
+        error_label: str = "error",
+        hide_errors: bool = False,
+        name: str = "",
     ):
         """Creates an event handler used to label data points.
 
         :param default_label: Label used when no event matches data point.
+        :param label_feature: Feature in data point for which label will be set.
+        :param error_label: Error label to use if an error is encountered during
         :param hide_errors: Catches any key errors occurring in process() method when
         encountering data points not containing features used by the conditions of
         an event, only printing them out in the logs instead of exciting, labeling
@@ -331,6 +340,8 @@ class EventHandler:
         self._parser = EventParser()
         self._events = []
         self._default_label = default_label
+        self._label_feature = label_feature
+        self._error_label = error_label
         self._hide_errors = hide_errors
 
     def add_event(
@@ -361,8 +372,6 @@ class EventHandler:
         timestamp: datetime,
         data_point: dict,
         meta_data: list[dict] = None,
-        label_feature: str = "label",
-        error_label: str = "error",
     ) -> dict:
         """Iterates through all events and checks for each event if it applies to
         the provided data point. If it does, the data point will be labeled with the
@@ -373,8 +382,6 @@ class EventHandler:
         :param data_point: Data point to label.
         :param meta_data: Additional meta information to label data point. Has
         preference over data point when checking conditions.
-        :param label_feature: Feature in data point for which label will be set.
-        :param error_label: Error label to use if an error is encountered during
         processing and errors are suppressed.
         :return: Labelled data point.
         :raises KeyError: Data points does not contain feature used by a conditions and
@@ -388,15 +395,15 @@ class EventHandler:
         for event in self._events:
             try:
                 if event.evaluate(timestamp, data):
-                    data_point[label_feature] = event.label
+                    data_point[self._label_feature] = event.label
                     return data_point
             except KeyError as e:
                 if not self._hide_errors:
                     raise e
                 self._logger.error(f"Error while evaluating event: {e}")
-                data_point[label_feature] = error_label
+                data_point[self._label_feature] = self._error_label
                 return data_point
-        data_point[label_feature] = self._default_label
+        data_point[self._label_feature] = self._default_label
         return data_point
 
 
