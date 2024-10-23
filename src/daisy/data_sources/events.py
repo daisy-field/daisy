@@ -3,9 +3,9 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""Implementation of events used for labeling data. The event handler can be used by the
-user to create events. Each event contains a string with conditions used to determine
-whether a data point should be labeled.
+"""Events used to labeling data. The event handler can be used by the user to create
+events. Each event contains a string with conditions used to determine whether a data
+point should be labeled.
 
 Author: Jonathan Ackerschewski, Fabian Hofmann
 Modified: 18.10.24
@@ -14,7 +14,7 @@ Modified: 18.10.24
 import logging
 import sys
 from datetime import datetime
-from typing import Callable
+from typing import Callable, Self
 
 from pyparsing import (
     ParserElement,
@@ -318,6 +318,7 @@ class EventHandler:
         encountering data points not containing features used by the conditions of
         an event, only printing them out in the logs instead of exciting, labeling
         the data point as erroneous.
+        :param name: Name of event handler for logging purposes.
         """
         self._logger = logging.getLogger(name)
 
@@ -328,7 +329,7 @@ class EventHandler:
 
     def add_event(
         self, start_time: datetime, end_time: datetime, label: str, condition: str = ""
-    ):
+    ) -> Self:
         """Adds an event to the event handler. The events will be evaluated in the
         order they are provided. Each event has a start and end time, a label that will
         be used to label data points that fall under that event, and an optional
@@ -347,6 +348,7 @@ class EventHandler:
             )
         else:
             self._events.append(Event(start_time, end_time, label, lambda _: True))
+        return self
 
     def process(
         self,
