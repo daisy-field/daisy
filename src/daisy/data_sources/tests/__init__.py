@@ -10,8 +10,9 @@ running through the procedures, merely in their final output!
 
 Currently, the following test-modules are provided:
 
-    * simple_source - Data handler and relay test functions using simple data points.
-    * pyshark_source - Data handler and relays test functions using pyshark data points.
+    * simple_handler - Data handler and relay test functions using simple data points.
+    * pyshark_handler - Data handler and relays test functions using pyshark data
+    points.
 
 Author: Fabian Hofmann
 Modified: 06.06.24

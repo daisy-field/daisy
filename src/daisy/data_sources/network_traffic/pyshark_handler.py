@@ -129,7 +129,7 @@ class PcapDataSource(DataSource):
         self._cur_file_counter = 0
         self._cur_file_handle = None
         self._try_counter = try_counter
-        self._logger.info("Pcap file handler initialized.")
+        self._logger.info("Pcap file data source initialized.")
 
     def open(self):
         """Opens and resets the pcap file data source to the very beginning of the file

@@ -5,7 +5,7 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """This package contains scripts for collecting traffic.
 
-    * Pyshark data collector - collects live network traffic using pyshark, processes
+    * Pyshark data collector - Collects live network traffic using pyshark, processes
         it and stores it in a CSV file.
 
 Author: Jonathan Ackerschewski
