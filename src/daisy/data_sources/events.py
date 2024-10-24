@@ -329,6 +329,7 @@ class EventHandler:
         :param default_label: Label used when no event matches data point.
         :param label_feature: Feature in data point for which label will be set.
         :param error_label: Error label to use if an error is encountered during
+        processing.
         :param hide_errors: Catches any key errors occurring in process() method when
         encountering data points not containing features used by the conditions of
         an event, only printing them out in the logs instead of exciting, labeling
