@@ -14,19 +14,8 @@ Modified: 18.10.24
 import logging
 import sys
 from datetime import datetime
-from typing import Callable, Self
-
-from pyparsing import (
-    ParserElement,
-    Word,
-    oneOf,
-    Suppress,
-    Forward,
-    Group,
-    Optional,
-    ParseResults,
-    printables,
-)
+from typing import Callable, Self, Optional
+import pyparsing as pp
 
 
 class Event:
@@ -129,34 +118,35 @@ class EventParser:
     _var2: str = "var2"
     _op: str = "op"
 
-    _parser: ParserElement
+    _parser: pp.ParserElement
 
     def __init__(self):
         """Creates the grammar for the conditions. The specific grammar can be seen
         in the description of this class.
         """
-        ParserElement.enablePackrat()
+        pp.ParserElement.enablePackrat()
         sys.setrecursionlimit(3000)
 
-        base_word = Word(printables, exclude_chars="[] !\"'<=>\\()")
-        bracket_word = Word(printables + " ", exclude_chars="[]!\"'<=>\\()")
+        base_word = pp.Word(pp.printables, exclude_chars="[] !\"'<=>\\()")
+        bracket_word = pp.Word(pp.printables + " ", exclude_chars="[]!\"'<=>\\()")
 
-        comparator = oneOf(self._comparators)
-        boperator = oneOf(self._binary_operators)
-        uoperator = oneOf(self._unary_operators)
-        lpar = Suppress("(")
-        rpar = Suppress(")")
-        lbr = Suppress("[")
-        rbr = Suppress("]")
+        comparator = pp.oneOf(self._comparators)
+        boperator = pp.oneOf(self._binary_operators)
+        uoperator = pp.oneOf(self._unary_operators)
+        lpar = pp.Suppress("(")
+        rpar = pp.Suppress(")")
+        lbr = pp.Suppress("[")
+        rbr = pp.Suppress("]")
 
-        self._parser = Forward()
+        self._parser = pp.Forward()
         word = base_word | lbr + bracket_word + rbr
-        operand = Group(word(self._var1) + comparator(self._op) + word(self._var2))
+        operand = pp.Group(word(self._var1) + comparator(self._op) + word(self._var2))
         pars = operand | lpar + self._parser + rpar
 
-        self._parser <<= Group(
-            pars(self._var1) + Optional(boperator(self._op) + self._parser(self._var2))
-        ) | Group(uoperator(self._op) + pars(self._var1))
+        self._parser <<= pp.Group(
+            pars(self._var1)
+            + pp.Optional(boperator(self._op) + self._parser(self._var2))
+        ) | pp.Group(uoperator(self._op) + pars(self._var1))
 
     def parse(self, expression: str) -> Callable[[list[dict]], bool]:
         """Parses the given expression and returns a function that evaluates data points
@@ -168,16 +158,16 @@ class EventParser:
         tree = self._parser.parseString(expression, parseAll=True)
         return self._process_child(tree)
 
-    def _process_child(self, tree: ParseResults) -> Optional(
-        Callable[[list[dict]], bool]
-    ):
+    def _process_child(
+        self, tree: pp.ParseResults
+    ) -> Optional[Callable[[list[dict]], bool]]:
         """Recursively processes the provided parse tree and returns a function that
         evaluates the data points passed to it.
 
         :param tree: The parse tree to process
         """
         result = {}
-        if isinstance(tree, ParseResults):
+        if isinstance(tree, pp.ParseResults):
             # Evaluate all children first
             if tree.haskeys():
                 for key, _ in reversed(tree.asDict().items()):
