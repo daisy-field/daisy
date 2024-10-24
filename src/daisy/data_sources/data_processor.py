@@ -65,6 +65,16 @@ def remove_feature(d_point: dict, f_features: list) -> dict:
     return d_point
 
 
+def keep_feature(d_point: dict, f_features: list) -> dict:
+    """Takes a data point as a dictionary and removes all features not in the given list.
+
+    :param d_point: Dictionary of data point.
+    :param f_features: List of features to keep.
+    :return: Dictionary of data point with features kept.
+    """
+    return {key: value for key, value in d_point.items() if key in f_features}
+
+
 def flatten_dict(
     dictionary: (dict, list),
     seperator: str = ".",

@@ -29,7 +29,7 @@ from pyshark.packet.layers.xml_layer import XmlLayer
 from pyshark.packet.packet import Packet
 
 from .demo_202312 import default_f_features
-from ..data_processor import DataProcessor, remove_feature, flatten_dict
+from ..data_processor import DataProcessor, keep_feature, flatten_dict
 
 
 def default_nn_aggregator(key: str, value: object) -> int:
@@ -79,7 +79,7 @@ def create_pyshark_processor(
     return (
         DataProcessor(name=name)
         .add_func(lambda o_point: packet_to_dict(o_point))
-        .add_func(lambda o_point: remove_feature(o_point, f_features))
+        .add_func(lambda o_point: keep_feature(o_point, f_features))
         .add_func(lambda o_point: dict_to_numpy_array(o_point, nn_aggregator))
     )
 
