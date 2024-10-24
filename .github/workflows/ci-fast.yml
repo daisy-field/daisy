@@ -1,6 +1,8 @@
 name: CI-fast
 
 on:
+  pull_request:
+    branches: [ main ]
   push:
     branches-ignore: [ main ]
 
