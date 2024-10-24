@@ -45,8 +45,7 @@ __all__ = [
     "packet_to_dict",
     "dict_to_json",
     "default_f_features",
-    "march23_events",
-    "label_data_point",
+    "demo_202312_label_data_point",
     "default_nn_aggregator",
     "EventHandler",
 ]
@@ -72,8 +71,7 @@ from .network_traffic import (
     packet_to_dict,
     dict_to_json,
     default_f_features,
-    march23_events,
-    label_data_point,
+    demo_202312_label_data_point,
     default_nn_aggregator,
 )
 from .events import EventHandler

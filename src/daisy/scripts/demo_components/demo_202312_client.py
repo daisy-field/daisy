@@ -49,11 +49,10 @@ from daisy.data_sources import (
     DataHandler,
     DataProcessor,
     PcapDataSource,
-    march23_events,
     packet_to_dict,
     remove_feature,
     default_f_features,
-    label_data_point,
+    demo_202312_label_data_point,
     dict_to_numpy_array,
     default_nn_aggregator,
 )
@@ -191,9 +190,7 @@ def create_client():
         DataProcessor()
         .add_func(lambda o_point: packet_to_dict(o_point))
         .add_func(lambda o_point: remove_feature(o_point, default_f_features))
-        .add_func(
-            lambda o_point: label_data_point(args.clientId, march23_events, o_point)
-        )
+        .add_func(lambda o_point: demo_202312_label_data_point(args.clientId, o_point))
         .add_func(lambda o_point: dict_to_numpy_array(o_point, default_nn_aggregator))
     )
     data_handler = DataHandler(data_source=source, data_processor=processor)

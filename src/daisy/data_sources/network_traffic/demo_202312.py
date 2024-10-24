@@ -11,7 +11,7 @@ Modified: 18.10.2024
 
 from datetime import datetime
 
-import numpy as np
+from ..events import EventHandler
 
 # Exemplary network feature filter, supporting cohda-box (V2x) messages, besides
 # TCP/IP and ETH.
@@ -90,71 +90,50 @@ default_f_features = (
 # 3: "SSH Privilege Escalation"
 # 4: "SSH Brute Force Response"
 # 5: "SSH Data Leakage"
-march23_events: list[
-    tuple[int, tuple[datetime, datetime], list[str], list[str], int]
-] = [
-    (
-        5,
-        (datetime(2023, 3, 6, 12, 34, 17), datetime(2023, 3, 6, 12, 40, 28)),
-        ["http", "tcp"],
-        ["192.168.213.86", "185."],
-        1,
-    ),
-    (
-        5,
-        (datetime(2023, 3, 6, 12, 49, 4), datetime(2023, 3, 6, 13, 23, 16)),
-        ["ssh", "tcp"],
-        ["192.168.230.3", "192.168.213.86"],
-        2,
-    ),
-    (
-        5,
-        (datetime(2023, 3, 6, 13, 25, 27), datetime(2023, 3, 6, 13, 31, 11)),
-        ["ssh", "tcp"],
-        ["192.168.230.3", "192.168.213.86"],
-        3,
-    ),
-    (
-        2,
-        (datetime(2023, 3, 6, 12, 49, 4), datetime(2023, 3, 6, 13, 23, 16)),
-        ["ssh", "tcp"],
-        ["192.168.230.3", "130.149.98.119"],
-        4,
-    ),
-    (
-        2,
-        (datetime(2023, 3, 6, 13, 25, 27), datetime(2023, 3, 6, 13, 31, 11)),
-        ["ssh", "tcp"],
-        ["192.168.230.3", "130.149.98.119"],
-        5,
-    ),
-]
+_march23_event_handler = (
+    EventHandler(default_label="0")
+    .add_event(
+        datetime(2023, 3, 6, 12, 34, 17),
+        datetime(2023, 3, 6, 12, 40, 28),
+        "1",
+        "client_id = 5 and (http in meta.protocols or tcp in meta.protocols) and 192.168.213.86 in ip.addr and 185. in ip.addr",
+    )
+    .add_event(
+        datetime(2023, 3, 6, 12, 49, 4),
+        datetime(2023, 3, 6, 13, 23, 16),
+        "2",
+        "client_id = 5 and (ssh in meta.protocols or tcp in meta.protocols) and 192.168.230.3 in ip.addr and 192.168.213.86 in ip.addr",
+    )
+    .add_event(
+        datetime(2023, 3, 6, 13, 25, 27),
+        datetime(2023, 3, 6, 13, 31, 11),
+        "3",
+        "client_id = 5 and (ssh in meta.protocols or tcp in meta.protocols) and 192.168.230.3 in ip.addr and 192.168.213.86 in ip.addr",
+    )
+    .add_event(
+        datetime(2023, 3, 6, 12, 49, 4),
+        datetime(2023, 3, 6, 13, 23, 16),
+        "4",
+        "client_id = 2 and (ssh in meta.protocols or tcp in meta.protocols) and 192.168.230.3 in ip.addr and 130.149.98.119 in ip.addr",
+    )
+    .add_event(
+        datetime(2023, 3, 6, 13, 25, 27),
+        datetime(2023, 3, 6, 13, 31, 11),
+        "5",
+        "client_id = 2 and (ssh in meta.protocols or tcp in meta.protocols) and 192.168.230.3 in ip.addr and 130.149.98.119 in ip.addr",
+    )
+)
 
 
-def label_data_point(
-    client_id: int,
-    events: list[tuple[int, tuple[datetime, datetime], list[str], list[str], int]],
-    d_point: dict,
-) -> dict:
-    """Labels the events according to the provided events.
+def demo_202312_label_data_point(client_id: int, d_point: dict) -> dict:
+    """Labels the data points according to the events for the demo 202312
 
-    :param client_id: The client ID.
-    :param events: A list of tuples containing the client ID and timestamp.
-    :param d_point: Data point as dictionary.
-    :return: Labeled data point as vector.
+    :param client_id: THe client ID
+    :param d_point: Data point as dictionary
+    :return: Labeled data point
     """
-    d_point["label"] = 0
-    for event in events:
-        client, (start_time, end_time), protocols, addresses, label = event
-        if (
-            client == client_id
-            and start_time
-            <= datetime.strptime(d_point["meta.time"], "%Y-%m-%d %H:%M:%S.%f")
-            <= end_time
-            and any([x in d_point["meta.protocols"] for x in protocols])
-            and d_point["ip.addr"] is not np.nan
-            and all([x in d_point["ip.addr"] for x in addresses])
-        ):
-            d_point["label"] = label
-            break
-    return d_point
+    return _march23_event_handler.process(
+        datetime.strptime(d_point["meta.time"], "%Y-%m-%d %H:%M:%S.%f"),
+        d_point,
+        [{"client_id": client_id}],
+    )
