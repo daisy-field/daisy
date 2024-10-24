@@ -337,7 +337,6 @@ def _parse_args() -> argparse.Namespace:
         "-out-ip",
         type=str,
         metavar="IP-ADDRESS",
-        required=True,
         help="The IP of the local machine, which a remote machine connects to.",
     )
     output_relay_group.add_argument(
@@ -357,7 +356,6 @@ def _parse_args() -> argparse.Namespace:
         "-out-tip",
         type=str,
         metavar="IP-ADDRESS",
-        required=True,
         help="The IP of the remote machine.",
     )
     output_relay_group.add_argument(
