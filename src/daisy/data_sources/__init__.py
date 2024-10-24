@@ -16,6 +16,8 @@ provided interfaces to enable this framework for various use-cases.
     * DataSourceRelay - Second core class that allows the processing and forwarding
     of data points to another host.
     * CSVFileRelay - Third core class that allows the export of data points to CSV.
+    * CSVFileDataHandler - Allows import of data points from CSV files.
+    * EventHandler - Provides functionality for labeling data streams automatically.
 
 Currently, the following sub-packages are offering interface implementations:
 
@@ -23,7 +25,7 @@ Currently, the following sub-packages are offering interface implementations:
     originating from t-/wireshark or pcaps. See the subpackage documentation for more.
 
 Author: Fabian Hofmann, Jonathan Ackerschewski, Seraphin Zunzer
-Modified: 16.04.24
+Modified: 22.10.2024
 """
 
 __all__ = [
@@ -45,6 +47,7 @@ __all__ = [
     "pyshark_filter_fn",
     "pyshark_reduce_fn",
     "create_pyshark_processor",
+    "EventHandler",
 ]
 
 from .data_handler import (
@@ -70,3 +73,4 @@ from .network_traffic import (
     pyshark_reduce_fn,
     create_pyshark_processor,
 )
+from .events import EventHandler
