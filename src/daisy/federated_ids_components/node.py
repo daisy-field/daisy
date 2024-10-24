@@ -24,7 +24,7 @@ import numpy as np
 import tensorflow as tf
 
 from daisy.communication import StreamEndpoint
-from daisy.data_sources import DataSource
+from daisy.data_sources import DataHandler
 from daisy.federated_learning import FederatedModel, ModelAggregator
 
 
@@ -35,7 +35,7 @@ class FederatedOnlineNode(ABC):
     itself around various other classes of this framework to perform the following
     tasks:
 
-        * DataSource: Source to draw data point samples from. Is done a number of
+        * DataHandler: Handler to draw data point samples from. Is done a number of
         times (batch size) before each step.
 
         * FederatedModel: Actual model to be fitted and run predictions alternatingly
@@ -62,7 +62,7 @@ class FederatedOnlineNode(ABC):
 
     _logger: logging.Logger
 
-    _data_source: DataSource
+    _data_handler: DataHandler
     _batch_size: int
     _minibatch_inputs: list
     _minibatch_labels: list
@@ -91,7 +91,7 @@ class FederatedOnlineNode(ABC):
 
     def __init__(
         self,
-        data_source: DataSource,
+        data_handler: DataHandler,
         batch_size: int,
         model: FederatedModel,
         name: str = "",
@@ -107,7 +107,7 @@ class FederatedOnlineNode(ABC):
         """Creates a new federated online node. Note that by default, the node never
         performs a federated update step; one of the intervals has to be set for that.
 
-        :param data_source: Data source of data stream to draw data points from.
+        :param data_handler: Data handler of data stream to draw data points from.
         :param batch_size: Minibatch size for each prediction-fitting step.
         :param model: Actual model to be fitted and run predictions on in online manner.
         :param name: Name of federated online node for logging purposes.
@@ -129,7 +129,7 @@ class FederatedOnlineNode(ABC):
         self._logger = logging.getLogger(name)
         self._logger.info("Initializing federated online node...")
 
-        self._data_source = data_source
+        self._data_handler = data_handler
         self._batch_size = batch_size
         self._minibatch_inputs = []
         self._minibatch_labels = []
@@ -173,7 +173,7 @@ class FederatedOnlineNode(ABC):
 
     def start(self, blocking: bool = False):
         """Starts the federated online node, along with any underlying endpoints,
-        data sources, and any other object by an extension of this class (see setup(
+        data handler, and any other object by an extension of this class (see setup(
         )). Non-blocking.
 
         :param blocking: Whether the node should block until all data points have
@@ -187,7 +187,7 @@ class FederatedOnlineNode(ABC):
             raise RuntimeError("Federated online node has already been started!")
         self._started = True
         _try_ops(
-            lambda: self._data_source.open(),
+            lambda: self._data_handler.open(),
             lambda: self._eval_serv.start(),
             lambda: self._aggr_serv.start(),
             logger=self._logger,
@@ -225,7 +225,7 @@ class FederatedOnlineNode(ABC):
 
     def stop(self):
         """Stops the federated online node, along with any underlying endpoints,
-        data sources, and any other object by an extension of this class (see
+        data handlers, and any other object by an extension of this class (see
         cleanup()).
 
         :raises RuntimeError: If federated online node has not been started.
@@ -235,7 +235,7 @@ class FederatedOnlineNode(ABC):
             raise RuntimeError("Federated online node has not been started!")
         self._started = False
         _try_ops(
-            lambda: self._data_source.close(),
+            lambda: self._data_handler.close(),
             lambda: self._eval_serv.stop(shutdown=True),
             lambda: self._aggr_serv.stop(shutdown=True),
             logger=self._logger,
@@ -260,14 +260,14 @@ class FederatedOnlineNode(ABC):
         raise NotImplementedError
 
     def _create_loc_learner(self):
-        """Starts the loop to retrieve samples from the data source, arranging them
+        """Starts the loop to retrieve samples from the data handler, arranging them
         into minibatches and running predictions and fittings on them and the
         federated model. If set, also initiates synchronous federated update steps if
         sample/time intervals are satisfied.
         """
         self._logger.info("AsyncLearner: Starting...")
         try:
-            for sample in self._data_source:
+            for sample in self._data_handler:
                 self._logger.debug(
                     "AsyncLearner: Appending sample to current minibatch..."
                 )
@@ -409,7 +409,7 @@ class FederatedOnlineClient(FederatedOnlineNode):
 
     def __init__(
         self,
-        data_source: DataSource,
+        data_handler: DataHandler,
         batch_size: int,
         model: FederatedModel,
         m_aggr_server: tuple[str, int],
@@ -426,7 +426,7 @@ class FederatedOnlineClient(FederatedOnlineNode):
     ):
         """Creates a new federated online client.
 
-        :param data_source: Data source of data stream to draw data points from.
+        :param data_handler: Data handler of data stream to draw data points from.
         :param batch_size: Minibatch size for each prediction-fitting step.
         :param model: Actual model to be fitted and run predictions on in online manner.
         :param m_aggr_server: Address of centralized model aggregation server
@@ -451,7 +451,7 @@ class FederatedOnlineClient(FederatedOnlineNode):
         X seconds, do an update step.
         """
         super().__init__(
-            data_source=data_source,
+            data_handler=data_handler,
             batch_size=batch_size,
             model=model,
             name=name,
@@ -605,7 +605,7 @@ class FederatedOnlinePeer(FederatedOnlineNode):
 
     def __init__(
         self,
-        data_source: DataSource,
+        data_handler: DataHandler,
         batch_size: int,
         model: FederatedModel,
         m_aggr: ModelAggregator,
@@ -621,7 +621,7 @@ class FederatedOnlinePeer(FederatedOnlineNode):
     ):
         """Creates a new federated online peer.
 
-        :param data_source: Data source of data stream to draw data points from.
+        :param data_handler: Data handler of data stream to draw data points from.
         :param batch_size: Minibatch size for each prediction-fitting step.
         :param model: Actual model to be fitted and run predictions on in online manner.
         :param m_aggr: Model aggregator for local model aggregation.
@@ -642,7 +642,7 @@ class FederatedOnlinePeer(FederatedOnlineNode):
         X seconds, do a sync update.
         """
         super().__init__(
-            data_source=data_source,
+            data_handler=data_handler,
             batch_size=batch_size,
             model=model,
             name=name,

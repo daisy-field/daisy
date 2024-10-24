@@ -45,8 +45,18 @@ import pathlib
 
 import tensorflow as tf
 
-from daisy.data_sources import DataSource
-from daisy.data_sources import PcapHandler, CohdaProcessor, march23_events
+from daisy.data_sources import (
+    DataHandler,
+    DataProcessor,
+    PcapDataSource,
+    march23_events,
+    packet_to_dict,
+    remove_feature,
+    default_f_features,
+    label_data_point,
+    dict_to_numpy_array,
+    default_nn_aggregator,
+)
 from daisy.evaluation import ConfMatrSlidingWindowEvaluation
 from daisy.federated_ids_components import FederatedOnlineClient
 from daisy.federated_learning import TFFederatedModel, FederatedIFTM, EMAvgTM
@@ -174,9 +184,19 @@ def create_client():
         aggr_serv = (args.aggrServ, args.aggrServPort)
 
     # Datasource
-    handler = PcapHandler(f"{args.pcapBasePath}/diginet-cohda-box-dsrc{args.clientId}")
-    processor = CohdaProcessor(client_id=args.clientId, events=march23_events)
-    data_source = DataSource(source_handler=handler, data_processor=processor)
+    source = PcapDataSource(
+        f"{args.pcapBasePath}/diginet-cohda-box-dsrc{args.clientId}"
+    )
+    processor = (
+        DataProcessor()
+        .add_func(lambda o_point: packet_to_dict(o_point))
+        .add_func(lambda o_point: remove_feature(o_point, default_f_features))
+        .add_func(
+            lambda o_point: label_data_point(args.clientId, march23_events, o_point)
+        )
+        .add_func(lambda o_point: dict_to_numpy_array(o_point, default_nn_aggregator))
+    )
+    data_handler = DataHandler(data_source=source, data_processor=processor)
 
     # Model
     optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
@@ -196,7 +216,7 @@ def create_client():
 
     # Client
     client = FederatedOnlineClient(
-        data_source=data_source,
+        data_handler=data_handler,
         batch_size=args.batchSize,
         model=model,
         label_split=65,

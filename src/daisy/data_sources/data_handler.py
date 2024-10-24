@@ -3,246 +3,177 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""A collection of the core interface and base classes for the first component of any
-data source (see the docstring of the data source class), that provides the origin of
-any data points being processed for further (ML) tasks. Supports generic generators,
-but also remote communication endpoints that hand over generic data points in
-streaming-manner, and any other implementations of the SourceHandler class. Note each
-different kind of data may need its own implementation of the SourceHandler.
+"""A generic wrapper for stream processing both finite and infinite data handler into
+sample-wise data points, each being passed to further (ML) tasks once and in order.
 
 Author: Fabian Hofmann, Jonathan Ackerschewski
-Modified: 16.04.24
+Modified: 19.04.24
 """
 # TODO Future Work: Defining granularity of logging in inits
 
 import logging
-from abc import ABC, abstractmethod
-from typing import IO, Iterator
-import csv
+import queue
+import threading
+from typing import Iterator
 
-from daisy.communication import StreamEndpoint
+import numpy as np
+
+from .data_processor import DataProcessor
+from .data_source import DataSource
 
 
-class SourceHandler(ABC):
-    """An abstract wrapper around a generator-like structure that has to yield data
-    points as objects as they come for processing. That generator may be infinite or
-    finite, as long as it is bounded on both sides by the following two methods that
-    must be implemented:
+class DataHandler:
+    """A wrapper around a customizable DataSource that yields data points as
+    objects as they come, before stream processing using another, customizable
+    DataProcessor. Data points, which can be from arbitrary sources, are thus
+    processed and converted into numpy vectors/arrays.
 
-        - open(): Enables the "generator" to provision data points.
-
-        - close(): Closes the "generator".
-
-    Note that as DataSource wraps itself around given source handler to retrieve
-    objects, open() and close() do not need to be implemented to be idempotent and
-    arbitrarily permutable. Same can be assumed for __iter__() as it will only be
-    called when the source handler has been opened already. At the same time,
-    __iter__() must be exhausted after close() has been called.
+    Supports the processing of data points in both synchronous and asynchronous
+    fashion by default.
     """
 
     _logger: logging.Logger
 
-    def __init__(self, name: str = ""):
-        """Creates a source handler. Note that this should not enable the immediate
-        generation of data points via __iter__() --- this behavior is implemented
-        through open() (see the class documentation for more information).
+    _data_source: DataSource
+    _data_processor: DataProcessor
 
-        :param name: Name of handler for logging purposes.
+    _multithreading: bool
+    _loader: threading.Thread
+    _buffer: queue.Queue
+
+    _opened: bool
+    _exhausted: bool
+    _completed = threading.Event
+
+    def __init__(
+        self,
+        data_source: DataSource,
+        data_processor: DataProcessor,
+        name: str = "",
+        multithreading: bool = False,
+        buffer_size: int = 1024,
+    ):
+        """Creates a new data handler.
+
+        :param data_source: Actual source that provisions data points to data handler.
+        :param data_processor: Processor containing the methods on how to process
+        individual data points.
+        :param name: Name of data source relay for logging purposes.
+        :param multithreading: Enables transparent multithreading for speedup.
+        :param buffer_size: Size of shared buffer in multithreading mode.
         """
         self._logger = logging.getLogger(name)
+        self._logger.info("Initializing data handler...")
 
-    @abstractmethod
-    def open(self):
-        """Prepares the handler to be used for data point generation, setting up
-        necessary environment variables, starting up background processes to
-        read/generate data, etc.
-        """
-        raise NotImplementedError
+        self._opened = False
+        self._exhausted = False
+        self._completed = threading.Event()
 
-    @abstractmethod
-    def close(self):
-        """Closes the handler after which data point generation is no longer
-        available until opened again.
-        """
-        raise NotImplementedError
+        self._data_source = data_source
+        self._data_processor = data_processor
 
-    @abstractmethod
-    def __iter__(self) -> Iterator[object]:
-        """After opened (see open()), returns a generator - either the object itself
-        or creates a new one (e.g. through use of the yield statement).
-
-        :return: Generator object for data points as objects.
-        """
-        raise NotImplementedError
-
-
-class SimpleSourceHandler(SourceHandler):
-    """The simplest productive source handler --- an actual wrapper around a
-    generator that is always open and cannot be closed, yielding data points as
-    objects as they are yielded. Can be infinite or finite; no matter, no control
-    over the generator is natively supported.
-    """
-
-    _generator: Iterator[object]
-
-    def __init__(self, generator: Iterator[object], name: str = ""):
-        """Creates a source handler, simply wrapping it around the given generator.
-
-        :param generator: Generator object from which data points are retrieved.
-        :param name: Name of handler for logging purposes.
-        """
-        super().__init__(name)
-
-        self._generator = generator
+        self._multithreading = multithreading
+        self._buffer = queue.Queue(buffer_size)
+        self._logger.info("Data handler initialized.")
 
     def open(self):
-        pass
+        """Opens the data handler for data point retrieval. Must be called before data
+        can be retrieved; in multithreading mode also starts the loader thread as
+        daemon.
+
+        :return: Event object to check whether data handler has completed processing
+        every data point and may be closed. Only useful when iterating through a source
+        manually since __iter__() automatically stops yielding objects when completed.
+        """
+        self._logger.info("Starting data handler...")
+        if self._opened:
+            raise RuntimeError("Data handler has already been opened!")
+        self._opened = True
+        self._exhausted = False
+        self._completed.clear()
+        self._data_source.open()
+
+        if self._multithreading:
+            self._loader = threading.Thread(target=self._create_loader, daemon=True)
+            self._loader.start()
+        self._logger.info("Data handler started.")
+        return self._completed
 
     def close(self):
-        pass
-
-    def __iter__(self) -> Iterator[object]:
-        """Returns the wrapped generator, requiring neither open() nor close().
-
-        :return: Generator object for data points as objects.
+        """Shuts down any thread running in the background to load data into the data
+        handler iff in multithreading mode. Can be reopened (and closed) and arbitrary
+        amount of times.
         """
-        return self._generator
+        self._logger.info("Stopping data handler...")
+        if not self._opened:
+            raise RuntimeError("Data handler has not been opened!")
+        self._opened = False
+        self._data_source.close()
 
+        if self._multithreading:
+            self._loader.join()
+        self._logger.info("Data handler stopped.")
 
-class SimpleRemoteSourceHandler(SourceHandler):
-    """The simple wrapper implementation to support and handle remote streaming
-    endpoints of the Endpoint module as data sources. Considered infinite in nature,
-    as it allows the generation of data point objects from a connected endpoint,
-    until the client closes the handler.
-    """
-
-    _endpoint: StreamEndpoint
-
-    def __init__(self, endpoint: StreamEndpoint, name: str = ""):
-        """Creates a new remote source handler from a given stream endpoint. If no
-        endpoint is provided, creates a new one instead with basic parameters.
-
-        :param endpoint: Streaming endpoint from which data points are retrieved.
-        :param name: Name of handler for logging purposes.
+    def _create_loader(self):
+        """Data loader for multithreading mode, loads data from data source and
+        processes it to store it in the shared buffer.
         """
-        super().__init__(name)
+        self._logger.info(
+            "AsyncLoader: Starting to process data points in asynchronous mode..."
+        )
+        for o_point in self._data_source:
+            while self._opened:
+                try:
+                    self._logger.debug(
+                        f"AsyncLoader: Storing processed data point in buffer "
+                        f"(length: {self._buffer.qsize()})..."
+                    )
+                    self._buffer.put(self._data_processor.process(o_point), timeout=10)
+                    break
+                except queue.Full:
+                    self._logger.warning(
+                        "AsyncLoader: Timeout triggered: Buffer full. Retrying..."
+                    )
+            if not self._opened:
+                break
+        if self._opened:
+            self._exhausted = True
+            self._logger.info("AsyncLoader: Data source exhausted, stopping...")
+        self._logger.info("AsyncLoader: Stopped")
 
-        self._logger.info("Initializing remote source handler...")
-        self._endpoint = endpoint
-        self._logger.info("Remote source handler initialized.")
+    def __iter__(self) -> Iterator[np.ndarray | dict | object]:
+        """Generator that supports multithreading to retrieve processed data points.
 
-    def open(self):
-        """Starts and opens/connects the endpoint of the source handler."""
-        self._logger.info("Starting remote data source...")
-        try:
-            self._endpoint.start()
-        except RuntimeError:
-            pass
-        self._logger.info("Remote data source started.")
-
-    def close(self):
-        """Stops and closes the endpoint of the source handler."""
-        self._logger.info("Stopping remote data source...")
-        try:
-            self._endpoint.stop()
-        except RuntimeError:
-            pass
-        self._logger.info("Remote data source stopped.")
-
-    def __iter__(self) -> Iterator[object]:
-        """Returns the wrapped endpoint generator, as it supports object retrieval
-        directly.
-
-        :return: Endpoint generator object for data points as objects.
+        :return: Generator object for data points as numpy arrays. Note that for some
+        use cases, data processor might keep the object or dictionary structure.
         """
-        return self._endpoint.__iter__()
+        self._logger.info("Retrieving data points from data handler...")
+        if not self._opened:
+            raise RuntimeError("Data handler has not been opened!")
 
-
-class CSVFileSourceHandler(SourceHandler):
-    """This implementation of the SourceHandler reads one or multiple CSV files and
-    yields their content. The output of this class are dictionaries containing
-    the headers (first row) of the CSV files as the keys and the line as the values.
-    Each CSV is, therefore, expected to have a header line as the first row.
-    """
-
-    _files: str | list[str]
-    _is_file_list: bool
-    _cur_index: int
-    _cur_handle: IO | None
-    _cur_csv: csv.reader
-    _cur_headers: list[str]
-
-    def __init__(self, files: str | list[str], name: str = ""):
-        """Creates a new CSV file handler. Either a single file or a list of files
-        are expected as the input.
-
-        :param files: Either a single CSV file or a list of CSV files to read.
-        """
-        super().__init__(name)
-
-        self._logger.info("Initializing CSV file handler...")
-        self._files = files
-        self._cur_handle = None
-        if isinstance(files, str):
-            self._is_file_list = False
-        if isinstance(files, list):
-            self._is_file_list = True
-        self._logger.info("CSV file handler initialized.")
-
-    def open(self):
-        """Starts the CSV file handler by setting required parameters."""
-        self._logger.info("Opening CSV file handler...")
-        self._cur_index = -1
-
-    def close(self):
-        """Closes the CSV file handler."""
-        self._logger.info("Closing CSV file handler...")
-        if self._cur_handle:
-            self._cur_handle.close()
-            self._cur_handle = None
-
-    def _open_next_file(self):
-        """Opens the next CSV file to read. First, the last read file is closed.
-        Afterward, the next CSV file is opened and the headers are extracted.
-        """
-        self._logger.info("Opening next CSV file...")
-        if self._cur_handle:
-            self._cur_handle.close()
-            self._cur_handle = None
-        self._cur_index += 1
-
-        if self._is_file_list:
-            next_file = self._files[self._cur_index]
+        if self._multithreading:
+            while self._opened and not (self._buffer.empty() and self._exhausted):
+                self._logger.debug(
+                    "Multithreading detected, retrieving data point from "
+                    f"buffer (size={self._buffer.qsize()})..."
+                )
+                try:
+                    yield self._buffer.get(timeout=10)
+                except queue.Empty:
+                    self._logger.warning("Timeout triggered: Buffer empty. Retrying...")
         else:
-            next_file = self._files
+            for o_point in self._data_source:
+                yield self._data_processor.process(o_point)
+        self._logger.info("Data source exhausted or closed.")
+        self._completed.set()
 
-        self._cur_handle = open(next_file, "r")
-        self._cur_csv = csv.reader(self._cur_handle)
+    def __enter__(self):
+        self.open()
+        return self
 
-        self._cur_headers = next(self._cur_csv)
-        self._logger.info("Next CSV file opened and headers extracted.")
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
 
-    def _line_to_dict(self, line, header) -> dict[str, object]:
-        """Converts a line into a dictionary using the provided headers.
-
-        :param line: The line to convert.
-        :param header: The headers to use as the keys.
-        :return: A dictionary containing the headers as keys and the line as values.
-        """
-        cur_dict = {}
-        if len(line) != len(header):
-            self._logger.warning(f"Malformed line detected: {line}")
-        for header_counter in range(len(header)):
-            cur_dict[header[header_counter]] = line[header_counter]
-        return cur_dict
-
-    def __iter__(self) -> Iterator[dict[str, object]]:
-        """Iterates through provided CSV files and yields each line as a dictionary."""
-        while (not self._is_file_list and self._cur_index < 0) or (
-            self._is_file_list and self._cur_index < len(self._files) - 1
-        ):
-            self._open_next_file()
-            for line in self._cur_csv:
-                cur_dict = self._line_to_dict(line, self._cur_headers)
-                yield cur_dict
-        self._logger.info("All CSV files exhausted.")
+    def __del__(self):
+        if self._opened and threading.current_thread() != self._loader:
+            self.close()
