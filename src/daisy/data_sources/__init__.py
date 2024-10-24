@@ -15,6 +15,8 @@ provided interfaces to enable this framework for various use-cases.
     * DataHandlerRelay - Second core class that allows the processing and forwarding
     of data points to another host.
     * CSVFileRelay - Third core class that allows the export of data points to CSV.
+    * CSVFileDataHandler - Allows import of data points from CSV files.
+    * EventHandler - Provides functionality for labeling data streams automatically.
 
 Currently, the following sub-packages are offering interface implementations:
 
@@ -22,7 +24,7 @@ Currently, the following sub-packages are offering interface implementations:
     originating from t-/wireshark or pcaps. See the subpackage documentation for more.
 
 Author: Fabian Hofmann, Jonathan Ackerschewski, Seraphin Zunzer
-Modified: 18.10.2024
+Modified: 22.10.2024
 """
 
 __all__ = [
@@ -46,6 +48,7 @@ __all__ = [
     "march23_events",
     "label_data_point",
     "default_nn_aggregator",
+    "EventHandler",
 ]
 
 from .data_handler import DataHandler
@@ -73,3 +76,4 @@ from .network_traffic import (
     label_data_point,
     default_nn_aggregator,
 )
+from .events import EventHandler

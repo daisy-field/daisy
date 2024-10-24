@@ -686,5 +686,6 @@ class FederatedEvaluationAggregator(FederatedValueAggregator):
                 data = data | metric
             else:
                 data[metric_name] = metric
+        data = {x.replace(" ", "_"): v for x, v in data.items()}
         self._update_dashboard("/metrics/", data)
         return msg
