@@ -15,6 +15,7 @@ import logging
 import sys
 from datetime import datetime
 from typing import Callable, Self
+import typing
 
 from pyparsing import (
     ParserElement,
@@ -168,7 +169,9 @@ class EventParser:
         tree = self._parser.parseString(expression, parseAll=True)
         return self._process_child(tree)
 
-    def _process_child(self, tree: ParseResults) -> Callable[[list[dict]], bool]:
+    def _process_child(
+        self, tree: ParseResults
+    ) -> typing.Optional[Callable[[list[dict]], bool]]:
         """Recursively processes the provided parse tree and returns a function that
         evaluates the data points passed to it.
 
