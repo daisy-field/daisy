@@ -50,7 +50,7 @@ from daisy.data_sources import (
     DataProcessor,
     PcapDataSource,
     packet_to_dict,
-    keep_feature,
+    select_feature,
     default_f_features,
     demo_202312_label_data_point,
     dict_to_numpy_array,
@@ -189,7 +189,7 @@ def create_client():
     processor = (
         DataProcessor()
         .add_func(lambda o_point: packet_to_dict(o_point))
-        .add_func(lambda o_point: keep_feature(o_point, default_f_features))
+        .add_func(lambda o_point: select_feature(o_point, default_f_features))
         .add_func(lambda o_point: demo_202312_label_data_point(args.clientId, o_point))
         .add_func(lambda o_point: dict_to_numpy_array(o_point, default_nn_aggregator))
     )

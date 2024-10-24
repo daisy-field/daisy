@@ -75,6 +75,19 @@ def keep_feature(d_point: dict, f_features: list) -> dict:
     return {key: value for key, value in d_point.items() if key in f_features}
 
 
+def select_feature(d_point: dict, f_features: list, default_value=None) -> dict:
+    """Takes a data point as a dictionary and selects features to keep. If a feature
+    should be kept but isn't present in the data point, it will be added with the
+    default value.
+
+    :param d_point: Dictionary of data point.
+    :param f_features: List of features to select.
+    :param default_value: Default value if feature is not in original data point.
+    :return: Dictionary of data point with selected features.
+    """
+    return {feature: d_point.get(feature, default_value) for feature in f_features}
+
+
 def flatten_dict(
     dictionary: (dict, list),
     seperator: str = ".",
