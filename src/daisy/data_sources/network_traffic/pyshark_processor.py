@@ -3,12 +3,10 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""Implementations of the data source helper interface that allows the processing and
-provisioning of pyshark packets, either via file inputs, live capture, or a remote
-source that generates packets in either fashion.
+"""Implementation of processing steps used for pyshark packets.
 
 Author: Jonathan Ackerschewski, Fabian Hofmann
-Modified: 19.04.24
+Modified: 18.10.2024
 """
 # TODO: Future Work:
 #   - Encoding/mapping of string/non-numerical values into numerical features
@@ -21,7 +19,6 @@ import json
 import logging
 import sys
 from collections import defaultdict
-from collections.abc import MutableMapping
 from ipaddress import AddressValueError
 from typing import Callable
 
@@ -31,77 +28,8 @@ from pyshark.packet.layers.json_layer import JsonLayer
 from pyshark.packet.layers.xml_layer import XmlLayer
 from pyshark.packet.packet import Packet
 
-from ..data_processor import SimpleDataProcessor
-
-# Exemplary network feature filter, supporting cohda-box (V2x) messages, besides
-# TCP/IP and ETH.
-default_f_features = (
-    "meta.len",
-    "meta.time",
-    "meta.protocols",
-    "ip.addr",
-    "sll.halen",
-    "sll.pkttype",
-    "sll.eth",
-    "sll.hatype",
-    "sll.unused",
-    "ipv6.tclass",
-    "ipv6.flow",
-    "ipv6.nxt",
-    "ipv6.src_host",
-    "ipv6.host",
-    "ipv6.hlim",
-    "sll.ltype",
-    "cohda.Type",
-    "cohda.Ret",
-    "cohda.llc.MKxIFMsg.Ret",
-    "ipv6.addr",
-    "ipv6.dst",
-    "ipv6.plen",
-    "tcp.stream",
-    "tcp.payload",
-    "tcp.urgent_pointer",
-    "tcp.port",
-    "tcp.options.nop",
-    "tcp.options.timestamp",
-    "tcp.flags",
-    "tcp.window_size_scalefactor",
-    "tcp.dstport",
-    "tcp.len",
-    "tcp.checksum",
-    "tcp.window_size",
-    "tcp.srcport",
-    "tcp.checksum.status",
-    "tcp.nxtseq",
-    "tcp.status",
-    "tcp.analysis.bytes_in_flight",
-    "tcp.analysis.push_bytes_sent",
-    "tcp.ack",
-    "tcp.hdr_len",
-    "tcp.seq",
-    "tcp.window_size_value",
-    "data.data",
-    "data.len",
-    "tcp.analysis.acks_frame",
-    "tcp.analysis.ack_rtt",
-    "eth.src.addr",
-    "eth.src.eth.src_resolved",
-    "eth.src.ig",
-    "eth.src.src_resolved",
-    "eth.src.addr_resolved",
-    "ip.proto",
-    "ip.dst_host",
-    "ip.flags",
-    "ip.len",
-    "ip.checksum",
-    "ip.checksum.status",
-    "ip.version",
-    "ip.host",
-    "ip.status",
-    "ip.id",
-    "ip.hdr_len",
-    "ip.ttl",
-)
+from .demo_202312 import default_f_features
+from ..data_processor import DataProcessor, remove_feature, flatten_dict
 
 
 def default_nn_aggregator(key: str, value: object) -> int:
@@ -139,75 +67,32 @@ def default_nn_aggregator(key: str, value: object) -> int:
 
 def create_pyshark_processor(
     name: str = "",
-    f_features: tuple[str, ...] = default_f_features,
+    f_features: list[str, ...] = default_f_features,
     nn_aggregator: Callable[[str, object], object] = default_nn_aggregator,
 ):
-    """Creates a SimpleDataProcessor using functions specifically for pyshark packets.
+    """Creates a DataProcessor using functions specifically for pyshark packets.
 
     :param name: The name for logging purposes
     :param f_features: The features to extract from the packets
     :param nn_aggregator: The aggregator, which should map features to integers
     """
-    return SimpleDataProcessor(
-        map_fn=pyshark_map_fn(),
-        filter_fn=pyshark_filter_fn(f_features),
-        reduce_fn=pyshark_reduce_fn(nn_aggregator),
-        name=name,
+    return (
+        DataProcessor(name=name)
+        .add_func(lambda o_point: packet_to_dict(o_point))
+        .add_func(lambda o_point: remove_feature(o_point, f_features))
+        .add_func(lambda o_point: dict_to_numpy_array(o_point, nn_aggregator))
     )
 
 
-def pyshark_map_fn() -> Callable[[object], dict]:
-    """Wrapper around the pyshark packet deserialization functions. Can be used in a
-    SimpleDataProcessor as the map function.
-
-    :return: A function, which converts a packet into a flattened dictionary.
-    """
-    return lambda o_point: packet_to_dict(o_point)
-
-
-def pyshark_filter_fn(
-    f_features: tuple[str, ...] = default_f_features,
-) -> Callable[[dict], dict]:
-    """Filters the pyshark packet according to a pre-defined filter which is applied
-    to every dictionary in order of the selected features in the filter. Features
-    that do not exist are set to None. Can be used in a SimpleDataProcessor as the
-    filter function.
-
-    :param f_features: A list of features
-    :return: A function, that filters each data point as a dictionary, ordered.
-    """
-    return lambda d_point: _pyshark_filter_fn(d_point, f_features)
-
-
-def _pyshark_filter_fn(d_point: dict, f_features: tuple[str, ...]) -> dict:
-    """Helper function, that filters each data point according to a pre-defined filter.
-
-    :param d_point: The data point as a dictionary~
-    :param f_features: The filter to use
-    """
-    return {f_feature: d_point.pop(f_feature, np.nan) for f_feature in f_features}
-
-
-def pyshark_reduce_fn(
-    nn_aggregator: Callable[[str, object], object] = default_nn_aggregator,
-) -> Callable[[dict], np.ndarray]:
-    """Transform the pyshark data point directly into a numpy array without further
-    processing, aggregating any value that is list into a singular value. Can be used
-    in a SimpleDataProcessor as the reduce function.
-
-    :param nn_aggregator: The aggregator
-    :return: A function for reducing a data point to a single value
-    """
-    return lambda d_point: _pyshark_reduce_fn(d_point, nn_aggregator)
-
-
-def _pyshark_reduce_fn(
-    d_point: dict, nn_aggregator: Callable[[str, object], object]
+def dict_to_numpy_array(
+    d_point: dict,
+    nn_aggregator: Callable[[str, object], object],
 ) -> np.ndarray:
     """Transform the pyshark data point directly into a numpy array without further
     processing, aggregating any value that is list into a singular value.
 
     :param d_point: Data point as dictionary.
+    :param nn_aggregator: The aggregator, which should map features to integers
     :return: Data point as vector.
     """
     l_point = []
@@ -346,48 +231,6 @@ def _add_layer_field_container_to_dict(
             dictionary[key].append(value)
 
     return dictionary
-
-
-def flatten_dict(
-    dictionary: (dict, list), seperator: str = ".", par_key: str = ""
-) -> dict:
-    """Creates a flat dictionary (a dictionary without sub-dictionaries) from the
-    given dictionary. The keys of sub-dictionaries are merged into the parent
-    dictionary by combining the keys and adding a seperator: {a: {b: c, d: e}, f: g}
-    becomes {a.b: c, a.d: e, f: g} assuming the seperator as '.'. However,
-    redundant parent keys are greedily eliminated from the dictionary.
-
-    :param dictionary: The dictionary to flatten.
-    :param seperator: The seperator to use.
-    :param par_key: The key of the parent dictionary.
-    :return: A flat dictionary with keys merged and seperated using the seperator.
-    :raises ValueError: If there are key-collisions by greedily flattening the
-    dictionary.
-    """
-    items = {}
-    for key, val in dictionary.items():
-        cur_key = (
-            par_key + seperator + key
-            if par_key != "" and not key.startswith(par_key + seperator)
-            else key
-        )
-        if isinstance(val, MutableMapping):
-            sub_items = flatten_dict(val, par_key=cur_key, seperator=seperator)
-            for subkey in sub_items.keys():
-                if subkey in items:
-                    raise ValueError(
-                        f"Key collision in dictionary "
-                        f"({subkey, sub_items[subkey]} vs {subkey, items[subkey]})!"
-                    )
-            items.update(sub_items)
-        else:
-            if cur_key in items:
-                raise ValueError(
-                    f"Key collision in dictionary ({cur_key, val} "
-                    f"vs {cur_key, items[cur_key]})!"
-                )
-            items.update({cur_key: val})
-    return items
 
 
 def dict_to_json(dictionary: dict) -> str:
