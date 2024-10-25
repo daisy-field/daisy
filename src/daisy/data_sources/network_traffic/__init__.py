@@ -30,12 +30,11 @@ __all__ = [
     "packet_to_dict",
     "dict_to_json",
     "default_f_features",
-    "march23_events",
-    "label_data_point",
+    "demo_202312_label_data_point",
     "default_nn_aggregator",
 ]
 
-from .demo_202312 import default_f_features, march23_events, label_data_point
+from .demo_202312 import default_f_features, demo_202312_label_data_point
 from .pyshark_handler import LivePysharkDataSource, PcapDataSource
 from .pyshark_processor import (
     create_pyshark_processor,

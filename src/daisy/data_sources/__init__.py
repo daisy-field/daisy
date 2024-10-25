@@ -34,6 +34,8 @@ __all__ = [
     "CSVFileDataSource",
     "DataProcessor",
     "remove_feature",
+    "keep_feature",
+    "select_feature",
     "flatten_dict",
     "DataHandlerRelay",
     "CSVFileRelay",
@@ -45,8 +47,7 @@ __all__ = [
     "packet_to_dict",
     "dict_to_json",
     "default_f_features",
-    "march23_events",
-    "label_data_point",
+    "demo_202312_label_data_point",
     "default_nn_aggregator",
     "EventHandler",
 ]
@@ -55,6 +56,8 @@ from .data_handler import DataHandler
 from .data_processor import (
     DataProcessor,
     remove_feature,
+    keep_feature,
+    select_feature,
     flatten_dict,
 )
 from .data_relay import DataHandlerRelay, CSVFileRelay
@@ -72,8 +75,7 @@ from .network_traffic import (
     packet_to_dict,
     dict_to_json,
     default_f_features,
-    march23_events,
-    label_data_point,
+    demo_202312_label_data_point,
     default_nn_aggregator,
 )
 from .events import EventHandler

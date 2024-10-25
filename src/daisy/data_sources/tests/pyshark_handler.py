@@ -19,15 +19,15 @@ from daisy.data_sources import (
     DataHandler,
     DataProcessor,
     packet_to_dict,
-    remove_feature,
+    select_feature,
     default_f_features,
-    label_data_point,
     dict_to_numpy_array,
     default_nn_aggregator,
     CSVFileRelay,
     PcapDataSource,
-    march23_events,
+    demo_202312_label_data_point,
 )
+import numpy as np
 
 file_path = (
     "/home/fabian/Documents/DAI-Lab/DAISY/datasets"
@@ -43,8 +43,8 @@ def pyshark_writer():
     processor = (
         DataProcessor()
         .add_func(lambda o_point: packet_to_dict(o_point))
-        .add_func(lambda o_point: remove_feature(o_point, default_f_features))
-        .add_func(lambda o_point: label_data_point(2, march23_events, o_point))
+        .add_func(lambda o_point: select_feature(o_point, default_f_features, np.nan))
+        .add_func(lambda o_point: demo_202312_label_data_point(2, o_point))
     )
 
     with DataHandler(
@@ -66,8 +66,8 @@ def pyshark_printer():
     processor = (
         DataProcessor()
         .add_func(lambda o_point: packet_to_dict(o_point))
-        .add_func(lambda o_point: remove_feature(o_point, default_f_features))
-        .add_func(lambda o_point: label_data_point(2, march23_events, o_point))
+        .add_func(lambda o_point: select_feature(o_point, default_f_features, np.nan))
+        .add_func(lambda o_point: demo_202312_label_data_point(2, o_point))
         .add_func(lambda o_point: dict_to_numpy_array(o_point, default_nn_aggregator))
     )
 
