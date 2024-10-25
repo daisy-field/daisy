@@ -29,7 +29,16 @@ from daisy.data_sources import (
 )
 
 
-def parse_event(line) -> tuple[datetime, datetime, str, str]:
+def parse_event(line: str) -> tuple[datetime, datetime, str, str]:
+    """Takes a single line and splits it into start and end time, label, and condition
+    for use in the event handler. The line should have the layout:
+        start time, end time, label, condition
+    The start and end times should be floats representing the time since epoch. The
+    label and condition should be strings.
+
+    :param line: A single line
+    :return: The start and end times, the label and the condition
+    """
     parts = line.split(",")
     start_time = datetime.fromtimestamp(float(parts[0].strip()))
     end_time = datetime.fromtimestamp(float(parts[1].strip()))
