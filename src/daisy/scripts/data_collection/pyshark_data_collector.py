@@ -3,9 +3,12 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""This script runs a data collector, which can either capture live data from the
-local machine or gather data from a remote connection. The data will be written into
-CSV files.
+"""Pre-configured data collection component to collect, pre-process (filter and label),
+and write to CSV files, live network traffic data from pyshark (tshark), either from
+the local machine or redirected from a remote machine. This component can be
+launched directly through python or through the command line option. Note that this
+does not launch the remote data source, it has to be run additionally on the remote
+host.
 
 Author: Jonathan Ackerschewski
 Modified: 03.07.2024

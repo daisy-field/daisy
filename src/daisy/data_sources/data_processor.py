@@ -66,7 +66,8 @@ def remove_feature(d_point: dict, f_features: list) -> dict:
 
 
 def keep_feature(d_point: dict, f_features: list) -> dict:
-    """Takes a data point as a dictionary and removes all features not in the given list.
+    """Takes a data point as a dictionary and removes all features not in the given
+    list.
 
     :param d_point: Dictionary of data point.
     :param f_features: List of features to keep.
