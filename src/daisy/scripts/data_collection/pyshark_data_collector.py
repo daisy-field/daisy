@@ -8,12 +8,12 @@ local machine or gather data from a remote connection. The data will be written 
 CSV files.
 
 Author: Jonathan Ackerschewski
-Modified: 03.07.2024
+Modified: 25.10.2024
 """
 
 import argparse
 import logging
-import re
+from datetime import datetime
 
 from daisy.communication import StreamEndpoint
 from daisy.data_sources import (
@@ -25,89 +25,18 @@ from daisy.data_sources import (
     SimpleRemoteDataSource,
     CSVFileRelay,
     DataHandlerRelay,
+    EventHandler,
 )
 
 
-def label_reduce(
-    d_point: dict,
-    events: list[
-        tuple[tuple[float, float], list[tuple[any, any]], list[tuple[any, any]], str]
-    ],
-    default_label: str = "",
-) -> dict:
-    d_point["label"] = default_label
-    for event in events:
-        if not (event[0][0] < float(d_point.get("meta.time_epoch", 0)) < event[0][1]):
-            continue
+def parse_event(line) -> tuple[datetime, datetime, str, str]:
+    parts = line.split(",")
+    start_time = datetime.fromtimestamp(float(parts[0].strip()))
+    end_time = datetime.fromtimestamp(float(parts[1].strip()))
+    label = parts[2].strip()
+    condition = ",".join(parts[3::]).strip()
 
-        skip = False
-        for feature, value in event[1]:
-            if d_point.get(feature, None) != value:
-                skip = True
-                break
-        if skip:
-            continue
-
-        skip = False
-        for feature, value in event[2]:
-            try:
-                if value not in d_point.get(feature, []):
-                    skip = True
-                    break
-            except TypeError:
-                val = d_point.get(feature, [])
-                if val:
-                    logging.error(
-                        f"Got TypeError for feature {feature}, trying to determine if "
-                        f"{value} is in "
-                        f"{val}. Skipping..."
-                    )
-                    skip = True
-                    break
-        if skip:
-            continue
-
-        d_point["label"] = event[3]
-    return d_point
-
-
-def parse_event(line):
-    parts = re.split("[\[\]]", line)
-    times = parts[0].split(",")
-    times[0] = float(times[0])
-    times[1] = float(times[1])
-
-    eq_parts = re.split("[()]", parts[1])
-    eq_list = []
-    for eq in eq_parts:
-        cur_eq = [
-            keyval.strip().strip('"')
-            for keyval in re.split(',(?=(?:[^"]*"[^"]*")*[^"]*$)', eq)
-        ]
-        if len(cur_eq) != 2:
-            continue
-        key, val = cur_eq
-        if not key and not val:
-            continue
-        eq_list += [(key, val)]
-
-    con_parts = re.split("[()]", parts[3])
-    con_list = []
-    for con in con_parts:
-        cur_con = [
-            keyval.strip().strip('"')
-            for keyval in re.split(',(?=(?:[^"]*"[^"]*")*[^"]*$)', con)
-        ]
-        if len(cur_con) != 2:
-            continue
-        key, val = cur_con
-        if not key and not val:
-            continue
-        con_list += [(key, val)]
-
-    label = parts[4].strip(",").strip().strip('"')
-
-    return ((times[0], times[1]), eq_list, con_list, label)
+    return start_time, end_time, label, condition
 
 
 def _parse_args() -> argparse.Namespace:
@@ -461,15 +390,14 @@ def read_collection_files(args):
             )
             exit(1)
 
-    if not args.events:
-        events = []
-    else:
+    events = EventHandler()
+    if args.events:
         try:
             with open(args.events, "r") as events_file:
-                events = []
                 for event in events_file:
                     try:
-                        events += [parse_event(event)]
+                        start_time, end_time, label, condition = parse_event(event)
+                        events.add_event(start_time, end_time, label, condition)
                     except ValueError:
                         logging.warning(
                             f"A line in the event file could not be parsed. Line: "
@@ -483,13 +411,6 @@ def read_collection_files(args):
             logging.error("Unexpected error occurred while parsing events file.")
             logging.error(e)
             exit(1)
-        logging.info("Found following events:")
-        for event in events:
-            logging.info(
-                f"Start time: {event[0][0]}, End time: {event[0][1]}, Label: "
-                f"{event[3]}, List of feature equals value: "
-                f"{event[1]}, List of value in feature: {event[2]}"
-            )
 
     headers = None
     if args.headers_file is not None:
@@ -511,7 +432,9 @@ def create_data_processor(args, f_features, events):
             .add_func(lambda o_point: packet_to_dict(o_point))
             .add_func(lambda o_point: remove_feature(o_point, f_features))
             .add_func(
-                lambda o_point: label_reduce(o_point, events, default_label="benign")
+                lambda o_point: events.process(
+                    datetime.fromtimestamp(o_point.get("meta.time_epoch", 0)), o_point
+                )
             )
         )
     else:
