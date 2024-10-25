@@ -5,6 +5,7 @@
 
 [![CI](https://github.com/daisy-field/daisy/actions/workflows/ci.yml/badge.svg)](https://github.com/daisy-field/daisy/actions/workflows/ci.yml)
 [![License: MPL 2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](https://github.com/daisy-field/daisy/blob/main/LICENSE.txt)
+[![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/release/python-3110/)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
@@ -19,14 +20,26 @@ For the latter, there is a large toolbox of various (example) implementations fo
 these interfaces. Execution i.e. rollout is done through pure python or wrapped inside
 one or multiple docker containers.
 
-
 ## Installing / Getting started
 
-DAISY supports `pip install` **under Python 3.11** and can be set up the following way.
-Note, generally it is recommended to use a virtual environment for any python project.
+DAISY supports `pip install` under
+[Python 3.11](https://www.python.org/downloads/release/python-3110/) 
+and can be set up the following way. Note, generally it is recommended to use a
+[virtual environment](https://docs.python.org/3.11/library/venv.html) for any python
+project.
 
 ```shell
 git clone https://github.com/daisy-field/daisy.git
+
+# python 3.11 setup
+sudo add-apt-repository ppa:deadsnakes/ppa
+sudo apt-get update
+sudo apt-get install python3.11
+
+# venv setup (recommended)
+sudo apt install python3.11-venv
+python3.11 -m venv venv
+source venv/bin/activate
 
 pip install /path/to/daisy
 pip install /path/to/daisy[cuda]  # gpu support
@@ -39,32 +52,68 @@ demo_202312_client -h
 model_aggr_server -h
 ```
 
-Follow the instructions to perform an initial demo. Note that some of the demos require
-additional input as in data sources which are not part of this project. DAISY is also
-supported in docker and the project can be used out of the box after
-[building it](#building).
+Follow the instructions to perform an initial demo. There is also a [minimum working
+example](#minimum-working-example) with all necessary components for a setup of two
+federated detection nodes, the aggregation servers, and a dashboard to display the
+results. Note that some of the demos require additional input as in data sources
+which are not part of this project. DAISY is also supported in docker and the
+project can be used out of the box after [building it](#building).
 
+### Minimum Working Example
+
+```shell
+dashboard
+
+pred_aggr_server --serv localhost
+
+model_aggr_server --serv localhost
+
+eval_aggr_server --serv localhost
+
+demo_202312_client --clientId 5 --pcapBasePath /path/to/datasets/v2x_2023-03-06 \
+--modelAggrServ localhost --updateInterval 5 --evalServ localhost --aggrServ localhost
+
+demo_202312_client --clientId 2 --pcapBasePath /path/to/datasets/v2x_2023-03-06 \ 
+--modelAggrServ localhost --updateInterval 5  --evalServ localhost --aggrServ localhost
+```
 
 ## Developing
 
 Since DAISY supports regular `pip`, to develop the project further, one should install
-it in edit mode [(-e flag)](https://pip.pypa.io/en/stable/cli/pip_install/#cmdoption-e):
+it in edit mode
+[(-e flag)](https://pip.pypa.io/en/stable/cli/pip_install/#cmdoption-e). Again, it is
+once again recommended to either use a
+[virtual environment](https://docs.python.org/3.11/library/venv.html) or any
+of the alternatives, especially when developing.
 
 ```shell
 git clone https://github.com/daisy-field/daisy.git
 cd daisy
+
+# python 3.11 setup
+sudo add-apt-repository ppa:deadsnakes/ppa
+sudo apt-get update
+sudo apt-get install python3.11
+
+# venv setup (recommended)
+sudo apt install python3.11-venv
+python3.11 -m venv venv
+source venv/bin/activate
+
 pip install -e .[dev]
 ```
 
 This will add any external and internal dependencies to the `PATH`, besides installing
-development tools such as style checker, unit tests, and more. If you want to check your
-commit before pushing changes upstream via the project's githooks, one additional
-command must be executed after installing DAISY:
+development tools such as style checker, unit tests, and more. If you want to 
+automatically let your commit be checked before pushing changes upstream via the 
+project's githooks, one additional command must be executed after installing DAISY:
 
 ```shell
 pre-commit install
 ```
 
+Since these checks performed by `pre-commit` will also be repeated upstream, this step 
+is highly recommended to avoid any failed checks during pull requests.
 
 ### Building
 
@@ -81,14 +130,17 @@ like after installing DAISY from the shell (see above).
 
 
 [//]: # ()
+
 [//]: # (### Deploying / Publishing)
 
 [//]: # ()
+
 [//]: # (In case there's some step you have to take that publishes this project to a)
 
 [//]: # (server, this is the right time to state it.)
 
 [//]: # ()
+
 [//]: # (```shell)
 
 [//]: # (packagemanager deploy awesome-project -s server.com -u username -p password)
@@ -96,12 +148,14 @@ like after installing DAISY from the shell (see above).
 [//]: # (```)
 
 [//]: # ()
+
 [//]: # (And again you'd need to tell what the previous code actually does.)
 
 
 [//]: # (## Features)
 
 [//]: # ()
+
 [//]: # (What's all the bells and whistles this project can perform?)
 
 [//]: # (* What's the main functionality)
@@ -112,14 +166,17 @@ like after installing DAISY from the shell (see above).
 
 
 [//]: # ()
+
 [//]: # (## Configuration)
 
 [//]: # ()
+
 [//]: # (Here you should write what are all of the configurations a user can enter when)
 
 [//]: # (using the project.)
 
 [//]: # ()
+
 [//]: # (#### Argument 1)
 
 [//]: # (Type: `String`  )
@@ -127,11 +184,13 @@ like after installing DAISY from the shell (see above).
 [//]: # (Default: `'default value'`)
 
 [//]: # ()
+
 [//]: # (State what an argument does and how you can use it. If needed, you can provide)
 
 [//]: # (an example below.)
 
 [//]: # ()
+
 [//]: # (Example:)
 
 [//]: # (```bash)
@@ -141,6 +200,7 @@ like after installing DAISY from the shell (see above).
 [//]: # (```)
 
 [//]: # ()
+
 [//]: # (#### Argument 2)
 
 [//]: # (Type: `Number|Boolean`  )
@@ -148,21 +208,25 @@ like after installing DAISY from the shell (see above).
 [//]: # (Default: 100)
 
 [//]: # ()
-[//]: # (Copy-paste as many of these as you need.)
 
+[//]: # (Copy-paste as many of these as you need.)
 
 ## Contributing
 
 If you'd like to contribute, please fork the repository and use a feature
 branch. Pull requests are warmly welcome.
 
-Note that DAISY uses the [*Black*](https://black.readthedocs.io/en/stable/the_black_code_style/current_style.html) code style through the [Ruff](https://docs.astral.sh/ruff/) formatter.
+Note that DAISY uses the [
+*Black*](https://black.readthedocs.io/en/stable/the_black_code_style/current_style.html)
+code style through the [Ruff](https://docs.astral.sh/ruff/) formatter.
 
 
 [//]: # ()
+
 [//]: # (## Links)
 
 [//]: # ()
+
 [//]: # (Even though this information can be found inside the project on machine-readable)
 
 [//]: # (format like in a .json file, it's good to include a summary of most useful)
@@ -170,6 +234,7 @@ Note that DAISY uses the [*Black*](https://black.readthedocs.io/en/stable/the_bl
 [//]: # (links to humans using your project. You can include links like:)
 
 [//]: # ()
+
 [//]: # (- Project homepage: https://your.github.com/awesome-project/)
 
 [//]: # (- Repository: https://github.com/your/awesome-project/)
@@ -187,7 +252,6 @@ Note that DAISY uses the [*Black*](https://black.readthedocs.io/en/stable/the_bl
 [//]: # (    - Your other project: https://github.com/your/other-project/)
 
 [//]: # (    - Someone else's project: https://github.com/someones/awesome-project/)
-
 
 ## Licensing
 
