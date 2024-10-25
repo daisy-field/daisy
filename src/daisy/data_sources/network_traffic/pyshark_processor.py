@@ -29,7 +29,8 @@ from pyshark.packet.layers.xml_layer import XmlLayer
 from pyshark.packet.packet import Packet
 
 from .demo_202312 import default_f_features
-from ..data_processor import DataProcessor, keep_feature, flatten_dict
+from .. import select_feature
+from ..data_processor import DataProcessor, flatten_dict
 
 
 def default_nn_aggregator(key: str, value: object) -> int:
@@ -70,7 +71,10 @@ def create_pyshark_processor(
     f_features: list[str, ...] = default_f_features,
     nn_aggregator: Callable[[str, object], object] = default_nn_aggregator,
 ):
-    """Creates a DataProcessor using functions specifically for pyshark packets.
+    """Creates a DataProcessor using functions specifically for pyshark packets,
+    selecting specific features from each data pont (nan if not existing) and
+    transforms them into numpy vectors, ready for to be further processed by
+    detection models.
 
     :param name: The name for logging purposes
     :param f_features: The features to extract from the packets
@@ -79,8 +83,16 @@ def create_pyshark_processor(
     return (
         DataProcessor(name=name)
         .add_func(lambda o_point: packet_to_dict(o_point))
-        .add_func(lambda o_point: keep_feature(o_point, f_features))
-        .add_func(lambda o_point: dict_to_numpy_array(o_point, nn_aggregator))
+        .add_func(
+            lambda o_point: select_feature(
+                d_point=o_point, f_features=default_f_features, default_value=np.nan
+            )
+        )
+        .add_func(
+            lambda o_point: dict_to_numpy_array(
+                d_point=o_point, nn_aggregator=nn_aggregator
+            )
+        )
     )
 
 
