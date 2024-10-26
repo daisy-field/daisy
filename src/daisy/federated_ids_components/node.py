@@ -103,19 +103,19 @@ class FederatedOnlineNode(ABC):
     _completed = threading.Event
 
     def __init__(
-        self,
-        data_source: DataSource,
-        batch_size: int,
-        model: FederatedModel,
-        name: str = "",
-        label_split: int = 2**32,
-        supervised: bool = False,
-        metrics: list[tf.metrics.Metric] = None,
-        eval_server: tuple[str, int] = None,
-        aggr_server: tuple[str, int] = None,
-        sync_mode: bool = True,
-        update_interval_s: int = None,
-        update_interval_t: int = None,
+            self,
+            data_source: DataSource,
+            batch_size: int,
+            model: FederatedModel,
+            name: str = "",
+            label_split: int = 2 ** 32,
+            supervised: bool = False,
+            metrics: list[tf.metrics.Metric] = None,
+            eval_server: tuple[str, int] = None,
+            aggr_server: tuple[str, int] = None,
+            sync_mode: bool = True,
+            update_interval_s: int = None,
+            update_interval_t: int = None,
     ):
         """Creates a new federated online node. Note that by default, the node never
         performs a federated update step; one of the intervals has to be set for that.
@@ -150,8 +150,8 @@ class FederatedOnlineNode(ABC):
         self._model = model
         self._m_lock = threading.Lock()
 
-        if label_split == 2**32 and (
-            supervised or metrics is None or len(metrics) == 0
+        if label_split == 2 ** 32 and (
+                supervised or metrics is None or len(metrics) == 0
         ):
             raise ValueError("Supervised and/or evaluation mode requires labels!")
         self._label_split = label_split
@@ -287,7 +287,7 @@ class FederatedOnlineNode(ABC):
                     "AsyncLearner: Appending sample to current minibatch..."
                 )
                 self._minibatch_inputs.append(sample[: self._label_split])
-                self._minibatch_labels.append(sample[self._label_split :])
+                self._minibatch_labels.append(sample[self._label_split:])
 
                 if len(self._minibatch_inputs) > self._batch_size:
                     self._logger.debug("AsyncLearner: Processing full minibatch...")
@@ -344,10 +344,10 @@ class FederatedOnlineNode(ABC):
         """Checks whether the conditions for a synchronous federated update step are
         met and performs it."""
         if (
-            self._update_interval_s is not None
-            and self._s_since_update > self._update_interval_s
-            or self._update_interval_t is not None
-            and time() - self._t_last_update > self._update_interval_t
+                self._update_interval_s is not None
+                and self._s_since_update > self._update_interval_s
+                or self._update_interval_t is not None
+                and time() - self._t_last_update > self._update_interval_t
         ):
             self._logger.debug(
                 "AsyncLearner: Initiating synchronous federated update step..."
@@ -423,21 +423,21 @@ class FederatedOnlineClient(FederatedOnlineNode):
     _timeout: int
 
     def __init__(
-        self,
-        data_source: DataSource,
-        batch_size: int,
-        model: FederatedModel,
-        m_aggr_server: tuple[str, int],
-        timeout: int = 10,
-        name: str = "",
-        label_split: int = 2**32,
-        supervised: bool = False,
-        metrics: list[tf.metrics.Metric] = None,
-        eval_server: tuple[str, int] = None,
-        aggr_server: tuple[str, int] = None,
-        sync_mode: bool = True,
-        update_interval_s: int = None,
-        update_interval_t: int = None,
+            self,
+            data_source: DataSource,
+            batch_size: int,
+            model: FederatedModel,
+            m_aggr_server: tuple[str, int],
+            timeout: int = 10,
+            name: str = "",
+            label_split: int = 2 ** 32,
+            supervised: bool = False,
+            metrics: list[tf.metrics.Metric] = None,
+            eval_server: tuple[str, int] = None,
+            aggr_server: tuple[str, int] = None,
+            sync_mode: bool = True,
+            update_interval_s: int = None,
+            update_interval_t: int = None,
     ):
         """Creates a new federated online client.
 
@@ -624,22 +624,22 @@ class FederatedOnlinePeer(FederatedOnlineNode):
     _logger: logging.Logger
 
     def __init__(
-        self,
-        data_source: DataSource,
-        batch_size: int,
-        model: FederatedModel,
-        m_aggr: ModelAggregator,
-        port: int,
-        name: str = "",
-        label_split: int = 2**32,
-        supervised: bool = False,
-        metrics: list[tf.metrics] = None,
-        eval_server: tuple[str, int] = None,
-        aggr_server: tuple[str, int] = None,
-        update_interval_s: int = None,
-        update_interval_t: int = None,
-        dht_join_addr: tuple[str, int] = None,
-        num_peers: int = 4,
+            self,
+            data_source: DataSource,
+            batch_size: int,
+            model: FederatedModel,
+            m_aggr: ModelAggregator,
+            port: int,
+            name: str = "",
+            label_split: int = 2 ** 32,
+            supervised: bool = False,
+            metrics: list[tf.metrics] = None,
+            eval_server: tuple[str, int] = None,
+            aggr_server: tuple[str, int] = None,
+            update_interval_s: int = None,
+            update_interval_t: int = None,
+            dht_join_addr: tuple[str, int] = None,
+            num_peers: int = 4,
     ):
         """Creates a new federated online peer.
 
@@ -716,19 +716,18 @@ class FederatedOnlinePeer(FederatedOnlineNode):
         # TODO time management
         #  wann/wie oft wird optimistic unchoking durchgeführt,
         #  wann/wie oft tit for tat -> Paper sagt alle 10 sek. default
-        time()
         start = time()
         tft_timer = start
         unchoke_timer = start
         models = []
         while self._started:
-            if time() - unchoke_timer >= 10:
+            if time() - unchoke_timer >= 30:
                 self._optimistic_unchoke()
                 unchoke_timer = time()
-            if time() - tft_timer >= 30:
+            if time() - tft_timer >= 10:
                 models = self._tit_for_tat()
-                # Fixme: tft timer updaten!!
-            if models and len(models) > 0:
+                tft_timer = time()
+            if models and len(models) >= 4:
                 with self._m_lock:
                     models.append(self._model.get_parameters())
                     self.fed_update(models)

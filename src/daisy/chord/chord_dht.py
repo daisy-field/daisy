@@ -69,7 +69,7 @@ class ChordDHTPeer:
     _endpoint_server: EndpointServer
     _pending_requests: dict[uuid4, tuple[float, float, int]]
     # message id: ttl, send time, for fingers: i
-    _default_response_ttl: float
+    _default_ttl: float
     # Theorem IV.2: With high probability, the number of nodes
     # that must be contacted to find a successor in an N -node network
     # is O(log N ).
@@ -119,7 +119,7 @@ class ChordDHTPeer:
         )
         self._joined = False
         self._pending_requests = {}
-        self._default_response_ttl = 1.5 * max_fingers
+        self._default_ttl = 1.5 * max_fingers
         self._notify_recv_timestamp = time.time()
         self._stabilize_recv_timestamp = time.time()
 
@@ -156,7 +156,7 @@ class ChordDHTPeer:
                     timestamp=time.time(),
                 )
                 self._pending_requests[request_id] = (
-                    self._default_response_ttl,
+                    self._default_ttl,
                     time.time(),
                     -1,
                 )
@@ -258,13 +258,13 @@ class ChordDHTPeer:
 
     def _purge_dropout_peers(self):
         if self._predecessor and (
-            time.time() - self._stabilize_recv_timestamp
-            > self._default_response_ttl * 2
+                time.time() - self._stabilize_recv_timestamp
+                > self._default_ttl * 2
         ):
             self._purge_predecessor_if_dropout()
 
         if self._successor and (
-            time.time() - self._notify_recv_timestamp > self._default_response_ttl * 2
+                time.time() - self._notify_recv_timestamp > self._default_ttl * 2
         ):
             self._purge_successor_if_dropout()  # Zeit bis Ring wieder geschlossen ist, ist relativ hoch wenn zwei Knoten  # back to back ausfallen, allerdings ist das okay, da die wahrscheinlichkeit  # für dieses Ergnis in einem unendlich großen Ring gegen null konvergiert  # if self._predecessor is None and  # self._successor is None and  # len(self._fingers) == 0:  #   exit()
 
@@ -400,7 +400,7 @@ class ChordDHTPeer:
         for i in range(self._max_fingers):
             finger = (self._id + (1 << i)) % (1 << self._max_fingers)
             request_id = uuid4()
-            self._pending_requests[request_id] = (10, time.time(), i)
+            self._pending_requests[request_id] = (self._default_ttl, time.time(), i)
             message = Chordmessage(
                 msg_type=MessageType.LOOKUP_REQ,
                 sender=(self._id, self._addr),
@@ -641,7 +641,7 @@ class ChordDHTPeer:
 
     def _check_ttl_expired(self, timestamp: float, ttl: int = None) -> bool:
         self._logger.debug("Hop Time: %d", time.time() - timestamp)
-        if time.time() - timestamp > (ttl or self._default_response_ttl):
+        if time.time() - timestamp > (ttl or self._default_ttl):
             self._logger.debug("skipping expired message")
             return True
         return False
@@ -759,7 +759,7 @@ class ChordDHTPeer:
             try:
                 self._successor_endpoint.send(message)
                 self._pending_requests[request_id] = (
-                    self._default_response_ttl,
+                    self._default_ttl,
                     time.time(),
                     -1,
                 )
