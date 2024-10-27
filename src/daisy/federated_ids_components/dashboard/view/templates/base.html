@@ -125,7 +125,9 @@
                                 <div class="sb-sidenav-collapse-arrow"><i class="fas fa-angle-down"></i></div>
                             </a>
                             <div class="collapse" id="collapsePages2" aria-labelledby="headingTwo" data-bs-parent="#sidenavAccordion">
-                            <a class="nav-link" href={% url "accuracy" %}>
+                                <nav class="sb-sidenav-menu-nested nav accordion" id="sidenavAccordionPages">
+
+                                <a class="nav-link" href={% url "accuracy" %}>
                                 <div class="sb-nav-link-icon"><i class="fa-solid fa-chart-line"></i></div>
                                 Accuracy
                             </a>
@@ -147,7 +149,7 @@
                             </a>
                             <a class="nav-link" href={% url "negative_predictive_value" %}>
                                 <div class="sb-nav-link-icon"><i class="fa-solid fa-chart-line"></i></div>
-                                NPR
+                                NPV
                             </a>
                             <a class="nav-link" href={% url "false_negative_rate" %}>
                                 <div class="sb-nav-link-icon"><i class="fa-solid fa-chart-line"></i></div>
@@ -157,6 +159,7 @@
                                 <div class="sb-nav-link-icon"><i class="fa-solid fa-chart-line"></i></div>
                                 TNR
                             </a>
+                                </nav>
                             </div>
                             <div class="sb-sidenav-menu-heading">Addons</div>
                             <a class="nav-link" href={% url "data" %}>
