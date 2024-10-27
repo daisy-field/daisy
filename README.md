@@ -82,10 +82,10 @@ demo_202312_client --clientId 2 --pcapBasePath /path/to/datasets/v2x_2023-03-06 
 Clients using CIC-IDS dataset (ID's: [1,2,3,4,5,6,7,8,9,10]): 
 ```
 demo_cic_client --clientId 1 --csvBasePath /path/to/datasets/CIC_IDS2017 \
---modelAggrServ localhost --evalServ localhost --predServ localhost; exec bash"
+--modelAggrServ localhost --updateInterval 5 --evalServ localhost --predServ localhost
 
 demo_cic_client --clientId 10 --csvBasePath /path/to/datasets/CIC_IDS2017 \
---modelAggrServ localhost --evalServ localhost --predServ localhost; exec bash"
+--modelAggrServ localhost --updateInterval 5 --evalServ localhost --predServ localhost
 ```
 
 ## Developing
