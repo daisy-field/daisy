@@ -119,18 +119,18 @@ def _parse_args() -> argparse.Namespace:
         help="Port of evaluation server",
     )
     server_options.add_argument(
-        "--aggrServ",
+        "--predServ",
         default="0.0.0.0",
         metavar="",
-        help="IP or hostname of aggregation server",
+        help="IP or hostname of prediction server",
     )
     server_options.add_argument(
-        "--aggrServPort",
+        "--predServPort",
         type=int,
         default=8002,
         choices=range(1, 65535),
         metavar="",
-        help="Port of aggregation server",
+        help="Port of prediction server",
     )
 
     client_options = parser.add_argument_group("Client Options")
@@ -179,9 +179,9 @@ def create_client():
     eval_serv = None
     if args.evalServ != "0.0.0.0":
         eval_serv = (args.evalServ, args.evalServPort)
-    aggr_serv = None
-    if args.aggrServ != "0.0.0.0":
-        aggr_serv = (args.aggrServ, args.aggrServPort)
+    pred_serv = None
+    if args.predServ != "0.0.0.0":
+        pred_serv = (args.predServ, args.aggrServPort)
 
     # Datasource
     source = PcapDataSource(
@@ -233,7 +233,7 @@ def create_client():
         metrics=metrics,
         m_aggr_server=m_aggr_serv,
         eval_server=eval_serv,
-        aggr_server=aggr_serv,
+        aggr_server=pred_serv,
         update_interval_t=args.updateInterval,
     )
     client.start()
