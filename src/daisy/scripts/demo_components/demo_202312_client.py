@@ -181,7 +181,7 @@ def create_client():
         eval_serv = (args.evalServ, args.evalServPort)
     pred_serv = None
     if args.predServ != "0.0.0.0":
-        pred_serv = (args.predServ, args.aggrServPort)
+        pred_serv = (args.predServ, args.predServPort)
 
     # Datasource
     source = PcapDataSource(
