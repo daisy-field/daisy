@@ -103,19 +103,19 @@ class FederatedOnlineNode(ABC):
     _completed = threading.Event
 
     def __init__(
-            self,
-            data_source: DataSource,
-            batch_size: int,
-            model: FederatedModel,
-            name: str = "",
-            label_split: int = 2 ** 32,
-            supervised: bool = False,
-            metrics: list[tf.metrics.Metric] = None,
-            eval_server: tuple[str, int] = None,
-            aggr_server: tuple[str, int] = None,
-            sync_mode: bool = True,
-            update_interval_s: int = None,
-            update_interval_t: int = None,
+        self,
+        data_source: DataSource,
+        batch_size: int,
+        model: FederatedModel,
+        name: str = "",
+        label_split: int = 2**32,
+        supervised: bool = False,
+        metrics: list[tf.metrics.Metric] = None,
+        eval_server: tuple[str, int] = None,
+        aggr_server: tuple[str, int] = None,
+        sync_mode: bool = True,
+        update_interval_s: int = None,
+        update_interval_t: int = None,
     ):
         """Creates a new federated online node. Note that by default, the node never
         performs a federated update step; one of the intervals has to be set for that.
@@ -150,8 +150,8 @@ class FederatedOnlineNode(ABC):
         self._model = model
         self._m_lock = threading.Lock()
 
-        if label_split == 2 ** 32 and (
-                supervised or metrics is None or len(metrics) == 0
+        if label_split == 2**32 and (
+            supervised or metrics is None or len(metrics) == 0
         ):
             raise ValueError("Supervised and/or evaluation mode requires labels!")
         self._label_split = label_split
@@ -287,7 +287,7 @@ class FederatedOnlineNode(ABC):
                     "AsyncLearner: Appending sample to current minibatch..."
                 )
                 self._minibatch_inputs.append(sample[: self._label_split])
-                self._minibatch_labels.append(sample[self._label_split:])
+                self._minibatch_labels.append(sample[self._label_split :])
 
                 if len(self._minibatch_inputs) > self._batch_size:
                     self._logger.debug("AsyncLearner: Processing full minibatch...")
@@ -344,10 +344,10 @@ class FederatedOnlineNode(ABC):
         """Checks whether the conditions for a synchronous federated update step are
         met and performs it."""
         if (
-                self._update_interval_s is not None
-                and self._s_since_update > self._update_interval_s
-                or self._update_interval_t is not None
-                and time() - self._t_last_update > self._update_interval_t
+            self._update_interval_s is not None
+            and self._s_since_update > self._update_interval_s
+            or self._update_interval_t is not None
+            and time() - self._t_last_update > self._update_interval_t
         ):
             self._logger.debug(
                 "AsyncLearner: Initiating synchronous federated update step..."
@@ -423,21 +423,21 @@ class FederatedOnlineClient(FederatedOnlineNode):
     _timeout: int
 
     def __init__(
-            self,
-            data_source: DataSource,
-            batch_size: int,
-            model: FederatedModel,
-            m_aggr_server: tuple[str, int],
-            timeout: int = 10,
-            name: str = "",
-            label_split: int = 2 ** 32,
-            supervised: bool = False,
-            metrics: list[tf.metrics.Metric] = None,
-            eval_server: tuple[str, int] = None,
-            aggr_server: tuple[str, int] = None,
-            sync_mode: bool = True,
-            update_interval_s: int = None,
-            update_interval_t: int = None,
+        self,
+        data_source: DataSource,
+        batch_size: int,
+        model: FederatedModel,
+        m_aggr_server: tuple[str, int],
+        timeout: int = 10,
+        name: str = "",
+        label_split: int = 2**32,
+        supervised: bool = False,
+        metrics: list[tf.metrics.Metric] = None,
+        eval_server: tuple[str, int] = None,
+        aggr_server: tuple[str, int] = None,
+        sync_mode: bool = True,
+        update_interval_s: int = None,
+        update_interval_t: int = None,
     ):
         """Creates a new federated online client.
 
@@ -608,7 +608,9 @@ class FederatedOnlineClient(FederatedOnlineNode):
 
 
 class FederatedOnlinePeer(FederatedOnlineNode):
-    """TODO by @lotta"""
+    """TODO by @lotta
+    TODO Tit for Tat parameter
+    """
 
     _topology: ChordDHTPeer
     _topology_thread: threading.Thread
@@ -617,29 +619,29 @@ class FederatedOnlinePeer(FederatedOnlineNode):
 
     _m_aggr: ModelAggregator
     _num_peers: int
-    _unchoked_peers: set
+    _choked_peers: set
 
     model: FederatedModel
 
     _logger: logging.Logger
 
     def __init__(
-            self,
-            data_source: DataSource,
-            batch_size: int,
-            model: FederatedModel,
-            m_aggr: ModelAggregator,
-            port: int,
-            name: str = "",
-            label_split: int = 2 ** 32,
-            supervised: bool = False,
-            metrics: list[tf.metrics] = None,
-            eval_server: tuple[str, int] = None,
-            aggr_server: tuple[str, int] = None,
-            update_interval_s: int = None,
-            update_interval_t: int = None,
-            dht_join_addr: tuple[str, int] = None,
-            num_peers: int = 4,
+        self,
+        data_source: DataSource,
+        batch_size: int,
+        model: FederatedModel,
+        m_aggr: ModelAggregator,
+        port: int,
+        name: str = "",
+        label_split: int = 2**32,
+        supervised: bool = False,
+        metrics: list[tf.metrics] = None,
+        eval_server: tuple[str, int] = None,
+        aggr_server: tuple[str, int] = None,
+        update_interval_s: int = None,
+        update_interval_t: int = None,
+        dht_join_addr: tuple[str, int] = None,
+        num_peers: int = 4,
     ):
         """Creates a new federated online peer.
 
@@ -682,7 +684,7 @@ class FederatedOnlinePeer(FederatedOnlineNode):
         self._m_aggr = m_aggr
         self._topology = ChordDHTPeer(addr=self._addr, cluster_size=num_peers)
         self._num_peers = num_peers
-        self._unchoked_peers = set()
+        self._choked_peers = set()
         self._started = False
 
         self._logger = logging.getLogger("FED_NODE")
@@ -713,17 +715,20 @@ class FederatedOnlinePeer(FederatedOnlineNode):
     def create_async_fed_learner(self):
         """ """
         # TODO sample based/ time based
-        # TODO time management
+        # TODO favoritenliste mit peers die schonal geantwortet haben
         #  wann/wie oft wird optimistic unchoking durchgeführt,
         #  wann/wie oft tit for tat -> Paper sagt alle 10 sek. default
         start = time()
         tft_timer = start
-        unchoke_timer = start
+        auto_modelsharing_timer = start
+        full_unchoke_timer = start
         models = []
         while self._started:
-            if time() - unchoke_timer >= 30:
-                self._optimistic_unchoke()
-                unchoke_timer = time()
+            if time() - full_unchoke_timer >= 60:
+                self._choked_peers.clear()
+            if time() - auto_modelsharing_timer >= 30:
+                self._send_model_and_choke_receiving_peer()
+                auto_modelsharing_timer = time()
             if time() - tft_timer >= 10:
                 models = self._tit_for_tat()
                 tft_timer = time()
@@ -735,29 +740,43 @@ class FederatedOnlinePeer(FederatedOnlineNode):
             else:
                 sleep(1)
 
-    def _optimistic_unchoke(self):
+    def _send_model_and_choke_receiving_peer(self):
+        # best effort solution, take what is there
+        peers = self._get_peers_for_cluster()
+        for peer in peers:
+            if peer in self._choked_peers:
+                continue
+            with self._m_lock:
+                self._topology.fed_models_outgoing.put(
+                    (peer, self._model.get_parameters())
+                )
+                self._choked_peers.add(peer)
+
+    def _get_peers_for_cluster(self):
         peers = set()
         while len(peers) < self._num_peers:
             try:
                 peers.add(self._topology.fed_peers.get_nowait())
             except Empty:
                 self._logger.info(
-                    f"Sampled {len(self._unchoked_peers)} Peers from Network."
+                    f"Sampled {len(self._choked_peers)} Peers from Network."
                 )
-                break
-
-        for peer in peers:
-            if peer in self._unchoked_peers:
-                continue
-            with self._m_lock:
-                self._topology.fed_models_outgoing.put(
-                    (peer, self._model.get_parameters())
-                )
-                self._unchoked_peers.add(peer)
+                return peers
 
     def _tit_for_tat(self) -> list[list[np.ndarray]]:
-        fed_peers_and_models = {}
+        fed_peers_and_models = self._get_peer_models_from_topology_queue()
         fed_models = []
+        for fed_peer in fed_peers_and_models:
+            fed_model = fed_peers_and_models[fed_peer]
+            if fed_peer in self._choked_peers:
+                self._choked_peers.remove(fed_peer)
+            else:
+                self._topology.fed_models_outgoing.put((fed_peer, fed_model))
+            fed_models.append(fed_model)
+        return fed_models
+
+    def _get_peer_models_from_topology_queue(self):
+        fed_peers_and_models = {}
         while len(fed_peers_and_models) < self._num_peers:
             try:
                 fed_peer, fed_model = self._topology.fed_models_incoming.get_nowait()
@@ -766,15 +785,7 @@ class FederatedOnlinePeer(FederatedOnlineNode):
                 self._logger.info(
                     f"Retrieved {len(fed_peers_and_models)} Models from network."
                 )
-                break
-        for fed_peer in fed_peers_and_models:
-            fed_model = fed_peers_and_models[fed_peer]
-            if fed_peer in self._unchoked_peers:
-                self._unchoked_peers.remove(fed_peer)
-            else:
-                self._topology.fed_models_outgoing.put((fed_peer, fed_model))
-            fed_models.append(fed_model)
-        return fed_models
+                return fed_peers_and_models
 
 
 def _try_ops(*operations: Callable, logger: logging.Logger):
@@ -806,7 +817,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--port", type=int, default=None, help="Port of peer")
     parser.add_argument(
-        "--port_join", type=int, default=None, help="Port of peer to join dht on"
+        "--joinPort", type=int, default=None, help="Port of peer to join dht on"
     )
     args = parser.parse_args()
 
@@ -829,8 +840,8 @@ if __name__ == "__main__":
     metrics = [ConfMatrSlidingWindowEvaluation(window_size=8)]
 
     join_addr = None
-    if args.port_join:
-        join_addr = ("127.0.0.1", args.port_join)
+    if args.joinPort:
+        join_addr = ("127.0.0.1", args.joinPort)
     federated_node = FederatedOnlinePeer(
         data_source=data_source,
         model=model,
