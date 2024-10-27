@@ -61,6 +61,7 @@ project can be used out of the box after [building it](#building).
 
 ### Minimum Working Example
 
+Main components: 
 ```shell
 dashboard
 
@@ -69,12 +70,22 @@ pred_aggr_server --serv localhost
 model_aggr_server --serv localhost
 
 eval_aggr_server --serv localhost
-
+```
+Clients using ITS dataset (ID's: [2, 5]): 
+```
 demo_202312_client --clientId 5 --pcapBasePath /path/to/datasets/v2x_2023-03-06 \
---modelAggrServ localhost --updateInterval 5 --evalServ localhost --aggrServ localhost
+--modelAggrServ localhost --updateInterval 5 --evalServ localhost --predServ localhost
 
 demo_202312_client --clientId 2 --pcapBasePath /path/to/datasets/v2x_2023-03-06 \ 
---modelAggrServ localhost --updateInterval 5  --evalServ localhost --aggrServ localhost
+--modelAggrServ localhost --updateInterval 5  --evalServ localhost --predServ localhost
+```
+Clients using CIC-IDS dataset (ID's: [1,2,3,4,5,6,7,8,9,10]): 
+```
+demo_cic_client --clientId 1 --csvBasePath /path/to/datasets/CIC_IDS2017 \
+--modelAggrServ localhost --evalServ localhost --predServ localhost; exec bash"
+
+demo_cic_client --clientId 10 --csvBasePath /path/to/datasets/CIC_IDS2017 \
+--modelAggrServ localhost --evalServ localhost --predServ localhost; exec bash"
 ```
 
 ## Developing
