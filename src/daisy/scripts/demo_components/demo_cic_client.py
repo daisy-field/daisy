@@ -45,13 +45,19 @@ import pathlib
 
 import tensorflow as tf
 
-from daisy.data_sources import DataSource
+from daisy.data_sources import (
+    DataHandler,
+    DataProcessor,
+    dict_to_numpy_array,
+    default_nn_aggregator,
+)
 from daisy.evaluation import ConfMatrSlidingWindowEvaluation
 from daisy.federated_ids_components import FederatedOnlineClient
 from daisy.federated_learning import TFFederatedModel, FederatedIFTM, EMAvgTM
 
-from daisy.data_sources import CSVFileSourceHandler
-from daisy.data_sources.cicids17.cic_processor import CICProcessor
+from daisy.data_sources import CSVFileDataSource
+
+from daisy.data_sources.cicids17.demo_cic import cic_label_data_point
 
 
 def _parse_args() -> argparse.Namespace:
@@ -78,7 +84,7 @@ def _parse_args() -> argparse.Namespace:
         type=pathlib.Path,
         default="/home/fabian/Documents/DAI-Lab/COBRA-5G/D-IDS/Datasets/CIC_IDS2017",
         metavar="",
-        help="Path to the CIC IDS2017 dataset directory (root)",
+        help="Path to the CIC-IDS2017 dataset directory (root)",
     )
 
     server_options = parser.add_argument_group("Server Options")
@@ -111,18 +117,18 @@ def _parse_args() -> argparse.Namespace:
         help="Port of evaluation server",
     )
     server_options.add_argument(
-        "--aggrServ",
+        "--predServ",
         default="0.0.0.0",
         metavar="",
-        help="IP or hostname of aggregation server",
+        help="IP or hostname of prediction server",
     )
     server_options.add_argument(
-        "--aggrServPort",
+        "--predServPort",
         type=int,
         default=8002,
         choices=range(1, 65535),
         metavar="",
-        help="Port of aggregation server",
+        help="Port of prediction server",
     )
 
     client_options = parser.add_argument_group("Client Options")
@@ -171,19 +177,34 @@ def create_client():
     eval_serv = None
     if args.evalServ != "0.0.0.0":
         eval_serv = (args.evalServ, args.evalServPort)
-    aggr_serv = None
-    if args.aggrServ != "0.0.0.0":
-        aggr_serv = (args.aggrServ, args.aggrServPort)
+    pred_serv = None
+    if args.predServ != "0.0.0.0":
+        pred_serv = (args.predServ, args.predServPort)
 
-    # Datasource
-    # TODO ADD CSV Handler
-    handler = CSVFileSourceHandler(f"{args.csvBasePath}/{args.clientId}.csv")
-    processor = CICProcessor()  # , events=march23_events)
-    data_source = DataSource(source_handler=handler, data_processor=processor)
+    # handler = CSVFileSourceHandler(f"{args.csvBasePath}/{args.clientId}.csv")
+    # processor = CICProcessor()  # , events=march23_events)
+    # data_source = DataSource(source_handler=handler, data_processor=processor)
 
     #    handler = PcapHandler(f"{args.pcapBasePath}/diginet-cohda-box-dsrc{args.clientId}")
     #    processor = CohdaProcessor(client_id=args.clientId, events=march23_events)
     #    data_source = DataSource(source_handler=handler, data_processor=processor)
+
+    source = CSVFileDataSource(f"{args.csvBasePath}/{args.clientId}.csv")
+    processor = (
+        DataProcessor()
+        # .add_func(lambda o_point: packet_to_dict(o_point))
+        .add_func(
+            lambda o_point: cic_label_data_point(
+                client_id=args.clientId, d_point=o_point
+            )
+        )
+        .add_func(
+            lambda o_point: dict_to_numpy_array(
+                d_point=o_point, nn_aggregator=default_nn_aggregator
+            )
+        )
+    )
+    data_handler = DataHandler(data_source=source, data_processor=processor)
 
     # Model
     optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
@@ -203,14 +224,14 @@ def create_client():
 
     # Client
     client = FederatedOnlineClient(
-        data_source=data_source,
+        data_handler=data_handler,
         batch_size=args.batchSize,
         model=model,
         label_split=78,
         metrics=metrics,
         m_aggr_server=m_aggr_serv,
         eval_server=eval_serv,
-        aggr_server=aggr_serv,
+        aggr_server=pred_serv,
         update_interval_t=args.updateInterval,
     )
     client.start()
