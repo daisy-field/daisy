@@ -1,0 +1,108 @@
+<!--
+  ~ Copyright (C) 2024 DAI-Labor and others
+  ~
+  ~ This Source Code Form is subject to the terms of the Mozilla Public
+  ~ License, v. 2.0. If a copy of the MPL was not distributed with this
+  ~ file, You can obtain one at https://mozilla.org/MPL/2.0/.
+  -->
+{% extends "./base.html" %}
+{% block body_theme %}
+{% if dark_theme %}
+"sb-nav-fixed bg-dark"
+{% else %}
+"sb-nav-fixed"
+{% endif %}
+{% endblock %}
+
+{% block footer_theme %}
+{% if dark_theme %}
+"py-4 bg-dark mt-auto"
+{% else %}
+"py-4 mt-auto"
+{% endif %}
+{% endblock %}
+
+{% block navbar_theme %}
+{% if dark_theme %}
+"sb-sidenav accordion sb-sidenav-dark"
+{% else %}
+"sb-sidenav accordion sb-sidenav-light"
+{% endif %}
+{% endblock %}
+
+{% block main %}
+
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+
+
+<script>
+    function confirmClearStorage() {
+        if (confirm("Are you sure you want to clear the storage?")) {
+            window.location.href = "{% url 'freeStorage' %}";
+        }
+    }
+</script>
+
+
+<ol class="breadcrumb mb-4">
+    <li class="breadcrumb-item active"></li>
+</ol>
+<div class={% if dark_theme %}
+"card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
+<div class="card-header">
+    <i class="fas fa-chart-area me-1"></i>
+    Statistics
+</div>
+<div class="card-body">
+    <div class="col-xl-4 col-md-6">
+        Longterm Storage: {{total_records_long}}/{{limit_long}}
+        <div class="progress">
+            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar"
+                 style="width: {{long_percentage}}%" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+    </div>
+    <br>
+    <div class="col-xl-4 col-md-6">
+        Shortterm Storage: {{total_records}}/{{limit_short}}
+        <div class="progress">
+            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar"
+                 style="width: {{percentage}}%" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+    </div>
+    <br>
+    <button class="btn btn-danger" type="submit" onclick="confirmClearStorage()"> <i class="fa-solid fa-trash"></i> Clear Storage</button>
+</div>
+<div id="updated1" class="card-footer small text-muted"></div>
+</div>
+
+
+<div class={% if dark_theme %}
+"card bg-dark text-white mb-4" {% else %} "card mb-4" {% endif %}>
+<div class="card-header">
+<i class="fa-solid fa-file-export"></i>
+    Export
+</div>
+<div class="card-body">
+    <form method="POST" action="{% url 'download_csv' %}">
+        {% csrf_token %}
+
+        Select Metrics:<br>
+        <input type="checkbox" name="metrics" value="accuracy" checked> Accuracy<br>
+        <input type="checkbox" name="metrics" value="precision" checked> Precision<br>
+        <input type="checkbox" name="metrics" value="recall" checked> Recall<br>
+        <input type="checkbox" name="metrics" value="f1" checked> F1 Score<br>
+
+        <br>Select Nodes:<br>
+        {% for node in nodes %}
+        <input type="checkbox" name="nodes" value="{{ node }}" checked> {{ node }}<br>
+        {% endfor %}
+        <br>
+
+        <button class="btn btn-secondary" type="submit"><i class="fa-solid fa-download"></i> Download CSV</button>
+    </form>
+</div>
+
+<div id="updated" class="card-footer small text-muted"></div>
+{% endblock %}

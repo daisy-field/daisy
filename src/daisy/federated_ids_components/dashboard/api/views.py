@@ -18,6 +18,8 @@ from api.serializers import (
     Alerts,
     Prediction,
     Node,
+    Metrics_long,
+    MetricsLongSerializer,
 )
 
 
@@ -28,6 +30,16 @@ class MetricsSerializerView(viewsets.ModelViewSet):
 
     queryset = Metrics.objects.all()
     serializer_class = MetricsSerializer
+    permission_classes = [permissions.AllowAny]
+
+
+class MetricsLongSerializerView(viewsets.ModelViewSet):
+    """
+    API endpoint that allows users to be viewed or edited.
+    """
+
+    queryset = Metrics_long.objects.all()
+    serializer_class = MetricsLongSerializer
     permission_classes = [permissions.AllowAny]
 
 

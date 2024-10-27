@@ -16,12 +16,18 @@ Modified: 07.06.24
 import logging
 
 from daisy.data_sources import (
-    DataSource,
+    DataHandler,
+    DataProcessor,
+    packet_to_dict,
+    select_feature,
+    default_f_features,
+    dict_to_numpy_array,
+    default_nn_aggregator,
     CSVFileRelay,
-    PcapHandler,
-    CohdaProcessor,
-    march23_events,
+    PcapDataSource,
+    demo_202312_label_data_point,
 )
+import numpy as np
 
 file_path = (
     "/home/fabian/Documents/DAI-Lab/DAISY/datasets"
@@ -29,37 +35,46 @@ file_path = (
 )
 
 
-def pyshark_writer():  # TODO
+def pyshark_writer():
     """Creates and starts a file relay to write the contents of a pyshark file data
     source to a csv file that runs until processing all data points.
     """
-    handler = PcapHandler(file_path)
-    processor = CohdaProcessor(
-        client_id=2, events=march23_events, reduce_fn=lambda o_point: o_point
+    source = PcapDataSource(file_path)
+    processor = (
+        DataProcessor()
+        .add_func(lambda o_point: packet_to_dict(o_point))
+        .add_func(lambda o_point: select_feature(o_point, default_f_features, np.nan))
+        .add_func(lambda o_point: demo_202312_label_data_point(2, o_point))
     )
 
-    with DataSource(
-        source_handler=handler, data_processor=processor, multithreading=True
-    ) as source:
+    with DataHandler(
+        data_source=source, data_processor=processor, multithreading=True
+    ) as handler:
         relay = CSVFileRelay(
-            data_source=source,
+            data_handler=handler,
             target_file="test_pcap.csv",
             overwrite_file=True,
         )
         relay.start(blocking=True)
 
 
-def pyshark_printer():  # TODO
-    """Creates and starts a data source from a directory of pcap files,
-    wrapped in a pcap source handler and using the cohda processor to label it.
+def pyshark_printer():
+    """Creates and starts a data handler from a directory of pcap files,
+    wrapped in a pcap data source and using the cohda processor to label it.
     """
-    handler = PcapHandler(file_path)
-    processor = CohdaProcessor(client_id=2, events=march23_events)
+    source = PcapDataSource(file_path)
+    processor = (
+        DataProcessor()
+        .add_func(lambda o_point: packet_to_dict(o_point))
+        .add_func(lambda o_point: select_feature(o_point, default_f_features, np.nan))
+        .add_func(lambda o_point: demo_202312_label_data_point(2, o_point))
+        .add_func(lambda o_point: dict_to_numpy_array(o_point, default_nn_aggregator))
+    )
 
-    with DataSource(
-        source_handler=handler, data_processor=processor, multithreading=True
-    ) as source:
-        for item in source:
+    with DataHandler(
+        data_source=source, data_processor=processor, multithreading=True
+    ) as handler:
+        for item in handler:
             print(item)
 
 

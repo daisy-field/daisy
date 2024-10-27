@@ -8,14 +8,15 @@ preprocessing for further (ML) tasks. The data source module is the core of the
 package while modules and further subpackages are implementations/extensions of the
 provided interfaces to enable this framework for various use-cases.
 
-    * DataSource - Core class of any data source, union of DataProcessor, SourceHandler.
-    * SourceHandler - Interface class. Implementations must provide data point
+    * DataHandler - Core class of any data handler, union of DataProcessor, DataSource.
+    * DataSource - Interface class. Implementations must provide data point
     objects in generator-like fashion.
-    * DataProcessor - Interface class. Implementations must process data point
-    objects into vectors (numpy arrays).
-    * DataSourceRelay - Second core class that allows the processing and forwarding
+    * DataProcessor - Processor for data points. Processing functions must be provided.
+    * DataHandlerRelay - Second core class that allows the processing and forwarding
     of data points to another host.
     * CSVFileRelay - Third core class that allows the export of data points to CSV.
+    * CSVFileDataHandler - Allows import of data points from CSV files.
+    * EventHandler - Provides functionality for labeling data streams automatically.
 
 Currently, the following sub-packages are offering interface implementations:
 
@@ -23,39 +24,58 @@ Currently, the following sub-packages are offering interface implementations:
     originating from t-/wireshark or pcaps. See the subpackage documentation for more.
 
 Author: Fabian Hofmann, Jonathan Ackerschewski, Seraphin Zunzer
-Modified: 16.04.24
+Modified: 22.10.2024
 """
 
 __all__ = [
-    "SourceHandler",
-    "SimpleSourceHandler",
-    "SimpleRemoteSourceHandler",
-    "DataProcessor",
-    "SimpleDataProcessor",
-    "DataSourceRelay",
-    "CSVFileRelay",
     "DataSource",
-    "CohdaProcessor",
-    "march23_events",
-    "LivePysharkHandler",
-    "PcapHandler",
-    "pyshark_map_fn",
-    "pyshark_filter_fn",
-    "pyshark_reduce_fn",
+    "SimpleDataSource",
+    "SimpleRemoteDataSource",
+    "CSVFileDataSource",
+    "DataProcessor",
+    "remove_feature",
+    "keep_feature",
+    "select_feature",
+    "flatten_dict",
+    "DataHandlerRelay",
+    "CSVFileRelay",
+    "DataHandler",
+    "LivePysharkDataSource",
+    "PcapDataSource",
     "create_pyshark_processor",
+    "dict_to_numpy_array",
+    "packet_to_dict",
+    "dict_to_json",
+    "default_f_features",
+    "demo_202312_label_data_point",
+    "default_nn_aggregator",
+    "EventHandler",
 ]
 
-from .data_handler import SourceHandler, SimpleSourceHandler, SimpleRemoteSourceHandler
-from .data_processor import DataProcessor, SimpleDataProcessor
-from .data_relay import DataSourceRelay, CSVFileRelay
-from .data_source import DataSource
-from .network_traffic import (
-    CohdaProcessor,
-    march23_events,
-    LivePysharkHandler,
-    PcapHandler,
-    pyshark_map_fn,
-    pyshark_filter_fn,
-    pyshark_reduce_fn,
-    create_pyshark_processor,
+from .data_handler import DataHandler
+from .data_processor import (
+    DataProcessor,
+    remove_feature,
+    keep_feature,
+    select_feature,
+    flatten_dict,
 )
+from .data_relay import DataHandlerRelay, CSVFileRelay
+from .data_source import (
+    DataSource,
+    SimpleDataSource,
+    SimpleRemoteDataSource,
+    CSVFileDataSource,
+)
+from .network_traffic import (
+    LivePysharkDataSource,
+    PcapDataSource,
+    create_pyshark_processor,
+    dict_to_numpy_array,
+    packet_to_dict,
+    dict_to_json,
+    default_f_features,
+    demo_202312_label_data_point,
+    default_nn_aggregator,
+)
+from .events import EventHandler

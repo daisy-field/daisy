@@ -17,13 +17,28 @@ urlpatterns = [
     path("terms/", views.terms, name="terms"),
     path("privacy/", views.privacy, name="privacy"),
     path("change_theme/", views.change_theme, name="change_theme"),
+    path("change_smoothing/", views.change_smoothing, name="change_smoothing"),
+    path(
+        "change_interpolation/", views.change_interpolation, name="change_interpolation"
+    ),
     path("accuracy/", views.accuracy, name="accuracy"),
     path("recall/", views.recall, name="recall"),
     path("precision/", views.precision, name="precision"),
     path("f1-score/", views.f1, name="f1-score"),
+    path("true_negative_rate/", views.true_negative_rate, name="true_negative_rate"),
+    path("false_negative_rate/", views.false_negative_rate, name="false_negative_rate"),
+    path(
+        "negative_predictive_value/",
+        views.negative_predictive_value,
+        name="negative_predictive_value",
+    ),
+    path("false_positive_rate/", views.false_positive_rate, name="false_positive_rate"),
     path("resolve/<uuid:alert_id>/", views.resolve, name="resolve"),
     path("restore/<uuid:alert_id>/", views.restore, name="restore"),
     path("delete/<uuid:alert_id>/", views.delete, name="delete"),
     path("deleteAll/", views.deleteAll, name="deleteAll"),
     path("resolveAll/", views.resolveAll, name="resolveAll"),
+    path("download-csv/", views.download_csv, name="download_csv"),
+    path("data/", views.data, name="data"),
+    path("freestorage", views.freeStorage, name="freeStorage"),
 ]

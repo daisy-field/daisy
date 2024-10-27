@@ -7,7 +7,7 @@
 endpoints over BSD sockets. Supports SSL (soon) and LZ4 compression.
 
 Author: Fabian Hofmann
-Modified: 29.04.24
+Modified: 16.10.24
 """
 # TODO Future Work: SSL https://docs.python.org/3/library/ssl.html
 # TODO Future Work: Defining granularity of logging in inits
@@ -31,6 +31,7 @@ import threading
 from time import sleep, time
 from typing import Callable, Iterable, Optional, Self
 
+# noinspection PyUnresolvedReferences
 from lz4.frame import compress, decompress
 
 
@@ -549,7 +550,6 @@ class EndpointSocket:
         :param addr: Address of listen socket.
         :param remote_addr: Address of remote endpoint to be connected to.
         :return: Tuple of the connection socket and the address of the remote peer.
-
         :raises RuntimeError: If none of the addresses/aliases of the listen socket
         succeed to get a working socket.
         """
@@ -1202,8 +1202,8 @@ class StreamEndpoint:
         :param endpoints: Iterable of endpoints to receive objects from.
         :param obj_type: Type of objects to receive. If none given, receives the latest
         message of any type.
-        :return: Dictionary of each endpoint and their respective received object,
-        None if nothing received for endpoint.
+        :return: Dictionary of each endpoint and their respective latest received
+        object, None if nothing received for endpoint.
         """
         ep_objs = {}
         for endpoint in endpoints:
@@ -1614,7 +1614,9 @@ class EndpointServer:
             self.stop()
 
 
-def _convert_addr_to_name(addr: tuple) -> tuple[str, int]:
+def _convert_addr_to_name(
+    addr: tuple[str, int] | tuple[str, int, int, int],
+) -> tuple[str, int]:
     """Translates a socket address, which is either a 2-tuple (ipv4) or a 4-tuple (ipv6)
     into a 2-tuple (host, port). Tries to resolve the host to its (DNS)
     hostname, otherwise keeps the numeric representation. Ports/Services are always

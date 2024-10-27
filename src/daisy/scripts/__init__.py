@@ -16,10 +16,12 @@ convenience, one can also launch these scripts directly via the command line.
 
 Currently, the following (sub-)packaged scripts are provided:
 
+    * data_collection - Pre-configured scripts to label, process and store monitoring
+    data from pre-selected typs of data sources.
     * demo_components - Pre-configured demo components for specific inputs/scenarios.
     * generic_fids_components - General federated IDS components required for
     different (demo-)scenarios
 
-Author: Fabian Hofmann, Seraphin Zunzer
-Modified: 10.04.24
+Author: Fabian Hofmann, Seraphin Zunzer, Jonathan Ackerschewski
+Modified: 25.10.24
 """

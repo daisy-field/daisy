@@ -161,22 +161,20 @@ class FederatedOnlineAggregator(ABC):
         """
         raise NotImplementedError
 
-    def _update_dashboard(self, ressource: str, data: dict):
-        """Updates a specific ressource of the dashboard, if given and available with
+    def _update_dashboard(self, resource: str, data: dict):
+        """Updates a specific resource of the dashboard, if given and available with
         given data. Note that both the available resources and the to be reported
         data is determined by the dashboard's endpoints, and must be
         adjusted/extended if more data is to be reported than current functionality
         allows (see dashboard subpackage)
 
-        :param ressource: URL-suffix to ressource.
+        :param resource: URL-suffix to resource.
         :param data: Data to report.
         """
         if self._dashboard_url is None:
             return
         try:
-            _ = requests.post(
-                url="http://" + self._dashboard_url + ":8000" + ressource, data=data
-            )
+            _ = requests.post(url=self._dashboard_url + resource, data=data)
         except requests.exceptions.RequestException as e:
             self._logger.warning(f"Dashboard server not reachable: {e}")
 
@@ -277,7 +275,17 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
                         "asynchronous aggregation requests..."
                     )
                     self._async_aggr()
-                    # FIXME this is getting spammed if there are no read ready clients
+
+                self._update_dashboard(
+                    "/aggregation/",
+                    {
+                        "agg_status": "Operational",
+                        "agg_count": len(
+                            self._aggr_serv.poll_connections()[1].values()
+                        ),
+                        "agg_nodes": str(self._aggr_serv.poll_connections()[1].keys()),
+                    },
+                )
             except RuntimeError:
                 # stop() was called
                 break
@@ -292,6 +300,9 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
         created global model is sent back to all available clients.
         """
         clients = self._aggr_serv.poll_connections()[1].values()
+        if len(clients) == 0:
+            self._logger.info("No clients available for aggregation step!")
+            return
         if self._num_clients is not None:
             if len(clients) < self._num_clients:
                 self._logger.info(
@@ -343,14 +354,6 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
             client.send(global_model)
         self._logger.info("Sending aggregated global model to dashboard ")
 
-        self._update_dashboard(
-            "/aggregation/",
-            {
-                "agg_status": "Operational",  # TODO add len(client_models)
-                "agg_count": len(clients),
-            },
-        )
-
     def _async_aggr(self):
         """Performs an asynchronous federated aggregation step, i.e. checking whether
         a sufficient number of clients sent their local models to the server,
@@ -360,6 +363,10 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
         requested an aggregation step.
         """
         clients = self._aggr_serv.poll_connections()[0].values()
+        if len(clients) == 0:
+            self._logger.info("No clients available for aggregation step!")
+            sleep(1)
+            return
         if self._num_clients is not None and len(clients) < self._num_clients:
             self._logger.info(
                 f"Insufficient read-ready clients [{len(clients)}] "
@@ -380,10 +387,8 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
             if model is not None
         ]
 
-        if (
-            len(client_models) == 0
-            or self._num_clients is not None
-            and len(client_models) < self._num_clients
+        if len(client_models) == 0 or (
+            self._num_clients is not None and len(client_models) < self._num_clients
         ):
             self._logger.info(
                 f"Insufficient number of client models [{len(client_models)}] "
@@ -403,14 +408,6 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
         )
         for client in clients:
             client.send(global_model)
-
-        self._update_dashboard(
-            "/aggregation/",
-            {
-                "agg_status": "Operational",  # TODO add len(client_models)
-                "agg_count": len(clients),
-            },
-        )
 
 
 class FederatedValueAggregator(FederatedOnlineAggregator):
@@ -433,6 +430,8 @@ class FederatedValueAggregator(FederatedOnlineAggregator):
 
     Note that the base class could be extended in various other ways as well,
     it is recommended to put such functionality into the setup() and cleanup() methods.
+    Finally, create_fed_aggr() may also be extended to add additional functionality
+    during the aggregation loop before _receive_node_msgs() is called.
     """
 
     _aggr_values: dict[tuple[str, int], deque]
@@ -469,32 +468,42 @@ class FederatedValueAggregator(FederatedOnlineAggregator):
         self._aggr_values = {}
 
     def create_fed_aggr(self):
-        """Starts the loop to continuously poll the federated nodes for new values to
-        receive and process, before adding them to the datastructure.
+        """Starts the aggregation loop to continuously poll the federated nodes for
+        new values to receive and process, before adding them to the datastructure.
         """
         self._logger.info("Starting result aggregation loop...")
         while self._started:
-            try:
-                nodes = self._aggr_serv.poll_connections()[0].items()
-                if len(nodes) == 0:
-                    sleep(self._timeout)
-                    continue
-
-                for node, node_ep in nodes:
-                    if node not in self._aggr_values:
-                        self._aggr_values[node] = deque(maxlen=self._window_size)
-                    try:
-                        while True:
-                            new_values = self.process_node_msg(
-                                node, node_ep.receive(timeout=0)
-                            )
-                            self._aggr_values[node].extend(new_values)
-                    except (RuntimeError, TimeoutError):
-                        pass
-            except RuntimeError:
-                # stop() was called
+            if not self._receive_node_msgs():
                 break
         self._logger.info("Result aggregation loop stopped.")
+
+    def _receive_node_msgs(self) -> bool:
+        """Polls all connected federate nodes, receiving and processing all values
+        of those from which new values can be received.
+
+        :return: True as long server is running (stop() has not been called).
+        """
+        try:
+            nodes = self._aggr_serv.poll_connections()[0].items()
+            if len(nodes) == 0:
+                sleep(self._timeout)
+                return True
+
+            for node, node_ep in nodes:
+                if node not in self._aggr_values:
+                    self._aggr_values[node] = deque(maxlen=self._window_size)
+                try:
+                    while True:
+                        new_values = self.process_node_msg(
+                            node, node_ep.receive(timeout=0)
+                        )
+                        self._aggr_values[node].extend(new_values)
+                except (RuntimeError, TimeoutError):
+                    pass
+        except RuntimeError:
+            # stop() was called
+            return False
+        return True
 
     def process_node_msg(self, node: tuple[str, int], msg) -> list:
         """Converts a singular received message from a federated node into a list of
@@ -513,7 +522,7 @@ class FederatedValueAggregator(FederatedOnlineAggregator):
 
 class FederatedPredictionAggregator(FederatedValueAggregator):
     """Aggregator for prediction values from a federated IDS. Since federated IDS
-    nodes report their predictions in minibatches, each message received from a node
+    nodes report their predictions in mini-batches, each message received from a node
     contains a multitude of values, which must be fragmented first, before they can
     be stored.
 
@@ -532,7 +541,7 @@ class FederatedPredictionAggregator(FederatedValueAggregator):
         """Creates a new federated prediction aggregator.
 
         :param addr: Address of aggregation server for federated nodes to report to.
-        :param name: Name of federated value aggregator for logging purposes.
+        :param name: Name of federated prediction aggregator for logging purposes.
         :param timeout: Timeout for waiting to receive message from federated nodes.
         :param window_size: Maximum number of latest received entries stored for each
         federated node.
@@ -547,40 +556,22 @@ class FederatedPredictionAggregator(FederatedValueAggregator):
         )
 
     def create_fed_aggr(self):
-        """Starts the loop to continuously poll the federated nodes for new values to
-        receive and process, before adding them to the datastructure.
+        """Starts the loop to continuously poll the federated nodes for new predictions
+        to receive and process, before adding them to the datastructure and reporting
+        them to the dashboard. Also reports the overall status of the network and the
+        connected nodes to the dashboard if available.
         """
         self._logger.info("Starting result aggregation loop...")
         while self._started:
-            # TODO @seraphin report heartbeat (agg status?), incl. active connections
-            # TODO add client number
             self._update_dashboard(
-                "/prediction/",  # ADD CORRECT PATH
+                "/prediction/",
                 {
                     "pred_status": "Operational",
-                    "pred_count": 0,
-                },  # TODO get correct value for pred_count
+                    "pred_count": len(self._aggr_serv.poll_connections()[1].values()),
+                    "pred_nodes": str(self._aggr_serv.poll_connections()[1].keys()),
+                },
             )
-
-            try:
-                nodes = self._aggr_serv.poll_connections()[0].items()
-                if len(nodes) == 0:
-                    sleep(self._timeout)
-                    continue
-
-                for node, node_ep in nodes:
-                    if node not in self._aggr_values:
-                        self._aggr_values[node] = deque(maxlen=self._window_size)
-                    try:
-                        while True:
-                            new_values = self.process_node_msg(
-                                node, node_ep.receive(timeout=0)
-                            )
-                            self._aggr_values[node].extend(new_values)
-                    except (RuntimeError, TimeoutError):
-                        pass
-            except RuntimeError:
-                # stop() was called
+            if not self._receive_node_msgs():
                 break
         self._logger.info("Result aggregation loop stopped.")
 
@@ -605,15 +596,15 @@ class FederatedPredictionAggregator(FederatedValueAggregator):
             self._logger.debug(f"Prediction received from {node}: {t}")
             values.append(t)
 
-            # TODO @seraphin adjust values to report (see blow)
             if y_pred[i]:
                 self._update_dashboard(
                     "/alert/",
                     {
-                        "address": node[0],  # ADD NODE WHO REPORTED ALERT
+                        "address": str(node[0]) + ":" + str(node[1]),
                         "category": "alert",
                         "active": True,
-                        "message": "Alert raised!",
+                        "message": "Packet content: "
+                        + ",".join(str(x) for x in x_data[i]),
                     },
                 )
         return values
@@ -641,7 +632,7 @@ class FederatedEvaluationAggregator(FederatedValueAggregator):
         """Creates a new federated evaluation aggregator.
 
         :param addr: Address of aggregation server for federated nodes to report to.
-        :param name: Name of federated value aggregator for logging purposes.
+        :param name: Name of federated evaluation aggregator for logging purposes.
         :param timeout: Timeout for waiting to receive message from federated nodes.
         :param window_size: Maximum number of latest received entries stored for each
         federated node.
@@ -656,38 +647,23 @@ class FederatedEvaluationAggregator(FederatedValueAggregator):
         )
 
     def create_fed_aggr(self):
-        """Starts the loop to continuously poll the federated nodes for new values to
-        receive and process, before adding them to the datastructure.
+        """Starts the loop to continuously poll the federated nodes for new evaluation
+        metric results to receive and process, before adding them to the datastructure
+        and reporting them to the dashboard. Also reports the overall status of the
+        network and the connected nodes to the dashboard if available.
         """
         self._logger.info("Starting result aggregation loop...")
         while self._started:
             self._update_dashboard(
-                "/evaluation/",  # ADD CORRECT PATH
+                "/evaluation/",
                 {
                     "eval_status": "Operational",
-                    "eval_count": 0,
-                },  # TODO get correct value for eval_count
+                    "eval_count": len(self._aggr_serv.poll_connections()[1].values()),
+                    "eval_nodes": str(self._aggr_serv.poll_connections()[1].keys()),
+                },
             )
 
-            try:
-                nodes = self._aggr_serv.poll_connections()[0].items()
-                if len(nodes) == 0:
-                    sleep(self._timeout)
-                    continue
-
-                for node, node_ep in nodes:
-                    if node not in self._aggr_values:
-                        self._aggr_values[node] = deque(maxlen=self._window_size)
-                    try:
-                        while True:
-                            new_values = self.process_node_msg(
-                                node, node_ep.receive(timeout=0)
-                            )
-                            self._aggr_values[node].extend(new_values)
-                    except (RuntimeError, TimeoutError):
-                        pass
-            except RuntimeError:
-                # stop() was called
+            if not self._receive_node_msgs():
                 break
         self._logger.info("Result aggregation loop stopped.")
 
@@ -703,17 +679,13 @@ class FederatedEvaluationAggregator(FederatedValueAggregator):
         :return: Message as received.
         """
         self._logger.debug(f"Evaluation metrics received from {node}: {msg}")
-
-        if "conf_matrix_online_evaluation" in msg:
-            conf_matrix = msg["conf_matrix_online_evaluation"]
-            self._update_dashboard(
-                "/metrics/",
-                {
-                    "address": node,
-                    "accuracy": conf_matrix["accuracy"],
-                    "recall": conf_matrix["recall"],
-                    "precision": conf_matrix["precision"],
-                    "f1": conf_matrix["f1 measure"],
-                },
-            )
+        metrics = msg
+        data = {"address": node}
+        for metric_name, metric in metrics.items():
+            if isinstance(metric, dict):
+                data = data | metric
+            else:
+                data[metric_name] = metric
+        data = {x.replace(" ", "_"): v for x, v in data.items()}
+        self._update_dashboard("/metrics/", data)
         return msg

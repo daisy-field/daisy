@@ -6,13 +6,14 @@
 """A collection of extensions to the FederatedModel class to support a wide array of
 threshold models, which are used for anomaly detection, mostly for the mapping from
 numerical scalar values to binary class labels. For this the most common models
-currently are the statistical ones, that use either the mean (combined with std.
-dev.) or the median to compute a singular threshold value for simple classification.
+currently are the statistical ones, of which most use the mean (combined with std.
+dev.) to compute a singular threshold value for simple classification in online manner.
 
 Author: Fabian Hofmann, Seraphin Zunzer
 Modified: 04.04.24
 """
 
+import typing
 from abc import ABC, abstractmethod
 from collections import deque
 from typing import Callable, cast
@@ -26,9 +27,9 @@ from daisy.federated_learning.federated_model import FederatedModel
 
 class FederatedTM(FederatedModel, ABC):
     """Abstract base class for federated threshold models, all of which, to perform
-    predictions, simply compare the current samples (that are in order to a dynamic
+    predictions, simply compare the current samples (that are in order) to a dynamic
     threshold that is updated using internal parameters, varying between
-    approaches/implementations).
+    approaches/implementations.
 
     Note this kind of model *absolutely requires* a time series in most cases and
     therefore data passed to it, must be in order!
@@ -91,7 +92,7 @@ class FederatedTM(FederatedModel, ABC):
     def predict(self, x_data) -> Tensor:
         """Makes a prediction on the given data and returns it, which must be
         compatible with the tensorflow API (see:
-        https://www.tensorflow.org/api_docs/python/tf/keras/Model#predict.
+        https://www.tensorflow.org/api_docs/python/tf/keras/Model#predict ).
 
         :param x_data: Input data.
         :return: Predicted output tensor consisting of bools (0: normal, 1: abnormal).
@@ -115,17 +116,18 @@ class AvgTM(FederatedTM, ABC):
     the data stream and then adding them together for the (absolute) threshold of the
     model. This method is very similar to the one employed by Schmidt et al. for the
     original version of IFTM as well (https://ieeexplore.ieee.org/document/8456348),
-    and was therefore implemented here, however this approach is not alone for
+    and was therefore implemented here, however this approach stands not alone for
     error-based anomaly detection approaches, since it follows simple statistical
     assumptions for normal distributions (i.e., a sample is considered anomalous if
     it is further than x-times the std. dev. from the mean of the total population),
-    being very similar to average absolute deviation methods (AAD).
+    being similar to average absolute deviation methods (AAD), however using a dynamic
+    threshold value.
 
     Any implementation of this class must provide a way to update the mean using new
     incoming samples, anything else is already taken care of by this base class.
 
     Note that many of the implementations are very similar to the ModelAggregator
-    implementations, as both treat the aggregated values as a timeseries
+    implementations, as both treat the aggregated values as a timeseries.
     """
 
     _mean: float | Tensor
@@ -381,41 +383,49 @@ class EMAvgTM(AvgTM):
 
 class MadTM(FederatedTM):
     """Median absolute deviation (MAD)-based threshold models, similar to AAD-based
-    models, again assume a symmetric distribution of the time serie's samples,
-    of which a certain percentage are considered anomalous. However, unlike
-    average-based approaches, the median can only computed using a subset of the
-    population when computed online (it cannot be computed online in fact, as this is
-    a property of the median).
+    models, assume a symmetric distribution of the time serie's samples, of which
+    a certain percentage are considered anomalous. However, unlike average-based
+    approaches, the median can only computed using a subset of the population
+    when computed online (it cannot be computed online in fact, as this is a property
+    of the median). Furthermore, as with all absolute deviation based models,
+    the actual threshold value is NOT dynamic --- it has to be set manually. Instead,
+    the input is transformed into its modified z-scores, which are then compared to
+    the threshold for binary classification.
     """
 
     _window: deque
     _window_size: int
 
     def __init__(
-        self, window_size: int = 5, reduce_fn: Callable[[Tensor], Tensor] = lambda o: o
+        self,
+        window_size: int = 5,
+        threshold: float = 3.5,
+        reduce_fn: Callable[[Tensor], Tensor] = lambda o: o,
     ):
         """Creates a new MAD threshold model.
 
         :param window_size: Size of sliding window.
+        :param threshold: Threshold value, for which +-3.5 is often used (Boris Iglewicz
+        and David Hoaglin (1993) in "Volume 16: How to Detect and Handle Outliers")
         :param reduce_fn: Function to reduce a batch of samples into a scalar for
         training. Defaults to NOP.
         """
-        self._window = deque()
-        self._window_size = window_size
-        super().__init__(threshold=0, reduce_fn=reduce_fn)
+        self._window = deque(maxlen=window_size)
+        super().__init__(threshold=threshold, reduce_fn=reduce_fn)
 
     def set_parameters(self, parameters: list[np.ndarray]):
         """Updates the parameters of the MAD threshold model, which includes the
-        current content of the sliding window, before updating the actual model (
-        adjusting threshold).
+        current content of the sliding window, before updating the actual model
+        (adjusting threshold).
 
         Note: Should only be used with threshold models that support the same window
         size, otherwise random things might happen.
 
         :param parameters: New sample window of time stream.
         """
+        self._threshold = typing.cast(parameters[0][0], float)
         self._window = deque()
-        new_window = parameters[0]
+        new_window = parameters[1]
         for sample in new_window:
             self._window.append(sample)
         super().set_parameters(parameters)
@@ -426,26 +436,30 @@ class MadTM(FederatedTM):
 
         :return: Current sample window of time stream.
         """
-        return [np.array(self._window, dtype=np.float32)]
+        return [self._threshold, np.array(self._window, dtype=np.float32)]
+
+    def fit(self, x_data, y_data=None):
+        """As it is set upon the creation of the threshold, nothing is to be fitted."""
+        pass
+
+    def predict(self, x_data) -> Tensor:
+        """Adds the input data to the current sample window of the time stream, removing
+        older samples accordingly, before computing the modified z-scores over all them.
+        Note that only the z-scores of the input is compared to the threshold and
+        returned accordingly.
+
+        :param x_data: Input data.
+        :return: Predicted output tensor consisting of bools (0: normal, 1: abnormal).
+        """
+        for sample in x_data:
+            self._window.append(sample)
+        samples = np.array(self._window)
+        m = np.median(samples)
+        ad = np.abs(samples - m)
+        mad = np.median(ad)
+        z_scores = 0.6745 * ad / mad
+        return tf.math.greater(z_scores[-len(x_data) :], self._threshold)
 
     def update_threshold(self, x_data=None):
-        """Updates the MAD threshold model using a batch of new samples to compute
-        the new threshold value by adjusting the sliding window over the time series
-        accordingly, re-computing the medians and the following MAD score. If no new
-        data provided, simply re-compute the threshold based on the current samples
-        inside the window.
-
-        :param x_data: Batch of input data. Optional.
-        """
-        if x_data is not None:
-            for sample in x_data:
-                if len(self._window) == self._window_size:
-                    self._window.popleft()
-                self._window.append(sample)
-
-        if len(self._window) > 0:
-            samples = np.array(self._window)
-            m = np.median(samples)
-            ad = np.abs(samples - m)
-            mad = np.median(ad)
-            self._threshold = 0.6745 * ad / mad
+        """As it is set upon the creation of the threshold, nothing is to be updated."""
+        pass
