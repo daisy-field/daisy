@@ -3,9 +3,12 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""This script runs a data collector, which can either capture live data from the
-local machine or gather data from a remote connection. The data will be written into
-CSV files.
+"""Pre-configured data collection component to collect, pre-process (filter and label),
+and write to CSV files, live network traffic data from pyshark (tshark), either from
+the local machine or redirected from a remote machine. This component can be
+launched directly through python or through the command line option. Note that this
+does not launch the remote data source, it has to be run additionally on the remote
+host.
 
 Author: Jonathan Ackerschewski
 Modified: 03.07.2024
@@ -15,17 +18,17 @@ import argparse
 import logging
 import re
 
-from daisy.data_sources import (
-    DataSource,
-    SimpleDataProcessor,
-    remove_filter_fn,
-    pyshark_map_fn,
-    LivePysharkHandler,
-    SimpleRemoteSourceHandler,
-    CSVFileRelay,
-    DataSourceRelay,
-)
 from daisy.communication import StreamEndpoint
+from daisy.data_sources import (
+    DataHandler,
+    DataProcessor,
+    packet_to_dict,
+    remove_feature,
+    LivePysharkDataSource,
+    SimpleRemoteDataSource,
+    CSVFileRelay,
+    DataHandlerRelay,
+)
 
 
 def label_reduce(
@@ -337,7 +340,6 @@ def _parse_args() -> argparse.Namespace:
         "-out-ip",
         type=str,
         metavar="IP-ADDRESS",
-        required=True,
         help="The IP of the local machine, which a remote machine connects to.",
     )
     output_relay_group.add_argument(
@@ -357,7 +359,6 @@ def _parse_args() -> argparse.Namespace:
         "-out-tip",
         type=str,
         metavar="IP-ADDRESS",
-        required=True,
         help="The IP of the remote machine.",
     )
     output_relay_group.add_argument(
@@ -424,12 +425,12 @@ def check_args(args):
             exit(1)
 
 
-def create_data_handler(args):
+def create_data_source(args):
     """Creates and returns the data handler"""
 
     if args.localSource:
-        return LivePysharkHandler(
-            name="data_collector:live_data_handler",
+        return LivePysharkDataSource(
+            name="data_collector:live_data_source",
             interfaces=args.interfaces,
             bpf_filter=args.filter,
         )
@@ -441,8 +442,8 @@ def create_data_handler(args):
             acceptor=True,
             multithreading=args.io_multithreading,
         )
-        return SimpleRemoteSourceHandler(
-            endpoint=stream_endpoint, name="data_collector:remote_data_handler"
+        return SimpleRemoteDataSource(
+            endpoint=stream_endpoint, name="data_collector:remote_data_source"
         )
 
 
@@ -508,23 +509,26 @@ def create_data_processor(args, f_features, events):
     """
 
     if args.toFile:
-        return SimpleDataProcessor(
-            map_fn=pyshark_map_fn(),
-            filter_fn=remove_filter_fn(f_features),
-            reduce_fn=lambda x: label_reduce(x, events, default_label="benign"),
+        return (
+            DataProcessor()
+            .add_func(lambda o_point: packet_to_dict(o_point))
+            .add_func(lambda o_point: remove_feature(o_point, f_features))
+            .add_func(
+                lambda o_point: label_reduce(o_point, events, default_label="benign")
+            )
         )
     else:
-        return SimpleDataProcessor()
+        return DataProcessor()
 
 
-def create_relay(args, data_source, headers):
+def create_relay(args, data_handler, headers):
     """Creates the relay. This is either a CSVFileRelay if the data should be written
     to file or a DataSourceRelay if the data should be transferred to another machine.
     """
 
     if args.toFile:
         return CSVFileRelay(
-            data_source=data_source,
+            data_handler=data_handler,
             target_file=args.outputFile,
             name="data_collector:csv_file_relay",
             header_buffer_size=args.csv_header_buffer,
@@ -540,8 +544,8 @@ def create_relay(args, data_source, headers):
             remote_addr=(args.out_remote_ip, args.out_remote_port),
             acceptor=False,
         )
-        return DataSourceRelay(
-            data_source=data_source,
+        return DataHandlerRelay(
+            data_handler=data_handler,
             endpoint=stream_endpoint_out,
             name="data_relay:data_relay",
         )
@@ -549,24 +553,25 @@ def create_relay(args, data_source, headers):
 
 def create_collector():
     """Creates a CSV file relay with all needed structures to provide it with data.
-    There is the option to either use
-    a live data capture on the local machine or to use data from a remote machine."""
+    There is the option to either use a live data capture on the local machine or to
+    use data from a remote machine.
+    """
     # Args parsing
     args = _parse_args()
     check_args(args)
 
-    data_handler = create_data_handler(args)
+    data_source = create_data_source(args)
     f_features, events, headers = read_collection_files(args)
     data_processor = create_data_processor(args, f_features, events)
 
-    data_source = DataSource(
-        source_handler=data_handler,
+    data_handler = DataHandler(
+        data_source=data_source,
         data_processor=data_processor,
-        name="data_collector:data_source",
+        name="data_collector:data_handler",
         multithreading=args.processing_multithreading,
     )
 
-    relay = create_relay(args, data_source, headers)
+    relay = create_relay(args, data_handler, headers)
 
     relay.start()
     input("Press Enter to stop server...")

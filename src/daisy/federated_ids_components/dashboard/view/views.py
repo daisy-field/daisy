@@ -403,6 +403,162 @@ def precision(request):
     )
 
 
+def true_negative_rate(request):
+    data = Metrics_long.objects.all().values()
+
+    data_list = list(data)
+
+    metrics = Metrics_long.objects.all().order_by("timestamp")
+    unique_timestamps = sorted(metrics.values_list("timestamp", flat=True).distinct())
+    unique_timestamps = [
+        timestamp.strftime("%Y-%m-%d %H:%M:%S") for timestamp in unique_timestamps
+    ]
+
+    node_data = defaultdict(lambda: [None] * len(unique_timestamps))
+    for metric in metrics:
+        timestamp_index = unique_timestamps.index(
+            metric.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        )
+        node_data[metric.address][timestamp_index] = metric.true_negative_rate
+
+    node_data = dict(node_data)
+
+    theme = request.session.get("is_dark_theme")
+    smoothing = request.session.get("smoothing")
+    interpolation = request.session.get("interpolation")
+    return render(
+        request,
+        "metrics.html",
+        {
+            "data": data_list,
+            "unique_timestamps": unique_timestamps,
+            "node_data": json.dumps(node_data),
+            "dark_theme": theme,
+            "smoothing": smoothing,
+            "interpolation": interpolation,
+            "metric_text": "True Negative Rate",
+            "metric_name": "true_negative_rate",
+        },
+    )
+
+
+def false_negative_rate(request):
+    data = Metrics_long.objects.all().values()
+
+    data_list = list(data)
+
+    metrics = Metrics_long.objects.all().order_by("timestamp")
+    unique_timestamps = sorted(metrics.values_list("timestamp", flat=True).distinct())
+    unique_timestamps = [
+        timestamp.strftime("%Y-%m-%d %H:%M:%S") for timestamp in unique_timestamps
+    ]
+
+    node_data = defaultdict(lambda: [None] * len(unique_timestamps))
+    for metric in metrics:
+        timestamp_index = unique_timestamps.index(
+            metric.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        )
+        node_data[metric.address][timestamp_index] = metric.false_negative_rate
+
+    node_data = dict(node_data)
+
+    theme = request.session.get("is_dark_theme")
+    smoothing = request.session.get("smoothing")
+    interpolation = request.session.get("interpolation")
+    return render(
+        request,
+        "metrics.html",
+        {
+            "data": data_list,
+            "unique_timestamps": unique_timestamps,
+            "node_data": json.dumps(node_data),
+            "dark_theme": theme,
+            "smoothing": smoothing,
+            "interpolation": interpolation,
+            "metric_text": "False Negative Rate",
+            "metric_name": "false_negative_rate",
+        },
+    )
+
+
+def negative_predictive_value(request):
+    data = Metrics_long.objects.all().values()
+
+    data_list = list(data)
+
+    metrics = Metrics_long.objects.all().order_by("timestamp")
+    unique_timestamps = sorted(metrics.values_list("timestamp", flat=True).distinct())
+    unique_timestamps = [
+        timestamp.strftime("%Y-%m-%d %H:%M:%S") for timestamp in unique_timestamps
+    ]
+
+    node_data = defaultdict(lambda: [None] * len(unique_timestamps))
+    for metric in metrics:
+        timestamp_index = unique_timestamps.index(
+            metric.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        )
+        node_data[metric.address][timestamp_index] = metric.negative_predictive_value
+
+    node_data = dict(node_data)
+
+    theme = request.session.get("is_dark_theme")
+    smoothing = request.session.get("smoothing")
+    interpolation = request.session.get("interpolation")
+    return render(
+        request,
+        "metrics.html",
+        {
+            "data": data_list,
+            "unique_timestamps": unique_timestamps,
+            "node_data": json.dumps(node_data),
+            "dark_theme": theme,
+            "smoothing": smoothing,
+            "interpolation": interpolation,
+            "metric_text": "Negative Predictive Value",
+            "metric_name": "negative_predictive_value",
+        },
+    )
+
+
+def false_positive_rate(request):
+    data = Metrics_long.objects.all().values()
+
+    data_list = list(data)
+
+    metrics = Metrics_long.objects.all().order_by("timestamp")
+    unique_timestamps = sorted(metrics.values_list("timestamp", flat=True).distinct())
+    unique_timestamps = [
+        timestamp.strftime("%Y-%m-%d %H:%M:%S") for timestamp in unique_timestamps
+    ]
+
+    node_data = defaultdict(lambda: [None] * len(unique_timestamps))
+    for metric in metrics:
+        timestamp_index = unique_timestamps.index(
+            metric.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        )
+        node_data[metric.address][timestamp_index] = metric.false_positive_rate
+
+    node_data = dict(node_data)
+
+    theme = request.session.get("is_dark_theme")
+    smoothing = request.session.get("smoothing")
+    interpolation = request.session.get("interpolation")
+    return render(
+        request,
+        "metrics.html",
+        {
+            "data": data_list,
+            "unique_timestamps": unique_timestamps,
+            "node_data": json.dumps(node_data),
+            "dark_theme": theme,
+            "smoothing": smoothing,
+            "interpolation": interpolation,
+            "metric_text": "False Positive Rate",
+            "metric_name": "false_positive_rate",
+        },
+    )
+
+
 def data(request):
     metrics = Metrics_long.objects.all().order_by("address")
     nodes = sorted(metrics.values_list("address", flat=True).distinct())

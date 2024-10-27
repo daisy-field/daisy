@@ -550,7 +550,6 @@ class EndpointSocket:
         :param addr: Address of listen socket.
         :param remote_addr: Address of remote endpoint to be connected to.
         :return: Tuple of the connection socket and the address of the remote peer.
-
         :raises RuntimeError: If none of the addresses/aliases of the listen socket
         succeed to get a working socket.
         """
