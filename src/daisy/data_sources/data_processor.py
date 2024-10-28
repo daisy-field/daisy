@@ -14,13 +14,15 @@ Modified: 18.10.2024
 
 import logging
 from collections.abc import MutableMapping
-from typing import Callable
+from typing import Callable, Self
+from warnings import deprecated
 
 
 class DataProcessor:
     """A data processor, which is used to process data with various functions. The
     functions can be added to the processor and are carried out one after the other
-    in the provided order.
+    in the provided order. There is also a list of pre-built processing steps as
+    methods for ease of use.
     """
 
     _logger: logging.Logger
@@ -34,7 +36,7 @@ class DataProcessor:
         self._logger = logging.getLogger(name)
         self._functions = []
 
-    def add_func(self, func: Callable[[object], object]):
+    def add_func(self, func: Callable[[object], object]) -> Self:
         """Adds a function to the processor.
 
         :param func: The function to add to the processor.
@@ -42,10 +44,27 @@ class DataProcessor:
         self._functions.append(func)
         return self
 
+    def filter_features(self, f_features: list, default_value=None) -> Self:
+        """Adds a function to the processor that takes a data point which is a
+        dictionary and selects features to keep. If a feature should be kept but isn't
+        present in the data point, it will be added with the default value.
+
+        :param f_features: List of features to select.
+        :param default_value: Default value if feature is not in original data point.
+        """
+        return self.add_func(
+            lambda d_point: {
+                feature: d_point.get(feature, default_value) for feature in f_features
+            }
+        )
+
     def process(self, o_point: object) -> object:
         """Processes the given data point using the provided functions. The functions
         are carried out in the order they were added. If no functions were provided,
         the data point is returned unchanged.
+
+        Note process() is usually called by the data handler during data processing and
+        should not be called directly.
         """
         point = o_point
         for func in self._functions:
@@ -76,6 +95,7 @@ def keep_feature(d_point: dict, f_features: list) -> dict:
     return {key: value for key, value in d_point.items() if key in f_features}
 
 
+@deprecated("Use DataProcessor.filter_features() instead")
 def select_feature(d_point: dict, f_features: list, default_value=None) -> dict:
     """Takes a data point as a dictionary and selects features to keep. If a feature
     should be kept but isn't present in the data point, it will be added with the
