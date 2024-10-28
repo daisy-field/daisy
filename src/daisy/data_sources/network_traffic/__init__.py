@@ -12,14 +12,15 @@ source that generates packets in either fashion.
     * PcapDataSource - DataSource which is able to load pcap files sequentially and
     yield their packets.
     * PysharkProcessor - Able to process pyshark packet objects into numpy vectors.
+    FIXME
 
 There is also a module specialized for traffic of cohda boxes (V2X), that offers
-additional functionalities:
+additional functionalities: FIXME
 
-    * march23_events - Event tags for labeling purposes for the March23 dataset.
+    * demo_202312.py - Event tags for labeling purposes for the March23 dataset. FIXME
 
 Author: Fabian Hofmann, Jonathan Ackerschewski, Seraphin Zunzer
-Modified: 19.04.24
+Modified: 28.10.24
 """
 
 __all__ = [
