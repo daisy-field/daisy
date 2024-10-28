@@ -44,7 +44,7 @@ class DataProcessor:
         self._functions.append(func)
         return self
 
-    def filter_features(self, f_features: list, default_value=None) -> Self:
+    def select_features(self, f_features: list, default_value=None) -> Self:
         """Adds a function to the processor that takes a data point which is a
         dictionary and selects features to keep. If a feature should be kept but isn't
         present in the data point, it will be added with the default value.
@@ -95,7 +95,7 @@ def keep_feature(d_point: dict, f_features: list) -> dict:
     return {key: value for key, value in d_point.items() if key in f_features}
 
 
-@deprecated("Use DataProcessor.filter_features() instead")
+@deprecated("Use DataProcessor.select_features() instead")
 def select_feature(d_point: dict, f_features: list, default_value=None) -> dict:
     """Takes a data point as a dictionary and selects features to keep. If a feature
     should be kept but isn't present in the data point, it will be added with the
