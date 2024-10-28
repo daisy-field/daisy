@@ -442,7 +442,8 @@ def create_data_processor(args, f_features, events):
             .add_func(lambda o_point: remove_feature(o_point, f_features))
             .add_func(
                 lambda o_point: events.process(
-                    datetime.fromtimestamp(o_point.get("meta.time_epoch", 0)), o_point
+                    datetime.fromtimestamp(float(o_point.get("meta.time_epoch", 0))),
+                    o_point,
                 )
             )
         )
