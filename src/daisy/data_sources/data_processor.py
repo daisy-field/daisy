@@ -3,13 +3,13 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""The data processor and relevant generic function intended for it. The data processor
-processes individual data points using any number of functions defined by the user.
+"""Base class data processor and its relevant processing function steps for generic
+data in the form of objects and dictionaries. The data processor processes individual
+data points using any number of functions defined by the user.
 
 Author: Fabian Hofmann, Jonathan Ackerschewski
 Modified: 18.10.2024
 """
-# TODO Future Work: General purpose data processor for arbitrary processing steps
 # TODO Future Work: Defining granularity of logging in inits
 
 import logging
@@ -19,10 +19,14 @@ from warnings import deprecated
 
 
 class DataProcessor:
-    """A data processor, which is used to process data with various functions. The
-    functions can be added to the processor and are carried out one after the other
-    in the provided order. There is also a list of pre-built processing steps as
-    methods for ease of use.
+    """Base class for generic data stream processing, in pipelined fashion. The
+    processing steps are implemented as functions independent of each other, carried
+    out in one specific order for each data point in the stream. For these functions,
+    there is also a list of pre-built processing steps as methods for ease of use,
+    but any customized function can also be added using add_func().
+
+    Extension of this base class merely manipulate _functions through the use of
+    add_func() to provide additional pre-built processing steps.
     """
 
     _logger: logging.Logger
@@ -37,31 +41,58 @@ class DataProcessor:
         self._functions = []
 
     def add_func(self, func: Callable[[object], object]) -> Self:
-        """Adds a function to the processor.
+        """Adds a function to the processor to the end of its function list.
 
         :param func: The function to add to the processor.
         """
         self._functions.append(func)
         return self
 
-    def select_features(self, f_features: list, default_value=None) -> Self:
+    def remove_features(self, features: list) -> Self:
+        """Adds a function to the processor that takes a data point as a dictionary and
+        removes all given features from it.
+
+        :param features: List of features to remove.
+        """
+
+        def rem_feats_func(d_point: dict) -> dict:
+            for feature in features:
+                d_point.pop(feature, None)
+            return d_point
+
+        return self.add_func(lambda d_point: rem_feats_func(d_point))
+
+    def keep_feature(self, features: list) -> Self:
+        """Takes a data point as a dictionary and removes all features not in the given
+        list.
+
+        :param features: List of features to keep.
+        :return: Dictionary of data point with features kept.
+        """
+        return self.add_func(
+            lambda d_point: {
+                key: value for key, value in d_point.items() if key in features
+            }
+        )
+
+    def select_features(self, features: list, default_value=None) -> Self:
         """Adds a function to the processor that takes a data point which is a
         dictionary and selects features to keep. If a feature should be kept but isn't
         present in the data point, it will be added with the default value.
 
-        :param f_features: List of features to select.
-        :param default_value: Default value if feature is not in original data point.
+        :param features: List of features to select.
+        :param default_value: Default value if feature is not in data point.
         """
         return self.add_func(
             lambda d_point: {
-                feature: d_point.get(feature, default_value) for feature in f_features
+                feature: d_point.get(feature, default_value) for feature in features
             }
         )
 
     def process(self, o_point: object) -> object:
         """Processes the given data point using the provided functions. The functions
         are carried out in the order they were added. If no functions were provided,
-        the data point is returned unchanged.
+        the data point is returned unchanged (noop).
 
         Note process() is usually called by the data handler during data processing and
         should not be called directly.
@@ -72,6 +103,7 @@ class DataProcessor:
         return point
 
 
+@deprecated("Use DataProcessor.remove_features() instead")
 def remove_feature(d_point: dict, f_features: list) -> dict:
     """Takes a data point as a dictionary and removes all given features from it.
 
@@ -84,6 +116,7 @@ def remove_feature(d_point: dict, f_features: list) -> dict:
     return d_point
 
 
+@deprecated("Use DataProcessor.keep_features() instead")
 def keep_feature(d_point: dict, f_features: list) -> dict:
     """Takes a data point as a dictionary and removes all features not in the given
     list.
