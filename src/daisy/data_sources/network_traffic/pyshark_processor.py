@@ -85,7 +85,7 @@ def create_pyshark_processor(
         .add_func(lambda o_point: packet_to_dict(o_point))
         .add_func(
             lambda o_point: select_feature(
-                d_point=o_point, f_features=default_f_features, default_value=np.nan
+                d_point=o_point, f_features=f_features, default_value=np.nan
             )
         )
         .add_func(
