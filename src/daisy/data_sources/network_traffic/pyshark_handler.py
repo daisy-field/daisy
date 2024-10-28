@@ -33,6 +33,9 @@ class LivePysharkDataSource(DataSource):
     """The wrapper implementation to support and handle pyshark live captures as data
     sources. Considered infinite in nature, as it allows the generation of pyshark
     packets, until the capture is stopped.
+    Beware that you might have to use root privileges to obtain data from this data
+    source. If privileges are missing pyshark might not return any data points or
+    warnings.
     """
 
     _capture: LiveCapture
