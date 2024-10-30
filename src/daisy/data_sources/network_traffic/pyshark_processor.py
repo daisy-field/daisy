@@ -33,7 +33,7 @@ from .. import select_feature
 from ..data_processor import DataProcessor, flatten_dict
 
 
-def default_nn_aggregator(key: str, value: object) -> int:
+def default_nn_aggregator(key: str, value: object) -> int | float:
     """Simple, exemplary value aggregator. Takes a non-numerical (i.e. string) key-value
     pair and attempts to converted it into an integer. This example does not take
     the key into account, but only checks the types of the value to proceed. Note,
@@ -58,7 +58,15 @@ def default_nn_aggregator(key: str, value: object) -> int:
         except AddressValueError:
             pass
         try:
+            return int(value)
+        except ValueError:
+            pass
+        try:
             return int(value, 16)
+        except ValueError:
+            pass
+        try:
+            return float(value)
         except ValueError:
             pass
         return hash(value)
@@ -85,7 +93,7 @@ def create_pyshark_processor(
         .add_func(lambda o_point: packet_to_dict(o_point))
         .add_func(
             lambda o_point: select_feature(
-                d_point=o_point, f_features=default_f_features, default_value=np.nan
+                d_point=o_point, f_features=f_features, default_value=np.nan
             )
         )
         .add_func(
