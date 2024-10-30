@@ -598,53 +598,49 @@ def freeStorage(request):
 
 def download_csv(request):
     if request.method == "POST":
-        if request.method == "POST":
-            selected_metrics = request.POST.getlist("metrics")
-            selected_nodes = request.POST.getlist("nodes")
-            metrics = Metrics_long.objects.filter(address__in=selected_nodes).order_by(
-                "timestamp"
-            )
+        selected_metrics = request.POST.getlist("metrics")
+        selected_nodes = request.POST.getlist("nodes")
+        metrics = Metrics_long.objects.filter(address__in=selected_nodes).order_by(
+            "timestamp"
+        )
 
-            unique_timestamps = sorted(
-                metrics.values_list("timestamp", flat=True).distinct()
-            )
-            unique_timestamps = [
-                timestamp.strftime("%Y-%m-%d %H:%M:%S")
-                for timestamp in unique_timestamps
-            ]
+        unique_timestamps = sorted(
+            metrics.values_list("timestamp", flat=True).distinct()
+        )
+        unique_timestamps = [
+            timestamp.strftime("%Y-%m-%d %H:%M:%S") for timestamp in unique_timestamps
+        ]
 
-            node_data = defaultdict(
-                lambda: defaultdict(
-                    lambda: {metric: None for metric in selected_metrics}
+        node_data = defaultdict(
+            lambda: defaultdict(lambda: {metric: None for metric in selected_metrics})
+        )
+
+        for metric in metrics:
+            timestamp_str = metric.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+            for selected_metric in selected_metrics:
+                node_data[metric.address][timestamp_str][selected_metric] = getattr(
+                    metric, selected_metric
                 )
-            )
 
-            for metric in metrics:
-                timestamp_str = metric.timestamp.strftime("%Y-%m-%d %H:%M:%S")
-                for selected_metric in selected_metrics:
-                    node_data[metric.address][timestamp_str][selected_metric] = getattr(
-                        metric, selected_metric
-                    )
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="data.csv"'
 
-            response = HttpResponse(content_type="text/csv")
-            response["Content-Disposition"] = 'attachment; filename="data.csv"'
+        writer = csv.writer(response)
 
-            writer = csv.writer(response)
+        header = ["Timestamp"]
+        for node in selected_nodes:
+            for metric in selected_metrics:
+                header.append(f"{metric.capitalize().replace('_', '')}-{node}")
+        writer.writerow(header)
 
-            header = ["Timestamp"]
+        for timestamp in unique_timestamps:
+            row = [timestamp]
             for node in selected_nodes:
                 for metric in selected_metrics:
-                    header.append(f"{metric.capitalize()}-{node}")
-            writer.writerow(header)
+                    value = node_data[node][timestamp].get(metric)
+                    row.append(
+                        value if value is not None else ""
+                    )  # Replace None with 'N/A'
+            writer.writerow(row)
 
-            for timestamp in unique_timestamps:
-                row = [timestamp]
-                for node in selected_nodes:
-                    for metric in selected_metrics:
-                        value = node_data[node][timestamp].get(metric)
-                        row.append(
-                            value if value is not None else "N/A"
-                        )  # Replace None with 'N/A'
-                writer.writerow(row)
-
-            return response
+        return response
