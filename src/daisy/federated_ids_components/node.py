@@ -45,8 +45,8 @@ from daisy.federated_learning import (
     ModelAggregator,
     FederatedIFTM,
     FedAvgAggregator,
-    EMAvgTM,
     TFFederatedModel,
+    MadTM,
 )
 
 
@@ -875,17 +875,17 @@ if __name__ == "__main__":
         eval_serv = (args.evalServ, args.evalServPort)
 
     # Model
-    optimizer = tf.keras.optimizers.Adam(learning_rate=0.00001)
+    optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
     loss = tf.keras.losses.MeanAbsoluteError()
     id_fn = TFFederatedModel.get_fae(
         input_size=65,
         optimizer=optimizer,
         loss=loss,
         batch_size=args.batchSize,
-        epochs=1,
+        epochs=5,
     )
 
-    t_m = EMAvgTM(alpha=0.01)
+    t_m = MadTM(window_size=args.batchSize * 8, threshold=2.2)
     err_fn = tf.keras.losses.MeanAbsoluteError(reduction=tf.keras.losses.Reduction.NONE)
     model = FederatedIFTM(identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn)
 
