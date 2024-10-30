@@ -863,7 +863,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--batchSize",
         type=int,
-        default=32,
+        default=256,
         metavar="",
         help="Batch size during processing of data "
         "(mini-batches are multiples of that argument)",
@@ -875,14 +875,14 @@ if __name__ == "__main__":
         eval_serv = (args.evalServ, args.evalServPort)
 
     # Model
-    optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
+    optimizer = tf.keras.optimizers.Adam(learning_rate=0.01)
     loss = tf.keras.losses.MeanAbsoluteError()
     id_fn = TFFederatedModel.get_fae(
         input_size=65,
         optimizer=optimizer,
         loss=loss,
         batch_size=args.batchSize,
-        epochs=5,
+        epochs=1,
     )
 
     t_m = MadTM(window_size=args.batchSize * 8, threshold=2.2)
@@ -921,7 +921,7 @@ if __name__ == "__main__":
     federated_node = FederatedOnlinePeer(
         data_handler=data_handler,
         model=model,
-        batch_size=args.batchSize,
+        batch_size=args.batchSize * 8,
         m_aggr=FedAvgAggregator(),
         eval_server=eval_serv,
         port=int(args.port),
