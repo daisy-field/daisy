@@ -243,6 +243,8 @@
     Alerts <a style="  float:right;"
 href={% url 'resolveAll' %} type="button" class="btn btn-dark">Resolve All</a>
 </div>
+
+
 <div class="card-body">
    {% for alert in alarms%}
     <div style="width:19%; display:inline-grid" class="card bg-danger text-white mb-4 col-12 col-md-4 col-lg-2 col-xl-2"  data-bs-toggle="modal"
@@ -269,8 +271,6 @@ href={% url 'resolveAll' %} type="button" class="btn btn-dark">Resolve All</a>
                 <div class="modal-footer">
                     <a href={% url 'resolve' alert.id %} type="button" class="btn btn-secondary"
                     data-dismiss="modal">Mark as Resolved</a>
-                    <a href={% url 'alerts' %} type="button" class="btn btn-primary">Close</a>
-
                 </div>
             </div>
         </div>
@@ -288,7 +288,7 @@ href={% url 'resolveAll' %} type="button" class="btn btn-dark">Resolve All</a>
 </div>
 <div class="card-body">
     {% for alert in warnings%}
- <div style="width: 20%; display:inline-block" class="card bg-warning text-white mb-4" data-bs-toggle="modal" data-bs-target="#warnings{{alert.id}}">
+ <div style="width: 19%; display:inline-grid" class="card bg-warning text-white mb-4 col-12 col-md-4 col-lg-2 col-xl-2" data-bs-toggle="modal" data-bs-target="#warnings{{alert.id}}">
      <div class="card-header"><i class="fa-solid fa-server"></i> {{alert.address}}</div>
      <div class="card-body">Warning raised!</div>
      <div class="card-footer d-flex align-items-center justify-content-between">
@@ -308,7 +308,6 @@ href={% url 'resolveAll' %} type="button" class="btn btn-dark">Resolve All</a>
                         </div>
                         <div class="modal-footer">
                             <a href={% url 'resolve' alert.id %} type="button" class="btn btn-secondary" data-dismiss="modal">Mark as Resolved</a>
-                            <a href={% url 'alerts' %} type="button" class="btn btn-primary">Close</a>
                         </div>
                     </div>
                     </div>
@@ -324,7 +323,7 @@ href={% url 'resolveAll' %} type="button" class="btn btn-dark">Resolve All</a>
 </div>
 <div class="card-body">
 {% for alert in infos%}
- <div style="width: 20%; display:inline-block" class="card bg-info text-white mb-4" data-bs-toggle="modal" data-bs-target="#infos{{alert.id}}">
+ <div style="width: 19%; display:inline-grid" class="card bg-info text-white mb-4 col-12 col-md-4 col-lg-2 col-xl-2" data-bs-toggle="modal" data-bs-target="#infos{{alert.id}}">
      <div class="card-header"><i class="fa-solid fa-server"></i> {{alert.address}}</div>
      <div class="card-body">Information available!</div>
      <div class="card-footer d-flex align-items-center justify-content-between">
@@ -344,7 +343,6 @@ href={% url 'resolveAll' %} type="button" class="btn btn-dark">Resolve All</a>
                         </div>
                         <div class="modal-footer">
                             <a href={% url 'resolve' alert.id %} type="button" class="btn btn-secondary" data-dismiss="modal">Mark as Resolved</a>
-                            <a href={% url 'alerts' %} type="button" class="btn btn-primary">Close</a>
                         </div>
                     </div>
                     </div>
@@ -360,7 +358,7 @@ href={% url 'deleteAll' %} type="button" class="btn btn-dark">Delete All</a>
 </div>
 <div class="card-body">
 {% for alert in history%}
- <div style="width: 20%; display:inline-block" class="card bg-secondary text-white mb-4" data-bs-toggle="modal" data-bs-target="#history{{alert.id}}">
+ <div style="width: 19%; display:inline-grid" class="card bg-secondary text-white mb-4 col-12 col-md-4 col-lg-2 col-xl-2" data-bs-toggle="modal" data-bs-target="#history{{alert.id}}">
      <div class="card-header"><i class="fa-solid fa-server"></i> {{alert.address}}</div>
         <div class="card-body"></div>
             <div class="card-footer d-flex align-items-center justify-content-between">
