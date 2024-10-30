@@ -79,7 +79,7 @@ class Metrics_long(models.Model):
 
     def save(self, *args, **kwargs):
         total_records = Metrics_long.objects.count()
-        while total_records >= 2000:
+        while total_records >= 20000:
             pks = Metrics_long.objects.values_list("pk")[:1]
             Metrics_long.objects.filter(pk__in=pks).delete()
             print("Delete longterm object", total_records)
