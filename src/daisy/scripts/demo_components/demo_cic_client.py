@@ -4,7 +4,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """Pre-configured demonstration client for a simple federated intrusion detection
-system (IDS), that learns cooperatively with other clients through a centralized
+system (IDS), that learns cooperatively with another clients through a centralized
 model aggregation server using the federated averaging (FedAvg) technique. In this
 example, the client is configured to process network traffic data from the road-side
 infrastructure (BeIntelli) on Cohda boxes 2 and 5 on March 6th 2023, which must be
@@ -21,7 +21,7 @@ evaluation metrics (e.g. Precision, Recall, F1-score, etc.).
 Note that this demonstration client can also be launched as a standalone detection
 component, if no additional client is run along with the model aggregation server.
 The same is the case for additional prediction and evaluation result aggregation
-using centralized servers (see -h for more information).
+using centralize servers (see -h for more information).
 However, the full demonstration topology consists of two federated IDS detection
 clients along three servers (from the 'generic_fids_components' scripts subpackage):
 
@@ -43,23 +43,21 @@ import argparse
 import logging
 import pathlib
 
-import numpy as np
 import tensorflow as tf
 
 from daisy.data_sources import (
     DataHandler,
     DataProcessor,
-    PcapDataSource,
-    packet_to_dict,
-    select_feature,
-    default_f_features,
-    demo_202312_label_data_point,
     dict_to_numpy_array,
     default_nn_aggregator,
 )
 from daisy.evaluation import ConfMatrSlidingWindowEvaluation
 from daisy.federated_ids_components import FederatedOnlineClient
 from daisy.federated_learning import TFFederatedModel, FederatedIFTM, EMAvgTM
+
+from daisy.data_sources import CSVFileDataSource
+
+from daisy.data_sources.cicids17.demo_cic import cic_label_data_point
 
 
 def _parse_args() -> argparse.Namespace:
@@ -77,16 +75,16 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--clientId",
         type=int,
-        choices=[2, 5],
+        choices=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
         required=True,
         help="ID of client (decides which data to draw from set)",
     )
     parser.add_argument(
-        "--pcapBasePath",
+        "--csvBasePath",
         type=pathlib.Path,
-        default="/home/fabian/Documents/DAI-Lab/COBRA-5G/D-IDS/Datasets/v2x_2023-03-06",
+        default="/home/fabian/Documents/DAI-Lab/COBRA-5G/D-IDS/Datasets/CIC_IDS2017",
         metavar="",
-        help="Path to the march23 v2x dataset directory (root)",
+        help="Path to the CIC-IDS2017 dataset directory (root)",
     )
 
     server_options = parser.add_argument_group("Server Options")
@@ -183,20 +181,20 @@ def create_client():
     if args.predServ != "0.0.0.0":
         pred_serv = (args.predServ, args.predServPort)
 
-    # Datasource
-    source = PcapDataSource(
-        f"{args.pcapBasePath}/diginet-cohda-box-dsrc{args.clientId}"
-    )
+    # handler = CSVFileSourceHandler(f"{args.csvBasePath}/{args.clientId}.csv")
+    # processor = CICProcessor()  # , events=march23_events)
+    # data_source = DataSource(source_handler=handler, data_processor=processor)
+
+    #    handler = PcapHandler(f"{args.pcapBasePath}/diginet-cohda-box-dsrc{args.clientId}")
+    #    processor = CohdaProcessor(client_id=args.clientId, events=march23_events)
+    #    data_source = DataSource(source_handler=handler, data_processor=processor)
+
+    source = CSVFileDataSource(f"{args.csvBasePath}/{args.clientId}.csv")
     processor = (
         DataProcessor()
-        .add_func(lambda o_point: packet_to_dict(o_point))
+        # .add_func(lambda o_point: packet_to_dict(o_point))
         .add_func(
-            lambda o_point: select_feature(
-                d_point=o_point, f_features=default_f_features, default_value=np.nan
-            )
-        )
-        .add_func(
-            lambda o_point: demo_202312_label_data_point(
+            lambda o_point: cic_label_data_point(
                 client_id=args.clientId, d_point=o_point
             )
         )
@@ -212,7 +210,7 @@ def create_client():
     optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
     loss = tf.keras.losses.MeanAbsoluteError()
     id_fn = TFFederatedModel.get_fae(
-        input_size=65,
+        input_size=78,
         optimizer=optimizer,
         loss=loss,
         batch_size=args.batchSize,
@@ -229,7 +227,7 @@ def create_client():
         data_handler=data_handler,
         batch_size=args.batchSize,
         model=model,
-        label_split=65,
+        label_split=78,
         metrics=metrics,
         m_aggr_server=m_aggr_serv,
         eval_server=eval_serv,
