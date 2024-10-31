@@ -14,6 +14,7 @@ Check settings of protected folder access, try to restart components/computer.
 For network traffic, PyShark is used. This is a library using tshark in the background. This means that it is dependent on the tshark installation. 
 It may be required to execute the code with root/admin permissions, as tshark might be configured to deny non-root users to use its features.
 On Windows machines it was observed, that pyshark has trouble using tshark, despite correct installation and path variables. WSL or Linux might be required in these cases.
+Note that CSV files do not use PyShark and should work regardless of the environment/OS used. CSVs are, therefore, generally recommended over PCAP.
 
 #### 5. Live Network traffic isn't captured
 Refer to question 4, as the Live Network capture uses PyShark and suffers from the same problems.
