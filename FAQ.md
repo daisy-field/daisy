@@ -17,3 +17,6 @@ On Windows machines it was observed, that pyshark has trouble using tshark, desp
 
 #### 5. Live Network traffic isn't captured
 Refer to question 4, as the Live Network capture uses PyShark and suffers from the same problems.
+
+#### 6. Script X isn't producing any data
+Depending on the script, this can have different reasons. Generally, if it either uses PCAP files as the input or uses live network traffic, it probably uses PyShark. Refer to question 4 for this.
