@@ -849,7 +849,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--pcapBasePath",
         type=pathlib.Path,
-        default="/home/lotta/projects/datasets/v2x_2023-03-06",
+        default="/home/fabian/Repositories/datasets/v2x_2023-03-06",
         metavar="",
         help="Path to the march23 v2x dataset directory (root)",
     )

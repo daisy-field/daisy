@@ -45,19 +45,17 @@ import pathlib
 
 import tensorflow as tf
 
+from daisy.data_sources import CSVFileDataSource
 from daisy.data_sources import (
     DataHandler,
     DataProcessor,
     dict_to_numpy_array,
     default_nn_aggregator,
 )
+from daisy.data_sources.cicids17.demo_cic import cic_label_data_point
 from daisy.evaluation import ConfMatrSlidingWindowEvaluation
 from daisy.federated_ids_components import FederatedOnlineClient
-from daisy.federated_learning import TFFederatedModel, FederatedIFTM, EMAvgTM
-
-from daisy.data_sources import CSVFileDataSource
-
-from daisy.data_sources.cicids17.demo_cic import cic_label_data_point
+from daisy.federated_learning import TFFederatedModel, FederatedIFTM, MadTM
 
 
 def _parse_args() -> argparse.Namespace:
@@ -75,7 +73,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--clientId",
         type=int,
-        choices=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+        choices=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
         required=True,
         help="ID of client (decides which data to draw from set)",
     )
@@ -135,7 +133,7 @@ def _parse_args() -> argparse.Namespace:
     client_options.add_argument(
         "--batchSize",
         type=int,
-        default=32,
+        default=256,
         metavar="",
         help="Batch size during processing of data "
         "(mini-batches are multiples of that argument)",
@@ -207,7 +205,7 @@ def create_client():
     data_handler = DataHandler(data_source=source, data_processor=processor)
 
     # Model
-    optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
+    optimizer = tf.keras.optimizers.Adam(learning_rate=0.05)
     loss = tf.keras.losses.MeanAbsoluteError()
     id_fn = TFFederatedModel.get_fae(
         input_size=78,
@@ -216,7 +214,7 @@ def create_client():
         batch_size=args.batchSize,
         epochs=1,
     )
-    t_m = EMAvgTM(alpha=0.05)
+    t_m = MadTM(window_size=args.batchSize * 8, threshold=3)
     err_fn = tf.keras.losses.MeanAbsoluteError(reduction=tf.keras.losses.Reduction.NONE)
     model = FederatedIFTM(identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn)
 
@@ -225,7 +223,7 @@ def create_client():
     # Client
     client = FederatedOnlineClient(
         data_handler=data_handler,
-        batch_size=args.batchSize,
+        batch_size=args.batchSize * 8,
         model=model,
         label_split=78,
         metrics=metrics,

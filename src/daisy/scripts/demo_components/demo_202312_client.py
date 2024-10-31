@@ -59,7 +59,7 @@ from daisy.data_sources import (
 )
 from daisy.evaluation import ConfMatrSlidingWindowEvaluation
 from daisy.federated_ids_components import FederatedOnlineClient
-from daisy.federated_learning import TFFederatedModel, FederatedIFTM, EMAvgTM
+from daisy.federated_learning import TFFederatedModel, FederatedIFTM, MadTM
 
 
 def _parse_args() -> argparse.Namespace:
@@ -137,7 +137,7 @@ def _parse_args() -> argparse.Namespace:
     client_options.add_argument(
         "--batchSize",
         type=int,
-        default=32,
+        default=256,
         metavar="",
         help="Batch size during processing of data "
         "(mini-batches are multiples of that argument)",
@@ -209,7 +209,7 @@ def create_client():
     data_handler = DataHandler(data_source=source, data_processor=processor)
 
     # Model
-    optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
+    optimizer = tf.keras.optimizers.Adam(learning_rate=0.05)
     loss = tf.keras.losses.MeanAbsoluteError()
     id_fn = TFFederatedModel.get_fae(
         input_size=65,
@@ -218,7 +218,7 @@ def create_client():
         batch_size=args.batchSize,
         epochs=1,
     )
-    t_m = EMAvgTM(alpha=0.05)
+    t_m = MadTM(window_size=args.batchSize * 8, threshold=3)
     err_fn = tf.keras.losses.MeanAbsoluteError(reduction=tf.keras.losses.Reduction.NONE)
     model = FederatedIFTM(identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn)
 
@@ -227,7 +227,7 @@ def create_client():
     # Client
     client = FederatedOnlineClient(
         data_handler=data_handler,
-        batch_size=args.batchSize,
+        batch_size=args.batchSize * 8,
         model=model,
         label_split=65,
         metrics=metrics,
