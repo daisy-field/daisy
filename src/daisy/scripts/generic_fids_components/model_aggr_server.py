@@ -81,6 +81,14 @@ def _parse_args() -> argparse.Namespace:
         metavar="",
         help="IP of (external) dashboard server",
     )
+    aggr_options.add_argument(
+        "--pflMode",
+        type=str,
+        choices=["generative", "distillative", "layerwise"],
+        default=None,
+        metavar="",
+        help="Enable personalized FL and choose desired method: generative, distillative, layerwise",
+    )
 
     return parser.parse_args()
 
@@ -109,15 +117,22 @@ def create_server():
 
     aggr = FedAvgAggregator()
 
-    # Server
-    server = FederatedModelAggregator(
-        m_aggr=aggr,
-        addr=(args.serv, args.servPort),
-        timeout=args.timeout,
-        update_interval=args.updateInterval,
-        num_clients=args.numClients,
-        dashboard_url=args.dashboardURL,
-    )
+    if args.pflMode == "distillative":
+        raise NotImplementedError
+    elif args.pflMode == "layerwise":
+        raise NotImplementedError
+    elif args.pflMode == "generative":
+        raise NotImplementedError
+    else:
+        server = FederatedModelAggregator(
+            m_aggr=aggr,
+            addr=(args.serv, args.servPort),
+            timeout=args.timeout,
+            update_interval=args.updateInterval,
+            num_clients=args.numClients,
+            dashboard_url=args.dashboardURL,
+        )
+
     server.start()
     input("Press Enter to stop server...")
     server.stop()
