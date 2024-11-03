@@ -149,6 +149,29 @@ def _parse_args() -> argparse.Namespace:
         metavar="",
         help="Federated updating interval, defined by time (s)",
     )
+    client_options.add_argument(
+        "--pflMode",
+        type=str,
+        choices=["generative", "distillative", "layerwise"],
+        default=None,
+        metavar="",
+        help="Enable personalized FL and choose desired method: generative, distillative, layerwise",
+    )
+    client_options.add_argument(
+        "--autoModel",
+        type=bool,
+        default=False,
+        metavar="",
+        help="Select local model size in personalized FL automatically based on hardware constraints. ",
+    )
+    client_options.add_argument(
+        "--manualModel",
+        type=str,
+        default=None,
+        choices=["small", "medium", "large"],
+        metavar="",
+        help="Select local model size in personalized FL manually.",
+    )
 
     return parser.parse_args()
 
@@ -207,38 +230,47 @@ def create_client():
         )
     )
     data_handler = DataHandler(data_source=source, data_processor=processor)
-
-    # Model
-    optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
-    loss = tf.keras.losses.MeanAbsoluteError()
-    id_fn = TFFederatedModel.get_fae(
-        input_size=65,
-        optimizer=optimizer,
-        loss=loss,
-        batch_size=args.batchSize,
-        epochs=1,
-    )
     t_m = EMAvgTM(alpha=0.05)
     err_fn = tf.keras.losses.MeanAbsoluteError(reduction=tf.keras.losses.Reduction.NONE)
-    model = FederatedIFTM(identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn)
 
     metrics = [ConfMatrSlidingWindowEvaluation(window_size=args.batchSize * 8)]
 
-    # Client
-    client = FederatedOnlineClient(
-        data_handler=data_handler,
-        batch_size=args.batchSize,
-        model=model,
-        label_split=65,
-        metrics=metrics,
-        m_aggr_server=m_aggr_serv,
-        eval_server=eval_serv,
-        aggr_server=aggr_serv,
-        update_interval_t=args.updateInterval,
-    )
-    client.start()
-    input("Press Enter to stop client...")
-    client.stop()
+    if args.pflMode is None:
+        optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
+        loss = tf.keras.losses.MeanAbsoluteError()
+        id_fn = TFFederatedModel.get_fae(
+            input_size=65,
+            optimizer=optimizer,
+            loss=loss,
+            batch_size=args.batchSize,
+            epochs=1,
+        )
+        model = FederatedIFTM(identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn)
+
+        # Client
+        client = FederatedOnlineClient(
+            data_handler=data_handler,
+            batch_size=args.batchSize,
+            model=model,
+            label_split=65,
+            metrics=metrics,
+            m_aggr_server=m_aggr_serv,
+            eval_server=eval_serv,
+            aggr_server=aggr_serv,
+            update_interval_t=args.updateInterval,
+        )
+        client.start()
+        input("Press Enter to stop client...")
+        client.stop()
+
+    if args.pflMode == "generative":
+        raise NotImplementedError
+
+    if args.pflMode == "distillative":
+        raise NotImplementedError
+
+    if args.pflMode == "layerwise":
+        raise NotImplementedError
 
 
 if __name__ == "__main__":
