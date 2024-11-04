@@ -249,7 +249,7 @@ class LCAggregator(Aggregator):
 
     """
     _commonalities = {}
-
+    # TODO: split the steps more cleanly so they are more like described in the paper especially maybe calculate the sequence weights earlier talk with fabian if that is actually required
     def __init__(self, models: dict[int, list[Model]]):
         """ Creates a new layerwise aggregator. Builds the layer information of all models layers.
         Finds commonalities between the different models from the layer information.
@@ -278,7 +278,7 @@ class LCAggregator(Aggregator):
 
         print(self._commonalities)
 
-    def build_model_information(self, model, model_key) -> list[str]:
+    def build_model_information(self, model: list[Model], model_key: int) -> list[str]:
         """Construct the layer list with information for each layer
         Also match which weights belong to the different layers.
 
@@ -303,7 +303,6 @@ class LCAggregator(Aggregator):
 
     @staticmethod
     def match_layers(layers: (list[str], list[str])) -> (int, int, int):
-
         match = SequenceMatcher(None, layers[0], layers[1]).find_longest_match()
         return match.size if match.size > 2 else 0, match.a, match.b
 
@@ -325,8 +324,6 @@ class LCAggregator(Aggregator):
 
             # Get the relevant weights from the model
             relevant_layers = self._commonalities[model_id][base_id]
-            print(type(relevant_layers))
-            print(type(model_weights))
             relevant_weights = [model_weights[idx] for idx in relevant_layers]
             weight_factor = len(relevant_layers) / len(aggregation_list)
 
