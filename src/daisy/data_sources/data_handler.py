@@ -31,7 +31,7 @@ class DataHandler:
     objects as they come, before stream processing using another, customizable
     data processor. Data points, which can be from arbitrary sources, are thus
     processed and converted into numpy vectors/arrays for ML tasks. Note that there
-    is also the option to keep the object/dict format in case stream processing .
+    is also the option to keep the object/dict format in case stream processing.
 
     Supports the processing of data points in both synchronous and asynchronous
     fashion by default.
