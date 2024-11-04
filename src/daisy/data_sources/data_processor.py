@@ -67,8 +67,8 @@ class DataProcessor:
         return self.add_func(lambda d_point: remove_features_func(d_point))
 
     def keep_dict_feature(self, features: list) -> Self:
-        """Takes a data point as a dictionary and removes all features not in the given
-        list.
+        """Adds a function to the processor that takes a data point as a dictionary and
+        keeos all given features.
 
         :param features: List of features to keep.
         :return: Dictionary of data point with features kept.
