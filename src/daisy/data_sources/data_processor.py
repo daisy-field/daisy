@@ -58,7 +58,6 @@ class DataProcessor:
 
         :param features: List of features to remove.
         """
-
         def remove_features_func(d_point: dict) -> dict:
             for feature in features:
                 d_point.pop(feature, None)
