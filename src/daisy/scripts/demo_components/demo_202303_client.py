@@ -36,7 +36,7 @@ depending on the type of demo, one can select one, two, or all three additional
 components.
 
 Author: Fabian Hofmann
-Modified: 10.04.24
+Modified: 04.11.24
 """
 
 import argparse
@@ -53,7 +53,7 @@ from daisy.data_sources import (
     packet_to_dict,
     select_feature,
     default_f_features,
-    demo_202312_label_data_point,
+    demo_202303_label_data_point,
     dict_to_numpy_array,
     default_nn_aggregator,
 )
@@ -196,7 +196,7 @@ def create_client():
             )
         )
         .add_func(
-            lambda o_point: demo_202312_label_data_point(
+            lambda o_point: demo_202303_label_data_point(
                 client_id=args.clientId, d_point=o_point
             )
         )

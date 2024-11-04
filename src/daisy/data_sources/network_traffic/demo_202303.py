@@ -55,8 +55,8 @@ _march23_event_handler = (
 )
 
 
-def demo_202312_label_data_point(client_id: int, d_point: dict) -> dict:
-    """Labels the data points according to the events for the demo 202312.
+def demo_202303_label_data_point(client_id: int, d_point: dict) -> dict:
+    """Labels the data points according to the events for the demo 202303.
 
     :param client_id: Client ID.
     :param d_point: Data point as dictionary.

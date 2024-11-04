@@ -3,8 +3,8 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""Implementation of processing steps used for pyshark packets. Also includes a
-pre-packaged extension of the data processor base class for ease of use.
+"""Implementation of the data process for supporting processing steps used for pyshark
+packets, i.e. a pre-packaged extension of the data processor base class for ease of use.
 
 Author: Jonathan Ackerschewski, Fabian Hofmann
 Modified: 04.11.2024
@@ -144,36 +144,6 @@ def default_nn_aggregator(key: str, value: object) -> int | float:
         return hash(value)
 
     raise ValueError(f"Unable to aggregate non-numerical item: {key, value}")
-
-
-def create_pyshark_processor(
-    name: str = "",
-    f_features: list[str, ...] = default_f_features,
-    nn_aggregator: Callable[[str, object], object] = default_nn_aggregator,
-):
-    """Creates a DataProcessor using functions specifically for pyshark packets,
-    selecting specific features from each data pont (nan if not existing) and
-    transforms them into numpy vectors, ready for to be further processed by
-    detection models.
-
-    :param name: The name for logging purposes
-    :param f_features: The features to extract from the packets
-    :param nn_aggregator: The aggregator, which should map features to integers
-    """
-    return (
-        DataProcessor(name=name)
-        .add_func(lambda o_point: packet_to_dict(o_point))
-        .add_func(
-            lambda o_point: select_feature(
-                d_point=o_point, f_features=f_features, default_value=np.nan
-            )
-        )
-        .add_func(
-            lambda o_point: dict_to_numpy_array(
-                d_point=o_point, nn_aggregator=nn_aggregator
-            )
-        )
-    )
 
 
 def dict_to_numpy_array(
@@ -323,6 +293,37 @@ def _add_layer_field_container_to_dict(
             dictionary[key].append(value)
 
     return dictionary
+
+
+@deprecated("Use PysharkProcessor instead")
+def create_pyshark_processor(
+    name: str = "",
+    f_features: list[str, ...] = default_f_features,
+    nn_aggregator: Callable[[str, object], object] = default_nn_aggregator,
+):
+    """Creates a DataProcessor using functions specifically for pyshark packets,
+    selecting specific features from each data pont (nan if not existing) and
+    transforms them into numpy vectors, ready for to be further processed by
+    detection models.
+
+    :param name: The name for logging purposes
+    :param f_features: The features to extract from the packets
+    :param nn_aggregator: The aggregator, which should map features to integers
+    """
+    return (
+        DataProcessor(name=name)
+        .add_func(lambda o_point: packet_to_dict(o_point))
+        .add_func(
+            lambda o_point: select_feature(
+                d_point=o_point, f_features=f_features, default_value=np.nan
+            )
+        )
+        .add_func(
+            lambda o_point: dict_to_numpy_array(
+                d_point=o_point, nn_aggregator=nn_aggregator
+            )
+        )
+    )
 
 
 @deprecated("Use DataProcessor.to_json() instead")

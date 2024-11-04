@@ -25,7 +25,7 @@ from daisy.data_sources import (
     default_nn_aggregator,
     CSVFileRelay,
     PcapDataSource,
-    demo_202312_label_data_point,
+    demo_202303_label_data_point,
 )
 import numpy as np
 
@@ -44,7 +44,7 @@ def pyshark_writer():
         DataProcessor()
         .add_func(lambda o_point: packet_to_dict(o_point))
         .add_func(lambda o_point: select_feature(o_point, default_f_features, np.nan))
-        .add_func(lambda o_point: demo_202312_label_data_point(2, o_point))
+        .add_func(lambda o_point: demo_202303_label_data_point(2, o_point))
     )
 
     with DataHandler(
@@ -67,7 +67,7 @@ def pyshark_printer():
         DataProcessor()
         .add_func(lambda o_point: packet_to_dict(o_point))
         .add_func(lambda o_point: select_feature(o_point, default_f_features, np.nan))
-        .add_func(lambda o_point: demo_202312_label_data_point(2, o_point))
+        .add_func(lambda o_point: demo_202303_label_data_point(2, o_point))
         .add_func(lambda o_point: dict_to_numpy_array(o_point, default_nn_aggregator))
     )
 
