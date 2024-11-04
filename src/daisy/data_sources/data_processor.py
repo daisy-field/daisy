@@ -56,12 +56,12 @@ class DataProcessor:
         :param features: List of features to remove.
         """
 
-        def rem_feats_func(d_point: dict) -> dict:
+        def remove_features_func(d_point: dict) -> dict:
             for feature in features:
                 d_point.pop(feature, None)
             return d_point
 
-        return self.add_func(lambda d_point: rem_feats_func(d_point))
+        return self.add_func(lambda d_point: remove_features_func(d_point))
 
     def keep_feature(self, features: list) -> Self:
         """Takes a data point as a dictionary and removes all features not in the given
@@ -89,6 +89,57 @@ class DataProcessor:
                 feature: d_point.get(feature, default_value) for feature in features
             }
         )
+
+    def flatten(self, seperator: str = ".") -> Self:
+        """Adds a function to the processor that cCreates a flat dictionary
+        (a dictionary without sub-dictionaries) from the given dictionary. The keys
+        of sub-dictionaries are merged into the parent dictionary by combining the
+        keys and adding a seperator:
+        {a: {b: c, d: e}, f: g} becomes {a.b: c, a.d: e, f: g} assuming the seperator
+        as '.'. However, redundant parent keys are greedily eliminated from the
+        dictionary and further collisions cause an error.
+
+        :param seperator: Seperator to use.
+        """
+
+        def flatten_dict_func(
+            dictionary: (dict, list),
+            par_key: str = "",
+        ) -> dict:
+            """See the parent function for more information on its behavior.
+
+            :param dictionary: Dictionary to flatten.
+            :param par_key: Key of the parent dictionary.
+            :raises ValueError: If there are key-collisions by greedily flattening the
+            dictionary.
+            """
+            items = {}
+            for key, val in dictionary.items():
+                cur_key = (
+                    par_key + seperator + key
+                    if par_key != "" and not key.startswith(par_key + seperator)
+                    else key
+                )
+                if isinstance(val, MutableMapping):
+                    sub_items = flatten_dict(val, par_key=cur_key, seperator=seperator)
+                    for subkey in sub_items.keys():
+                        if subkey in items:
+                            raise ValueError(
+                                f"Key collision in dictionary "
+                                f"({subkey, sub_items[subkey]} "
+                                f"vs {subkey, items[subkey]})!"
+                            )
+                    items.update(sub_items)
+                else:
+                    if cur_key in items:
+                        raise ValueError(
+                            f"Key collision in dictionary ({cur_key, val} "
+                            f"vs {cur_key, items[cur_key]})!"
+                        )
+                    items.update({cur_key: val})
+            return items
+
+        return self.add_func(lambda d_point: flatten_dict_func(d_point))
 
     def process(self, o_point: object) -> object:
         """Processes the given data point using the provided functions. The functions
@@ -143,6 +194,7 @@ def select_feature(d_point: dict, f_features: list, default_value=None) -> dict:
     return {feature: d_point.get(feature, default_value) for feature in f_features}
 
 
+@deprecated("Use DataProcessor.flatten() instead")
 def flatten_dict(
     dictionary: (dict, list),
     seperator: str = ".",
@@ -154,10 +206,10 @@ def flatten_dict(
     becomes {a.b: c, a.d: e, f: g} assuming the seperator as '.'. However,
     redundant parent keys are greedily eliminated from the dictionary.
 
-    :param dictionary: The dictionary to flatten.
-    :param seperator: The seperator to use.
-    :param par_key: The key of the parent dictionary.
-    :return: A flat dictionary with keys merged and seperated using the seperator.
+    :param dictionary: Dictionary to flatten.
+    :param seperator: Seperator to use.
+    :param par_key: Key of the parent dictionary.
+    :return: Flat dictionary with keys merged and seperated using the seperator.
     :raises ValueError: If there are key-collisions by greedily flattening the
     dictionary.
     """
