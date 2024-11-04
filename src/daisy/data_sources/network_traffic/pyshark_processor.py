@@ -34,10 +34,10 @@ from .. import select_feature
 from ..data_processor import DataProcessor, flatten_dict
 
 
-def default_nn_aggregator(key: str, value: object) -> int:
+def default_nn_aggregator(key: str, value: object) -> int | float:
     """Simple, exemplary value aggregator. Takes a non-numerical (i.e. string) key-value
-    pair and attempts to converted it into an integer. This example does not take
-    the key into account, but only checks the types of the value to proceed. Note,
+    pair and attempts to converted it into an integer / float. This example does not
+    take the key into account, but only checks the types of the value to proceed. Note,
     that ipv6 are lazily converted to 32 bit (collisions may occur).
 
     :param key: Name of pair, which always a string.
@@ -59,7 +59,15 @@ def default_nn_aggregator(key: str, value: object) -> int:
         except AddressValueError:
             pass
         try:
+            return int(value)
+        except ValueError:
+            pass
+        try:
             return int(value, 16)
+        except ValueError:
+            pass
+        try:
+            return float(value)
         except ValueError:
             pass
         return hash(value)
