@@ -5,10 +5,11 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """Base class data processor and its relevant processing function steps for generic
 data in the form of objects and dictionaries. The data processor processes individual
-data points using any number of functions defined by the user.
+data points using any number of functions defined by the user and a number of pre-built
+functions by the class itself.
 
 Author: Fabian Hofmann, Jonathan Ackerschewski
-Modified: 18.10.2024
+Modified: 04.11.2024
 """
 # TODO Future Work: Defining granularity of logging in inits
 

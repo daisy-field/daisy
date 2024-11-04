@@ -8,7 +8,7 @@ events. Each event contains a string with conditions used to determine whether a
 point should be labeled.
 
 Author: Jonathan Ackerschewski, Fabian Hofmann
-Modified: 18.10.24
+Modified: 04.11.24
 """
 
 import logging
@@ -341,8 +341,42 @@ class EventHandler:
         """Adds an event to the event handler. The events will be evaluated in the
         order they are provided. Each event has a start and end time, a label that will
         be used to label data points that fall under that event, and an optional
-        condition. The condition is a string and has to follow a certain grammar,
-        which is explained in detail in the EventParser.
+        condition. The condition is a string and has to follow a certain grammar:
+
+        exp := pars + (binary_op + pars)? |
+                unary_op + pars
+        pars := operand | '(' + exp + ')'
+        operand := word + comparator + word
+        word := [any character except [] !"'<=>\\()] |
+                '[' + [any character except []!"'<=>\\()] + ']'   Note that whitespaces
+                                                                  are allowed with
+                                                                  brackets
+        comparator := '=' | 'in'
+        binary_op := 'and' | 'or'
+        unary_op := 'not'
+
+        For comparators, the feature in the dictionary is always expected on the left
+        side of the comparator, except with the 'in' operator, where it is expected
+        on the right.
+
+        Some example expressions are:
+        ip.addr = 10.1.1.1      When the function is called with a dictionary, it will
+                                be searched for the key ip.addr. Its value will be
+                                compared to 10.1.1.1
+        tcp in protocols        The dictionary will be searched for the key protocols.
+                                The function 'tcp in <value of protocols>' will be
+                                evaluated.
+
+        Concatenation examples are:
+        ip.addr = 10.1.1.1 and tcp in protocols
+        (ip.addr = 10.1.1.1 or ip.addr = 192.168.1.1) and tcp in protocols
+        not (ip.addr = 10.1.1.1 or ip.addr = 192.168.1.1) and tcp in protocols
+
+        The returned function can be called using a list of dictionaries. The
+        dictionaries will be searched in the provided order and the first occurrence
+        of a feature in one of the dictionaries will be used. This can be used to
+        provide meta information about a data point additionally to the data point
+        itself.
 
         :param start_time: Start time of event.
         :param end_time: End time of event.

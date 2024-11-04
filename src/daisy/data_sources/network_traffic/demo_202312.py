@@ -3,10 +3,10 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""Content used for the Dataset Demo from 12.2023.
+"""Content used for the Dataset Demo from March 6th 2023.
 
 Author: Jonathan Ackerschewski, Fabian Hofmann
-Modified: 18.10.2024
+Modified: 04.11.2024
 """
 
 from datetime import datetime
@@ -126,11 +126,11 @@ _march23_event_handler = (
 
 
 def demo_202312_label_data_point(client_id: int, d_point: dict) -> dict:
-    """Labels the data points according to the events for the demo 202312
+    """Labels the data points according to the events for the demo 202312.
 
-    :param client_id: THe client ID
-    :param d_point: Data point as dictionary
-    :return: Labeled data point
+    :param client_id: Client ID.
+    :param d_point: Data point as dictionary.
+    :return: Labeled data point.
     """
     return _march23_event_handler.process(
         datetime.strptime(d_point["meta.time"], "%Y-%m-%d %H:%M:%S.%f"),

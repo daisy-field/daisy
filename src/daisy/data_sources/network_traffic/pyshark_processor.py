@@ -3,10 +3,11 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""Implementation of processing steps used for pyshark packets.
+"""Implementation of processing steps used for pyshark packets. Also includes a
+pre-packaged extension of the data processor base class for ease of use.
 
 Author: Jonathan Ackerschewski, Fabian Hofmann
-Modified: 18.10.2024
+Modified: 04.11.2024
 """
 # TODO: Future Work:
 #   - Encoding/mapping of string/non-numerical values into numerical features
