@@ -19,6 +19,8 @@ from collections.abc import MutableMapping
 from typing import Callable, Self
 from warnings import deprecated
 
+import numpy as np
+
 
 class DataProcessor:
     """Base class for generic data stream processing, in pipelined fashion. The
@@ -50,7 +52,7 @@ class DataProcessor:
         self._functions.append(func)
         return self
 
-    def remove_features(self, features: list) -> Self:
+    def remove_dict_features(self, features: list) -> Self:
         """Adds a function to the processor that takes a data point as a dictionary and
         removes all given features from it.
 
@@ -64,7 +66,7 @@ class DataProcessor:
 
         return self.add_func(lambda d_point: remove_features_func(d_point))
 
-    def keep_feature(self, features: list) -> Self:
+    def keep_dict_feature(self, features: list) -> Self:
         """Takes a data point as a dictionary and removes all features not in the given
         list.
 
@@ -77,7 +79,7 @@ class DataProcessor:
             }
         )
 
-    def select_features(self, features: list, default_value=None) -> Self:
+    def select_dict_features(self, features: list, default_value=None) -> Self:
         """Adds a function to the processor that takes a data point which is a
         dictionary and selects features to keep. If a feature should be kept but isn't
         present in the data point, it will be added with the default value.
@@ -91,7 +93,7 @@ class DataProcessor:
             }
         )
 
-    def flatten(self, seperator: str = ".") -> Self:
+    def flatten_dict(self, seperator: str = ".") -> Self:
         """Adds a function to the processor that creates a flat dictionary
         (a dictionary without sub-dictionaries) from the given dictionary. The keys
         of sub-dictionaries are merged into the parent dictionary by combining the
@@ -142,7 +144,33 @@ class DataProcessor:
 
         return self.add_func(lambda d_point: flatten_dict_func(d_point))
 
-    def to_json(self):
+    def dict_to_array(self, nn_aggregator: Callable[[str, object], object]) -> Self:
+        """Adds a function to the processor that takes a data point which is a
+        dictionary and lazily transforms it into a numpy array without further
+        processing, aggregating any value that is list into a singular value based on a
+        pre-defined function that operates only on each singular feature.
+
+        :param nn_aggregator: Aggregator, which maps non-numerical features to integers
+        or floats on a value-by-value basis.
+        """
+
+        # noinspection DuplicatedCode
+        def dict_to_array_func(d_point: dict) -> np.ndarray:
+            l_point = []
+            for key, value in d_point.items():
+                if not isinstance(value, int | float):
+                    value = nn_aggregator(key, value)
+                try:
+                    if np.isnan(value):
+                        value = 0
+                except TypeError as e:
+                    raise ValueError(f"Invalid k/v pair: {key}, {value}") from e
+                l_point.append(value)
+            return np.asarray(l_point)
+
+        return self.add_func(lambda d_point: dict_to_array_func(d_point))
+
+    def dict_to_json(self):
         """Adds a function to the processor that takes a data point which is a
         dictionary and converts it to a JSON string.
         """

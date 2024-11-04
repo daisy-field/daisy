@@ -43,13 +43,14 @@ __all__ = [
     "DataHandler",
     "LivePysharkDataSource",
     "PcapDataSource",
+    "PysharkProcessor",
     "create_pyshark_processor",
     "dict_to_numpy_array",
     "packet_to_dict",
     "dict_to_json",
-    "default_f_features",
+    "pcap_f_features",
     "demo_202303_label_data_point",
-    "default_nn_aggregator",
+    "pcap_nn_aggregator",
     "EventHandler",
 ]
 
@@ -68,15 +69,16 @@ from .data_source import (
     SimpleRemoteDataSource,
     CSVFileDataSource,
 )
+from .events import EventHandler
 from .network_traffic import (
     LivePysharkDataSource,
     PcapDataSource,
+    PysharkProcessor,
     create_pyshark_processor,
     dict_to_numpy_array,
     packet_to_dict,
     dict_to_json,
-    default_f_features,
+    pcap_f_features,
     demo_202303_label_data_point,
-    default_nn_aggregator,
+    pcap_nn_aggregator,
 )
-from .events import EventHandler

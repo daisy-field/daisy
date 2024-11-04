@@ -12,7 +12,7 @@ source that generates packets in either fashion.
     * PcapDataSource - DataSource which is able to load pcap files sequentially and
     yield their packets.
     * PysharkProcessor - Offers additional processing step options to process pyshark
-    packet objects into numpy vectors.
+    packet objects.
 
 There is also a module specialized for traffic of cohda boxes (V2X), that offers
 additional functionalities:
@@ -26,12 +26,13 @@ Modified: 04.11.24
 __all__ = [
     "LivePysharkDataSource",
     "PcapDataSource",
+    "PysharkProcessor",
     "create_pyshark_processor",
     "dict_to_numpy_array",
     "packet_to_dict",
     "dict_to_json",
-    "default_f_features",
-    "default_nn_aggregator",
+    "pcap_f_features",
+    "pcap_nn_aggregator",
     "demo_202303_label_data_point",
 ]
 
@@ -42,6 +43,7 @@ from .pyshark_processor import (
     dict_to_numpy_array,
     packet_to_dict,
     dict_to_json,
-    default_f_features,
-    default_nn_aggregator,
+    PysharkProcessor,
+    pcap_f_features,
+    pcap_nn_aggregator,
 )
