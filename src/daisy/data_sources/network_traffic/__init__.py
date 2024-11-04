@@ -20,7 +20,7 @@ additional functionalities:
     * demo_202303- Event tags for labeling purposes for the March23 dataset.
 
 Author: Fabian Hofmann, Jonathan Ackerschewski, Seraphin Zunzer
-Modified: 28.10.24
+Modified: 04.11.24
 """
 
 __all__ = [
@@ -31,16 +31,17 @@ __all__ = [
     "packet_to_dict",
     "dict_to_json",
     "default_f_features",
-    "demo_202312_label_data_point",
     "default_nn_aggregator",
+    "demo_202312_label_data_point",
 ]
 
-from .demo_202312 import default_f_features, demo_202312_label_data_point
+from .demo_202312 import demo_202312_label_data_point
 from .pyshark_handler import LivePysharkDataSource, PcapDataSource
 from .pyshark_processor import (
     create_pyshark_processor,
     dict_to_numpy_array,
     packet_to_dict,
     dict_to_json,
+    default_f_features,
     default_nn_aggregator,
 )

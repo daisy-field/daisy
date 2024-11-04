@@ -13,6 +13,7 @@ Modified: 04.11.2024
 """
 # TODO Future Work: Defining granularity of logging in inits
 
+import json
 import logging
 from collections.abc import MutableMapping
 from typing import Callable, Self
@@ -91,7 +92,7 @@ class DataProcessor:
         )
 
     def flatten(self, seperator: str = ".") -> Self:
-        """Adds a function to the processor that cCreates a flat dictionary
+        """Adds a function to the processor that creates a flat dictionary
         (a dictionary without sub-dictionaries) from the given dictionary. The keys
         of sub-dictionaries are merged into the parent dictionary by combining the
         keys and adding a seperator:
@@ -121,7 +122,7 @@ class DataProcessor:
                     else key
                 )
                 if isinstance(val, MutableMapping):
-                    sub_items = flatten_dict(val, par_key=cur_key, seperator=seperator)
+                    sub_items = flatten_dict_func(val, par_key=cur_key)
                     for subkey in sub_items.keys():
                         if subkey in items:
                             raise ValueError(
@@ -140,6 +141,12 @@ class DataProcessor:
             return items
 
         return self.add_func(lambda d_point: flatten_dict_func(d_point))
+
+    def to_json(self):
+        """Adds a function to the processor that takes a data point which is a
+        dictionary and converts it to a JSON string.
+        """
+        return self.add_func(lambda d_point: json.dumps(d_point))
 
     def process(self, o_point: object) -> object:
         """Processes the given data point using the provided functions. The functions
@@ -221,6 +228,7 @@ def flatten_dict(
             else key
         )
         if isinstance(val, MutableMapping):
+            # noinspection PyDeprecation
             sub_items = flatten_dict(val, par_key=cur_key, seperator=seperator)
             for subkey in sub_items.keys():
                 if subkey in items:
