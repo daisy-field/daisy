@@ -36,26 +36,23 @@ depending on the type of demo, one can select one, two, or all three additional
 components.
 
 Author: Fabian Hofmann
-Modified: 10.04.24
+Modified: 04.11.24
 """
 
 import argparse
 import logging
 import pathlib
 
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 
 from daisy.data_sources import (
     DataHandler,
-    DataProcessor,
     PcapDataSource,
-    packet_to_dict,
-    select_feature,
-    default_f_features,
-    demo_202312_label_data_point,
-    dict_to_numpy_array,
-    default_nn_aggregator,
+    PysharkProcessor,
+    pcap_f_features,
+    pcap_nn_aggregator,
+    demo_202303_label_data_point,
 )
 from daisy.evaluation import ConfMatrSlidingWindowEvaluation
 from daisy.federated_ids_components import FederatedOnlineClient
@@ -188,11 +185,15 @@ def create_client():
         f"{args.pcapBasePath}/diginet-cohda-box-dsrc{args.clientId}"
     )
     processor = (
-        DataProcessor()
-        .add_func(lambda o_point: packet_to_dict(o_point))
-        .add_func(lambda o_point: select_feature(o_point, default_f_features, np.nan))
-        .add_func(lambda o_point: demo_202312_label_data_point(args.clientId, o_point))
-        .add_func(lambda o_point: dict_to_numpy_array(o_point, default_nn_aggregator))
+        PysharkProcessor()
+        .packet_to_dict()
+        .select_dict_features(features=pcap_f_features, default_value=np.nan)
+        .add_func(
+            lambda o_point: demo_202303_label_data_point(
+                client_id=args.clientId, d_point=o_point
+            )
+        )
+        .dict_to_array(nn_aggregator=pcap_nn_aggregator)
     )
     data_handler = DataHandler(data_source=source, data_processor=processor)
 

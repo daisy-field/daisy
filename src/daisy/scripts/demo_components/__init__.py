@@ -13,13 +13,13 @@ components as well. See the docstrings of the respective demos.
 
 Currently, the following script-demos are provided:
 
-    * demo_202312_client - Basic F-IDS component demo using a simple client-server
+    * demo_202303_client - Basic F-IDS component demo using a simple client-server
     topology, along with the march23 dataset.
 
 Author: Fabian Hofmann
 Modified: 10.04.24
 """
 
-__all__ = ["demo_202312_client"]
+__all__ = ["demo_202303_client"]
 
-from .demo_202312_client import create_client as demo_202312_client
+from .demo_202303_client import create_client as demo_202303_client
