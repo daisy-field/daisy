@@ -3,7 +3,7 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""Implementation of the data process for supporting processing steps used for pyshark
+"""Implementation of the data processor for supporting processing steps used for pyshark
 packets, i.e. a pre-packaged extension of the data processor base class for ease of use.
 
 Author: Jonathan Ackerschewski, Fabian Hofmann
@@ -385,7 +385,7 @@ def create_pyshark_processor(
     )
 
 
-@deprecated("Use DataProcessor.to_json() instead")
+@deprecated("Use DataProcessor.dict_to_json() instead")
 def dict_to_json(dictionary: dict) -> str:
     """Takes a dictionary and returns a json object in form of a string.
 

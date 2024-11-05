@@ -3,10 +3,10 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""Base class data processor and its relevant processing function steps for generic
-data in the form of objects and dictionaries. The data processor processes individual
-data points using any number of functions defined by the user and a number of pre-built
-functions by the class itself.
+"""Base class data processor and its relevant pre-built processing function steps for
+generic data in the form of objects and dictionaries. The data processor processes
+individual data points using any number of user-defined functions. These functions can
+either be defined from scratch or chosen from a list of pre-built ones.
 
 Author: Fabian Hofmann, Jonathan Ackerschewski
 Modified: 04.11.2024
@@ -58,6 +58,7 @@ class DataProcessor:
 
         :param features: List of features to remove.
         """
+
         def remove_features_func(d_point: dict) -> dict:
             for feature in features:
                 d_point.pop(feature, None)
@@ -67,7 +68,7 @@ class DataProcessor:
 
     def keep_dict_feature(self, features: list) -> Self:
         """Adds a function to the processor that takes a data point as a dictionary and
-        keeos all given features.
+        keeps all given features.
 
         :param features: List of features to keep.
         :return: Dictionary of data point with features kept.
