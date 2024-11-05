@@ -8,6 +8,12 @@ from django.db import models
 import uuid
 
 
+# Change the following values to increase/reduce database storage:
+num_export_samples = 100000
+num_longterm_samples = 2000
+num_shortterm_samples = 200
+
+
 class Node(models.Model):
     address = models.CharField(max_length=255, unique=True)
 
@@ -44,10 +50,22 @@ class Metrics(models.Model):
 
     def save(self, *args, **kwargs):
         total_records = Metrics.objects.count()
-        while total_records >= 200:
+        while total_records >= num_shortterm_samples:
             pks = Metrics.objects.values_list("pk")[:1]
             oldest_record = Metrics.objects.filter(pk__in=pks)[0]
             Metrics_long.objects.create(
+                address=oldest_record.address,
+                accuracy=oldest_record.accuracy,
+                f1=oldest_record.f1,
+                recall=oldest_record.recall,
+                precision=oldest_record.precision,
+                timestamp=oldest_record.timestamp,
+                true_negative_rate=oldest_record.true_negative_rate,
+                false_negative_rate=oldest_record.false_negative_rate,
+                negative_predictive_value=oldest_record.negative_predictive_value,
+                false_positive_rate=oldest_record.false_positive_rate,
+            )
+            Metrics_export.objects.create(
                 address=oldest_record.address,
                 accuracy=oldest_record.accuracy,
                 f1=oldest_record.f1,
@@ -79,12 +97,35 @@ class Metrics_long(models.Model):
 
     def save(self, *args, **kwargs):
         total_records = Metrics_long.objects.count()
-        while total_records >= 2000:
+        while total_records >= num_longterm_samples:
             pks = Metrics_long.objects.values_list("pk")[:1]
             Metrics_long.objects.filter(pk__in=pks).delete()
             print("Delete longterm object", total_records)
             total_records = Metrics_long.objects.count()
 
+        else:
+            super().save(*args, **kwargs)
+
+
+class Metrics_export(models.Model):
+    address = models.CharField(max_length=255)
+    accuracy = models.FloatField()
+    f1 = models.FloatField()
+    recall = models.FloatField()
+    precision = models.FloatField()
+    timestamp = models.DateTimeField()
+    true_negative_rate = models.FloatField()
+    false_negative_rate = models.FloatField()
+    negative_predictive_value = models.FloatField()
+    false_positive_rate = models.FloatField()
+
+    def save(self, *args, **kwargs):
+        total_records = Metrics_export.objects.count()
+        while total_records >= num_export_samples:
+            pks = Metrics_export.objects.values_list("pk")[:1]
+            Metrics_export.objects.filter(pk__in=pks).delete()
+            print("Delete export object", total_records)
+            total_records = Metrics_export.objects.count()
         else:
             super().save(*args, **kwargs)
 

@@ -307,10 +307,14 @@ class EndpointSocket:
                 )
                 break
             except (OSError, ValueError, AttributeError, RuntimeError) as e:
-                self._logger.info(
+                e_msg = (
                     f"{e.__class__.__name__}({e}) while trying to (re-)establish "
                     f"connection {self._addr, self._remote_addr}. Retrying..."
                 )
+                if i == 0:
+                    self._logger.info(e_msg)
+                else:
+                    self._logger.debug(e_msg)
                 self._sock_lock.release()
                 sleep(min(1 << i, 128))
                 # initial attempts of an endpoint socket never do binary backoff (+0)
