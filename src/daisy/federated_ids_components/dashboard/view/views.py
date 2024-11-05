@@ -11,7 +11,11 @@ from api.models import (
     Evaluation,
     Alerts,
     Metrics_long,
+    Metrics_export,
     Metrics,
+    num_export_samples,
+    num_longterm_samples,
+    num_shortterm_samples,
 )
 
 from django.http import HttpResponseRedirect
@@ -565,12 +569,10 @@ def data(request):
     theme = request.session.get("is_dark_theme")
     smoothing = request.session.get("smoothing")
     interpolation = request.session.get("interpolation")
-    trl = Metrics_long.objects.count()
-    tr = Metrics.objects.count()
-    limit_short = 200
-    limit_long = 2000
-    trp = tr / limit_short * 100
-    trlp = trl / limit_long * 100
+
+    trp = Metrics.objects.count() / num_shortterm_samples * 100
+    trlp = Metrics_long.objects.count() / num_longterm_samples * 100
+    trep = Metrics_export.objects.count() / num_export_samples * 100
     return render(
         request,
         "data.html",
@@ -579,18 +581,22 @@ def data(request):
             "smoothing": smoothing,
             "interpolation": interpolation,
             "nodes": nodes,
-            "total_records": tr,
-            "total_records_long": trl,
+            "total_records": Metrics.objects.count(),
+            "total_records_long": Metrics_long.objects.count(),
+            "total_records_export": Metrics_export.objects.count(),
+            "export_percentage": trep,
             "long_percentage": trlp,
             "percentage": trp,
-            "limit_long": limit_long,
-            "limit_short": limit_short,
+            "limit_long": num_longterm_samples,
+            "limit_short": num_shortterm_samples,
+            "limit_export": num_export_samples,
         },
     )
 
 
 def freeStorage(request):
     Metrics_long.objects.all().delete()
+    Metrics_export.objects.all().delete()
     Metrics.objects.all().delete()
     print("Freed Storage")
     return redirect("data")
@@ -598,53 +604,46 @@ def freeStorage(request):
 
 def download_csv(request):
     if request.method == "POST":
-        if request.method == "POST":
-            selected_metrics = request.POST.getlist("metrics")
-            selected_nodes = request.POST.getlist("nodes")
-            metrics = Metrics_long.objects.filter(address__in=selected_nodes).order_by(
-                "timestamp"
-            )
+        selected_metrics = request.POST.getlist("metrics")
+        # selected_nodes = request.POST.getlist("nodes")
+        metrics = Metrics_export.objects.order_by("timestamp")
 
-            unique_timestamps = sorted(
-                metrics.values_list("timestamp", flat=True).distinct()
-            )
-            unique_timestamps = [
-                timestamp.strftime("%Y-%m-%d %H:%M:%S")
-                for timestamp in unique_timestamps
-            ]
+        unique_timestamps = sorted(
+            metrics.values_list("timestamp", flat=True).distinct()
+        )
+        unique_timestamps = [
+            timestamp.strftime("%Y-%m-%d %H:%M:%S") for timestamp in unique_timestamps
+        ]
 
-            node_data = defaultdict(
-                lambda: defaultdict(
-                    lambda: {metric: None for metric in selected_metrics}
+        node_data = defaultdict(
+            lambda: defaultdict(lambda: {metric: None for metric in selected_metrics})
+        )
+
+        for metric in metrics:
+            timestamp_str = metric.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+            for selected_metric in selected_metrics:
+                node_data[metric.address][timestamp_str][selected_metric] = getattr(
+                    metric, selected_metric
                 )
-            )
 
-            for metric in metrics:
-                timestamp_str = metric.timestamp.strftime("%Y-%m-%d %H:%M:%S")
-                for selected_metric in selected_metrics:
-                    node_data[metric.address][timestamp_str][selected_metric] = getattr(
-                        metric, selected_metric
-                    )
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="data.csv"'
+        writer = csv.writer(response)
 
-            response = HttpResponse(content_type="text/csv")
-            response["Content-Disposition"] = 'attachment; filename="data.csv"'
+        header = ["Timestamp"]
+        for node in node_data.keys():
+            for metric in selected_metrics:
+                header.append(f"{metric.capitalize().replace('_', '-')}-{node}")
+        writer.writerow(header)
 
-            writer = csv.writer(response)
-
-            header = ["Timestamp"]
-            for node in selected_nodes:
+        for timestamp in unique_timestamps:
+            row = [timestamp]
+            for node in node_data.keys():
                 for metric in selected_metrics:
-                    header.append(f"{metric.capitalize()}-{node}")
-            writer.writerow(header)
+                    value = node_data[node][timestamp].get(metric)
+                    row.append(
+                        value if value is not None else ""
+                    )  # Replace None with 'N/A'
+            writer.writerow(row)
 
-            for timestamp in unique_timestamps:
-                row = [timestamp]
-                for node in selected_nodes:
-                    for metric in selected_metrics:
-                        value = node_data[node][timestamp].get(metric)
-                        row.append(
-                            value if value is not None else "N/A"
-                        )  # Replace None with 'N/A'
-                writer.writerow(row)
-
-            return response
+        return response
