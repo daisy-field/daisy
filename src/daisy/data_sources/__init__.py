@@ -11,7 +11,8 @@ provided interfaces to enable this framework for various use-cases.
     * DataHandler - Core class of any data handler, union of DataProcessor, DataSource.
     * DataSource - Interface class. Implementations must provide data point
     objects in generator-like fashion.
-    * DataProcessor - Processor for data points. Processing functions must be provided.
+    * DataProcessor - Processor for data points, applying generic processing steps
+    in order to each sample.
     * DataHandlerRelay - Second core class that allows the processing and forwarding
     of data points to another host.
     * CSVFileRelay - Third core class that allows the export of data points to CSV.
@@ -24,7 +25,7 @@ Currently, the following sub-packages are offering interface implementations:
     originating from t-/wireshark or pcaps. See the subpackage documentation for more.
 
 Author: Fabian Hofmann, Jonathan Ackerschewski, Seraphin Zunzer
-Modified: 22.10.2024
+Modified: 04.11.2024
 """
 
 __all__ = [
@@ -42,13 +43,14 @@ __all__ = [
     "DataHandler",
     "LivePysharkDataSource",
     "PcapDataSource",
+    "PysharkProcessor",
     "create_pyshark_processor",
     "dict_to_numpy_array",
     "packet_to_dict",
     "dict_to_json",
-    "default_f_features",
-    "demo_202312_label_data_point",
-    "default_nn_aggregator",
+    "pcap_f_features",
+    "demo_202303_label_data_point",
+    "pcap_nn_aggregator",
     "EventHandler",
 ]
 
@@ -67,15 +69,16 @@ from .data_source import (
     SimpleRemoteDataSource,
     CSVFileDataSource,
 )
+from .events import EventHandler
 from .network_traffic import (
     LivePysharkDataSource,
     PcapDataSource,
+    PysharkProcessor,
     create_pyshark_processor,
     dict_to_numpy_array,
     packet_to_dict,
     dict_to_json,
-    default_f_features,
-    demo_202312_label_data_point,
-    default_nn_aggregator,
+    pcap_f_features,
+    demo_202303_label_data_point,
+    pcap_nn_aggregator,
 )
-from .events import EventHandler

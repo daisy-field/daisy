@@ -48,7 +48,7 @@ pip install /path/to/daisy[cuda]  # gpu support
 Afterward, the demo scripts are added to the shell path and may be executed, such as:
 
 ```shell
-demo_202312_client -h
+demo_202303_client -h
 model_aggr_server -h
 ```
 
@@ -70,10 +70,10 @@ model_aggr_server --serv localhost
 
 eval_aggr_server --serv localhost
 
-demo_202312_client --clientId 5 --pcapBasePath /path/to/datasets/v2x_2023-03-06 \
+demo_202303_client --clientId 5 --pcapBasePath /path/to/datasets/v2x_2023-03-06 \
 --modelAggrServ localhost --updateInterval 5 --evalServ localhost --aggrServ localhost
 
-demo_202312_client --clientId 2 --pcapBasePath /path/to/datasets/v2x_2023-03-06 \ 
+demo_202303_client --clientId 2 --pcapBasePath /path/to/datasets/v2x_2023-03-06 \ 
 --modelAggrServ localhost --updateInterval 5  --evalServ localhost --aggrServ localhost
 ```
 
