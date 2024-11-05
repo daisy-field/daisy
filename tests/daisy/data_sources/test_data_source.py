@@ -5,7 +5,7 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 import logging
 import unittest
-from src.daisy.data_sources import SimpleDataSource, CSVFileDataSource
+from daisy.data_sources import SimpleDataSource, CSVFileDataSource
 
 
 class TestSimpleDataSource(unittest.TestCase):
@@ -42,7 +42,7 @@ class TestCSVFileDataSourceConstructor(unittest.TestCase):
 
     def test_constructor_string_parameter(self):
         self._source = CSVFileDataSource(
-            files="resources/csvfiledatasource_test_file.csv"
+            files="tests/resources/csvfiledatasource_test_file.csv"
         )
         self._source.open()
         it = self._source.__iter__()
@@ -53,7 +53,7 @@ class TestCSVFileDataSourceConstructor(unittest.TestCase):
 
     def test_constructor_list_parameter_single_file(self):
         self._source = CSVFileDataSource(
-            files=["resources/csvfiledatasource_test_file.csv"]
+            files=["tests/resources/csvfiledatasource_test_file.csv"]
         )
         self._source.open()
         it = self._source.__iter__()
@@ -65,8 +65,8 @@ class TestCSVFileDataSourceConstructor(unittest.TestCase):
     def test_constructor_list_parameter_multiple_files(self):
         self._source = CSVFileDataSource(
             files=[
-                "resources/csvfiledatasource_test_file.csv",
-                "resources/csvfiledatasource_test_file.csv",
+                "tests/resources/csvfiledatasource_test_file.csv",
+                "tests/resources/csvfiledatasource_test_file.csv",
             ]
         )
         self._source.open()
@@ -77,7 +77,7 @@ class TestCSVFileDataSourceConstructor(unittest.TestCase):
         self.assertRaises(StopIteration, next, it)
 
     def test_non_existing_file(self):
-        self._source = CSVFileDataSource(files="resources/non-existing.csv")
+        self._source = CSVFileDataSource(files="tests/resources/non-existing.csv")
         self._source.open()
         self.assertRaises(FileNotFoundError, lambda: list(self._source.__iter__()))
 
