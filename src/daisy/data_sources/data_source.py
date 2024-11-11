@@ -4,14 +4,14 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """A collection of the core interface and base classes for the first component of any
-data handler (see the docstring of the data source class), that provides the origin of
+data handler (see the docstring of the data handler class), that provides the origin of
 any data points being processed for further (ML) tasks. Supports generic generators,
 but also remote communication endpoints that hand over generic data points in
 streaming-manner, and any other implementations of the DataSource class. Note each
 different kind of data may need its own implementation of the DataSource.
 
 Author: Fabian Hofmann, Jonathan Ackerschewski
-Modified: 16.04.24
+Modified: 04.11.24
 """
 # TODO Future Work: Defining granularity of logging in inits
 

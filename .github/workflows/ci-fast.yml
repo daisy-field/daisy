@@ -2,9 +2,9 @@ name: CI-fast
 
 on:
   pull_request:
-    branches-ignore: [ main ]
+    branches-ignore: [ main, develop ]
   push:
-    branches-ignore: [ main ]
+    branches-ignore: [ main, develop ]
 
 jobs:
   run:

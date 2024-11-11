@@ -3,12 +3,12 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""Implementations of the data handler helper interface that allows the processing and
+"""Implementations of the data source interface that allows the processing and
 provisioning of pyshark packets, either via file inputs, live capture, or a remote
 source that generates packets in either fashion.
 
 Author: Jonathan Ackerschewski, Fabian Hofmann
-Modified: 19.04.24
+Modified: 04.11.24
 """
 # TODO: Future Work:
 #   - Encoding/mapping of string/non-numerical values into numerical features
@@ -33,6 +33,9 @@ class LivePysharkDataSource(DataSource):
     """The wrapper implementation to support and handle pyshark live captures as data
     sources. Considered infinite in nature, as it allows the generation of pyshark
     packets, until the capture is stopped.
+    Beware that you might have to use root privileges to obtain data from this data
+    source. If privileges are missing pyshark might not return any data points or
+    warnings.
     """
 
     _capture: LiveCapture
