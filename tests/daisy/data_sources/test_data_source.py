@@ -7,17 +7,17 @@ import pytest
 
 from daisy.data_sources import SimpleDataSource, CSVFileDataSource
 
+_csv_filename = "csvfiledatasource_test.csv"
+
 
 @pytest.fixture(scope="session")
 def csv_file(tmp_path_factory, example_dict):
     path = tmp_path_factory.getbasetemp()
-    filename = "csvfiledatasource_test.csv"
-    with open(path / filename, "w") as f:
+    with open(path / _csv_filename, "w") as f:
         f.write(",".join(example_dict.keys()) + "\n")
         f.write(",".join(example_dict.values()) + "\n")
         f.write(",".join(example_dict.values()) + "\n")
-    print(str(path))
-    return path / filename
+    return path / _csv_filename
 
 
 @pytest.fixture(scope="session")
@@ -47,19 +47,13 @@ def simple_data_source(example_list):
 
 
 @pytest.fixture
-def csv_data_source(csv_file, request):
-    files = None
-    match request.param:
-        case "single_file":
-            files = str(csv_file)
-        case "single_file_list":
-            files = [str(csv_file)]
-        case "two_files":
-            files = [str(csv_file), str(csv_file)]
-        case "non-existing_file":
-            files = [str(csv_file / "non-existing.csv")]
-        case _:
-            pytest.fail(f"Unexpected {request.param}")
+def csv_data_source(tmp_path_factory, csv_file, request):
+    files = request.param
+    path = tmp_path_factory.getbasetemp()
+    if isinstance(files, str):
+        files = str(path / files)
+    else:
+        files = [str(path / file) for file in files]
     source = CSVFileDataSource(files=files)
     yield source
     source.close()
@@ -76,7 +70,7 @@ class TestSimpleRemoteDataSource:
 class TestCSVFileDataSource:
     @pytest.mark.parametrize(
         "csv_data_source,expected_iterations",
-        [("single_file", 2), ("single_file_list", 2), ("two_files", 4)],
+        [(_csv_filename, 2), ([_csv_filename], 2), ([_csv_filename, _csv_filename], 4)],
         indirect=["csv_data_source"],
     )
     def test_constructor_files_valid_parameter(
@@ -89,7 +83,9 @@ class TestCSVFileDataSource:
         with pytest.raises(StopIteration):
             next(it)
 
-    @pytest.mark.parametrize("csv_data_source", ["non-existing_file"], indirect=True)
+    @pytest.mark.parametrize(
+        "csv_data_source", ["non-existing_file.csv"], indirect=True
+    )
     def test_constructor_files_invalid_parameter(
         self, csv_data_source: CSVFileDataSource
     ):
@@ -98,7 +94,9 @@ class TestCSVFileDataSource:
         with pytest.raises(FileNotFoundError):
             next(it)
 
-    @pytest.mark.parametrize("csv_data_source", ["single_file"], indirect=True)
+    @pytest.mark.parametrize(
+        "csv_data_source", ["non-existing_file.csv"], indirect=True
+    )
     def test_line_to_dict_valid_input(
         self, csv_data_source: CSVFileDataSource, example_dict
     ):
@@ -109,7 +107,9 @@ class TestCSVFileDataSource:
             == example_dict
         )
 
-    @pytest.mark.parametrize("csv_data_source", ["single_file"], indirect=True)
+    @pytest.mark.parametrize(
+        "csv_data_source", ["non-existing_file.csv"], indirect=True
+    )
     def test_line_to_dict_shorter_line(
         self, csv_data_source: CSVFileDataSource, example_dict
     ):
@@ -118,7 +118,9 @@ class TestCSVFileDataSource:
         with pytest.raises(IndexError):
             csv_data_source._line_to_dict(line, list(example_dict.keys()))
 
-    @pytest.mark.parametrize("csv_data_source", ["single_file"], indirect=True)
+    @pytest.mark.parametrize(
+        "csv_data_source", ["non-existing_file.csv"], indirect=True
+    )
     def test_line_to_dict_shorter_header(
         self, csv_data_source: CSVFileDataSource, example_dict
     ):  # TODO is this supposed to be the expected behaviour?

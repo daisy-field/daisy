@@ -185,8 +185,12 @@ class CSVFileDataSource(DataSource):
         self._cur_handle = None
         if isinstance(files, str):
             self._is_file_list = False
-        if isinstance(files, list):
+        elif isinstance(files, list):
             self._is_file_list = True
+        else:
+            raise TypeError(
+                f"Expected either string or list of strings, but got {type(files)}"
+            )
         self._logger.info("CSV file data source initialized.")
 
     def open(self):
