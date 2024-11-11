@@ -3,145 +3,128 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-import logging
-import unittest
+import pytest
+
 from daisy.data_sources import SimpleDataSource, CSVFileDataSource
 
 
-class TestSimpleDataSource(unittest.TestCase):
-    def setUp(self):
-        self._testlist = [1, 2, 3, 4, 5]
-        self._source = SimpleDataSource(self._testlist.__iter__())
+@pytest.fixture(scope="session")
+def csv_file(tmp_path_factory, example_dict):
+    path = tmp_path_factory.getbasetemp()
+    filename = "csvfiledatasource_test.csv"
+    with open(path / filename, "w") as f:
+        f.write(",".join(example_dict.keys()) + "\n")
+        f.write(",".join(example_dict.values()) + "\n")
+        f.write(",".join(example_dict.values()) + "\n")
+    print(str(path))
+    return path / filename
 
-    def tearDown(self):
-        self._source = None
 
-    def test_iter_produces_iterable(self):
-        self.assertListEqual(list(self._source.__iter__()), self._testlist)
+@pytest.fixture(scope="session")
+def example_dict():
+    d = {
+        "header1": "data1",
+        "header2": "data2",
+        "header3": "data3",
+        "header4": "data4",
+        "header5": "data5",
+        "header6": "data6",
+        "header7": "data7",
+        "header8": "data8",
+    }
+    return d
 
 
-class TestSimpleRemoteDataSource(unittest.TestCase):
+@pytest.fixture
+def example_list():
+    return [1, 2, 3, 4, 5]
+
+
+@pytest.fixture
+def simple_data_source(example_list):
+    source = SimpleDataSource(generator=example_list.__iter__())
+    return source
+
+
+@pytest.fixture
+def csv_data_source(csv_file, request):
+    files = None
+    match request.param:
+        case "single_file":
+            files = str(csv_file)
+        case "single_file_list":
+            files = [str(csv_file)]
+        case "two_files":
+            files = [str(csv_file), str(csv_file)]
+        case "non-existing_file":
+            files = [str(csv_file / "non-existing.csv")]
+        case _:
+            pytest.fail(f"Unexpected {request.param}")
+    source = CSVFileDataSource(files=files)
+    yield source
+    source.close()
+
+
+def test_simple_data_source_iter_produces_iterable(simple_data_source, example_list):
+    assert list(simple_data_source.__iter__()) == example_list
+
+
+class TestSimpleRemoteDataSource:
     pass
 
 
-class TestCSVFileDataSourceConstructor(unittest.TestCase):
-    def setUp(self):
-        self._result_dict = {
-            "header1": "data1",
-            "header2": "data2",
-            "header3": "data3",
-            "header4": "data4",
-            "header5": "data5",
-            "header6": "data6",
-            "header7": "data7",
-            "header8": "data8",
-        }
+class TestCSVFileDataSource:
+    @pytest.mark.parametrize(
+        "csv_data_source,expected_iterations",
+        [("single_file", 2), ("single_file_list", 2), ("two_files", 4)],
+        indirect=["csv_data_source"],
+    )
+    def test_constructor_files_valid_parameter(
+        self, csv_data_source: CSVFileDataSource, example_dict, expected_iterations
+    ):
+        csv_data_source.open()
+        it = csv_data_source.__iter__()
+        for _ in range(expected_iterations):
+            assert next(it) == example_dict
+        with pytest.raises(StopIteration):
+            next(it)
 
-    def tearDown(self):
-        self._source.close()
+    @pytest.mark.parametrize("csv_data_source", ["non-existing_file"], indirect=True)
+    def test_constructor_files_invalid_parameter(
+        self, csv_data_source: CSVFileDataSource
+    ):
+        csv_data_source.open()
+        it = csv_data_source.__iter__()
+        with pytest.raises(FileNotFoundError):
+            next(it)
 
-    def test_constructor_string_parameter(self):
-        self._source = CSVFileDataSource(
-            files="tests/resources/csvfiledatasource_test_file.csv"
-        )
-        self._source.open()
-        it = self._source.__iter__()
-        for i in range(2):
-            with self.subTest(i=i):
-                self.assertDictEqual(next(it), self._result_dict)
-        self.assertRaises(StopIteration, next, it)
-
-    def test_constructor_list_parameter_single_file(self):
-        self._source = CSVFileDataSource(
-            files=["tests/resources/csvfiledatasource_test_file.csv"]
-        )
-        self._source.open()
-        it = self._source.__iter__()
-        for i in range(2):
-            with self.subTest(i=i):
-                self.assertDictEqual(next(it), self._result_dict)
-        self.assertRaises(StopIteration, next, it)
-
-    def test_constructor_list_parameter_multiple_files(self):
-        self._source = CSVFileDataSource(
-            files=[
-                "tests/resources/csvfiledatasource_test_file.csv",
-                "tests/resources/csvfiledatasource_test_file.csv",
-            ]
-        )
-        self._source.open()
-        it = self._source.__iter__()
-        for i in range(4):
-            with self.subTest(i=i):
-                self.assertDictEqual(next(it), self._result_dict)
-        self.assertRaises(StopIteration, next, it)
-
-    def test_non_existing_file(self):
-        self._source = CSVFileDataSource(files="tests/resources/non-existing.csv")
-        self._source.open()
-        self.assertRaises(FileNotFoundError, lambda: list(self._source.__iter__()))
-
-
-class TestCSVFileDataSource(unittest.TestCase):
-    def setUp(self):
-        self._result_dict = {
-            "header1": "data1",
-            "header2": "data2",
-            "header3": "data3",
-            "header4": "data4",
-            "header5": "data5",
-            "header6": "data6",
-            "header7": "data7",
-            "header8": "data8",
-        }
-        self._source = CSVFileDataSource(files="")
-
-    def tearDown(self):
-        self._source = None
-
-    def test_line_to_dict_valid_input(self):
-        line = ["data1", "data2", "data3", "data4", "data5", "data6", "data7", "data8"]
-        header = [
-            "header1",
-            "header2",
-            "header3",
-            "header4",
-            "header5",
-            "header6",
-            "header7",
-            "header8",
-        ]
-        self.assertDictEqual(
-            self._source._line_to_dict(line, header), self._result_dict
-        )
-
-    def test_line_to_dict_shorter_line(self):
-        line = ["data1", "data2", "data3", "data4", "data5", "data6"]
-        header = [
-            "header1",
-            "header2",
-            "header3",
-            "header4",
-            "header5",
-            "header6",
-            "header7",
-            "header8",
-        ]
-        with self.assertLogs(self._source._logger, logging.WARN):
-            self.assertRaises(IndexError, self._source._line_to_dict, line, header)
-
-    def test_line_to_dict_shorter_header(
-        self,
-    ):  # TODO is this supposed to be the expected behaviour?
-        line = ["data1", "data2", "data3", "data4", "data5", "data6", "data7", "data8"]
-        header = ["header1", "header2", "header3", "header4", "header5", "header6"]
-        self._result_dict.pop("header7")
-        self._result_dict.pop("header8")
-        with self.assertLogs(self._source._logger, logging.WARN):
-            self.assertDictEqual(
-                self._source._line_to_dict(line, header), self._result_dict
+    @pytest.mark.parametrize("csv_data_source", ["single_file"], indirect=True)
+    def test_line_to_dict_valid_input(
+        self, csv_data_source: CSVFileDataSource, example_dict
+    ):
+        assert (
+            csv_data_source._line_to_dict(
+                list(example_dict.values()), list(example_dict.keys())
             )
+            == example_dict
+        )
 
+    @pytest.mark.parametrize("csv_data_source", ["single_file"], indirect=True)
+    def test_line_to_dict_shorter_line(
+        self, csv_data_source: CSVFileDataSource, example_dict
+    ):
+        line = list(example_dict.values())
+        line.pop()
+        with pytest.raises(IndexError):
+            csv_data_source._line_to_dict(line, list(example_dict.keys()))
 
-if __name__ == "__main__":
-    unittest.main()
+    @pytest.mark.parametrize("csv_data_source", ["single_file"], indirect=True)
+    def test_line_to_dict_shorter_header(
+        self, csv_data_source: CSVFileDataSource, example_dict
+    ):  # TODO is this supposed to be the expected behaviour?
+        header = list(example_dict.keys())
+        header.pop()
+        assert (
+            csv_data_source._line_to_dict(list(example_dict.values()), header)
+            == example_dict
+        )
