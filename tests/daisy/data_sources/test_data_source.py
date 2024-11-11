@@ -63,10 +63,6 @@ def test_simple_data_source_iter_produces_iterable(simple_data_source, example_l
     assert list(simple_data_source.__iter__()) == example_list
 
 
-class TestSimpleRemoteDataSource:
-    pass
-
-
 class TestCSVFileDataSource:
     @pytest.mark.parametrize(
         "csv_data_source,expected_iterations",
