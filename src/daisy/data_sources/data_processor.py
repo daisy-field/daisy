@@ -17,7 +17,7 @@ import json
 import logging
 from collections.abc import MutableMapping
 from typing import Callable, Self
-from warnings import deprecated
+from typing_extensions import deprecated
 
 import numpy as np
 
