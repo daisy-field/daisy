@@ -22,7 +22,7 @@ import sys
 from collections import defaultdict
 from ipaddress import AddressValueError
 from typing import Callable, Self
-from warnings import deprecated
+from typing_extensions import deprecated
 
 import numpy as np
 from pyshark.packet.fields import LayerField, LayerFieldsContainer

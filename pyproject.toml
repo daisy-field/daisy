@@ -109,7 +109,8 @@ dependencies = [
     "plotly~=5.14.1",
     "django~=5.0.1",
     "djangorestframework~=3.14.0",
-    "pyparsing~=3.2.0"
+    "pyparsing~=3.2.0",
+    "typing-extensions~=4.12.2"
 ]
 
 # List additional groups of dependencies here (e.g. development
