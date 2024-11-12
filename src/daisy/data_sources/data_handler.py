@@ -13,7 +13,6 @@ processing steps to them (see the docstring of the data source module).
 Author: Fabian Hofmann, Jonathan Ackerschewski
 Modified: 04.11.24
 """
-# TODO Future Work: Defining granularity of logging in inits
 
 import logging
 import queue

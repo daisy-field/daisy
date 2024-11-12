@@ -9,11 +9,6 @@ packets, i.e. a pre-packaged extension of the data processor base class for ease
 Author: Jonathan Ackerschewski, Fabian Hofmann
 Modified: 04.11.2024
 """
-# TODO: Future Work:
-#   - Encoding/mapping of string/non-numerical values into numerical features
-#   - Flattening of Lists instead of encoding them into singular numerical features
-#   - NaN values also need to converted to something useful
-#     (that does not break the prediction/training)
 
 import ipaddress
 import json
