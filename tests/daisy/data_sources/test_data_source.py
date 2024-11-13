@@ -111,7 +111,7 @@ class TestCSVFileDataSource:
     ):
         line = list(example_dict.values())
         line.pop()
-        with pytest.raises(IndexError):
+        with pytest.raises(ValueError):
             csv_data_source._line_to_dict(line, list(example_dict.keys()))
 
     @pytest.mark.parametrize(
@@ -119,10 +119,8 @@ class TestCSVFileDataSource:
     )
     def test_line_to_dict_shorter_header(
         self, csv_data_source: CSVFileDataSource, example_dict
-    ):  # TODO is this supposed to be the expected behaviour?
+    ):
         header = list(example_dict.keys())
         header.pop()
-        assert (
+        with pytest.raises(ValueError):
             csv_data_source._line_to_dict(list(example_dict.values()), header)
-            == example_dict
-        )

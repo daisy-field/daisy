@@ -235,7 +235,9 @@ class CSVFileDataSource(DataSource):
         """
         cur_dict = {}
         if len(line) != len(header):
-            self._logger.warning(f"Malformed line detected: {line}")
+            raise ValueError(
+                f"Malformed line detected. Line length does not match header length: {line}"
+            )
         for header_counter in range(len(header)):
             cur_dict[header[header_counter]] = line[header_counter]
         return cur_dict
