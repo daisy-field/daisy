@@ -11,8 +11,6 @@ the samples of that data stream at every step.
 Author: Fabian Hofmann
 Modified: 04.04.24
 """
-# TODO Future Work: Defining granularity of logging in inits
-# TODO Future Work: Args for client-side ports in init
 
 import logging
 import threading
@@ -593,8 +591,7 @@ class FederatedOnlineClient(FederatedOnlineNode):
 
 
 class FederatedOnlinePeer(FederatedOnlineNode):
-    """TODO by @lotta
-
+    """
     :var _peers: TBD
     :var _topology: TBD
     """

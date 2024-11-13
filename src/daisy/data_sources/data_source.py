@@ -13,7 +13,6 @@ different kind of data may need its own implementation of the DataSource.
 Author: Fabian Hofmann, Jonathan Ackerschewski
 Modified: 04.11.24
 """
-# TODO Future Work: Defining granularity of logging in inits
 
 import csv
 import logging
