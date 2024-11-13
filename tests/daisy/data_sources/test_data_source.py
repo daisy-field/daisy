@@ -20,21 +20,6 @@ def csv_file(tmp_path_factory, example_dict):
     return path / _csv_filename
 
 
-@pytest.fixture(scope="session")
-def example_dict():
-    d = {
-        "header1": "data1",
-        "header2": "data2",
-        "header3": "data3",
-        "header4": "data4",
-        "header5": "data5",
-        "header6": "data6",
-        "header7": "data7",
-        "header8": "data8",
-    }
-    return d
-
-
 @pytest.fixture
 def example_list():
     return [1, 2, 3, 4, 5]
