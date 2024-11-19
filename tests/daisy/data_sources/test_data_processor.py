@@ -5,6 +5,7 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import typing
+from collections import OrderedDict
 
 import pytest
 
@@ -14,6 +15,33 @@ from daisy.data_sources import DataProcessor
 @pytest.fixture
 def data_processor():
     return DataProcessor()
+
+
+@pytest.fixture
+def flat_dict():
+    non_flat_dict = {
+        "key1": "value1",
+        "key2": {
+            "key3": {
+                "key4": "value4",
+                "key5": ["value5"],
+            },
+            "key6": "value6",
+        },
+        "key7": "value7",
+        "key8": {
+            "key9": "value9",
+        },
+    }
+    flat_dict = {
+        "key1": "value1",
+        "key2.key3.key4": "value4",
+        "key2.key3.key5": ["value5"],
+        "key2.key6": "value6",
+        "key7": "value7",
+        "key8.key9": "value9",
+    }
+    return non_flat_dict, flat_dict
 
 
 def test_no_added_func(data_processor, example_dict):
@@ -87,8 +115,33 @@ def test_select_dict_features_default_value(data_processor, example_dict):
     assert result == eval_dict
 
 
-def test_flatten_dict():
-    pass
+def test_flatten_dict(data_processor, flat_dict):
+    data_processor.flatten_dict()
+    test_dict = flat_dict[0].copy()
+    assert data_processor.process(test_dict) == flat_dict[1]
+
+
+testdata = [
+    OrderedDict(
+        [
+            ("key1.key2", "value"),
+            ("key1", {"key2": "value"}),
+        ]
+    ),
+    OrderedDict(
+        [
+            ("key1", {"key2": "value"}),
+            ("key1.key2", "value"),
+        ]
+    ),
+]
+
+
+@pytest.mark.parametrize("test_dict", testdata)
+def test_flatten_dict_value_error(data_processor, test_dict):
+    data_processor.flatten_dict()
+    with pytest.raises(ValueError):
+        data_processor.process(test_dict)
 
 
 def test_dict_to_array():
