@@ -152,7 +152,7 @@ eval_aggr_server = "daisy.scripts.generic_fids_components:eval_aggr_server"
 pred_aggr_server = "daisy.scripts.generic_fids_components:pred_aggr_server"
 dashboard = "daisy.scripts.generic_fids_components:dashboard"
 demo_202303_client = "daisy.scripts.demo_components:demo_202303_client"
-
+poisoning_client ="daisy.scripts.demo_components:poisoning_client"
 # This is configuration specific to the `setuptools` build backend.
 # If you are using a different build backend, you will need to change this.
 [tool.setuptools]

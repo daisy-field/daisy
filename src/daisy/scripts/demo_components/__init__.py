@@ -20,6 +20,7 @@ Author: Fabian Hofmann
 Modified: 10.04.24
 """
 
-__all__ = ["demo_202303_client"]
+__all__ = ["demo_202303_client", "poisoning_client"]
 
 from .demo_202303_client import create_client as demo_202303_client
+from .poisoning_client import create_client as poisoning_client
