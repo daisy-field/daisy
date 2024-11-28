@@ -36,7 +36,7 @@ depending on the type of demo, one can select one, two, or all three additional
 components.
 
 Author: Fabian Hofmann
-Modified: 04.11.24
+Modified: 10.04.24
 """
 
 import argparse
@@ -48,15 +48,17 @@ import tensorflow as tf
 
 from daisy.data_sources import (
     DataHandler,
+    DataProcessor,
     PcapDataSource,
-    PysharkProcessor,
-    pcap_f_features,
-    pcap_nn_aggregator,
-    demo_202303_label_data_point,
+    packet_to_dict,
+    select_feature,
+    default_f_features,
+    demo_202312_label_data_point,
+    dict_to_numpy_array,
+    default_nn_aggregator,
 )
 from daisy.evaluation import ConfMatrSlidingWindowEvaluation
-from daisy.federated_ids_components import FederatedOnlineClient
-from daisy.federated_learning import TFFederatedModel, FederatedIFTM
+from daisy.federated_learning import TFFederatedModel, FederatedIFTM, EMAvgTM
 
 from daisy.personalized_fl_components.generative.generative_model import GenerativeGAN
 from daisy.personalized_fl_components.auto_model_scaler import AutoModelScaler
@@ -67,7 +69,7 @@ from daisy.personalized_fl_components.distillative.distillative_node import (
     pflDistillativeNode,
 )
 
-from daisy.federated_learning import AvgTM
+from daisy.personalized_fl_components.poisoning_node import PoisoningClient
 
 
 def _parse_args() -> argparse.Namespace:
@@ -180,6 +182,14 @@ def _parse_args() -> argparse.Namespace:
         metavar="",
         help="Select local model size in personalized FL manually.",
     )
+    client_options.add_argument(
+        "--poisoningMode",
+        type=str,
+        default="zeros",
+        choices=["zeros", "random", "inverse"],
+        metavar="",
+        help="Configure the model poisoning mode.",
+    )
     return parser.parse_args()
 
 
@@ -218,18 +228,26 @@ def create_client():
         f"{args.pcapBasePath}/diginet-cohda-box-dsrc{args.clientId}"
     )
     processor = (
-        PysharkProcessor()
-        .packet_to_dict()
-        .select_dict_features(features=pcap_f_features, default_value=np.nan)
+        DataProcessor()
+        .add_func(lambda o_point: packet_to_dict(o_point))
         .add_func(
-            lambda o_point: demo_202303_label_data_point(
+            lambda o_point: select_feature(
+                d_point=o_point, f_features=default_f_features, default_value=np.nan
+            )
+        )
+        .add_func(
+            lambda o_point: demo_202312_label_data_point(
                 client_id=args.clientId, d_point=o_point
             )
         )
-        .dict_to_array(nn_aggregator=pcap_nn_aggregator)
+        .add_func(
+            lambda o_point: dict_to_numpy_array(
+                d_point=o_point, nn_aggregator=default_nn_aggregator
+            )
+        )
     )
     data_handler = DataHandler(data_source=source, data_processor=processor)
-    t_m = AvgTM()
+    t_m = EMAvgTM()
     err_fn = tf.keras.losses.MeanAbsoluteError(reduction=tf.keras.losses.Reduction.NONE)
 
     metrics = [ConfMatrSlidingWindowEvaluation(window_size=args.batchSize * 8)]
@@ -247,7 +265,7 @@ def create_client():
         model = FederatedIFTM(identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn)
 
         # Client
-        client = FederatedOnlineClient(
+        client = PoisoningClient(
             data_handler=data_handler,
             batch_size=args.batchSize,
             model=model,
@@ -257,7 +275,9 @@ def create_client():
             eval_server=eval_serv,
             aggr_server=aggr_serv,
             update_interval_t=args.updateInterval,
+            poisoningMode=args.poisoningMode,
         )
+
         client.start()
         input("Press Enter to stop client...")
         client.stop()
@@ -289,7 +309,7 @@ def create_client():
 
         # Client
         client = pflGenerativeNode(
-            data_handler=data_handler,
+            data_source=data_handler,
             batch_size=args.batchSize,
             model=model,
             label_split=65,
@@ -325,7 +345,7 @@ def create_client():
 
         # Client
         client = pflDistillativeNode(
-            data_handler=data_handler,
+            data_source=data_handler,
             batch_size=args.batchSize,
             model=model,
             label_split=65,
@@ -341,9 +361,6 @@ def create_client():
 
     if args.pflMode == "layerwise":
         raise NotImplementedError
-
-    input("Press Enter to stop client...")
-    client.stop()
 
 
 if __name__ == "__main__":
