@@ -51,6 +51,7 @@ __all__ = [
     "pcap_f_features",
     "demo_202303_label_data_point",
     "pcap_nn_aggregator",
+    "csv_nn_aggregator",
     "EventHandler",
 ]
 
@@ -81,4 +82,5 @@ from .network_traffic import (
     pcap_f_features,
     demo_202303_label_data_point,
     pcap_nn_aggregator,
+    csv_nn_aggregator,
 )
