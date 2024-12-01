@@ -67,7 +67,7 @@ from daisy.personalized_fl_components.distillative.distillative_node import (
     pflDistillativeNode,
 )
 
-from daisy.federated_learning import AvgTM
+from daisy.federated_learning import EMAvgTM
 
 
 def _parse_args() -> argparse.Namespace:
@@ -180,6 +180,14 @@ def _parse_args() -> argparse.Namespace:
         metavar="",
         help="Select local model size in personalized FL manually.",
     )
+    client_options.add_argument(
+        "--poisoningMode",
+        type=str,
+        default=None,
+        choices=["zeros", "random", "inverse"],
+        metavar="",
+        help="Configure the model poisoning mode.",
+    )
     return parser.parse_args()
 
 
@@ -229,7 +237,7 @@ def create_client():
         .dict_to_array(nn_aggregator=pcap_nn_aggregator)
     )
     data_handler = DataHandler(data_source=source, data_processor=processor)
-    t_m = AvgTM()
+    t_m = EMAvgTM()
     err_fn = tf.keras.losses.MeanAbsoluteError(reduction=tf.keras.losses.Reduction.NONE)
 
     metrics = [ConfMatrSlidingWindowEvaluation(window_size=args.batchSize * 8)]
@@ -257,6 +265,7 @@ def create_client():
             eval_server=eval_serv,
             aggr_server=aggr_serv,
             update_interval_t=args.updateInterval,
+            poisoning_mode=args.poisoningMode,
         )
         client.start()
         input("Press Enter to stop client...")
@@ -299,6 +308,7 @@ def create_client():
             aggr_server=aggr_serv,
             update_interval_t=args.updateInterval,
             generative_model=generative_gan,
+            # poisoning_mode=args.poisoningMode,
         )
         client.start()
         input("Press Enter to stop client...")
@@ -334,6 +344,7 @@ def create_client():
             eval_server=eval_serv,
             aggr_server=aggr_serv,
             update_interval_t=args.updateInterval,
+            # poisoning_mode=args.poisoningMode,
         )
         client.start()
         input("Press Enter to stop client...")
