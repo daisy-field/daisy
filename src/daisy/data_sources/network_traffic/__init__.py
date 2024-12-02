@@ -33,7 +33,6 @@ __all__ = [
     "dict_to_json",
     "pcap_f_features",
     "pcap_nn_aggregator",
-    "csv_nn_aggregator",
     "demo_202303_label_data_point",
 ]
 
@@ -48,4 +47,3 @@ from .pyshark_processor import (
     pcap_f_features,
     pcap_nn_aggregator,
 )
-from .cic_processor import csv_nn_aggregator

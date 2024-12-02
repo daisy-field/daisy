@@ -239,7 +239,7 @@ def create_client():
         optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
         loss = tf.keras.losses.MeanAbsoluteError()
         id_fn = TFFederatedModel.get_fae(
-            input_size=65,
+            input_size=78,
             optimizer=optimizer,
             loss=loss,
             batch_size=args.batchSize,
@@ -252,7 +252,7 @@ def create_client():
             data_handler=data_handler,
             batch_size=args.batchSize,
             model=model,
-            label_split=65,
+            label_split=78,
             metrics=metrics,
             m_aggr_server=m_aggr_serv,
             eval_server=eval_serv,
@@ -268,7 +268,7 @@ def create_client():
         optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
         loss = tf.keras.losses.MeanAbsoluteError()
         id_fn = None
-        input_size = 65
+        input_size = 78
         epochs = 1
         ams = AutoModelScaler()
 
@@ -284,7 +284,7 @@ def create_client():
         model = FederatedIFTM(identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn)
 
         generative_gan = GenerativeGAN.create_gan(
-            input_size=65,
+            input_size=78,
             discriminator_optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
             generator_optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
         )
@@ -294,7 +294,7 @@ def create_client():
             data_handler=data_handler,
             batch_size=args.batchSize,
             model=model,
-            label_split=65,
+            label_split=78,
             metrics=metrics,
             m_aggr_server=m_aggr_serv,
             eval_server=eval_serv,
@@ -311,7 +311,7 @@ def create_client():
         optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
         loss = tf.keras.losses.MeanAbsoluteError()
         id_fn = None
-        input_size = 65
+        input_size = 78
         epochs = 1
         aMS = AutoModelScaler()
 
@@ -331,7 +331,7 @@ def create_client():
             data_handler=data_handler,
             batch_size=args.batchSize,
             model=model,
-            label_split=65,
+            label_split=78,
             metrics=metrics,
             m_aggr_server=m_aggr_serv,
             eval_server=eval_serv,

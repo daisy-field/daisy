@@ -25,6 +25,7 @@ def csv_nn_aggregator(key: str, value: object) -> int:
     :return: Converted numerical value.
     :raises ValueError: If value cannot be converted.
     """
+
     if isinstance(value, list):
         value.sort()
         return hash(str(value))
@@ -53,9 +54,5 @@ def cic_label_data_point(d_point: dict) -> dict:
     :return: Labeled data point.
     """
     label = d_point.pop(" Label")
-    if label == "BENIGN":
-        d_point["label"] = 0
-    else:
-        d_point["label"] = 1
-
-    return d_point  # np.asarray(l_point)
+    d_point["label"] = 0 if label == "BENIGN" else 1
+    return d_point
