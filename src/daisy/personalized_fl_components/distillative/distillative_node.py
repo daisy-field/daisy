@@ -113,7 +113,9 @@ class pflDistillativeNode(FederatedOnlineNode):
         _try_ops(lambda: self._m_aggr_server.stop(shutdown=True), logger=self._logger)
 
     def generate_random_data(self, num_samples, input_shape):
-        return np.random.random((num_samples, input_shape)).astype(np.float32)
+        return np.random.normal((num_samples, input_shape)).astype(
+            np.float32
+        )  # use random.normal /random random for gaussian
 
     def knowledge_distillation(self, images, teacher_model, student_model, epochs):
         for epoch in range(epochs):
