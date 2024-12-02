@@ -51,7 +51,12 @@ def test_simple_data_source_iter_produces_iterable(simple_data_source, example_l
 class TestCSVFileDataSource:
     @pytest.mark.parametrize(
         "csv_data_source,expected_iterations",
-        [(_csv_filename, 2), ([_csv_filename], 2), ([_csv_filename, _csv_filename], 4)],
+        [
+            (_csv_filename, 2),
+            ([_csv_filename], 2),
+            ([_csv_filename, _csv_filename], 4),
+            ("", 2),  # TODO test case for newly implemented feature yet to be merged
+        ],
         indirect=["csv_data_source"],
     )
     def test_constructor_files_valid_parameter(
