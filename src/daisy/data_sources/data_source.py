@@ -16,8 +16,8 @@ Modified: 04.11.24
 
 import csv
 import logging
-from abc import ABC, abstractmethod
 import os
+from abc import ABC, abstractmethod
 from typing import IO, Iterator
 
 from daisy.communication import StreamEndpoint
@@ -175,7 +175,8 @@ class CSVFileDataSource(DataSource):
         """Creates a new CSV file data source. Either a single file or a list of files
         are expected as the input.
 
-        :param files: Either a single CSV file or a list of CSV files to read.
+        :param files: Either a single CSV file/directory or a list of CSV
+        files/directories to read.
         """
         super().__init__(name)
 
