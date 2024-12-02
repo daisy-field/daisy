@@ -3,13 +3,16 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""A generic wrapper for stream processing both finite and infinite data handler into
-sample-wise data points, each being passed to further (ML) tasks once and in order.
+"""Core class wrapper component for stream processing both finite and infinite data
+handler into sample-wise data points, each being passed to further (ML) tasks once
+and in order. For this a data source is required (see the docstring of the data
+source module), that provides the origin of any data points being processed for
+further (ML) tasks, and a data processor that prepares the data samples by applying
+processing steps to them (see the docstring of the data source module).
 
 Author: Fabian Hofmann, Jonathan Ackerschewski
-Modified: 19.04.24
+Modified: 04.11.24
 """
-# TODO Future Work: Defining granularity of logging in inits
 
 import logging
 import queue
@@ -23,10 +26,11 @@ from .data_source import DataSource
 
 
 class DataHandler:
-    """A wrapper around a customizable DataSource that yields data points as
+    """A wrapper around a customizable data source that yields data points as
     objects as they come, before stream processing using another, customizable
-    DataProcessor. Data points, which can be from arbitrary sources, are thus
-    processed and converted into numpy vectors/arrays.
+    data processor. Data points, which can be from arbitrary sources, are thus
+    processed and converted into numpy vectors/arrays for ML tasks. Note that there
+    is also the option to keep the object/dict format in case stream processing.
 
     Supports the processing of data points in both synchronous and asynchronous
     fashion by default.

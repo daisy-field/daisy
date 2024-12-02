@@ -109,7 +109,8 @@ dependencies = [
     "plotly~=5.14.1",
     "django~=5.0.1",
     "djangorestframework~=3.14.0",
-    "pyparsing~=3.2.0"
+    "pyparsing~=3.2.0",
+    "typing-extensions~=4.12.2"
 ]
 
 # List additional groups of dependencies here (e.g. development
@@ -150,7 +151,7 @@ model_aggr_server = "daisy.scripts.generic_fids_components:model_aggr_server"
 eval_aggr_server = "daisy.scripts.generic_fids_components:eval_aggr_server"
 pred_aggr_server = "daisy.scripts.generic_fids_components:pred_aggr_server"
 dashboard = "daisy.scripts.generic_fids_components:dashboard"
-demo_202312_client = "daisy.scripts.demo_components:demo_202312_client"
+demo_202303_client = "daisy.scripts.demo_components:demo_202303_client"
 
 # This is configuration specific to the `setuptools` build backend.
 # If you are using a different build backend, you will need to change this.
