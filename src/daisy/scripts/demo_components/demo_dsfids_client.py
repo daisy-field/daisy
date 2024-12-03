@@ -49,9 +49,7 @@ import tensorflow as tf
 from daisy.data_sources import (
     DataHandler,
     PysharkProcessor,
-    pcap_f_features,
     pcap_nn_aggregator,
-    demo_202303_label_data_point,
 )
 from daisy.evaluation import ConfMatrSlidingWindowEvaluation
 from daisy.federated_ids_components import FederatedOnlineClient
@@ -69,6 +67,10 @@ from daisy.personalized_fl_components.distillative.distillative_node import (
 from daisy.federated_learning import EMAvgTM
 
 from daisy.data_sources import CSVFileDataSource
+from daisy.data_sources.network_traffic.dsfids import (
+    dsfids_label_data_point,
+    dsfids_f_features,
+)
 
 
 def _parse_args() -> argparse.Namespace:
@@ -226,15 +228,17 @@ def create_client():
     source = CSVFileDataSource(f"{args.pcapBasePath}/Host-{args.clientId}")
     processor = (
         PysharkProcessor()
-        .packet_to_dict()
-        .select_dict_features(features=pcap_f_features, default_value=np.nan)
-        .add_func(
-            lambda o_point: demo_202303_label_data_point(
-                client_id=args.clientId, d_point=o_point
-            )
-        )
+        # .packet_to_dict()
+        .select_dict_features(features=dsfids_f_features, default_value=np.nan)
+        .add_func(lambda o_point: dsfids_label_data_point(d_point=o_point))
         .dict_to_array(nn_aggregator=pcap_nn_aggregator)
     )
+    # ource = CSVFileDataSource(files=f"{args.csvBasePath}/{args.clientId}.csv")
+    # processor = (
+    #    DataProcessor()
+    #    .add_func(lambda o_point: cic_label_data_point(d_point=o_point))
+    #    .dict_to_array(nn_aggregator=csv_nn_aggregator)
+    # )
     # processor = (DataProcessor()
     #             .add_func(
     #    lambda o_point: dsfids_label_data_point(
