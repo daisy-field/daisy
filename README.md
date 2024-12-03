@@ -20,13 +20,29 @@ For the latter, there is a large toolbox of various (example) implementations fo
 these interfaces. Execution i.e. rollout is done through pure python or wrapped inside
 one or multiple docker containers.
 
-## Installing / Getting started
+# Table of Contents
+
+1. [Installing / Getting Started](#installing--getting-started)
+2. [Developing](#developing)
+    1. [Building](#building)
+3. [Frequently Asked Questions](#frequently-asked-questions)
+4. [Configuration](#configuration)
+    1. [Minimum Working Example](#minimum-working-example)
+5. [Contributing](#contributing)
+6. [Licensing](#licensing)
+
+## Installing / Getting Started
 
 DAISY supports `pip install` under
-[Python 3.11](https://www.python.org/downloads/release/python-3110/) 
-and can be set up the following way. Note, generally it is recommended to use a
+[Python 3.11](https://www.python.org/downloads/release/python-3110/) and it can be
+installed in the way below. DAISY is also supported through a Docker container and
+the project can be used out of the box after [building it](#building). Generally, it is
+recommended to use a
 [virtual environment](https://docs.python.org/3.11/library/venv.html) for any python
-project.
+project. For CUDA-enabled GPU cards (mainly on Ubuntu and various Linux distributions),
+there is additional support directly integrated into DAISY via the `[cuda]` option;
+this functionality requires NVIDIA® GPU drivers and is supported through and by
+[Tensorflow](https://github.com/tensorflow/tensorflow/blob/master/README.md).
 
 ```shell
 git clone https://github.com/daisy-field/daisy.git
@@ -42,7 +58,7 @@ python3.11 -m venv venv
 source venv/bin/activate
 
 pip install /path/to/daisy
-pip install /path/to/daisy[cuda]  # gpu support
+pip install /path/to/daisy[cuda]  # gpu support (optional)
 ```
 
 Afterward, the demo scripts are added to the shell path and may be executed, such as:
@@ -56,35 +72,16 @@ Follow the instructions to perform an initial demo. There is also a [minimum wor
 example](#minimum-working-example) with all necessary components for a setup of two
 federated detection nodes, the aggregation servers, and a dashboard to display the
 results. Note that some of the demos require additional input as in data sources
-which are not part of this project. DAISY is also supported in docker and the
-project can be used out of the box after [building it](#building).
-
-### Minimum Working Example
-
-```shell
-dashboard
-
-pred_aggr_server --serv localhost
-
-model_aggr_server --serv localhost
-
-eval_aggr_server --serv localhost
-
-demo_202303_client --clientId 5 --pcapBasePath /path/to/datasets/v2x_2023-03-06 \
---modelAggrServ localhost --updateInterval 5 --evalServ localhost --aggrServ localhost
-
-demo_202303_client --clientId 2 --pcapBasePath /path/to/datasets/v2x_2023-03-06 \ 
---modelAggrServ localhost --updateInterval 5  --evalServ localhost --aggrServ localhost
-```
+which are not part of this project.
 
 ## Developing
 
-Since DAISY supports regular `pip`, to develop the project further, one should install
-it in edit mode
+Since DAISY supports regular `pip`, to develop the project further or to adapt the
+example scripts directly, one should install it in edit mode
 [(-e flag)](https://pip.pypa.io/en/stable/cli/pip_install/#cmdoption-e). Again, it is
 once again recommended to either use a
-[virtual environment](https://docs.python.org/3.11/library/venv.html) or any
-of the alternatives, especially when developing.
+[virtual environment](https://docs.python.org/3.11/library/venv.html) or any of the
+alternatives, especially when developing.
 
 ```shell
 git clone https://github.com/daisy-field/daisy.git
@@ -104,15 +101,15 @@ pip install -e .[dev]
 ```
 
 This will add any external and internal dependencies to the `PATH`, besides installing
-development tools such as style checker, unit tests, and more. If you want to 
-automatically let your commit be checked before pushing changes upstream via the 
+development tools such as style checker, unit tests, and more. If you want to
+automatically let your commit be checked before pushing changes upstream via the
 project's githooks, one additional command must be executed after installing DAISY:
 
 ```shell
 pre-commit install
 ```
 
-Since these checks performed by `pre-commit` will also be repeated upstream, this step 
+Since these checks performed by `pre-commit` will also be repeated upstream, this step
 is highly recommended to avoid any failed checks during pull requests.
 
 ### Building
@@ -164,52 +161,67 @@ like after installing DAISY from the shell (see above).
 
 [//]: # (* If you get really randy, you can even do this)
 
-
 [//]: # ()
 
-[//]: # (## Configuration)
+## Configuration
 
-[//]: # ()
+### Minimum Working Example
 
-[//]: # (Here you should write what are all of the configurations a user can enter when)
+```shell
+dashboard
 
-[//]: # (using the project.)
+pred_aggr_server --serv localhost
 
-[//]: # ()
+model_aggr_server --serv localhost
 
-[//]: # (#### Argument 1)
+eval_aggr_server --serv localhost
 
-[//]: # (Type: `String`  )
+demo_202303_client --clientId 5 --pcapBasePath /path/to/datasets/v2x_2023-03-06 \
+--modelAggrServ localhost --updateInterval 5 --evalServ localhost --aggrServ localhost
 
-[//]: # (Default: `'default value'`)
+demo_202303_client --clientId 2 --pcapBasePath /path/to/datasets/v2x_2023-03-06 \ 
+--modelAggrServ localhost --updateInterval 5  --evalServ localhost --aggrServ localhost
+```
 
-[//]: # ()
+## Frequently Asked Questions
 
-[//]: # (State what an argument does and how you can use it. If needed, you can provide)
+#### 1. Dashboard not starting (e.g. crossref error)
 
-[//]: # (an example below.)
+Try to use 127.0.0.1 instead of localhost in address. Restart dashboard, try to use
+different browser (Chromium based browsers are recommended). Deactivate ad blockers and
+enable JavaScript.
 
-[//]: # ()
+#### 2. Module 'ml_dtypes' has no attribute 'bfloat16' when starting dashboard
 
-[//]: # (Example:)
+Check installation of tensorflow (version & correct installation in venv)
 
-[//]: # (```bash)
+#### 3. Socket Trying to (re-)establish connection
 
-[//]: # (awesome-project "Some other value"  # Prints "You're nailing this readme!")
+Somehow sockets cannot make a connection to other components. Common windows problem (we
+recommend to use WSL).
+Check settings of protected folder access, try to restart components/computer.
 
-[//]: # (```)
+#### 4. PCAP files aren't read
 
-[//]: # ()
+For network traffic, PyShark is used. This is a library using tshark in the background.
+This means that it is dependent on the tshark installation.
+It may be required to execute the code with root/admin permissions, as tshark might be
+configured to deny non-root users to use its features.
+On Windows machines it was observed, that pyshark has trouble using tshark, despite
+correct installation and path variables. WSL or Linux might be required in these cases.
+Note that CSV files do not use PyShark and should work regardless of the environment/OS
+used. CSVs are, therefore, generally recommended over PCAP.
 
-[//]: # (#### Argument 2)
+#### 5. Live Network traffic isn't captured
 
-[//]: # (Type: `Number|Boolean`  )
+Refer to question 4, as the Live Network capture uses PyShark and suffers from the same
+problems.
 
-[//]: # (Default: 100)
+#### 6. Script X isn't producing any data
 
-[//]: # ()
-
-[//]: # (Copy-paste as many of these as you need.)
+Depending on the script, this can have different reasons. Generally, if it either uses
+PCAP files as the input or uses live network traffic, it probably uses PyShark. Refer to
+question 4 for this.
 
 ## Contributing
 
@@ -252,6 +264,8 @@ code style through the [Ruff](https://docs.astral.sh/ruff/) formatter.
 [//]: # (    - Your other project: https://github.com/your/other-project/)
 
 [//]: # (    - Someone else's project: https://github.com/someones/awesome-project/)
+
+[//]: # ()
 
 ## Licensing
 

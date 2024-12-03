@@ -13,10 +13,10 @@ different kind of data may need its own implementation of the DataSource.
 Author: Fabian Hofmann, Jonathan Ackerschewski
 Modified: 04.11.24
 """
-# TODO Future Work: Defining granularity of logging in inits
 
 import csv
 import logging
+import os
 from abc import ABC, abstractmethod
 from typing import IO, Iterator
 
@@ -165,8 +165,7 @@ class CSVFileDataSource(DataSource):
     Each CSV is, therefore, expected to have a header line as the first row.
     """
 
-    _files: str | list[str]
-    _is_file_list: bool
+    _files: list[str]
     _cur_index: int
     _cur_handle: IO | None
     _cur_csv: csv.reader
@@ -176,27 +175,35 @@ class CSVFileDataSource(DataSource):
         """Creates a new CSV file data source. Either a single file or a list of files
         are expected as the input.
 
-        :param files: Either a single CSV file or a list of CSV files to read.
+        :param files: Either a single CSV file/directory or a list of CSV
+        files/directories to read.
         """
         super().__init__(name)
 
         self._logger.info("Initializing CSV file data source...")
-        self._files = files
-        self._cur_handle = None
         if isinstance(files, str):
-            self._is_file_list = False
+            tmp_files = [files]
         elif isinstance(files, list):
-            self._is_file_list = True
+            tmp_files = files
         else:
             raise TypeError(
                 f"Expected either string or list of strings, but got {type(files)}"
             )
+
+        self._files = []
+        for path in tmp_files:
+            if os.path.isdir(path):
+                self._files += [os.path.join(path, file) for file in os.listdir(path)]
+            else:
+                self._files.append(path)
+
+        self._cur_handle = None
         self._logger.info("CSV file data source initialized.")
 
     def open(self):
         """Starts the CSV file data source by setting required parameters."""
         self._logger.info("Opening CSV file data source...")
-        self._cur_index = -1
+        self._cur_index = 0
 
     def close(self):
         """Closes the CSV file data source."""
@@ -213,12 +220,9 @@ class CSVFileDataSource(DataSource):
         if self._cur_handle:
             self._cur_handle.close()
             self._cur_handle = None
-        self._cur_index += 1
 
-        if self._is_file_list:
-            next_file = self._files[self._cur_index]
-        else:
-            next_file = self._files
+        next_file = self._files[self._cur_index]
+        self._cur_index += 1
 
         self._cur_handle = open(next_file, "r")
         self._cur_csv = csv.reader(self._cur_handle)
@@ -244,9 +248,7 @@ class CSVFileDataSource(DataSource):
 
     def __iter__(self) -> Iterator[dict[str, object]]:
         """Iterates through provided CSV files and yields each line as a dictionary."""
-        while (not self._is_file_list and self._cur_index < 0) or (
-            self._is_file_list and self._cur_index < len(self._files) - 1
-        ):
+        while self._cur_index < len(self._files):
             self._open_next_file()
             for line in self._cur_csv:
                 cur_dict = self._line_to_dict(line, self._cur_headers)

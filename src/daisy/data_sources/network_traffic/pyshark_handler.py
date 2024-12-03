@@ -10,11 +10,6 @@ source that generates packets in either fashion.
 Author: Jonathan Ackerschewski, Fabian Hofmann
 Modified: 04.11.24
 """
-# TODO: Future Work:
-#   - Encoding/mapping of string/non-numerical values into numerical features
-#   - Flattening of Lists instead of encoding them into singular numerical features
-#   - NaN values also need to converted to something useful
-#     (that does not break the prediction/training)
 
 import logging
 import os

@@ -12,7 +12,6 @@ streams.
 Author: Fabian Hofmann, Jonathan Ackerschewski
 Modified: 17.04.23
 """
-# TODO Future Work: Defining granularity of logging in inits
 
 import logging
 import threading

@@ -11,7 +11,6 @@ either be defined from scratch or chosen from a list of pre-built ones.
 Author: Fabian Hofmann, Jonathan Ackerschewski
 Modified: 04.11.2024
 """
-# TODO Future Work: Defining granularity of logging in inits
 
 import json
 import logging
