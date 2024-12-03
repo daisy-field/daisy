@@ -88,7 +88,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--clientId",
         type=int,
-        choices=[2, 5],
+        choices=[1, 2, 3, 4, 5, 6, 7, 8],
         required=True,
         help="ID of client (decides which data to draw from set)",
     )

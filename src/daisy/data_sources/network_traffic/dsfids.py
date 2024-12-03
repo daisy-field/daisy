@@ -122,6 +122,5 @@ def dsfids_label_data_point(d_point: dict) -> dict:
     :param d_point: Data point as dictionary.
     :return: Labeled data point.
     """
-    print(d_point)
     d_point["label"] = 0 if d_point["label"] == "benign" else 1
     return d_point
