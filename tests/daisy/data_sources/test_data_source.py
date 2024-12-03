@@ -55,7 +55,7 @@ class TestCSVFileDataSource:
             (_csv_filename, 2),
             ([_csv_filename], 2),
             ([_csv_filename, _csv_filename], 4),
-            ("", 2),  # TODO test case for newly implemented feature yet to be merged
+            ("", 2),
         ],
         indirect=["csv_data_source"],
     )
