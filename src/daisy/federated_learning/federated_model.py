@@ -95,7 +95,10 @@ class TFFederatedModel(FederatedModel):
         :param epochs: Number of epochs (rounds) during training.
         """
         self._model = model
-        self._model.compile(optimizer=optimizer, loss=loss, metrics=metrics)
+        if loss is not None:
+            self._model.compile(optimizer=optimizer, loss=loss, metrics=metrics)
+        else:
+            self._model.compile(optimizer=optimizer, metrics=metrics)
 
         self._batch_size = batch_size
         self._epochs = epochs
@@ -180,6 +183,112 @@ class TFFederatedModel(FederatedModel):
         fae = keras.models.Model(inputs=fae_inputs, outputs=fae_outputs)
         return TFFederatedModel(fae, optimizer, loss, metrics, batch_size, epochs)
 
+    @classmethod
+    def get_fvae(
+            cls,
+            input_size: int,
+            latent_dim: int = 2,
+            optimizer: str | keras.optimizers.Optimizer = "Adam",
+            loss: str | keras.losses.Loss = "mse",
+            metrics: list[str | Callable | keras.metrics.Metric] = None,
+            batch_size: int = 32,
+            epochs: int = 1,
+    ) -> Self:
+        """
+        Factory class method to create a simple Variational Autoencoder (VAE) model
+        with a fixed architecture and variable input size.
+
+        :param input_size: Dimensionality of the input/output of the VAE.
+        :param latent_dim: Dimensionality of the latent space.
+        :param optimizer: Optimizer to use during training.
+        :param loss: Loss function to use during training.
+        :param metrics: Evaluation metrics to be displayed during training and testing.
+        :param batch_size: Batch size during training and prediction.
+        :param epochs: Number of epochs during training.
+        :return: Initialized VAE model.
+        """
+
+        # Encoder
+        inputs = keras.layers.Input(shape=(input_size,))
+        hidden = keras.layers.Dense(int(input_size/2), activation='relu')(inputs)
+        z_mean = keras.layers.Dense(latent_dim)(hidden)
+        z_log_var = keras.layers.Dense(latent_dim)(hidden)
+
+        # Sampling-Funktion
+        def sampling(args):
+            z_mean, z_log_var = args
+            epsilon = keras.backend.random_normal(shape=(keras.backend.shape(z_mean)[0], latent_dim), mean=0., stddev=1.0)
+            return z_mean + keras.backend.exp(0.5 * z_log_var) * epsilon
+
+        z = keras.layers.Lambda(sampling, output_shape=(latent_dim,))([z_mean, z_log_var])
+
+        # Decoder
+        decoder_hidden = keras.layers.Dense(int(input_size/2), activation='relu')
+        decoder_output = keras.layers.Dense(input_size, activation='sigmoid')
+        hidden_decoded = decoder_hidden(z)
+        outputs = decoder_output(hidden_decoded)
+
+        # VAE Modell
+        vae = keras.models.Model(inputs, outputs)
+
+        # Rekonstruktionsverlust
+        reconstruction_loss = keras.losses.binary_crossentropy(inputs, outputs)
+        reconstruction_loss *= input_size
+
+        # Kullback-Leibler-Divergenz
+        kl_loss = -0.5 * keras.backend.sum(1 + z_log_var - keras.backend.square(z_mean) - keras.backend.exp(z_log_var), axis=-1)
+        vae_loss = keras.backend.mean(reconstruction_loss + kl_loss)
+
+        vae.add_loss(vae_loss)
+
+        vae.summary()
+
+        return TFFederatedModel(vae, optimizer, None, metrics, batch_size, epochs)
+
+    @classmethod
+    def get_ftae(
+            cls,
+            input_size: int,
+            optimizer: str | keras.optimizers.Optimizer = "Adam",
+            loss: str | keras.losses.Loss = "mse",
+            metrics: list[str | Callable | keras.metrics.Metric] = None,
+            batch_size: int = 32,
+            epochs: int = 1,
+    ) -> Self:
+        """Factory class method to create a simple federated transformer autoencoder model of a
+        fixed depth but with variable input size.
+
+        :param input_size: Dimensionality of input/output of autoencoder.
+        :param optimizer: Optimizer to use during training.
+        :param loss: Loss function to use during training.
+        :param metrics: Evaluation metrics to be displayed during training and testing.
+        :param batch_size: Batch size during training and prediction.
+        :param epochs: Number of epochs (rounds) during training.
+        :return: Initialized federated autoencoder model.
+        """
+
+        enc_inputs = keras.layers.Input(shape=(input_size,))  # input_dim ist die Anzahl der Merkmale
+        x = keras.layers.Dense(32)(enc_inputs)
+        x = keras.layers.LayerNormalization(epsilon=1e-6)(x)
+
+        # Expandieren der Dimensionen, damit die Eingabe kompatibel ist mit MultiHeadAttention
+        x = tf.expand_dims(x, axis=1)  # Form: (batch_size, 1, feature_dim)
+
+        for _ in range(4):
+            attn_output = keras.layers.MultiHeadAttention(num_heads=2, key_dim=32)(x, x)
+            x = keras.layers.LayerNormalization(epsilon=1e-6)(x + attn_output)
+
+        # Entfernen der zusätzlichen Dimension, bevor die Dense-Schicht verarbeitet wird
+        x = tf.squeeze(x, axis=1)  # Form: (batch_size, feature_dim)
+
+        # Ausgabeschicht
+        outputs = keras.layers.Dense(units=input_size)(x)  # Rekonstruktion der Eingabe
+
+        ftae = keras.models.Model(enc_inputs, outputs)
+
+        ftae.summary()
+
+        return TFFederatedModel(ftae, optimizer, loss, metrics, batch_size, epochs)
 
 class FederatedIFTM(FederatedModel):
     """Double union of two federated models, following the IFTM hybrid  model
