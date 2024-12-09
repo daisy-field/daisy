@@ -79,6 +79,13 @@ def _parse_args() -> argparse.Namespace:
         help="Number of federated clients to sample during an aggregation step",
     )
     aggr_options.add_argument(
+        "--inputSize",
+        type=int,
+        default=None,
+        metavar="",
+        help="Input size of dataset required for multi teacher knowledge distillation",
+    )
+    aggr_options.add_argument(
         "--dashboardURL",
         default="http://localhost:8000",
         metavar="",
@@ -128,6 +135,7 @@ def create_server():
             update_interval=args.updateInterval,
             num_clients=args.numClients,
             dashboard_url=args.dashboardURL,
+            input_size=args.inputSize,
         )
     elif args.pflMode == "layerwise":
         raise NotImplementedError

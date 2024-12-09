@@ -14,9 +14,8 @@ Modified: 04.04.24
 # TODO Future Work: Defining granularity of logging in inits
 # TODO Future Work: Args for client-side ports in init
 
-import logging
 from time import sleep
-from typing import Callable, cast
+from typing import cast
 
 import numpy as np
 import tensorflow as tf
@@ -26,15 +25,16 @@ from daisy.data_sources import DataHandler
 from daisy.federated_learning import FederatedModel
 
 from daisy.federated_ids_components import FederatedOnlineNode
-
+from daisy.federated_ids_components.node import _try_ops
 from daisy.personalized_fl_components.auto_model_scaler import AutoModelScaler
 
 from daisy.federated_learning import FederatedIFTM, EMAvgTM
 
 
 class pflDistillativeNode(FederatedOnlineNode):
-    """Node for knowledge distillation. Only difference is, that more model information has to be sent to the model
-    aggregation server, and that the global model has to be distilled into the local model.
+    """Node for learning personalized models using the concept of
+    knowledge distillation. Only difference to a traditional node is, that models may have a completely different shape.
+    Needs to be started with the corresponding distilative model aggregation server to be able to aggregate heterogeneous models
     """
 
     _m_aggr_server: StreamEndpoint
@@ -56,6 +56,8 @@ class pflDistillativeNode(FederatedOnlineNode):
         sync_mode: bool = True,
         update_interval_s: int = None,
         update_interval_t: int = None,
+        poisoning_mode: str = None,
+        input_size: int = 65,
     ):
         """Creates a new federated online client.
 
@@ -105,6 +107,8 @@ class pflDistillativeNode(FederatedOnlineNode):
             multithreading=True,
         )
         self._timeout = timeout
+        self._poisoningMode = poisoning_mode
+        self._input_size = input_size
 
     def setup(self):
         _try_ops(lambda: self._m_aggr_server.start(), logger=self._logger)
@@ -113,35 +117,43 @@ class pflDistillativeNode(FederatedOnlineNode):
         _try_ops(lambda: self._m_aggr_server.stop(shutdown=True), logger=self._logger)
 
     def generate_random_data(self, num_samples, input_shape):
-        return np.random.normal((num_samples, input_shape)).astype(
-            np.float32
-        )  # use random.normal /random random for gaussian
+        """
+        Fuction to generate normal distributed gaussian samples for knowledge distillation process.
+        """
+        #    return np.random.normal((num_samples, input_shape)).astype(np.float32)  # TODO check random.normal /random random for gaussian
+        return np.random.random((num_samples, input_shape)).astype(np.float32)
 
-    def knowledge_distillation(self, images, teacher_model, student_model, epochs):
+    def knowledge_distillation(self, input_data, teacher_model, student_model, epochs):
+        """
+        Conducts the supervised training of the local model, based on the predictions of the received
+        student model.
+
+        """
+
         for epoch in range(epochs):
-            self._logger.info("Get teacher predictions")
-            teacher_logits = teacher_model.predict(images)
-
-            self._logger.info("Train student model according to teacher predictions")
-            student_model.fit(images, teacher_logits)
+            teacher_logits = teacher_model.predict(input_data)
+            self._logger.info(f"Knowledge Distillation {epoch}/{epochs}")
+            student_model.fit(input_data, teacher_logits)
 
     def distillative_aggregation(self, new_params):
-        # TODO Seraphin:
-        # 1. initialize global model
-        # 2. set weights of global model by new_params
-        # 3. compile global model
-        # 4. create random data and make predictions of global model
-        # 5. train local model using these predictions and distillation loss
+        """
+        Function for starting the knowledge distillation process.
 
+        """
         num_samples = 1000
-        input_shape = 65
-        self._logger.info("Node starts generating random samples")
+        input_shape = self._input_size
+
+        self._logger.info("Generate normal distributed random samples")
         X_synthetic = self.generate_random_data(num_samples, input_shape)
         self._logger.info("Start distillation of global model into local model")
 
+        # initialize predefined model
+        # we know that the received global model has this structure.
+        # when implementing uuids, the node could look up the to the uuid corresponding model structure
+
         optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
         loss = tf.keras.losses.MeanAbsoluteError()
-        input_size = 65
+        input_size = 65  # TODO replace
         batchSize = 32
         t_m = EMAvgTM()
         epochs = 10
@@ -156,21 +168,22 @@ class pflDistillativeNode(FederatedOnlineNode):
             identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn
         )
 
-        for i in new_params:
+        self._logger.info("Global model initialized with following layers:")
+        for i in teacher_model.get_parameters():
             if not (isinstance(i, int) or isinstance(i, float)):
                 self._logger.info(i.shape)
             else:
                 self._logger.info(i)
-        self._logger.info("\n")
 
-        for i in self._model.get_parameters():
+        self._logger.info("Received global parameters:")
+        for i in new_params:
             if not (isinstance(i, int) or isinstance(i, float)):
                 self._logger.info(i.shape)
             else:
                 self._logger.info(i)
 
         teacher_model.set_parameters(new_params)
-        self._logger.info("Global model initialized, starting distillation process")
+        self._logger.info("Teacher model initialized, starting distillation process")
         self.knowledge_distillation(X_synthetic, teacher_model, self._model, epochs)
         self._logger.info("Distillation finished")
 
@@ -190,11 +203,15 @@ class pflDistillativeNode(FederatedOnlineNode):
         """
         with self._m_lock:
             current_params = self._model.get_parameters()
-            self._logger.debug(
-                "Sending local model parameters to model aggregation server..."
-            )
-            # TODO Seraphin add identifier for the current selected model, and maybe even client id
-            self._m_aggr_server.send(current_params)
+            self._logger.info("Model Parameters:")
+            for i in current_params:
+                if not (isinstance(i, int) or isinstance(i, float)):
+                    self._logger.info(i.shape)
+                else:
+                    self._logger.info(i)
+
+            params = self.model_poisoning(current_params, self._poisoningMode)
+            self._m_aggr_server.send(params)
 
             self._logger.debug(
                 "Receiving global model parameters from model aggregation server..."
@@ -214,11 +231,10 @@ class pflDistillativeNode(FederatedOnlineNode):
                 )
                 return
 
-            self._logger.info("Updating local model with global parameters...")
-            # new_params = cast(np.array, m_aggr_msg)
-
-            # TODO Seraphin distill global model into local model
-            self.distillative_aggregation(m_aggr_msg)
+            if self._poisoningMode is None or self._poisoningMode == "inverse":
+                self._logger.debug("Updating local model with global parameters...")
+                # self._poisoningMode
+                self.distillative_aggregation(m_aggr_msg)
 
     def create_async_fed_learner(self):
         """Starts the loop to check whether the conditions for a synchronized
@@ -290,19 +306,46 @@ class pflDistillativeNode(FederatedOnlineNode):
             )
             self.fed_update()
 
+    def model_poisoning(self, current_params, poisoning_mode):
+        """
+        Function for poisoning model weights. Based on the current params and the poisoning mode, the
+        function either retruns a list of random values, zeros or inverted parameters with the same shape
+        as the original parameters. If poisoning mode is none, the original parameters are returned.
 
-def _try_ops(*operations: Callable, logger: logging.Logger):
-    """Takes a number of callable objects and executes them sequentially, each time
-    logging any arising attribute and runtime errors. Caution is advised when using
-    this function, especially if the potential erroneous behavior is not expected!
+        """
+        poisoned_params = []
 
-    :param operations: One or multiple callables that are to be executed.
-    :param logger: Logger to log any error in full detail.
-    """
-    for op in operations:
-        try:
-            op()
-        except (AttributeError, RuntimeError) as e:
-            logger.warning(
-                f"{e.__class__.__name__}({e}) while trying to execute {op}: {e}"
-            )
+        if poisoning_mode is None:
+            self._logger.info("Send unpoisoned parameters")
+            return current_params
+        else:
+            if poisoning_mode == "zeros":
+                for layer in current_params:
+                    if isinstance(layer, int) or isinstance(layer, float):
+                        poisoned_params.append(0)
+                    else:
+                        poisoned_params.append(np.zeros_like(layer))
+                self._model.set_parameters(poisoned_params)
+                self._logger.info("Model poisoning: Set GAN weights to zero")
+
+            elif poisoning_mode == "random":
+                for layer in current_params:
+                    if isinstance(layer, int) or isinstance(layer, float):
+                        poisoned_params.append(np.random.random())
+                    else:
+                        poisoned_params.append(np.random.random_sample(layer.shape))
+                self._model.set_parameters(poisoned_params)
+
+            elif self._poisoningMode == "inverse":
+                for layer in current_params:
+                    poisoned_params.append(layer * -1)
+                # Skipped setting new model parameters, as we need to inverse the real parameters next round
+
+            self._logger.info("Poisoned Parameters:")
+            for i in poisoned_params:
+                if not (isinstance(i, int) or isinstance(i, float)):
+                    self._logger.info(i.shape)
+                else:
+                    self._logger.info(i)
+            self._logger.info("Send poisoned params to model aggregation server...")
+            return poisoned_params

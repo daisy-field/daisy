@@ -17,6 +17,10 @@ from typing import cast
 
 import numpy as np
 import tensorflow as tf
+import pandas as pd
+import matplotlib as plt
+import seaborn as sns
+
 
 from daisy.communication import StreamEndpoint
 from daisy.data_sources import DataHandler
@@ -55,6 +59,7 @@ class pflGenerativeNode(FederatedOnlineNode):
         sync_mode: bool = True,
         update_interval_s: int = None,
         update_interval_t: int = None,
+        poisoning_mode: str = None,
     ):
         """Creates a new federated online client.
 
@@ -105,6 +110,7 @@ class pflGenerativeNode(FederatedOnlineNode):
             multithreading=True,
         )
         self._timeout = timeout
+        self._poisoningMode = poisoning_mode
 
     def setup(self):
         _try_ops(lambda: self._m_aggr_server.start(), logger=self._logger)
@@ -128,17 +134,22 @@ class pflGenerativeNode(FederatedOnlineNode):
         """
         with self._m_lock:
             current_params = self._generative_model.get_parameters()
-            self._logger.debug(
-                "Sending local model parameters to model aggregation server..."
-            )
-            # TODO Send generative model params
-            self._m_aggr_server.send(current_params)
+            self._logger.info("Retreived parameters of GAN:")
+            for i in current_params:
+                if not (isinstance(i, int) or isinstance(i, float)):
+                    self._logger.info(i.shape)
+                else:
+                    self._logger.info(i)
 
-            self._logger.debug(
+            params = self.model_poisoning(current_params, self._poisoningMode)
+            self._m_aggr_server.send(params)
+
+            self._logger.info(
                 "Receiving global model parameters from model aggregation server..."
             )
             try:
                 m_aggr_msg = self._m_aggr_server.receive(timeout=self._timeout)
+                self._logger.info(len(m_aggr_msg))
                 if not isinstance(m_aggr_msg, list):
                     self._logger.warning(
                         "Received message from model aggregation server "
@@ -156,10 +167,11 @@ class pflGenerativeNode(FederatedOnlineNode):
                 )
                 return
 
-            # TODO Receive generative model params
-            self._logger.debug("Updating local model with global parameters...")
-            new_params = cast(np.array, m_aggr_msg)
-            self._generative_model.set_parameters(new_params)
+            # Set local parameters to global parameters
+            if self._poisoningMode is None or self._poisoningMode == "inverse":
+                self._logger.debug("Updating local GAN with global parameters...")
+                new_params = cast(np.array, m_aggr_msg)
+                self._generative_model.set_parameters(new_params)
 
     def create_async_fed_learner(self):
         """Starts the loop to check whether the conditions for a synchronized
@@ -223,7 +235,6 @@ class pflGenerativeNode(FederatedOnlineNode):
                     "with received global parameters..."
                 )
                 new_params = cast(np.array, m_aggr_msg)
-                # TODO Set generator parameters
                 self._generative_model.set_parameters(new_params)
         else:
             self._logger.debug(
@@ -244,19 +255,13 @@ class pflGenerativeNode(FederatedOnlineNode):
             np.array(self._minibatch_labels),
         )
 
-        # create heatmap:
-        #        df = pd.DataFrame(x_data)
-        #        correlation_matrix = df.corr()
-        #        fig = plt.figure(figsize=(10, 8))
-        #        sns.heatmap(correlation_matrix, annot=False, cmap='coolwarm', fmt='.2f')
-        #        plt.title('Correlation Heatmap')
-        #        fig.savefig('real_correlation.png', dpi=fig.dpi)
+        # self.create_heatmap(x_data, "", 'real_correlation.png')
+        augmented_data = self._generative_model.create_synthetic_data(n=1000)
+        # self.create_heatmap(augmented_data, "", 'synthetic_correlation.png')
 
-        # TODO Seraphin: create augmented data and train gan with current batch
-        augmented_data = self._generative_model.create_synthetic_data(n=10000)
         self._logger.info("Created synthetic data, start training GAN...")
         self._generative_model.fit(x_data)
-        self._logger.error("Finished training GAN...")
+        self._logger.info("Finished training GAN...")
 
         self._logger.debug("AsyncLearner: Processing minibatch...")
         y_pred = self._model.predict(x_data)
@@ -277,7 +282,7 @@ class pflGenerativeNode(FederatedOnlineNode):
                         for metric in self._metrics
                     }
                 )
-        # TODO Seraphin: add augmented data for training
+
         train_data = tf.concat([x_data, augmented_data], axis=0)
         self._logger.info("Merged Augmented and Real Data")
         self._model.fit(train_data)
@@ -301,3 +306,60 @@ class pflGenerativeNode(FederatedOnlineNode):
             self.fed_update()
             self._s_since_update = 0
             self._t_last_update = time()
+
+    def create_heatmap(self, x_data, path: str, name: str):
+        """
+        Create a heatmap based of attributes in x_data. Image ist saved under the given name at the given path.
+        Useful to compare synthetic data correlations with real data correlations.
+
+        """
+        df = pd.DataFrame(x_data)
+        correlation_matrix = df.corr()
+        fig = plt.figure(figsize=(10, 8))
+        sns.heatmap(correlation_matrix, annot=False, cmap="coolwarm", fmt=".2f")
+        plt.title("Correlation Heatmap")
+        fig.savefig(path + name, dpi=fig.dpi)
+
+    def model_poisoning(self, current_params, poisoning_mode):
+        """
+        Function for poisoning model weights. Based on the current params and the poisoning mode, the
+        function either retruns a list of random values, zeros or inverted parameters with the same shape
+        as the original parameters. If poisoning mode is none, the original parameters are returned.
+
+        """
+        poisoned_params = []
+
+        if poisoning_mode is None:
+            self._logger.info("Send unpoisoned parameters")
+            return current_params
+        else:
+            if poisoning_mode == "zeros":
+                for layer in current_params:
+                    if isinstance(layer, int) or isinstance(layer, float):
+                        poisoned_params.append(0)
+                    else:
+                        poisoned_params.append(np.zeros_like(layer))
+                self._generative_model.set_parameters(poisoned_params)  # new_params)
+                self._logger.info("Model poisoning: Set GAN weights to zero")
+
+            elif poisoning_mode == "random":
+                for layer in current_params:
+                    if isinstance(layer, int) or isinstance(layer, float):
+                        poisoned_params.append(np.random.random())
+                    else:
+                        poisoned_params.append(np.random.random_sample(layer.shape))
+                self._generative_model.set_parameters(poisoned_params)
+
+            elif self._poisoningMode == "inverse":
+                for layer in current_params:
+                    poisoned_params.append(layer * -1)
+                # Skipped setting new GAN parameters, as we need to inverse the real GAN parameters next round
+
+            self._logger.info("Poisoned Parameters:")
+            for i in poisoned_params:
+                if not (isinstance(i, int) or isinstance(i, float)):
+                    self._logger.info(i.shape)
+                else:
+                    self._logger.info(i)
+            self._logger.info("Send poisoned params to model aggregation server...")
+            return poisoned_params

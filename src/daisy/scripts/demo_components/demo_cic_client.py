@@ -201,6 +201,7 @@ def create_client():
     client's configuration.
     """
     # Args parsing
+
     args = _parse_args()
     if args.debug:
         logging.basicConfig(
@@ -229,6 +230,8 @@ def create_client():
         .dict_to_array(nn_aggregator=csv_nn_aggregator)
     )
 
+    fae_input_size = 78
+    label_split = 78
     data_handler = DataHandler(data_source=source, data_processor=processor)
     t_m = EMAvgTM()
     err_fn = tf.keras.losses.MeanAbsoluteError(reduction=tf.keras.losses.Reduction.NONE)
@@ -239,7 +242,7 @@ def create_client():
         optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
         loss = tf.keras.losses.MeanAbsoluteError()
         id_fn = TFFederatedModel.get_fae(
-            input_size=78,
+            input_size=fae_input_size,
             optimizer=optimizer,
             loss=loss,
             batch_size=args.batchSize,
@@ -252,7 +255,7 @@ def create_client():
             data_handler=data_handler,
             batch_size=args.batchSize,
             model=model,
-            label_split=78,
+            label_split=label_split,
             metrics=metrics,
             m_aggr_server=m_aggr_serv,
             eval_server=eval_serv,
@@ -284,7 +287,7 @@ def create_client():
         model = FederatedIFTM(identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn)
 
         generative_gan = GenerativeGAN.create_gan(
-            input_size=78,
+            input_size=fae_input_size,
             discriminator_optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
             generator_optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
         )
@@ -294,14 +297,14 @@ def create_client():
             data_handler=data_handler,
             batch_size=args.batchSize,
             model=model,
-            label_split=78,
+            label_split=label_split,
             metrics=metrics,
             m_aggr_server=m_aggr_serv,
             eval_server=eval_serv,
             aggr_server=aggr_serv,
             update_interval_t=args.updateInterval,
             generative_model=generative_gan,
-            # poisoning_mode=args.poisoningMode,
+            poisoning_mode=args.poisoningMode,
         )
         client.start()
         input("Press Enter to stop client...")
@@ -331,13 +334,13 @@ def create_client():
             data_handler=data_handler,
             batch_size=args.batchSize,
             model=model,
-            label_split=78,
+            label_split=label_split,
             metrics=metrics,
             m_aggr_server=m_aggr_serv,
             eval_server=eval_serv,
             aggr_server=aggr_serv,
             update_interval_t=args.updateInterval,
-            # poisoning_mode=args.poisoningMode,
+            poisoning_mode=args.poisoningMode,
         )
         client.start()
         input("Press Enter to stop client...")

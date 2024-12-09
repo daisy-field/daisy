@@ -233,17 +233,6 @@ def create_client():
         .add_func(lambda o_point: dsfids_label_data_point(d_point=o_point))
         .dict_to_array(nn_aggregator=pcap_nn_aggregator)
     )
-    # ource = CSVFileDataSource(files=f"{args.csvBasePath}/{args.clientId}.csv")
-    # processor = (
-    #    DataProcessor()
-    #    .add_func(lambda o_point: cic_label_data_point(d_point=o_point))
-    #    .dict_to_array(nn_aggregator=csv_nn_aggregator)
-    # )
-    # processor = (DataProcessor()
-    #             .add_func(
-    #    lambda o_point: dsfids_label_data_point(
-    #        d_point=o_point
-    #    )).dict_to_array(nn_aggregator=dsfids_nn_aggregator))
 
     data_handler = DataHandler(data_source=source, data_processor=processor)
     t_m = EMAvgTM()
@@ -317,7 +306,7 @@ def create_client():
             aggr_server=aggr_serv,
             update_interval_t=args.updateInterval,
             generative_model=generative_gan,
-            # poisoning_mode=args.poisoningMode,
+            poisoning_mode=args.poisoningMode,
         )
         client.start()
         input("Press Enter to stop client...")
@@ -353,7 +342,7 @@ def create_client():
             eval_server=eval_serv,
             aggr_server=aggr_serv,
             update_interval_t=args.updateInterval,
-            # poisoning_mode=args.poisoningMode,
+            poisoning_mode=args.poisoningMode,
         )
         client.start()
         input("Press Enter to stop client...")

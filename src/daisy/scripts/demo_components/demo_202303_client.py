@@ -308,7 +308,7 @@ def create_client():
             aggr_server=aggr_serv,
             update_interval_t=args.updateInterval,
             generative_model=generative_gan,
-            # poisoning_mode=args.poisoningMode,
+            poisoning_mode=args.poisoningMode,
         )
         client.start()
         input("Press Enter to stop client...")
@@ -344,7 +344,8 @@ def create_client():
             eval_server=eval_serv,
             aggr_server=aggr_serv,
             update_interval_t=args.updateInterval,
-            # poisoning_mode=args.poisoningMode,
+            poisoning_mode=args.poisoningMode,
+            input_size=65,
         )
         client.start()
         input("Press Enter to stop client...")

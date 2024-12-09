@@ -55,7 +55,7 @@ class GenerativeGAN(GenerativeModel):
         batch_size: int = 32,
         epochs: int = 1,
         input_size: int = 100,
-        noise_dim: int = 10,
+        noise_dim: int = 100,
     ):
         """Creates a new tensorflow federated model from a given model. This also
         compiles the given model, requiring a set of additional arguments
@@ -75,14 +75,10 @@ class GenerativeGAN(GenerativeModel):
         self._noise_dim = noise_dim
 
     def set_parameters(self, parameters: list[np.ndarray]):
-        """Updates the internal parameters of the model.
-        %not needed
+        """Updates the internal parameters of the generative model.
+
         :param parameters: Parameters to update the model with.
         """
-        # TODO Seraphin: set parameters of GAN
-        # check if it is sufficient to only send generator
-        # self._generator.set_weights(parameters)
-        # self._discriminator.set_weights(parameters)
         self._logger.info("Set generator weights")
         self._generator.set_weights(parameters)
         self._logger.info("Set successful")
@@ -90,26 +86,23 @@ class GenerativeGAN(GenerativeModel):
         return
 
     def get_parameters(self) -> list[np.ndarray]:
-        """Retrieves the weights of the underlying model.
+        """Retrieves the weights of the underlying GAN generator model.
 
         :return: Weights of the model.
         """
-        # TODO Seraphin: get parameters of GAN
-        # check if it is sufficient to only send generator
-
         self._logger.info("Get generator weights")
         params = self._generator.get_weights()
         # params.extend(self._discriminator.get_weights())
         return params
-
-        # return self._generator.get_weights()#, self._discriminator.get_weights()]
 
     def make_generator_model(self):
         """Create generator model"""
         model = tf.keras.Sequential()
 
         # Dense layer to expand the input from latent_dim to 128 units
-        model.add(layers.Dense(128, input_dim=65, name="GeneratorInput"))
+        model.add(
+            layers.Dense(128, input_dim=self._input_size, name="GeneratorInput")
+        )  # TODO replace
         model.add(layers.LeakyReLU(alpha=0.2))
 
         # Dense layer to expand from 128 to 256 units
@@ -134,7 +127,9 @@ class GenerativeGAN(GenerativeModel):
         model = tf.keras.Sequential()
 
         # Input layer
-        model.add(layers.Dense(512, input_dim=65, name="DiscriminatorInput"))
+        model.add(
+            layers.Dense(512, input_dim=self._input_size, name="DiscriminatorInput")
+        )
         model.add(layers.LeakyReLU(alpha=0.2))
         model.add(layers.Dropout(0.3))
 
@@ -163,7 +158,6 @@ class GenerativeGAN(GenerativeModel):
         batch_size: int = 32,
         epochs: int = 1,
     ) -> Self:
-        # TODO Seraphin: Implement creation of gan
         """Create a generative adversarial network and save it locally.
         It will be used to create synthetic data of the data present at the node.
         Based on the selected approach, the gan's model weights themselves can be shared with the aggregation server and aggregated using
@@ -188,14 +182,18 @@ class GenerativeGAN(GenerativeModel):
 
     @tf.function
     def train_step(self, data):
+        """Tensorflow GAN training function (see: https://www.tensorflow.org/tutorials/generative/dcgan)
+
+        data: data to train GAN with
+        """
         self._logger.info("Start GAN training...")
-        noise = tf.random.normal((1, 65))
+        noise = tf.random.normal((1, self._input_size))
 
         with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
             generated_images = self._generator(noise, training=True)
 
             real_output = self._discriminator(
-                tf.reshape(data, [1, 65]), training=True
+                tf.reshape(data, [1, self._input_size]), training=True
             )  # TODO Bug fixes
             fake_output = self._discriminator(generated_images, training=True)
 
@@ -229,29 +227,25 @@ class GenerativeGAN(GenerativeModel):
         return total_loss
 
     def create_synthetic_data(self, n: int = 100):
-        """Create n numbers of synthetic data points. These datapoints should be mixed with the locally arriving
-        datastream to finetune the local intrusion detection model."""
-        # TODO Seraphin: Implement generation of n synthetic data points
+        """Create n synthetic data points.
+        These datapoints should be mixed with the locally arriving
+        datastream to include globally learned knowledge the local intrusion detection model.
+
+        n: number of synthetic datapoints
+        """
 
         generated_data = []
         for i in range(n):
-            noise = tf.random.normal([1, 65])
+            noise = tf.random.normal([1, self._input_size])
             generated_data.append(self._generator(noise, training=True))
 
         generated_data_tensor = tf.concat(generated_data, axis=0)
         self._logger.warning("Generated Synthetic data...")
 
-        # df = pd.DataFrame(generated_data_tensor)
-        # correlation_matrix = df.corr()
-        # fig = plt.figure(figsize=(10, 8))
-        # sns.heatmap(correlation_matrix, annot=False, cmap='coolwarm', fmt='.2f')
-        # plt.title('Correlation Heatmap')
-        # fig.savefig('synthetic_correlation.png', dpi=fig.dpi)
-        # self._logger.info("Synthetic data written to file...")
         return generated_data_tensor
 
     def fit(self, dataset):
-        """Train Generator and Discriminator of generateive GAN"""
+        """Train GAN"""
         self._logger.info("Fit called...")
         for epoch in range(self._epochs):
             for data_point in dataset:

@@ -27,9 +27,7 @@ import tensorflow as tf
 from tensorflow import keras
 
 from daisy.personalized_fl_components.auto_model_scaler import AutoModelScaler
-
 from daisy.federated_learning import FederatedIFTM
-
 from daisy.federated_learning import EMAvgTM
 
 
@@ -43,6 +41,7 @@ class DistillativeModelAggregator(FederatedOnlineAggregator):
     _update_interval: int
     _num_clients: int
     _min_clients: float
+    _input_size: int
 
     def __init__(
         self,
@@ -54,6 +53,7 @@ class DistillativeModelAggregator(FederatedOnlineAggregator):
         num_clients: int = None,
         min_clients: float = 0.5,
         dashboard_url: str = None,
+        input_size: int = None,
     ):
         """Creates a new federated model aggregator. If update_interval is not set,
         defaults to asynchronous federated model aggregation, i.e. waiting for
@@ -86,11 +86,14 @@ class DistillativeModelAggregator(FederatedOnlineAggregator):
         self._update_interval = update_interval
         self._num_clients = num_clients
         self._min_clients = min_clients
+        self._input_size = input_size
         self.train_loss = tf.keras.metrics.Mean(name="train_loss")
         self.train_acc = tf.keras.metrics.SparseCategoricalAccuracy(name="train_acc")
+
+        # we define the global model to have this structure
         optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
         loss = tf.keras.losses.MeanAbsoluteError()
-        input_size = 65
+
         batchSize = 32
         t_m = EMAvgTM()
         epochs = 10
@@ -112,55 +115,66 @@ class DistillativeModelAggregator(FederatedOnlineAggregator):
         pass
 
     def generate_random_data(self, num_samples, input_shape):
+        """
+        Fuction to generate normal distributed gaussian samples for knowledge distillation process.
+        """
         return np.random.random((num_samples, input_shape)).astype(np.float32)
 
-    def knowledge_distillation(self, images, teacher_model, student_model, epochs):
+    # return np.random.normal((num_samples, input_shape)).astype(np.float32)
+    # TODO check random.normal /random random for gaussian
+    #        return np.random.random((num_samples, input_shape)).astype(np.float32)
+
+    def knowledge_distillation(self, input_data, teacher_model, student_model, epochs):
+        """
+        Conducts the supervised training of the global model, based on the predictions of the received
+        student models from the nodes.
+
+        """
         for epoch in range(epochs):
-            self._logger.info("Get teacher predictions")
-            teacher_logits = teacher_model.predict(images)
+            self._logger.info(f"Knowledge Distillation {epoch}/{epochs}")
+            teacher_logits = teacher_model.predict(input_data)
+            student_model.fit(input_data, teacher_logits)
 
-            self._logger.info("Train student model according to teacher predictions")
-            student_model.fit(images, teacher_logits)
+    def mtkd(self, client_models):
+        """
+        Multi teacher knowledge distillation.
 
-    def distillative_aggregation(self, client_models):
+        """
         num_samples = 1000
-        input_shape = 65
-        self._logger.info("Generated random samples")
-        X_synthetic = self.generate_random_data(num_samples, input_shape)
+
+        self._logger.info("Generate gaussian samples")
+        X_synthetic = self.generate_random_data(num_samples, self._input_size)
         self._logger.info(f"Start MTKD of {len(client_models)} teachers")
 
         for model_params in client_models:
+            # For evaluation, we assume all nodes have the following model structure
+            # when implementing uuids, the server could look up the to the uuid corresponding model structure
+
             optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
             loss = tf.keras.losses.MeanAbsoluteError()
-            input_size = 65
             batchSize = 32
             t_m = EMAvgTM()
-            epochs = 10
+            epochs = 3
             err_fn = tf.keras.losses.MeanAbsoluteError(
                 reduction=tf.keras.losses.Reduction.NONE
             )
             aMS = AutoModelScaler()
             id_fn = aMS.get_manual_model(
-                "large", input_size, optimizer, loss, batchSize, epochs
+                "medium", self._input_size, optimizer, loss, batchSize, epochs
             )
             teacher_model = FederatedIFTM(
                 identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn
             )
 
+            self._logger.info("Teacher model initialized with following layers:")
             for i in teacher_model.get_parameters():
                 if not (isinstance(i, int) or isinstance(i, float)):
                     self._logger.info(i.shape)
                 else:
                     self._logger.info(i)
-            self._logger.info("\n")
-            for i in model_params:
-                if not (isinstance(i, int) or isinstance(i, float)):
-                    self._logger.info(i.shape)
-                else:
-                    self._logger.info(i)
 
-            self._logger.info("\n")
-            for i in self._global_model.get_parameters():
+            self._logger.info("Received teacher parameters:")
+            for i in model_params:
                 if not (isinstance(i, int) or isinstance(i, float)):
                     self._logger.info(i.shape)
                 else:
@@ -175,7 +189,7 @@ class DistillativeModelAggregator(FederatedOnlineAggregator):
 
             self._logger.info("Continue with next teacher")
 
-        self._logger.info("Distillation finished")
+        self._logger.info("multi Teacher distillation finished")
         return self._global_model.get_parameters()
 
     def create_fed_aggr(self):
@@ -198,7 +212,17 @@ class DistillativeModelAggregator(FederatedOnlineAggregator):
                         "asynchronous aggregation requests..."
                     )
                     self._async_aggr()
-                    # FIXME this is getting spammed if there are no read ready clients
+
+                self._update_dashboard(
+                    "/aggregation/",
+                    {
+                        "agg_status": "Operational",
+                        "agg_count": len(
+                            self._aggr_serv.poll_connections()[1].values()
+                        ),
+                        "agg_nodes": str(self._aggr_serv.poll_connections()[1].keys()),
+                    },
+                )
             except RuntimeError:
                 # stop() was called
                 break
@@ -213,6 +237,9 @@ class DistillativeModelAggregator(FederatedOnlineAggregator):
         created global model is sent back to all available clients.
         """
         clients = self._aggr_serv.poll_connections()[1].values()
+        if len(clients) == 0:
+            self._logger.info("No clients available for aggregation step!")
+            return
         if self._num_clients is not None:
             if len(clients) < self._num_clients:
                 self._logger.info(
@@ -243,6 +270,7 @@ class DistillativeModelAggregator(FederatedOnlineAggregator):
             )
             if model is not None
         ]
+
         if len(client_models) < min(1, int(num_clients * self._min_clients)):
             self._logger.info(
                 f"Insufficient number of client models [{len(client_models)}] "
@@ -253,10 +281,7 @@ class DistillativeModelAggregator(FederatedOnlineAggregator):
             f"Aggregating client models [{len(client_models)}] into global model..."
         )
         self._logger.info("Start distillative aggregation")
-        # TODO Seraphin adapt aggregate function to return global model eventhough teachers are different
-
-        aggregated_params = self.distillative_aggregation(client_models)
-        # TODO for future: get model and identifier. compile models and try to tune logits to have similar predictions like teacher
+        aggregated_params = self.mtkd(client_models)
 
         clients = self._aggr_serv.poll_connections()[1].values()
         self._logger.info(
@@ -277,7 +302,7 @@ class DistillativeModelAggregator(FederatedOnlineAggregator):
         self._update_dashboard(
             "/aggregation/",
             {
-                "agg_status": "Operational",  # TODO add len(client_models)
+                "agg_status": "Operational",
                 "agg_count": len(self._aggr_serv.poll_connections()[1].values()),
             },
         )
@@ -291,6 +316,10 @@ class DistillativeModelAggregator(FederatedOnlineAggregator):
         requested an aggregation step.
         """
         clients = self._aggr_serv.poll_connections()[0].values()
+        if len(clients) == 0:
+            self._logger.info("No clients available for aggregation step!")
+            sleep(1)
+            return
         if self._num_clients is not None and len(clients) < self._num_clients:
             self._logger.info(
                 f"Insufficient read-ready clients [{len(clients)}] "
@@ -311,10 +340,8 @@ class DistillativeModelAggregator(FederatedOnlineAggregator):
             if model is not None
         ]
 
-        if (
-            len(client_models) == 0
-            or self._num_clients is not None
-            and len(client_models) < self._num_clients
+        if len(client_models) == 0 or (
+            self._num_clients is not None and len(client_models) < self._num_clients
         ):
             self._logger.info(
                 f"Insufficient number of client models [{len(client_models)}] "
