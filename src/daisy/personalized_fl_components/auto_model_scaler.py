@@ -47,9 +47,12 @@ class AutoModelScaler:
         percentage = svmem.percent
         return total, available, used, percentage
 
-    def get_manual_model(self, id, input_size, optimizer, loss, batchSize, epochs):
+    def get_manual_model(
+        self, identifier, input_size, optimizer, loss, batchSize, epochs
+    ):
         id_fn = None
-        if id == "small":
+        if identifier == "small":
+            print("Creating small model")
             id_fn = TFFederatedModel_small.get_fae(
                 input_size=input_size,
                 optimizer=optimizer,
@@ -57,7 +60,8 @@ class AutoModelScaler:
                 batch_size=batchSize,
                 epochs=epochs,
             )
-        if id == "medium":
+        if identifier == "medium":
+            print("Creating medium model")
             id_fn = TFFederatedModel_medium.get_fae(
                 input_size=input_size,
                 optimizer=optimizer,
@@ -65,7 +69,8 @@ class AutoModelScaler:
                 batch_size=batchSize,
                 epochs=epochs,
             )
-        if id == "large":
+        if identifier == "large":
+            print("Creating large model")
             id_fn = TFFederatedModel_large.get_fae(
                 input_size=input_size,
                 optimizer=optimizer,
@@ -101,7 +106,7 @@ class AutoModelScaler:
                 optimizer=optimizer,
                 loss=loss,
                 batch_size=batchSize,
-                epochs=1,
+                epochs=epochs,
             )
         else:
             self._logger.info("Auto Selected large model...")
@@ -110,5 +115,5 @@ class AutoModelScaler:
                 optimizer=optimizer,
                 loss=loss,
                 batch_size=batchSize,
-                epochs=1,
+                epochs=epochs,
             )

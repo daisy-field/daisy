@@ -61,7 +61,6 @@ from daisy.personalized_fl_components.distillative.distillative_node import (
     pflDistillativeNode,
 )
 
-from daisy.federated_learning import EMAvgTM
 
 from daisy.data_sources import CSVFileDataSource, DataProcessor
 
@@ -69,6 +68,8 @@ from daisy.data_sources.network_traffic.cic import (
     cic_label_data_point,
     csv_nn_aggregator,
 )
+
+from daisy.federated_learning import SMAvgTM
 
 
 def _parse_args() -> argparse.Namespace:
@@ -233,7 +234,7 @@ def create_client():
     fae_input_size = 78
     label_split = 78
     data_handler = DataHandler(data_source=source, data_processor=processor)
-    t_m = EMAvgTM()
+    t_m = SMAvgTM()
     err_fn = tf.keras.losses.MeanAbsoluteError(reduction=tf.keras.losses.Reduction.NONE)
 
     metrics = [ConfMatrSlidingWindowEvaluation(window_size=args.batchSize * 8)]

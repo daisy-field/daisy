@@ -118,7 +118,7 @@ class DistillativeModelAggregator(FederatedOnlineAggregator):
         """
         Fuction to generate normal distributed gaussian samples for knowledge distillation process.
         """
-        return np.random.random((num_samples, input_shape)).astype(np.float32)
+        return np.random.randn(num_samples, input_shape).astype(np.float32)
 
     # return np.random.normal((num_samples, input_shape)).astype(np.float32)
     # TODO check random.normal /random random for gaussian
@@ -159,8 +159,14 @@ class DistillativeModelAggregator(FederatedOnlineAggregator):
                 reduction=tf.keras.losses.Reduction.NONE
             )
             aMS = AutoModelScaler()
+
             id_fn = aMS.get_manual_model(
-                "medium", self._input_size, optimizer, loss, batchSize, epochs
+                identifier="large",
+                input_size=self._input_size,
+                optimizer=optimizer,
+                loss=loss,
+                batchSize=batchSize,
+                epochs=2,
             )
             teacher_model = FederatedIFTM(
                 identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn

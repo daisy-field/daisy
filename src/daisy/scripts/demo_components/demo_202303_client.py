@@ -67,7 +67,7 @@ from daisy.personalized_fl_components.distillative.distillative_node import (
     pflDistillativeNode,
 )
 
-from daisy.federated_learning import EMAvgTM
+from daisy.federated_learning import SMAvgTM
 
 
 def _parse_args() -> argparse.Namespace:
@@ -237,7 +237,7 @@ def create_client():
         .dict_to_array(nn_aggregator=pcap_nn_aggregator)
     )
     data_handler = DataHandler(data_source=source, data_processor=processor)
-    t_m = EMAvgTM()
+    t_m = SMAvgTM()
     err_fn = tf.keras.losses.MeanAbsoluteError(reduction=tf.keras.losses.Reduction.NONE)
 
     metrics = [ConfMatrSlidingWindowEvaluation(window_size=args.batchSize * 8)]

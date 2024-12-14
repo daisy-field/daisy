@@ -64,7 +64,7 @@ from daisy.personalized_fl_components.distillative.distillative_node import (
     pflDistillativeNode,
 )
 
-from daisy.federated_learning import EMAvgTM
+from daisy.federated_learning import SMAvgTM
 
 from daisy.data_sources import CSVFileDataSource
 from daisy.data_sources.network_traffic.dsfids import (
@@ -235,7 +235,7 @@ def create_client():
     )
 
     data_handler = DataHandler(data_source=source, data_processor=processor)
-    t_m = EMAvgTM()
+    t_m = SMAvgTM()
     err_fn = tf.keras.losses.MeanAbsoluteError(reduction=tf.keras.losses.Reduction.NONE)
 
     metrics = [ConfMatrSlidingWindowEvaluation(window_size=args.batchSize * 8)]

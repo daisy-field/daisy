@@ -121,7 +121,7 @@ class pflDistillativeNode(FederatedOnlineNode):
         Fuction to generate normal distributed gaussian samples for knowledge distillation process.
         """
         #    return np.random.normal((num_samples, input_shape)).astype(np.float32)  # TODO check random.normal /random random for gaussian
-        return np.random.random((num_samples, input_shape)).astype(np.float32)
+        return np.random.randn(num_samples, input_shape).astype(np.float32)
 
     def knowledge_distillation(self, input_data, teacher_model, student_model, epochs):
         """
@@ -153,16 +153,19 @@ class pflDistillativeNode(FederatedOnlineNode):
 
         optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
         loss = tf.keras.losses.MeanAbsoluteError()
-        input_size = 65  # TODO replace
         batchSize = 32
         t_m = EMAvgTM()
-        epochs = 10
         err_fn = tf.keras.losses.MeanAbsoluteError(
             reduction=tf.keras.losses.Reduction.NONE
         )
         aMS = AutoModelScaler()
         id_fn = aMS.get_manual_model(
-            "large", input_size, optimizer, loss, batchSize, epochs
+            identifier="large",
+            input_size=input_shape,
+            optimizer=optimizer,
+            loss=loss,
+            batchSize=batchSize,
+            epochs=2,
         )
         teacher_model = FederatedIFTM(
             identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn
@@ -184,7 +187,7 @@ class pflDistillativeNode(FederatedOnlineNode):
 
         teacher_model.set_parameters(new_params)
         self._logger.info("Teacher model initialized, starting distillation process")
-        self.knowledge_distillation(X_synthetic, teacher_model, self._model, epochs)
+        self.knowledge_distillation(X_synthetic, teacher_model, self._model, epochs=2)
         self._logger.info("Distillation finished")
 
     def fed_update(self):
