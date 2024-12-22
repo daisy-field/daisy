@@ -249,7 +249,6 @@ class LCAggregator(Aggregator):
 
     """
     _commonalities = {}
-    # TODO: split the steps more cleanly so they are more like described in the paper especially maybe calculate the sequence weights earlier talk with fabian if that is actually required
     def __init__(self, models: dict[int, list[Model]]):
         """ Creates a new layerwise aggregator. Builds the layer information of all models layers.
         Finds commonalities between the different models from the layer information.
@@ -269,12 +268,15 @@ class LCAggregator(Aggregator):
                 other_layers = self._commonalities[other_key]['layers']
                 sequence_len, sequence_start_own, sequence_start_other = self.match_layers((layers, other_layers))
 
-                # Get indices of layers to share
-                shareable_layers = np.arange(sequence_start_own, sequence_start_own + sequence_len, dtype=int)
-                self.get_relevant_weights((model_key, other_key), shareable_layers)
+                if sequence_len > 0:
+                    # Get indices of layers to share
+                    shareable_layers = np.arange(sequence_start_own, sequence_start_own + sequence_len, dtype=int)
+                    self.get_relevant_weights((model_key, other_key), shareable_layers)
 
-                shareable_layers = np.arange(sequence_start_other, sequence_start_other + sequence_len, dtype=int)
-                self.get_relevant_weights((other_key, model_key), shareable_layers)
+                    shareable_layers = np.arange(sequence_start_other, sequence_start_other + sequence_len, dtype=int)
+                    self.get_relevant_weights((other_key, model_key), shareable_layers)
+                else:
+                    self._commonalities[model_key][other_key] = self._commonalities[other_key][model_key] = []
 
         print(self._commonalities)
 
@@ -319,7 +321,7 @@ class LCAggregator(Aggregator):
         weight_list = [1] * len(aggregation_list)
 
         for (i, (model_id, model_weights)) in enumerate(models_parameters):
-            if not self._commonalities[base_id][model_id]:
+            if len(self._commonalities[base_id][model_id]) == 0:
                 continue
 
             # Get the relevant weights from the model

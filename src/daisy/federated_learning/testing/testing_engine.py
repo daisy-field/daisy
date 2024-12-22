@@ -1,37 +1,54 @@
 import os.path
-import numpy
+import csv
 from data_processor import get_dataset
 from test_models import create_autoencoder
-from keras.optimizers import Optimizer, Adam
-from keras.losses import Loss, MeanSquaredError
 from keras.models import Sequential
+from keras.losses import BinaryCrossentropy
+from keras.metrics import Precision, Recall, F1Score
+from src.daisy.federated_learning.federated_aggregator import LCAggregator
 
-def train(train_model: Sequential, train_data: numpy.ndarray,
-          train_labels: numpy.ndarray, train_loss: Loss, train_optimizer: Optimizer, model_num: int):
-    train_model.compile(optimizer=train_optimizer,
-                        loss=train_loss,
-                        metrics=['accuracy'])
+
+def load_model(test_model: Sequential, model_num: int):
     path = f'./testing_weights/ids_auto_{model_num}.ckpt'
-    if not os.path.isfile(f'./testing_weights/ids.ckpt'):
-        train_model.fit(train_data, train_labels, epochs=10, validation_split=0.2, batch_size=32)
-        train_model.save_weights(path)
+
+    test_model.compile(loss=BinaryCrossentropy(),
+                       metrics=['accuracy', Precision(thresholds=0.5), Recall(thresholds=0.5), F1Score(threshold=0.5)])
+
+    if os.path.isfile(f'{path}.data-00000-of-00001'):
+        print("Loading pre-trained weights...")
+        test_model.load_weights(path)
     else:
-        train_model.load_weights(path)
+        print("No pre-trained weights available!")
+
 
 if __name__ == "__main__":
+    model_nums = [2,0,1]
     # Get dataset
-    print("Getting data...")
-    data, labels = get_dataset()
-    print("Got dataset of shape " + str(data.shape))
-    print("Got label of shape " + str(labels.shape))
+    test_data, test_labels = get_dataset()
 
-    # Creating the model
-    print("Getting model...")
-    model_type = 99
-    model = create_autoencoder(model_type)
+    # Creating the model and loading the weights
+    print("Getting models and loading weights...")
+    models = [create_autoencoder(num) for num in model_nums]
+    for (i, num) in enumerate(model_nums):
+        load_model(models[i], num)
 
-    # Training the model
-    print("Training model...")
-    loss = MeanSquaredError()
-    optimizer = Adam(learning_rate=0.0001)
-    train(model, data, labels, loss, optimizer, model_type)
+    # Evaluate the models
+    print("Evaluating the models...")
+    solo_scores = [model.evaluate(test_data, test_labels) for model in models]
+    # Aggregate
+    print("Aggregating the models...")
+    aggregator = LCAggregator(dict(zip(model_nums, [model.layers for model in models])))
+    aggregation_result = aggregator.aggregate(
+        (model_nums[0], models[0].get_weights()),
+        list(zip(model_nums[1:], [model.get_weights() for model in models[1:]])))
+
+    models[0].set_weights(aggregation_result)
+    aggr_score = models[0].evaluate(test_data, test_labels)
+
+    # Write results to file
+    file_name = '_'.join(str(num) for num in model_nums)
+    with open(f"{os.getcwd()}/results/{file_name}.csv", mode="w+", encoding="utf-8") as csv_file:
+        writer = csv.writer(csv_file)
+        for score in solo_scores:
+            writer.writerow(score)
+        writer.writerow(aggr_score)
