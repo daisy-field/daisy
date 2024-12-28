@@ -17,10 +17,11 @@ from typing import cast
 
 import numpy as np
 import tensorflow as tf
-import pandas as pd
-import matplotlib as plt
-import seaborn as sns
 
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 from daisy.communication import StreamEndpoint
 from daisy.data_sources import DataHandler
@@ -30,6 +31,7 @@ from daisy.federated_learning import FederatedModel
 from daisy.federated_ids_components import FederatedOnlineNode
 from daisy.federated_ids_components.node import _try_ops
 from daisy.personalized_fl_components.generative.generative_model import GenerativeModel
+from sklearn.preprocessing import MinMaxScaler
 
 
 class pflGenerativeNode(FederatedOnlineNode):
@@ -41,6 +43,8 @@ class pflGenerativeNode(FederatedOnlineNode):
     _m_aggr_server: StreamEndpoint
     _timeout: int
     # _generative_model: GenerativeModel
+    round: int
+    name = ""
 
     def __init__(
         self,
@@ -102,7 +106,7 @@ class pflGenerativeNode(FederatedOnlineNode):
             update_interval_t=update_interval_t,
         )
         self._generative_model = generative_model
-
+        self.name = name
         self._m_aggr_server = StreamEndpoint(
             name="MAggrServer",
             remote_addr=m_aggr_server,
@@ -111,6 +115,8 @@ class pflGenerativeNode(FederatedOnlineNode):
         )
         self._timeout = timeout
         self._poisoningMode = poisoning_mode
+        self.round = 0
+        self.scaler = MinMaxScaler()
 
     def setup(self):
         _try_ops(lambda: self._m_aggr_server.start(), logger=self._logger)
@@ -149,7 +155,6 @@ class pflGenerativeNode(FederatedOnlineNode):
             )
             try:
                 m_aggr_msg = self._m_aggr_server.receive(timeout=self._timeout)
-                self._logger.info(len(m_aggr_msg))
                 if not isinstance(m_aggr_msg, list):
                     self._logger.warning(
                         "Received message from model aggregation server "
@@ -255,12 +260,13 @@ class pflGenerativeNode(FederatedOnlineNode):
             np.array(self._minibatch_labels),
         )
 
-        # self.create_heatmap(x_data, "", 'real_correlation.png')
-        augmented_data = self._generative_model.create_synthetic_data(n=1000)
-        # self.create_heatmap(augmented_data, "", 'synthetic_correlation.png')
+        # self.create_heatmap(x_data,"", f"normal_{self.round}_{self.name}")
 
         self._logger.info("Created synthetic data, start training GAN...")
-        self._generative_model.fit(x_data)
+        self.scaler.fit(x_data)
+        scaled = self.scaler.transform(x_data)
+
+        self._generative_model.fit(scaled)
         self._logger.info("Finished training GAN...")
 
         self._logger.debug("AsyncLearner: Processing minibatch...")
@@ -283,8 +289,18 @@ class pflGenerativeNode(FederatedOnlineNode):
                     }
                 )
 
-        train_data = tf.concat([x_data, augmented_data], axis=0)
+        augmented_data = self._generative_model.create_synthetic_data(n=len(x_data))
+        # self._logger.info(f'Augmented:{augmented_data}')
+
+        upscaled = self.scaler.inverse_transform(augmented_data)
+        # self._logger.info(f'Upscaled:{upscaled}')
+
+        train_data = tf.concat([x_data, upscaled], axis=0)
         self._logger.info("Merged Augmented and Real Data")
+
+        # self.create_heatmap(upscaled,"", f"synthetic_{self.round}_{self.name}")
+
+        self.round += 1
         self._model.fit(train_data)
         self._logger.info("Prediction model trained")
         self._logger.debug("AsyncLearner: Minibatch processed, cleaning window ...")
@@ -314,10 +330,11 @@ class pflGenerativeNode(FederatedOnlineNode):
 
         """
         df = pd.DataFrame(x_data)
+        self._logger.info(df)
         correlation_matrix = df.corr()
         fig = plt.figure(figsize=(10, 8))
         sns.heatmap(correlation_matrix, annot=False, cmap="coolwarm", fmt=".2f")
-        plt.title("Correlation Heatmap")
+        plt.title(name)
         fig.savefig(path + name, dpi=fig.dpi)
 
     def model_poisoning(self, current_params, poisoning_mode):

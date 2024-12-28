@@ -161,7 +161,7 @@ class DistillativeModelAggregator(FederatedOnlineAggregator):
             aMS = AutoModelScaler()
 
             id_fn = aMS.get_manual_model(
-                identifier="large",
+                identifier="medium",
                 input_size=self._input_size,
                 optimizer=optimizer,
                 loss=loss,

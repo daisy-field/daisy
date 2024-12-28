@@ -272,20 +272,21 @@ def create_client():
     if args.pflMode == "generative":
         optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
         loss = tf.keras.losses.MeanAbsoluteError()
-        id_fn = None
         input_size = 65
         epochs = 1
-        ams = AutoModelScaler()
+        aMS = AutoModelScaler()
 
         if args.autoModel:
-            id_fn = ams.choose_model(
+            print("AUTO MODEL")
+            id_fn = aMS.choose_model(
                 input_size, optimizer, loss, args.batchSize, epochs
             )
-        if not args.autoModel:
-            id_fn = ams.get_manual_model(
+        else:
+            print("Manual MODEL")
+            print(args.manualModel)
+            id_fn = aMS.get_manual_model(
                 args.manualModel, input_size, optimizer, loss, args.batchSize, epochs
             )
-
         model = FederatedIFTM(identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn)
 
         generative_gan = GenerativeGAN.create_gan(
@@ -315,16 +316,18 @@ def create_client():
     if args.pflMode == "distillative":
         optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
         loss = tf.keras.losses.MeanAbsoluteError()
-        id_fn = None
         input_size = 65
         epochs = 1
         aMS = AutoModelScaler()
 
         if args.autoModel:
+            print("AUTO MODEL")
             id_fn = aMS.choose_model(
                 input_size, optimizer, loss, args.batchSize, epochs
             )
-        if not args.autoModel:
+        else:
+            print("Manual MODEL")
+            print(args.manualModel)
             id_fn = aMS.get_manual_model(
                 args.manualModel, input_size, optimizer, loss, args.batchSize, epochs
             )

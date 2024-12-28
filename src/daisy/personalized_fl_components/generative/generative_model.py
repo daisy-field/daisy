@@ -43,7 +43,9 @@ class GenerativeModel(FederatedModel):
 
 
 class GenerativeGAN(GenerativeModel):
-    """ """
+    """Implementation of the Tensorflow DCGAN Tutorial with slightly changed model layers.
+    achieves bad performance results.
+    """
 
     _generator: keras.Model
     _discriminator: keras.Model
@@ -52,7 +54,6 @@ class GenerativeGAN(GenerativeModel):
         self,
         generator_optimizer: str | keras.optimizers.Optimizer,
         discriminator_optimizer: str | keras.optimizers.Optimizer,
-        batch_size: int = 32,
         epochs: int = 1,
         input_size: int = 100,
         noise_dim: int = 100,
@@ -62,14 +63,12 @@ class GenerativeGAN(GenerativeModel):
         (see: https://www.tensorflow.org/api_docs/python/tf/keras/Model#compile).
 
         :param model: Underlying model to be wrapped around.
-        :param batch_size: Batch size during training and prediction.
         :param epochs: Number of epochs (rounds) during training.
         """
         self._generator_optimizer = generator_optimizer
         self._discriminator_optimizer = discriminator_optimizer
         self._logger = logging.getLogger("GenerativeGAN")
 
-        self._batch_size = batch_size
         self._epochs = epochs
         self._input_size = input_size
         self._noise_dim = noise_dim
@@ -82,7 +81,6 @@ class GenerativeGAN(GenerativeModel):
         self._logger.info("Set generator weights")
         self._generator.set_weights(parameters)
         self._logger.info("Set successful")
-
         return
 
     def get_parameters(self) -> list[np.ndarray]:
@@ -100,53 +98,48 @@ class GenerativeGAN(GenerativeModel):
         model = tf.keras.Sequential()
 
         # Dense layer to expand the input from latent_dim to 128 units
-        model.add(
-            layers.Dense(128, input_dim=self._input_size, name="GeneratorInput")
-        )  # TODO replace
-        model.add(layers.LeakyReLU(alpha=0.2))
+        model.add(layers.Dense(512, input_dim=self._input_size, name="GeneratorInput"))
+        model.add(layers.BatchNormalization())
+        model.add(layers.LeakyReLU())
 
-        # Dense layer to expand from 128 to 256 units
         model.add(layers.Dense(256))
-        model.add(layers.LeakyReLU(alpha=0.2))
+        model.add(layers.BatchNormalization())
+        model.add(layers.LeakyReLU())
+        model.add(layers.Dense(128))
+        model.add(layers.BatchNormalization())
+        model.add(layers.LeakyReLU())
 
-        # Dense layer to expand from 256 to 512 units
-        model.add(layers.Dense(512))
-        model.add(layers.LeakyReLU(alpha=0.2))
-
-        # Final Dense layer to produce the output vector of length 65
-        model.add(
-            layers.Dense(self._input_size, activation="tanh", name="GeneratoOutput")
-        )
+        model.add(layers.Dense(self._input_size, name="GeneratoOutput"))
 
         self._logger.info("Generator created...")
-
         return model
 
     def make_discriminator_model(self):
         """Create discriminator model"""
-        model = tf.keras.Sequential()
 
+        model = tf.keras.Sequential()
         # Input layer
         model.add(
-            layers.Dense(512, input_dim=self._input_size, name="DiscriminatorInput")
+            layers.Dense(128, input_dim=self._input_size, name="DiscriminatorInput")
         )
-        model.add(layers.LeakyReLU(alpha=0.2))
+        model.add(layers.LeakyReLU())
         model.add(layers.Dropout(0.3))
 
-        # Hidden layer
         model.add(layers.Dense(256))
-        model.add(layers.LeakyReLU(alpha=0.2))
+        model.add(layers.LeakyReLU())
         model.add(layers.Dropout(0.3))
 
         # Hidden layer
         model.add(layers.Dense(128))
-        model.add(layers.LeakyReLU(alpha=0.2))
+        model.add(layers.LeakyReLU())
         model.add(layers.Dropout(0.3))
 
         # Output layer
-        model.add(layers.Dense(1, activation="sigmoid", name="DiscriminatorOutput"))
-        self._logger.info("Discriminator created...")
+        model.add(layers.Flatten())
 
+        model.add(layers.Dense(1, activation="sigmoid", name="DiscriminatorOutput"))
+
+        self._logger.info("Discriminator created...")
         return model
 
     @classmethod
@@ -155,8 +148,7 @@ class GenerativeGAN(GenerativeModel):
         input_size: int,
         generator_optimizer: str | keras.optimizers.Optimizer = "Adam",
         discriminator_optimizer: str | keras.optimizers.Optimizer = "Adam",
-        batch_size: int = 32,
-        epochs: int = 1,
+        epochs: int = 10,
     ) -> Self:
         """Create a generative adversarial network and save it locally.
         It will be used to create synthetic data of the data present at the node.
@@ -168,7 +160,6 @@ class GenerativeGAN(GenerativeModel):
         gan = GenerativeGAN(
             generator_optimizer,
             discriminator_optimizer,
-            batch_size,
             epochs,
             input_size,
             input_size,
@@ -180,25 +171,24 @@ class GenerativeGAN(GenerativeModel):
 
         return gan
 
-    @tf.function
+    # @tf.function
     def train_step(self, data):
         """Tensorflow GAN training function (see: https://www.tensorflow.org/tutorials/generative/dcgan)
-
         data: data to train GAN with
         """
-        self._logger.info("Start GAN training...")
         noise = tf.random.normal((1, self._input_size))
 
         with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
-            generated_images = self._generator(noise, training=True)
+            generated_data = self._generator(noise, training=True)
 
-            real_output = self._discriminator(
-                tf.reshape(data, [1, self._input_size]), training=True
-            )  # TODO Bug fixes
-            fake_output = self._discriminator(generated_images, training=True)
+            real_output = self._discriminator(data, training=True)
+            fake_output = self._discriminator(generated_data, training=True)
 
             gen_loss = self.generator_loss(fake_output)
             disc_loss = self.discriminator_loss(real_output, fake_output)
+
+            self._logger.info(f"Generator loss: {gen_loss}")
+            self._logger.info(f"Discriminator loss: {disc_loss}")
 
         gradients_of_generator = gen_tape.gradient(
             gen_loss, self._generator.trainable_variables
@@ -213,10 +203,11 @@ class GenerativeGAN(GenerativeModel):
         self._discriminator_optimizer.apply_gradients(
             zip(gradients_of_discriminator, self._discriminator.trainable_variables)
         )
-        self._logger.info("Finished tain_step of generative model")
 
     def generator_loss(self, fake_output):
-        cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits=True)
+        cross_entropy = tf.keras.losses.BinaryCrossentropy(
+            from_logits=True
+        )  # from_logits=True)
         return cross_entropy(tf.ones_like(fake_output), fake_output)
 
     def discriminator_loss(self, real_output, fake_output):
@@ -233,11 +224,10 @@ class GenerativeGAN(GenerativeModel):
 
         n: number of synthetic datapoints
         """
-
         generated_data = []
         for i in range(n):
             noise = tf.random.normal([1, self._input_size])
-            generated_data.append(self._generator(noise, training=True))
+            generated_data.append(self._generator(noise))
 
         generated_data_tensor = tf.concat(generated_data, axis=0)
         self._logger.warning("Generated Synthetic data...")
@@ -246,10 +236,10 @@ class GenerativeGAN(GenerativeModel):
 
     def fit(self, dataset):
         """Train GAN"""
-        self._logger.info("Fit called...")
+        self._logger.info("Start GAN training...")
         for epoch in range(self._epochs):
-            for data_point in dataset:
-                self.train_step(data_point)
+            self.train_step(dataset)
+        self._logger.info("Finished GAN training...")
 
     def predict(self):
         raise NotImplementedError

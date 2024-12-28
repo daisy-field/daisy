@@ -292,8 +292,8 @@ def create_client():
 
         generative_gan = GenerativeGAN.create_gan(
             input_size=65,
-            discriminator_optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
-            generator_optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
+            discriminator_optimizer=tf.keras.optimizers.Adam(learning_rate=0.00001),
+            generator_optimizer=tf.keras.optimizers.Adam(learning_rate=0.00001),
         )
 
         # Client
@@ -323,10 +323,13 @@ def create_client():
         aMS = AutoModelScaler()
 
         if args.autoModel:
+            print("AUTO MODEL")
             id_fn = aMS.choose_model(
                 input_size, optimizer, loss, args.batchSize, epochs
             )
-        if not args.autoModel:
+        else:
+            print("Manual MODEL")
+            print(args.manualModel)
             id_fn = aMS.get_manual_model(
                 args.manualModel, input_size, optimizer, loss, args.batchSize, epochs
             )
