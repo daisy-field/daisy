@@ -1,15 +1,15 @@
 import os.path
 import csv
 from data_processor import get_dataset
-from test_models import create_autoencoder
+from test_models import create_model
 from keras.models import Sequential
 from keras.losses import BinaryCrossentropy
 from keras.metrics import Precision, Recall, F1Score
 from src.daisy.federated_learning.federated_aggregator import LCAggregator
 
 
-def load_model(test_model: Sequential, model_num: int):
-    path = f'./testing_weights/ids_auto_{model_num}.ckpt'
+def load_model(test_model: Sequential, model_num: int, dataset: str):
+    path = f'./testing_weights/CIC_{dataset}/ids_auto_{model_num}.ckpt'
 
     test_model.compile(loss=BinaryCrossentropy(),
                        metrics=['accuracy', Precision(thresholds=0.5), Recall(thresholds=0.5), F1Score(threshold=0.5)])
@@ -22,15 +22,15 @@ def load_model(test_model: Sequential, model_num: int):
 
 
 if __name__ == "__main__":
-    model_nums = [2,0,1]
+    model_nums = [6,5,7,9]
     # Get dataset
-    test_data, test_labels = get_dataset()
+    test_data, test_labels = get_dataset(True, 2)
 
     # Creating the model and loading the weights
     print("Getting models and loading weights...")
-    models = [create_autoencoder(num) for num in model_nums]
+    models = [create_model(num) for num in model_nums]
     for (i, num) in enumerate(model_nums):
-        load_model(models[i], num)
+        load_model(models[i], num, '1' if i == 0 else '2')
 
     # Evaluate the models
     print("Evaluating the models...")

@@ -52,7 +52,7 @@ def pyshark_writer():
     ) as handler:
         relay = CSVFileRelay(
             data_handler=handler,
-            target_file="test_pcap.csv",
+            target_file="v2x_A.csv",
             overwrite_file=True,
         )
         relay.start(blocking=True)
