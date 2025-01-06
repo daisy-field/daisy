@@ -1,4 +1,4 @@
-# Copyright (C) 2024 DAI-Labor and others
+# Copyright (C) 2024-2025 DAI-Labor and others
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -33,6 +33,7 @@ from ..data_processor import DataProcessor, flatten_dict
 pcap_f_features = (
     "meta.len",
     "meta.time",
+    "meta.time_epoch",
     "meta.protocols",
     "ip.addr",
     "sll.halen",
