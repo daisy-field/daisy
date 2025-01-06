@@ -9,16 +9,6 @@ endpoints over BSD sockets. Supports SSL (soon) and LZ4 compression.
 Author: Fabian Hofmann
 Modified: 16.10.24
 """
-# TODO Future Work: SSL https://docs.python.org/3/library/ssl.html
-# TODO Future Work: Defining granularity of logging in inits
-# TODO Future Work: Endpoint socket spam may result in re-use of wrong "old" connection
-#   1. acceptor accepts connection of generic initiator, registers its address
-#   2. initiator crashes/shut downs, acceptor keeps trying to re-establish
-#   3. another initiator from same host (or nat) gets recycled address IP and connects
-#   4. acceptor accepts this "wrong" endpoint, believing it is still the old one
-#   - Should be fixed from the ground up (possible through two-way, cert-based identity)
-# FIXME: Race Conditions:
-#   - Diff between select and check_r_sock
 
 import ctypes
 import logging
@@ -307,10 +297,14 @@ class EndpointSocket:
                 )
                 break
             except (OSError, ValueError, AttributeError, RuntimeError) as e:
-                self._logger.info(
+                e_msg = (
                     f"{e.__class__.__name__}({e}) while trying to (re-)establish "
                     f"connection {self._addr, self._remote_addr}. Retrying..."
                 )
+                if i == 0:
+                    self._logger.info(e_msg)
+                else:
+                    self._logger.debug(e_msg)
                 self._sock_lock.release()
                 sleep(min(1 << i, 128))
                 # initial attempts of an endpoint socket never do binary backoff (+0)

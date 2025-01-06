@@ -3,16 +3,15 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""A number of useful tools tht build on top of the data handler module, to provide
+"""A number of useful tools that build on top of the data handler module, to provide
 relays of data points, either over a network over communication endpoints or directly
-to a local file(s) on disk. Both wrap around DataHandler and thus process the data
+to local file(s) on disk. Both wrap around DataHandler and thus process the data
 stream as it yields data points. Can be used for arbitrarily large arbitrary data
 streams.
 
 Author: Fabian Hofmann, Jonathan Ackerschewski
 Modified: 17.04.23
 """
-# TODO Future Work: Defining granularity of logging in inits
 
 import logging
 import threading

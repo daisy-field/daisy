@@ -3,16 +3,12 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""Implementation of processing steps used for pyshark packets.
+"""Implementation of the data processor for supporting processing steps used for pyshark
+packets, i.e. a pre-packaged extension of the data processor base class for ease of use.
 
 Author: Jonathan Ackerschewski, Fabian Hofmann
-Modified: 18.10.2024
+Modified: 04.11.2024
 """
-# TODO: Future Work:
-#   - Encoding/mapping of string/non-numerical values into numerical features
-#   - Flattening of Lists instead of encoding them into singular numerical features
-#   - NaN values also need to converted to something useful
-#     (that does not break the prediction/training)
 
 import ipaddress
 import json
@@ -20,7 +16,8 @@ import logging
 import sys
 from collections import defaultdict
 from ipaddress import AddressValueError
-from typing import Callable
+from typing import Callable, Self
+from typing_extensions import deprecated
 
 import numpy as np
 from pyshark.packet.fields import LayerField, LayerFieldsContainer
@@ -28,15 +25,84 @@ from pyshark.packet.layers.json_layer import JsonLayer
 from pyshark.packet.layers.xml_layer import XmlLayer
 from pyshark.packet.packet import Packet
 
-from .demo_202312 import default_f_features
 from .. import select_feature
 from ..data_processor import DataProcessor, flatten_dict
 
+# Exemplary network feature filter, supporting cohda-box (V2x) messages, besides
+# TCP/IP and ETH.
+pcap_f_features = (
+    "meta.len",
+    "meta.time",
+    "meta.protocols",
+    "ip.addr",
+    "sll.halen",
+    "sll.pkttype",
+    "sll.eth",
+    "sll.hatype",
+    "sll.unused",
+    "ipv6.tclass",
+    "ipv6.flow",
+    "ipv6.nxt",
+    "ipv6.src_host",
+    "ipv6.host",
+    "ipv6.hlim",
+    "sll.ltype",
+    "cohda.Type",
+    "cohda.Ret",
+    "cohda.llc.MKxIFMsg.Ret",
+    "ipv6.addr",
+    "ipv6.dst",
+    "ipv6.plen",
+    "tcp.stream",
+    "tcp.payload",
+    "tcp.urgent_pointer",
+    "tcp.port",
+    "tcp.options.nop",
+    "tcp.options.timestamp",
+    "tcp.flags",
+    "tcp.window_size_scalefactor",
+    "tcp.dstport",
+    "tcp.len",
+    "tcp.checksum",
+    "tcp.window_size",
+    "tcp.srcport",
+    "tcp.checksum.status",
+    "tcp.nxtseq",
+    "tcp.status",
+    "tcp.analysis.bytes_in_flight",
+    "tcp.analysis.push_bytes_sent",
+    "tcp.ack",
+    "tcp.hdr_len",
+    "tcp.seq",
+    "tcp.window_size_value",
+    "data.data",
+    "data.len",
+    "tcp.analysis.acks_frame",
+    "tcp.analysis.ack_rtt",
+    "eth.src.addr",
+    "eth.src.eth.src_resolved",
+    "eth.src.ig",
+    "eth.src.src_resolved",
+    "eth.src.addr_resolved",
+    "ip.proto",
+    "ip.dst_host",
+    "ip.flags",
+    "ip.len",
+    "ip.checksum",
+    "ip.checksum.status",
+    "ip.version",
+    "ip.host",
+    "ip.status",
+    "ip.id",
+    "ip.hdr_len",
+    "ip.ttl",
+)
 
-def default_nn_aggregator(key: str, value: object) -> int:
+
+def pcap_nn_aggregator(key: str, value: object) -> int | float:
     """Simple, exemplary value aggregator. Takes a non-numerical (i.e. string) key-value
-    pair and attempts to converted it into an integer. This example does not take
-    the key into account, but only checks the types of the value to proceed. Note,
+    pair and attempts to converted it into an integer / float. This example does not
+    take the key into account, but only checks the types of the value to proceed. Note,
     that ipv6 are lazily converted to 32 bit (collisions may occur).
 
     :param key: Name of pair, which always a string.
@@ -58,7 +124,15 @@ def default_nn_aggregator(key: str, value: object) -> int:
         except AddressValueError:
             pass
         try:
+            return int(value)
+        except ValueError:
+            pass
+        try:
             return int(value, 16)
+        except ValueError:
+            pass
+        try:
+            return float(value)
         except ValueError:
             pass
         return hash(value)
@@ -66,36 +140,62 @@ def default_nn_aggregator(key: str, value: object) -> int:
     raise ValueError(f"Unable to aggregate non-numerical item: {key, value}")
 
 
-def create_pyshark_processor(
-    name: str = "",
-    f_features: list[str, ...] = default_f_features,
-    nn_aggregator: Callable[[str, object], object] = default_nn_aggregator,
-):
-    """Creates a DataProcessor using functions specifically for pyshark packets,
-    selecting specific features from each data pont (nan if not existing) and
-    transforms them into numpy vectors, ready for to be further processed by
-    detection models.
-
-    :param name: The name for logging purposes
-    :param f_features: The features to extract from the packets
-    :param nn_aggregator: The aggregator, which should map features to integers
+class PysharkProcessor(DataProcessor):
+    """Extension of the data processor base class with pre-built processing steps
+    specifically for pyshark packets.
     """
-    return (
-        DataProcessor(name=name)
-        .add_func(lambda o_point: packet_to_dict(o_point))
-        .add_func(
-            lambda o_point: select_feature(
-                d_point=o_point, f_features=default_f_features, default_value=np.nan
-            )
+
+    def packet_to_dict(self) -> Self:
+        """Adds a function to the processor that takes a data point which is a
+        pyshark packet and converts it into a dictionary.
+        """
+
+        # noinspection DuplicatedCode
+        def packet_to_dict_func(p: Packet) -> dict:
+            p_dict = {}
+            meta_dict = {
+                "number": p.number,
+                "len": p.length,
+                "protocols": [x.layer_name for x in p.layers],
+                "time_epoch": p.sniff_timestamp,
+                "time": str(p.sniff_time),
+            }
+            p_dict.update({"meta": meta_dict})
+
+            for layer in p.layers:
+                p_dict.update(_add_layer_to_dict(layer))
+            return p_dict
+
+        return self.add_func(
+            lambda d_point: packet_to_dict_func(d_point)
+        ).flatten_dict()
+
+    @classmethod
+    def create_simple_processor(
+        cls,
+        name: str = "",
+        f_features: list[str, ...] = pcap_f_features,
+        nn_aggregator: Callable[[str, object], object] = pcap_nn_aggregator,
+    ) -> Self:
+        """Creates a simple pyshark processor selecting specific features from each
+        data point (nan if not existing) and transforms them into numpy vectors,
+        ready for to be further processed by detection models.
+
+        :param name: Name of processor for logging purposes.
+        :param f_features: Features to extract from the packets.
+        :param nn_aggregator: Aggregator, which should map non-numerical features to
+        integers / floats.
+        """
+        return (
+            PysharkProcessor(name=name)
+            .packet_to_dict()
+            .select_dict_features(features=f_features, default_value=np.nan)
+            .dict_to_array(nn_aggregator=nn_aggregator)
         )
-        .add_func(
-            lambda o_point: dict_to_numpy_array(
-                d_point=o_point, nn_aggregator=nn_aggregator
-            )
-        )
-    )
 
 
+# noinspection DuplicatedCode
+@deprecated("Use DataProcessor.dict_to_array() instead")
 def dict_to_numpy_array(
     d_point: dict,
     nn_aggregator: Callable[[str, object], object],
@@ -104,7 +204,8 @@ def dict_to_numpy_array(
     processing, aggregating any value that is list into a singular value.
 
     :param d_point: Data point as dictionary.
-    :param nn_aggregator: The aggregator, which should map features to integers
+    :param nn_aggregator: Aggregator, which maps non-numerical features to integers
+    or floats.
     :return: Data point as vector.
     """
     l_point = []
@@ -120,11 +221,13 @@ def dict_to_numpy_array(
     return np.asarray(l_point)
 
 
+# noinspection DuplicatedCode
+@deprecated("Use PysharkProcessor.packet_to_dict() instead")
 def packet_to_dict(p: Packet) -> dict:
     """Takes a single pyshark packet and converts it into a dictionary.
 
-    :param p: The packet to convert.
-    :return: The dictionary generated from the packet.
+    :param p: Packet to convert.
+    :return: Dictionary generated from the packet.
     """
     p_dict = {}
 
@@ -245,6 +348,39 @@ def _add_layer_field_container_to_dict(
     return dictionary
 
 
+# noinspection DuplicatedCode
+@deprecated("Use PysharkProcessor.create_simple_processor() instead")
+def create_pyshark_processor(
+    name: str = "",
+    f_features: list[str, ...] = pcap_f_features,
+    nn_aggregator: Callable[[str, object], object] = pcap_nn_aggregator,
+):
+    """Creates a DataProcessor using functions specifically for pyshark packets,
+    selecting specific features from each data pont (nan if not existing) and
+    transforms them into numpy vectors, ready for to be further processed by
+    detection models.
+
+    :param name: The name for logging purposes
+    :param f_features: The features to extract from the packets
+    :param nn_aggregator: The aggregator, which should map features to integers
+    """
+    return (
+        DataProcessor(name=name)
+        .add_func(lambda o_point: packet_to_dict(o_point))
+        .add_func(
+            lambda o_point: select_feature(
+                d_point=o_point, f_features=f_features, default_value=np.nan
+            )
+        )
+        .add_func(
+            lambda o_point: dict_to_numpy_array(
+                d_point=o_point, nn_aggregator=nn_aggregator
+            )
+        )
+    )
+
+
+@deprecated("Use DataProcessor.dict_to_json() instead")
 def dict_to_json(dictionary: dict) -> str:
     """Takes a dictionary and returns a json object in form of a string.
 
