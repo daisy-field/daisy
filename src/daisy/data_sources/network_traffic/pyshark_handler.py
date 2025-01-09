@@ -1,4 +1,4 @@
-# Copyright (C) 2024 DAI-Labor and others
+# Copyright (C) 2024-2025 DAI-Labor and others
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -12,6 +12,7 @@ Modified: 04.11.24
 """
 
 import logging
+from natsort import natsorted
 import os
 from typing import Iterator, Optional
 
@@ -118,6 +119,7 @@ class PcapDataSource(DataSource):
                     raise ValueError(
                         f"Directory '{path}' does not contain any .pcap files!"
                     )
+                files = natsorted(files)
                 self._pcap_files += files
             elif os.path.isfile(path) and path.endswith(".pcap"):
                 self._pcap_files.append(path)
