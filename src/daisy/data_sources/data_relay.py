@@ -200,9 +200,8 @@ class CSVFileRelay:
         self._started = False
         self._completed = threading.Event()
 
-        if headers is None:
-            if header_buffer_size <= 0:
-                raise ValueError("Header buffer size must be greater 0")
+        if headers is None and header_buffer_size <= 0:
+            raise ValueError("Header buffer size must be greater 0")
 
         if separator == '"':
             raise ValueError(f"'{separator}' is not allowed as a separator")
