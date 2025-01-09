@@ -17,6 +17,7 @@ import logging
 import threading
 from collections import OrderedDict
 from pathlib import Path
+from typing import IO, Iterable
 
 from daisy.communication import StreamEndpoint
 from .data_handler import DataHandler
@@ -154,6 +155,11 @@ class CSVFileRelay:
     _separator: str
     _default_missing_value: object
 
+    _d_point_counter: int
+    _d_point_buffer: list
+    _header_buffer: OrderedDict
+    _do_buffer: bool
+
     _relay: threading.Thread
     _started: bool
     _completed = threading.Event
@@ -235,6 +241,11 @@ class CSVFileRelay:
             self._headers_provided = False
         self._default_missing_value = default_missing_value
 
+        self._d_point_counter = 0
+        self._d_point_buffer = []
+        self._header_buffer = OrderedDict()
+        self._do_buffer = not self._headers_provided
+
         self._logger.info("File relay initialized.")
 
     def start(self, blocking: bool = False):
@@ -294,73 +305,94 @@ class CSVFileRelay:
         :raises TypeError: Retrieved data point is not of type dictionary. Only
         dictionaries are supported.
         """
-
-        # noinspection PyShadowingNames
-        def buffer_to_file():
-            self._headers = tuple(header_buffer)
-            self._logger.info(
-                "Headers found with buffer size of "
-                f"{self._header_buffer_size}: {self._headers}"
-            )
-            file.write(f"{self._separator.join(self._headers)}\n")
-
-            for d_point_in_buffer in d_point_buffer:
-                values = map(
-                    lambda topic: self._get_value(d_point_in_buffer, topic),
-                    self._headers,
-                )
-                line = self._separator.join(values)
-                file.write(f"{line}\n")
-
         self._logger.info("Starting to relay data points from data source...")
-        d_point_counter = 0
-        d_point_buffer = []
-        do_buffer = not self._headers_provided
-        header_buffer = OrderedDict()
         if self._headers_provided:
             self._logger.info(f"Using headers: {self._headers}")
         else:
             self._logger.info("Attempting to discover headers...")
+
         with open(self._file, "w") as file:
             if self._headers_provided:
-                file.write(f"{self._separator.join(self._headers)}\n")
-            try:
-                for d_point in self._data_handler:
-                    try:
-                        if not self._started:
-                            # stop was called
-                            break
-                        if not isinstance(d_point, dict):
-                            raise TypeError(
-                                "Received data point that is not  of type dictionary."
-                            )
-                        if d_point_counter % 100 == 0:
-                            self._logger.debug(f"Received packet {d_point_counter}. ")
-                        if d_point_counter < self._header_buffer_size:
-                            header_buffer.update(OrderedDict.fromkeys(d_point.keys()))
-                            d_point_buffer += [d_point]
-                        else:
-                            if do_buffer:
-                                buffer_to_file()
-                                do_buffer = False
+                self._write_line_to_file(file, self._headers)
 
-                            values = map(
-                                lambda topic: self._get_value(d_point, topic),
-                                self._headers,
-                            )
-                            line = self._separator.join(values)
-                            file.write(f"{line}\n")
-                        d_point_counter += 1
-                    except RuntimeError:
-                        # stop() was called
-                        break
+            try:
+                self._iterate_data_points(file=file)
             except RuntimeError:
                 # stop() was called
                 pass
-            if d_point_counter <= self._header_buffer_size:
-                buffer_to_file()
+            if self._d_point_counter <= self._header_buffer_size:
+                self._process_buffer(file=file)
         self._logger.info("Data source exhausted, or relay closed.")
         self._completed.set()
+
+    def _iterate_data_points(self, file: IO):
+        """Iterates through data points and writes them to the csv file.
+
+        :param file: File to write to
+        :raises TypeError: Data point is not of type dictionary. Only dictionaries are supported.
+        """
+        for d_point in self._data_handler:
+            try:
+                if not self._started:
+                    # stop was called
+                    break
+
+                self._process_data_point(file=file, d_point=d_point)
+                self._d_point_counter += 1
+            except RuntimeError:
+                # stop() was called
+                break
+
+    def _process_data_point(self, file: IO, d_point: dict):
+        """Processes a single data point. Writes it to the buffer or file.
+
+        :param file: File to write to
+        :param d_point: data point to process
+        :raises TypeError: Data point is not of type dictionary. Only dictionaries are supported.
+        """
+        if not isinstance(d_point, dict):
+            raise TypeError("Received data point that is not of type dictionary.")
+        if self._d_point_counter % 100 == 0:
+            self._logger.debug(f"Received packet {self._d_point_counter}. ")
+        if self._d_point_counter < self._header_buffer_size:
+            self._header_buffer.update(OrderedDict.fromkeys(d_point.keys()))
+            self._d_point_buffer += [d_point]
+        else:
+            if self._do_buffer:
+                self._process_buffer(file=file)
+                self._do_buffer = False
+            self._write_data_point_to_file(file, d_point)
+
+    def _process_buffer(self, file: IO):
+        """Processes the buffer by detecting the headers and writing its contents to the csv file.
+
+        :param file: File to write to
+        """
+        self._headers = tuple(self._header_buffer)
+        self._logger.info(
+            "Headers found with buffer size of "
+            f"{self._header_buffer_size}: {self._headers}"
+        )
+        self._write_line_to_file(file, self._headers)
+        for d_point_in_buffer in self._d_point_buffer:
+            self._write_data_point_to_file(file, d_point_in_buffer)
+
+    def _write_data_point_to_file(self, file: IO, d_point: dict):
+        """Writes a single data point to the csv file.
+
+        :param file: File to write to
+        :param d_point: data point to write
+        """
+        values = map(lambda topic: self._get_value(d_point, topic), self._headers)
+        self._write_line_to_file(file, values)
+
+    def _write_line_to_file(self, file: IO, line: Iterable[str]):
+        """Writes a single line to the csv file.
+
+        :param file: File to write to
+        :param line: Line to write
+        """
+        file.write(f"{self._separator.join(line)}\n")
 
     def _get_value(self, d_point: dict, topic: str) -> str:
         """Retrieves a value from a data point, transforming it into a string to
