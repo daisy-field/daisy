@@ -167,7 +167,7 @@ class CSVFileRelay:
     def __init__(
         self,
         data_handler: DataHandler,
-        target_file: str,
+        target_file: str | Path,
         name: str = "",
         header_buffer_size: int = 1000,
         headers: tuple[str, ...] = None,
