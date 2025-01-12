@@ -299,16 +299,33 @@ class LCAggregator(Aggregator):
 
     @staticmethod
     def match_layers(layers: (list[str], list[str])) -> (int, int, int):
+        """Extract the longest shared sequence between two lists containing the layers in string representation.
+
+        :param layers: Tuple of lists containing the layers in string representation
+        :return: Length of the shared sequence and starting point in each list
+        """
         match = SequenceMatcher(None, layers[0], layers[1]).find_longest_match()
         return match.size if match.size > 2 else 0, match.a, match.b
 
     def get_relevant_weights(self, model_ids: (int, int), layer_indices: np.ndarray):
+        """Get the indices of the weights from the indices of the layers.
+
+        :param model_ids: Tuple of the two different model ids in the sequence
+        :param layer_indices: The indices of the layers that make up the sequence
+        """
         occurrences = \
             [np.where(index == self._commonalities[model_ids[0]]['weight_indices'])[0] for index in layer_indices]
         self._commonalities[model_ids[0]][model_ids[1]] = np.concatenate(occurrences).tolist()
 
     def get_aggregation_list(self, base_model: (int, list[np.ndarray]),
                              models_parameters: list[(int, list[np.ndarray])]) -> (list[list[np.ndarray]], list[float]):
+        """Create the denominator and numerator of the weighted averaging formula.
+
+        :param base_model: Parameters of the baseline model with the identifier
+        :param models_parameters: List of parameters of the other models with their respective identifiers
+
+        :return: Numerator and denominator of the weighted averaging formula
+        """
         base_id = base_model[0]
         base_weights = base_model[1]
         aggregation_list = list(map(lambda x: [x], base_weights))
@@ -331,6 +348,11 @@ class LCAggregator(Aggregator):
 
     def aggregate(self, base_model: (int, list[np.ndarray]), models_parameters: list[(int, list[np.ndarray])]) \
             -> list[np.ndarray]:
+        """Aggregate models on the base models.
 
+        :param base_model: The baseline model with its id and parameters
+        :param models_parameters: A list of models' parameters and their ids.
+        :return: Aggregated model
+        """
         aggregation_list, weight_list = self.get_aggregation_list(base_model, models_parameters)
         return [sum(layer) / weight_list[j] for (j, layer) in enumerate(aggregation_list)]
