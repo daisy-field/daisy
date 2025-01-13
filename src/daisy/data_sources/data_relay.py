@@ -338,7 +338,6 @@ class CSVFileRelay:
                     break
 
                 self._process_data_point(file=file, d_point=d_point)
-                self._d_point_counter += 1
             except RuntimeError:
                 # stop() was called
                 break
@@ -362,6 +361,7 @@ class CSVFileRelay:
                 self._process_buffer(file=file)
                 self._do_buffer = False
             self._write_data_point_to_file(file, d_point)
+        self._d_point_counter += 1
 
     def _process_buffer(self, file: IO):
         """Processes the buffer by detecting the headers and writing its contents to the csv file.

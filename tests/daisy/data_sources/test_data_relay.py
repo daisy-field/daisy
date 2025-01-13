@@ -18,9 +18,6 @@ from daisy.data_sources import CSVFileRelay, DataHandler
 # overwrite test
 # separator test
 # default_missing_value test
-# get_value correctly converts the feature to string (multiple tests!!)
-# process_data_point adds to buffer if still discovering
-# process_data_point writes buffer, if buffer full
 # create_relay -> if done or stopped before buffer is full-> Write buffer
 
 
@@ -56,7 +53,7 @@ class FileMock(IO):
     def assert_lines(self):
         assert len(self._expected_lines) == len(self._written_lines)
         for i in range(len(self._expected_lines)):
-            assert self._expected_lines[i] == self._written_lines[i]
+            assert self._written_lines[i] == self._expected_lines[i]
 
     def close(self):
         pass
@@ -207,4 +204,39 @@ class TestCSVFileRelay:
     def test_write_line_to_file_writes_line(self, csv_file_relay):
         file = FileMock(expected_lines=["This,is,a,test,line\n"])
         csv_file_relay._write_line_to_file(file, ["This", "is", "a", "test", "line"])
+        file.assert_lines()
+
+    def test_process_data_point_writes_to_buffer(self, csv_file_relay):
+        file = FileMock([])
+        data_points = [{"data_point": 1}]
+        for data_point in data_points:
+            csv_file_relay._process_data_point(file, data_point)
+
+        assert csv_file_relay._d_point_buffer == data_points
+        assert csv_file_relay._do_buffer
+
+    def test_process_data_point_writes_buffer_to_file(self, tmp_path_factory):
+        path = tmp_path_factory.getbasetemp()
+        csv_file_relay = CSVFileRelay(
+            data_handler=DataHandlerMock(),
+            target_file=path / "process_data_point_writes_buffer_to_file.csv",
+            header_buffer_size=2,
+        )
+        file = FileMock(
+            expected_lines=[
+                "data_point,header1,header2\n",
+                "1,value1,\n",
+                "2,,value2\n",
+                "3,,\n",
+            ]
+        )
+        data_points = [
+            {"data_point": 1, "header1": "value1"},
+            {"data_point": 2, "header2": "value2"},
+            {"data_point": 3, "header3": "value3"},
+        ]
+        for data_point in data_points:
+            csv_file_relay._process_data_point(file, data_point)
+
+        assert not csv_file_relay._do_buffer
         file.assert_lines()
