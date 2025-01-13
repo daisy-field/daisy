@@ -1,12 +1,12 @@
-# Copyright (C) 2024 DAI-Labor and others
+# Copyright (C) 2024-2025 DAI-Labor and others
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""Choose the suitable local model based on the local hardware constraints
+"""AutoModelScaler for choosing the most suitable local model based on the local hardware constraints
 
 Author: Seraphin Zunzer
-Modified: 31.07.24
+Modified: 13.01.25
 """
 
 import logging
@@ -26,6 +26,7 @@ class AutoModelScaler:
 
     def cpu_usage(self):
         """Get current CPU usage of device
+
         :return: CPU count, Core usages and CPU percentage
         """
 
@@ -38,7 +39,8 @@ class AutoModelScaler:
 
     def ram_usage(self):
         """Get current RAM usage of device
-        :return: total RAM, available RAM, used RAM, RAM percentage
+
+        :return: total RAM, available RAM, used RAM, RAM percentage.
         """
         svmem = psutil.virtual_memory()
         total = svmem.total
@@ -50,6 +52,17 @@ class AutoModelScaler:
     def get_manual_model(
         self, identifier, input_size, optimizer, loss, batchSize, epochs
     ):
+        """
+        Manually select a model size. Currently, "small", "medium" and "large" models are available
+
+        :param identifier: identifier for model size, i.e. small, medium or large.
+        :param input_size: input size of the model.
+        :param optimizer: optimizer of the model.
+        :param loss: loss function of the model.
+        :param batchSize: batch size.
+        :param epochs: number of epochs.
+        :return: Federated Model
+        """
         id_fn = None
         if identifier == "small":
             print("Creating small model")
@@ -81,8 +94,14 @@ class AutoModelScaler:
         return id_fn
 
     def choose_model(self, inputSize, optimizer, loss, batchSize, epochs):
-        """Choose a FederatedModel of the three predefined models in local_models.py ,
-        based on the locally available resources
+        """Automatically chooses a Federated Model of the three available model sizes, by
+        evaluating the current cpu usage.
+
+        :param input_size: input size of the model.
+        :param optimizer: optimizer of the model.
+        :param loss: loss function of the model.
+        :param batchSize: batch size.
+        :param epochs: number of epochs.
         :return: Federated Model
         """
 

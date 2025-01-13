@@ -1,15 +1,12 @@
-# Copyright (C) 2024 DAI-Labor and others
+# Copyright (C) 2024-2025 DAI-Labor and others
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""A collection of various types of federated worker nodes, implementing the same
-interface for each federated node type. Each of them is able to learn cooperatively
-on generic streaming data using a generic model, while also running predictions on
-the samples of that data stream at every step.
+"""A generative worker node, using the federated GAN to add synthetic data to the local model training.
 
-Author: Fabian Hofmann
-Modified: 04.04.24
+Author: Seraphin Zunzer
+Modified: 13.01.25
 """
 
 from time import sleep, time
@@ -17,32 +14,28 @@ from typing import cast
 
 import numpy as np
 import tensorflow as tf
-
-
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn.preprocessing import MinMaxScaler
+
 
 from daisy.communication import StreamEndpoint
 from daisy.data_sources import DataHandler
 from daisy.federated_learning import FederatedModel
-
-
 from daisy.federated_ids_components import FederatedOnlineNode
 from daisy.federated_ids_components.node import _try_ops
 from daisy.personalized_fl_components.generative.generative_model import GenerativeModel
-from sklearn.preprocessing import MinMaxScaler
 
 
 class pflGenerativeNode(FederatedOnlineNode):
     """Implementation of a federated online node, using a generative model
     for the knowledge exchange in personalized federated learning.
-    In pfl, the local nodes model can differ. Therefore, a generative model is trained and exchanged, to locally create
-    augmented data of other clients."""
+    In pFL, the local nodes model differ. Therefore, a generative model is trained and exchanged in a federated manner,
+    to locally create augmented data of other nodes."""
 
     _m_aggr_server: StreamEndpoint
     _timeout: int
-    # _generative_model: GenerativeModel
     round: int
     name = ""
 
@@ -65,7 +58,8 @@ class pflGenerativeNode(FederatedOnlineNode):
         update_interval_t: int = None,
         poisoning_mode: str = None,
     ):
-        """Creates a new federated online client.
+        """Creates a new federated online client for data augmentation. Now, additionally to the local node,
+        a generative model is stored in the node.
 
         :param data_handler: Data handler of data stream to draw data points from.
         :param batch_size: Minibatch size for each prediction-fitting step.
@@ -140,12 +134,12 @@ class pflGenerativeNode(FederatedOnlineNode):
         """
         with self._m_lock:
             current_params = self._generative_model.get_parameters()
-            self._logger.info("Retreived parameters of GAN:")
+            self._logger.info("Retreived parameters of GAN")
             for i in current_params:
                 if not (isinstance(i, int) or isinstance(i, float)):
-                    self._logger.info(i.shape)
+                    self._logger.debug(i.shape)
                 else:
-                    self._logger.info(i)
+                    self._logger.debug(i)
 
             params = self.model_poisoning(current_params, self._poisoningMode)
             self._m_aggr_server.send(params)
@@ -249,7 +243,8 @@ class pflGenerativeNode(FederatedOnlineNode):
 
     def _process_batch(self):
         """Processes the current batch for both running a prediction and fitting the
-        generative model around it. Augmented data from generative model are added to training batch.
+        generative model around the databatch. Augmented data from generative model is added to training batch
+        used for training the local intrusion detection model.
         Also sends results to both the aggregation and the
         evaluation server, if available and provided in the beginning,
         before flushing the minibatch window.
@@ -272,7 +267,7 @@ class pflGenerativeNode(FederatedOnlineNode):
         self._logger.debug("AsyncLearner: Processing minibatch...")
         y_pred = self._model.predict(x_data)
         self._logger.debug(
-            f"AsyncLearner: Prediction results for minibatch: {(x_data, y_pred)}"
+            f"AsyncLearner: Pr" f"ediction results for minibatch: {(x_data, y_pred)}"
         )
         if self._aggr_serv is not None:
             self._aggr_serv.send((x_data, y_pred))
@@ -290,10 +285,7 @@ class pflGenerativeNode(FederatedOnlineNode):
                 )
 
         augmented_data = self._generative_model.create_synthetic_data(n=len(x_data))
-        # self._logger.info(f'Augmented:{augmented_data}')
-
         upscaled = self.scaler.inverse_transform(augmented_data)
-        # self._logger.info(f'Upscaled:{upscaled}')
 
         train_data = tf.concat([x_data, upscaled], axis=0)
         self._logger.info("Merged Augmented and Real Data")
@@ -323,14 +315,16 @@ class pflGenerativeNode(FederatedOnlineNode):
             self._s_since_update = 0
             self._t_last_update = time()
 
-    def create_heatmap(self, x_data, path: str, name: str):
+    def create_heatmap(self, data, path: str, name: str):
         """
-        Create a heatmap based of attributes in x_data. Image ist saved under the given name at the given path.
+        Create a heatmap based of attributes data. Image ist saved under the given name at the given path.
         Useful to compare synthetic data correlations with real data correlations.
 
+        :param data: dataset to create the heatmap from.
+        :param path: location to store the image.
+        :param name: title of the image, e.g. current number of iterations
         """
-        df = pd.DataFrame(x_data)
-        self._logger.info(df)
+        df = pd.DataFrame(data)
         correlation_matrix = df.corr()
         fig = plt.figure(figsize=(10, 8))
         sns.heatmap(correlation_matrix, annot=False, cmap="coolwarm", fmt=".2f")
@@ -343,7 +337,11 @@ class pflGenerativeNode(FederatedOnlineNode):
         function either retruns a list of random values, zeros or inverted parameters with the same shape
         as the original parameters. If poisoning mode is none, the original parameters are returned.
 
+        :param current_params: List of current model weights.
+        :param poisoning_mode: Poisoning mode, either None, zeros, random or inverse.
+        :return: poisoned parameters
         """
+
         poisoned_params = []
 
         if poisoning_mode is None:

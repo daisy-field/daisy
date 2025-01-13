@@ -1,40 +1,33 @@
-# Copyright (C) 2024 DAI-Labor and others
+# Copyright (C) 2024-2025 DAI-Labor and others
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""A collection of various types of federated worker nodes, implementing the same
-interface for each federated node type. Each of them is able to learn cooperatively
-on generic streaming data using a generic model, while also running predictions on
-the samples of that data stream at every step.
+"""The distillative aggregation worker node.
 
-Author: Fabian Hofmann
-Modified: 04.04.24
+Author: Seraphin Zunzer
+Modified: 13.01.2025
 """
-# TODO Future Work: Defining granularity of logging in inits
-# TODO Future Work: Args for client-side ports in init
 
 from time import sleep
-from typing import cast
 
 import numpy as np
 import tensorflow as tf
 
 from daisy.communication import StreamEndpoint
 from daisy.data_sources import DataHandler
-from daisy.federated_learning import FederatedModel
-
+from daisy.federated_learning import FederatedIFTM, SMAvgTM, FederatedModel
 from daisy.federated_ids_components import FederatedOnlineNode
 from daisy.federated_ids_components.node import _try_ops
 from daisy.personalized_fl_components.auto_model_scaler import AutoModelScaler
 
-from daisy.federated_learning import FederatedIFTM, EMAvgTM
-
 
 class pflDistillativeNode(FederatedOnlineNode):
     """Node for learning personalized models using the concept of
-    knowledge distillation. Only difference to a traditional node is, that models may have a completely different shape.
-    Needs to be started with the corresponding distilative model aggregation server to be able to aggregate heterogeneous models
+    knowledge distillation, as the node also needs to perform knowledge distillation.
+    Only difference to a normal node is, that the global model may have a different shape.
+    Needs to be started with the corresponding distilative model aggregation server
+    to be able to aggregate heterogeneous models
     """
 
     _m_aggr_server: StreamEndpoint
@@ -119,15 +112,22 @@ class pflDistillativeNode(FederatedOnlineNode):
     def generate_random_data(self, num_samples, input_shape):
         """
         Fuction to generate normal distributed gaussian samples for knowledge distillation process.
+        :param num_samples: number of synthetic samples to create.
+        :param input_shape: shape of the created synthetic vectors
+
+        :return: array of random data
         """
-        #    return np.random.normal((num_samples, input_shape)).astype(np.float32)  # TODO check random.normal /random random for gaussian
         return np.random.randn(num_samples, input_shape).astype(np.float32)
 
     def knowledge_distillation(self, input_data, teacher_model, student_model, epochs):
         """
-        Conducts the supervised training of the local model, based on the predictions of the received
-        student model.
+        Conducts the supervised training of the global model, based on the predictions of the received
+        student models from the nodes.
 
+        :param input_data: random input data for creating predictions.
+        :param teacher_model: the teacher model to extract knowledge from.
+        :param student_model: the student model to distill knowledge in.
+        :param epochs: number of training epochs.
         """
 
         for epoch in range(epochs):
@@ -137,24 +137,25 @@ class pflDistillativeNode(FederatedOnlineNode):
 
     def distillative_aggregation(self, new_params):
         """
-        Function for starting the knowledge distillation process.
+        Single teacher knowledge distillation.
+        We initialize the global model, get the predictions on the random dataset,
+        and train the student global model in a supervised manner based on these predictions.
+        Note that there is no return as there is no need to set the new local model weight
+        This is already done by training.
 
+        :param client_models: List of client model weights.
         """
-        num_samples = 1000
+
         input_shape = self._input_size
+        self._logger.debug("Generate normal distributed random samples")
+        X_synthetic = self.generate_random_data(1000, input_shape)
+        self._logger.debug("Start distillation of global model into local model")
 
-        self._logger.info("Generate normal distributed random samples")
-        X_synthetic = self.generate_random_data(num_samples, input_shape)
-        self._logger.info("Start distillation of global model into local model")
-
-        # initialize predefined model
-        # we know that the received global model has this structure.
-        # when implementing uuids, the node could look up the to the uuid corresponding model structure
-
+        # initialize global model
         optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
         loss = tf.keras.losses.MeanAbsoluteError()
         batchSize = 32
-        t_m = EMAvgTM()
+        t_m = SMAvgTM()
         err_fn = tf.keras.losses.MeanAbsoluteError(
             reduction=tf.keras.losses.Reduction.NONE
         )
@@ -171,19 +172,18 @@ class pflDistillativeNode(FederatedOnlineNode):
             identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn
         )
 
-        self._logger.info("Global model initialized with following layers:")
+        self._logger.debug("Global model initialized with following layers:")
         for i in teacher_model.get_parameters():
             if not (isinstance(i, int) or isinstance(i, float)):
-                self._logger.info(i.shape)
+                self._logger.debug(i.shape)
             else:
-                self._logger.info(i)
-
-        self._logger.info("Received global parameters:")
+                self._logger.debug(i)
+        self._logger.debug("Received global parameters:")
         for i in new_params:
             if not (isinstance(i, int) or isinstance(i, float)):
-                self._logger.info(i.shape)
+                self._logger.debug(i.shape)
             else:
-                self._logger.info(i)
+                self._logger.debug(i)
 
         teacher_model.set_parameters(new_params)
         self._logger.info("Teacher model initialized, starting distillation process")
@@ -206,12 +206,12 @@ class pflDistillativeNode(FederatedOnlineNode):
         """
         with self._m_lock:
             current_params = self._model.get_parameters()
-            self._logger.info("Model Parameters:")
+            self._logger.debug("Model Parameters:")
             for i in current_params:
                 if not (isinstance(i, int) or isinstance(i, float)):
-                    self._logger.info(i.shape)
+                    self._logger.debug(i.shape)
                 else:
-                    self._logger.info(i)
+                    self._logger.debug(i)
 
             params = self.model_poisoning(current_params, self._poisoningMode)
             self._m_aggr_server.send(params)
@@ -235,8 +235,8 @@ class pflDistillativeNode(FederatedOnlineNode):
                 return
 
             if self._poisoningMode is None or self._poisoningMode == "inverse":
+                # poisoning mode: random or zeros -> we dont need to update local parameters
                 self._logger.debug("Updating local model with global parameters...")
-                # self._poisoningMode
                 self.distillative_aggregation(m_aggr_msg)
 
     def create_async_fed_learner(self):
@@ -300,9 +300,11 @@ class pflDistillativeNode(FederatedOnlineNode):
                     "AsyncUpdater: Updating local model "
                     "with received global parameters..."
                 )
-                # TODO Apply distillation to get knowledge from global model into client
-                new_params = cast(np.array, m_aggr_msg)
-                self._model.set_parameters(new_params)
+                if self._poisoningMode is None or self._poisoningMode == "inverse":
+                    # poisoning mode: random or zeros -> we dont need to update local parameters
+                    self._logger.debug("Updating local model with global parameters...")
+                    self.distillative_aggregation(m_aggr_msg)
+
         else:
             self._logger.debug(
                 "AsyncUpdater: Request for sampled federated update received..."
@@ -315,6 +317,9 @@ class pflDistillativeNode(FederatedOnlineNode):
         function either retruns a list of random values, zeros or inverted parameters with the same shape
         as the original parameters. If poisoning mode is none, the original parameters are returned.
 
+        :param current_params: List of current model weights.
+        :param poisoning_mode: Poisoning mode, either None, zeros, random or inverse.
+        :return: poisoned parameters
         """
         poisoned_params = []
 

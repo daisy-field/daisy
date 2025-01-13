@@ -1,15 +1,15 @@
-# Copyright (C) 2024 DAI-Labor and others
+# Copyright (C) 2024-2025 DAI-Labor and others
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-"""An adapted federated online aggregator to be able to aggregate models of different sizes and shapes.
+"""An adapted federated online aggregator to be able to aggregate personalized models.
   The models size of a node in pFL is determined by auto_model_scaler.py and collected by the model aggregator.
   The model aggregator uses multi teacher knowledge distillation to exchange knowledge between these models.
 
 Author: Seraphin Zunzer
-Modified: 04.07.24
+Modified: 13.01.25
 """
 
 from random import sample
@@ -18,17 +18,14 @@ from typing import cast, Sequence
 
 import numpy as np
 
-from daisy.communication import StreamEndpoint
-from daisy.federated_learning import ModelAggregator
-
-from daisy.federated_ids_components import FederatedOnlineAggregator
 
 import tensorflow as tf
 from tensorflow import keras
 
+from daisy.communication import StreamEndpoint
+from daisy.federated_learning import ModelAggregator, FederatedIFTM, SMAvgTM
+from daisy.federated_ids_components import FederatedOnlineAggregator
 from daisy.personalized_fl_components.auto_model_scaler import AutoModelScaler
-from daisy.federated_learning import FederatedIFTM
-from daisy.federated_learning import EMAvgTM
 
 
 class DistillativeModelAggregator(FederatedOnlineAggregator):
@@ -90,12 +87,11 @@ class DistillativeModelAggregator(FederatedOnlineAggregator):
         self.train_loss = tf.keras.metrics.Mean(name="train_loss")
         self.train_acc = tf.keras.metrics.SparseCategoricalAccuracy(name="train_acc")
 
-        # we define the global model to have this structure
+        # define global student model
         optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
         loss = tf.keras.losses.MeanAbsoluteError()
-
         batchSize = 32
-        t_m = EMAvgTM()
+        t_m = SMAvgTM()
         epochs = 10
         err_fn = tf.keras.losses.MeanAbsoluteError(
             reduction=tf.keras.losses.Reduction.NONE
@@ -117,49 +113,52 @@ class DistillativeModelAggregator(FederatedOnlineAggregator):
     def generate_random_data(self, num_samples, input_shape):
         """
         Fuction to generate normal distributed gaussian samples for knowledge distillation process.
+        :param num_samples: number of synthetic samples to create.
+        :param input_shape: shape of the created synthetic vectors
+
+        :return: array of random data
         """
         return np.random.randn(num_samples, input_shape).astype(np.float32)
-
-    # return np.random.normal((num_samples, input_shape)).astype(np.float32)
-    # TODO check random.normal /random random for gaussian
-    #        return np.random.random((num_samples, input_shape)).astype(np.float32)
 
     def knowledge_distillation(self, input_data, teacher_model, student_model, epochs):
         """
         Conducts the supervised training of the global model, based on the predictions of the received
         student models from the nodes.
 
+        :param input_data: random input data for creating predictions.
+        :param teacher_model: the teacher model to extract knowledge from.
+        :param student_model: the student model to distill knowledge in.
+        :param epochs: number of training epochs.
         """
         for epoch in range(epochs):
-            self._logger.info(f"Knowledge Distillation {epoch}/{epochs}")
+            self._logger.debug(f"Knowledge Distillation {epoch}/{epochs}")
             teacher_logits = teacher_model.predict(input_data)
             student_model.fit(input_data, teacher_logits)
 
     def mtkd(self, client_models):
         """
-        Multi teacher knowledge distillation.
+        Multi teacher knowledge distillation, based on the list of client weights.
+        We initialize each node model, get the predictions on the random dataset,
+        and train the student global model in a supervised manner based on these predictions.
 
+        :param client_models: List of client model weights.
         """
-        num_samples = 1000
 
-        self._logger.info("Generate gaussian samples")
-        X_synthetic = self.generate_random_data(num_samples, self._input_size)
-        self._logger.info(f"Start MTKD of {len(client_models)} teachers")
+        self._logger.debug("Generate random samples")
+        X_synthetic = self.generate_random_data(1000, self._input_size)
+        self._logger.debug(f"Start MTKD of {len(client_models)} teachers")
 
         for model_params in client_models:
-            # For evaluation, we assume all nodes have the following model structure
-            # when implementing uuids, the server could look up the to the uuid corresponding model structure
-
+            # initialize teacher model, later based on uuid
             optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
             loss = tf.keras.losses.MeanAbsoluteError()
             batchSize = 32
-            t_m = EMAvgTM()
+            t_m = SMAvgTM()
             epochs = 3
             err_fn = tf.keras.losses.MeanAbsoluteError(
                 reduction=tf.keras.losses.Reduction.NONE
             )
             aMS = AutoModelScaler()
-
             id_fn = aMS.get_manual_model(
                 identifier="medium",
                 input_size=self._input_size,
@@ -171,31 +170,32 @@ class DistillativeModelAggregator(FederatedOnlineAggregator):
             teacher_model = FederatedIFTM(
                 identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn
             )
-
-            self._logger.info("Teacher model initialized with following layers:")
+            self._logger.debug("Teacher model initialized with following layers:")
             for i in teacher_model.get_parameters():
                 if not (isinstance(i, int) or isinstance(i, float)):
-                    self._logger.info(i.shape)
+                    self._logger.debug(i.shape)
                 else:
-                    self._logger.info(i)
+                    self._logger.debug(i)
 
-            self._logger.info("Received teacher parameters:")
+            self._logger.debug("Received teacher parameters:")
             for i in model_params:
                 if not (isinstance(i, int) or isinstance(i, float)):
-                    self._logger.info(i.shape)
+                    self._logger.debug(i.shape)
                 else:
-                    self._logger.info(i)
+                    self._logger.debug(i)
 
             teacher_model.set_parameters(model_params)
-            self._logger.info("Teacher initialized, starting distillation process")
+            self._logger.debug(
+                "Teacher weights initialized, starting distillation process"
+            )
 
             self.knowledge_distillation(
                 X_synthetic, teacher_model, self._global_model, epochs
             )
 
-            self._logger.info("Continue with next teacher")
+            self._logger.debug("Continue with next teacher")
 
-        self._logger.info("multi Teacher distillation finished")
+        self._logger.debug("MTKD process finished")
         return self._global_model.get_parameters()
 
     def create_fed_aggr(self):
@@ -286,7 +286,7 @@ class DistillativeModelAggregator(FederatedOnlineAggregator):
         self._logger.debug(
             f"Aggregating client models [{len(client_models)}] into global model..."
         )
-        self._logger.info("Start distillative aggregation")
+        self._logger.debug("Start distillative aggregation")
         aggregated_params = self.mtkd(client_models)
 
         clients = self._aggr_serv.poll_connections()[1].values()
@@ -294,12 +294,6 @@ class DistillativeModelAggregator(FederatedOnlineAggregator):
             f"Sending aggregated global model to all "
             f"available clients [{len(clients)}]..."
         )
-        for i in aggregated_params:
-            if not (isinstance(i, int) or isinstance(i, float)):
-                self._logger.info(i.shape)
-            else:
-                self._logger.info(i)
-        self._logger.info("\n")
         for client in clients:
             client.send(aggregated_params)
 
@@ -358,7 +352,8 @@ class DistillativeModelAggregator(FederatedOnlineAggregator):
         self._logger.debug(
             f"Aggregating client models [{len(client_models)}] into global model..."
         )
-        global_model = self._m_aggr.aggregate(client_models)
+        self._logger.debug("Start distillative aggregation")
+        aggregated_params = self.mtkd(client_models)
 
         clients = StreamEndpoint.select_eps(clients)[1]
         self._logger.debug(
@@ -366,7 +361,7 @@ class DistillativeModelAggregator(FederatedOnlineAggregator):
             f"requesting clients [{len(clients)}]..."
         )
         for client in clients:
-            client.send(global_model)
+            client.send(aggregated_params)
 
         self._update_dashboard(
             "/aggregation/",

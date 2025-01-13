@@ -1,12 +1,12 @@
-# Copyright (C) 2024 DAI-Labor and others
+# Copyright (C) 2024-2025 DAI-Labor and others
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""Implementation of different sized models used for personalized FL
+"""Implementation of different sized models needed for personalized FL
 
 Author: Seraphin Zunzer
-Modified: 24.07.24
+Modified: 13.01.25
 """
 
 from typing import Callable, Self

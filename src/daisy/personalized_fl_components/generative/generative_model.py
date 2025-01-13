@@ -1,4 +1,4 @@
-# Copyright (C) 2024 DAI-Labor and others
+# Copyright (C) 2024-2025 DAI-Labor and others
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,7 +10,7 @@ similar statistics to the local data stream. These data generators are exchanged
 federated learning approach e.g. FedAvg and used by the nodes to mix synthetic data into the arriving data stream.
 
 Author: Seraphin Zunzer
-Modified: 31.07.24
+Modified: 13.01.25
 """
 
 from abc import abstractmethod
@@ -27,9 +27,9 @@ from daisy.federated_learning import FederatedModel
 
 
 class GenerativeModel(FederatedModel):
-    """An abstract GAN wrapper that offers the same methods, no matter the type of
+    """An abstract Generative Model wrapper that offers the same methods, no matter the type of
     underlying model. Must always be implemented if a new model type is to be used in
-    the personalized federated learning system using generators.
+    the personalized federated learning system using generative models.
     """
 
     @abstractmethod
@@ -43,8 +43,8 @@ class GenerativeModel(FederatedModel):
 
 
 class GenerativeGAN(GenerativeModel):
-    """Implementation of the Tensorflow DCGAN Tutorial with slightly changed model layers.
-    achieves bad performance results.
+    """Implementation of the Tensorflow DCGAN Tutorial with adapted model layers.
+    See: https://www.tensorflow.org/tutorials/generative/dcgan
     """
 
     _generator: keras.Model
@@ -74,13 +74,13 @@ class GenerativeGAN(GenerativeModel):
         self._noise_dim = noise_dim
 
     def set_parameters(self, parameters: list[np.ndarray]):
-        """Updates the internal parameters of the generative model.
+        """Updates the internal parameters of the generator of the generative model.
 
-        :param parameters: Parameters to update the model with.
+        :param parameters: Parameters to update the generator with.
         """
-        self._logger.info("Set generator weights")
+        self._logger.debug("Set generator weights")
         self._generator.set_weights(parameters)
-        self._logger.info("Set successful")
+        self._logger.debug("Set successful")
         return
 
     def get_parameters(self) -> list[np.ndarray]:
@@ -90,56 +90,48 @@ class GenerativeGAN(GenerativeModel):
         """
         self._logger.info("Get generator weights")
         params = self._generator.get_weights()
-        # params.extend(self._discriminator.get_weights())
         return params
 
     def make_generator_model(self):
-        """Create generator model"""
-        model = tf.keras.Sequential()
+        """Create generator model
 
-        # Dense layer to expand the input from latent_dim to 128 units
+        :return: generator model
+        """
+        model = tf.keras.Sequential()
         model.add(layers.Dense(512, input_dim=self._input_size, name="GeneratorInput"))
         model.add(layers.BatchNormalization())
         model.add(layers.LeakyReLU())
-
         model.add(layers.Dense(256))
         model.add(layers.BatchNormalization())
         model.add(layers.LeakyReLU())
         model.add(layers.Dense(128))
         model.add(layers.BatchNormalization())
         model.add(layers.LeakyReLU())
-
-        model.add(layers.Dense(self._input_size, name="GeneratoOutput"))
-
+        model.add(layers.Dense(self._input_size, name="GeneratorOutput"))
         self._logger.info("Generator created...")
         return model
 
     def make_discriminator_model(self):
-        """Create discriminator model"""
+        """Create discriminator model
+
+        :return: discriminator model
+        """
 
         model = tf.keras.Sequential()
-        # Input layer
         model.add(
             layers.Dense(128, input_dim=self._input_size, name="DiscriminatorInput")
         )
         model.add(layers.LeakyReLU())
         model.add(layers.Dropout(0.3))
-
         model.add(layers.Dense(256))
         model.add(layers.LeakyReLU())
         model.add(layers.Dropout(0.3))
-
-        # Hidden layer
         model.add(layers.Dense(128))
         model.add(layers.LeakyReLU())
         model.add(layers.Dropout(0.3))
-
-        # Output layer
         model.add(layers.Flatten())
-
         model.add(layers.Dense(1, activation="sigmoid", name="DiscriminatorOutput"))
-
-        self._logger.info("Discriminator created...")
+        self._logger.debug("Discriminator created...")
         return model
 
     @classmethod
@@ -152,9 +144,8 @@ class GenerativeGAN(GenerativeModel):
     ) -> Self:
         """Create a generative adversarial network and save it locally.
         It will be used to create synthetic data of the data present at the node.
-        Based on the selected approach, the gan's model weights themselves can be shared with the aggregation server and aggregated using
-        traditional aggregation methods like FedAvg (e.g. FedGen)
-        or the generated data is sent to the server and mixed there (increases necessary bandwidth dramatically, e.g. PerFedGan)
+        The GAN's model weights themselves can be shared with the aggregation server
+        and aggregated using traditional aggregation methods like FedAvg.
         """
 
         gan = GenerativeGAN(
@@ -168,13 +159,14 @@ class GenerativeGAN(GenerativeModel):
         gan._discriminator = gan.make_discriminator_model()
 
         gan._param_split = len(gan._generator.get_weights())
+        # currently not needed, can be interesting for aggregating generator AND discriminator weights
 
         return gan
 
-    # @tf.function
     def train_step(self, data):
-        """Tensorflow GAN training function (see: https://www.tensorflow.org/tutorials/generative/dcgan)
-        data: data to train GAN with
+        """GAN training function.
+
+        :param data: data to train GAN with
         """
         noise = tf.random.normal((1, self._input_size))
 
@@ -205,12 +197,12 @@ class GenerativeGAN(GenerativeModel):
         )
 
     def generator_loss(self, fake_output):
-        cross_entropy = tf.keras.losses.BinaryCrossentropy(
-            from_logits=True
-        )  # from_logits=True)
+        """Generator loss function"""
+        cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits=True)
         return cross_entropy(tf.ones_like(fake_output), fake_output)
 
     def discriminator_loss(self, real_output, fake_output):
+        """Discriminator loss function"""
         cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits=True)
         real_loss = cross_entropy(tf.ones_like(real_output), real_output)
         fake_loss = cross_entropy(tf.zeros_like(fake_output), fake_output)
@@ -218,11 +210,11 @@ class GenerativeGAN(GenerativeModel):
         return total_loss
 
     def create_synthetic_data(self, n: int = 100):
-        """Create n synthetic data points.
+        """Create n synthetic data points using the generator model.
         These datapoints should be mixed with the locally arriving
-        datastream to include globally learned knowledge the local intrusion detection model.
+        datastream to include globally learned knowledge in the local intrusion detection model.
 
-        n: number of synthetic datapoints
+        :param n: number of synthetic datapoints to create
         """
         generated_data = []
         for i in range(n):
@@ -230,16 +222,19 @@ class GenerativeGAN(GenerativeModel):
             generated_data.append(self._generator(noise))
 
         generated_data_tensor = tf.concat(generated_data, axis=0)
-        self._logger.warning("Generated Synthetic data...")
+        self._logger.info("Generated Synthetic data...")
 
         return generated_data_tensor
 
     def fit(self, dataset):
-        """Train GAN"""
-        self._logger.info("Start GAN training...")
+        """Start training the GAN in epochs using the train_step fuction
+
+        :params dataset: dataset to train the GAN with.
+        """
+        self._logger.debug("Start GAN training...")
         for epoch in range(self._epochs):
             self.train_step(dataset)
-        self._logger.info("Finished GAN training...")
+        self._logger.debug("Finished GAN training...")
 
     def predict(self):
         raise NotImplementedError

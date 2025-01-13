@@ -1,4 +1,4 @@
-# Copyright (C) 2024 DAI-Labor and others
+# Copyright (C) 2024-2025 DAI-Labor and others
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -35,8 +35,10 @@ beside the command line option. Note that one does not need to launch all three,
 depending on the type of demo, one can select one, two, or all three additional
 components.
 
-Author: Fabian Hofmann
-Modified: 04.11.24
+There are also different options to choose pFL at startup.
+
+Author: Fabian Hofmann, Seraphin Zunzer
+Modified: 13.01.25
 """
 
 import argparse

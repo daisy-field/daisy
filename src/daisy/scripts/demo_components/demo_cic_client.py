@@ -1,4 +1,4 @@
-# Copyright (C) 2024 DAI-Labor and others
+# Copyright (C) 2024-2025 DAI-Labor and others
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -6,37 +6,13 @@
 """Pre-configured demonstration client for a simple federated intrusion detection
 system (IDS), that learns cooperatively with another clients through a centralized
 model aggregation server using the federated averaging (FedAvg) technique. In this
-example, the client is configured to process network traffic data from the road-side
-infrastructure (BeIntelli) on Cohda boxes 2 and 5 on March 6th 2023, which must be
-available in (raw) pcap files for each client.
+example, the client is configured to process network traffic data from the CICIDS17
+dataset.
 
-The processing is done in online manner (as is the general nature of all current
-federated processing nodes), with the underlying model running predictions on a
-minibatch, before training a single epoch on that batch. The model itself is a hybrid
-approach for anomaly detection, using a simple autoencoder paired with a dynamic
-threshold to map the anomaly score to a binary label. Finally, the prediction results
-are evaluated using a sliding window confusion matrix along its anomaly detection
-evaluation metrics (e.g. Precision, Recall, F1-score, etc.).
+There are also different options to choose pFL at startup.
 
-Note that this demonstration client can also be launched as a standalone detection
-component, if no additional client is run along with the model aggregation server.
-The same is the case for additional prediction and evaluation result aggregation
-using centralize servers (see -h for more information).
-However, the full demonstration topology consists of two federated IDS detection
-clients along three servers (from the 'generic_fids_components' scripts subpackage):
-
-    * model_aggr_server - Model aggregation server to aggregate the clients' models.
-    * pred_aggr_server - Value aggregation server for (client) prediction results.
-    * eval_aggr_server - Value aggregation server for (client) evaluation results.
-
-ALl of these components, like with this client, can be found in the
-'generic_fids_components' subpackage, to be launched directly through python,
-beside the command line option. Note that one does not need to launch all three,
-depending on the type of demo, one can select one, two, or all three additional
-components.
-
-Author: Fabian Hofmann
-Modified: 04.11.24
+Author: Fabian Hofmann, Seraphin Zunzer
+Modified: 13.01.25
 """
 
 import argparse

@@ -1,4 +1,4 @@
-# Copyright (C) 2024 DAI-Labor and others
+# Copyright (C) 2024-2025 DAI-Labor and others
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -6,7 +6,7 @@
 """Implementation of the data processor for supporting processing steps used for pyshark
 packets, i.e. a pre-packaged extension of the data processor base class for ease of use.
 
-Author: Jonathan Ackerschewski, Fabian Hofmann
+Author: Jonathan Ackerschewski, Seraphin Zunzer
 Modified: 04.11.2024
 """
 
