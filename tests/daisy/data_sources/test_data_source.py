@@ -1,4 +1,4 @@
-# Copyright (C) 2024 DAI-Labor and others
+# Copyright (C) 2024-2025 DAI-Labor and others
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -12,12 +12,12 @@ _csv_filename = "csvfiledatasource_test.csv"
 
 @pytest.fixture(scope="session")
 def csv_file(tmp_path_factory, example_dict):
-    path = tmp_path_factory.getbasetemp()
+    path = tmp_path_factory.mktemp("csv_file_data_source")
     with open(path / _csv_filename, "w") as f:
         f.write(",".join(example_dict.keys()) + "\n")
         f.write(",".join(example_dict.values()) + "\n")
         f.write(",".join(example_dict.values()) + "\n")
-    return path / _csv_filename
+    return path
 
 
 @pytest.fixture
@@ -34,7 +34,7 @@ def simple_data_source(example_list):
 @pytest.fixture
 def csv_data_source(tmp_path_factory, csv_file, request):
     files = request.param
-    path = tmp_path_factory.getbasetemp()
+    path = csv_file
     if isinstance(files, str):
         files = str(path / files)
     else:
