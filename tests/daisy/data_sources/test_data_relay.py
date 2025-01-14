@@ -207,9 +207,12 @@ class TestCSVFileRelay:
             )
 
     def test_start_two_times_throws_error(self, csv_file_relay):
-        csv_file_relay.start(blocking=False)
-        with pytest.raises(RuntimeError):
+        try:
             csv_file_relay.start(blocking=False)
+            with pytest.raises(RuntimeError):
+                csv_file_relay.start(blocking=False)
+        finally:
+            csv_file_relay.stop()
 
     def test_stop_without_start_throws_error(self, csv_file_relay):
         with pytest.raises(RuntimeError):
@@ -280,6 +283,7 @@ class TestCSVFileRelay:
         )
         csv_file_relay.start(blocking=True)
         assert_file_content(filepath, data_points[1])
+        csv_file_relay.stop()
 
     def test_param_overwrite_file_is_true_overwrite_file(self, csv_file_relay_path):
         filepath = (
