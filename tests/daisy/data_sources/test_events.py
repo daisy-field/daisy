@@ -4,6 +4,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 import pytest
+from pyparsing import ParseException
 
 from daisy.data_sources import EventHandler
 
@@ -14,7 +15,13 @@ def event_parser():
 
 
 class TestEventParser:
-    pass
+    @pytest.mark.parametrize("expression,error_expected", [("a=b", False), ("a", True)])
+    def test_parser_syntax(self, event_parser, expression, error_expected):
+        if error_expected:
+            with pytest.raises(ParseException):
+                event_parser.parse(expression)
+        else:
+            event_parser.parse(expression)
 
 
 # =
@@ -33,3 +40,7 @@ class TestEventParser:
 # pars ( parser )
 # pars + boperator + pars
 # uoperator + pars
+
+# synstax tests
+# logic tests
+# is the whole expression read?
