@@ -113,7 +113,7 @@ def assert_file_content(file: IO, expected_lines: list[str]):
             lines.append(line)
     assert len(lines) == len(expected_lines)
     for i in range(len(expected_lines)):
-        assert lines[i] == expected_lines[i]
+        assert expected_lines[i] == lines[i]
 
 
 @pytest.fixture(scope="function")
@@ -240,52 +240,39 @@ class TestCSVFileRelay:
         assert not csv_file_relay._do_buffer
         file.assert_lines()
 
-    def test_create_relay_writes_buffer_to_file_if_not_full(
-        self, tmp_path_factory, data_points
+    @pytest.mark.parametrize(
+        "header_buffer_size,headers,skip_last_datapoint",
+        [
+            (10, None, True),
+            (4, None, False),
+            (0, ["header1", "header2", "header3", "header4"], False),
+            (10, ["header1", "header2", "header3", "header4"], False),
+        ],
+        ids=[
+            "create_relay_writes_buffer_to_file_if_not_full",
+            "param_header_buffer_size_greater_0_discovers_headers",
+            "param_headers_are_used_param_hbs_eq_0",
+            "param_headers_are_used_param_hbs_gr_0",
+        ],
+    )
+    def test_param_headers_are_used_param_hbs_gr_0(
+        self,
+        tmp_path_factory,
+        data_points,
+        header_buffer_size,
+        headers,
+        skip_last_datapoint,
     ):
         path = tmp_path_factory.getbasetemp()
-        filepath = path / "create_relay_writes_buffer_to_file_if_not_full.csv"
-        csv_file_relay = CSVFileRelay(
-            data_handler=DataHandlerMock(data_points=data_points[0][:-1]),
-            target_file=filepath,
-            header_buffer_size=len(data_points[0]),
-        )
-        csv_file_relay.start(blocking=True)
-        assert_file_content(filepath, data_points[1][:-1])
-
-    def test_param_header_buffer_size_greater_0_discovers_headers(
-        self, tmp_path_factory, data_points
-    ):
-        path = tmp_path_factory.getbasetemp()
-        filepath = path / "param_header_buffer_size_greater_0_discovers_headers.csv"
+        filepath = path / "general_csv_file_relay_test_file.csv"
+        if skip_last_datapoint:
+            data_points = (data_points[0][:-1], data_points[1][:-1])
         csv_file_relay = CSVFileRelay(
             data_handler=DataHandlerMock(data_points=data_points[0]),
             target_file=filepath,
-            header_buffer_size=4,
-        )
-        csv_file_relay.start(blocking=True)
-        assert_file_content(filepath, data_points[1])
-
-    def test_param_headers_are_used_param_hbs_eq_0(self, tmp_path_factory, data_points):
-        path = tmp_path_factory.getbasetemp()
-        filepath = path / "param_headers_are_used_param_hbs_eq_0.csv"
-        csv_file_relay = CSVFileRelay(
-            data_handler=DataHandlerMock(data_points=data_points[0]),
-            target_file=filepath,
-            header_buffer_size=0,
-            headers=["header1", "header2", "header3", "header4"],
-        )
-        csv_file_relay.start(blocking=True)
-        assert_file_content(filepath, data_points[1])
-
-    def test_param_headers_are_used_param_hbs_gr_0(self, tmp_path_factory, data_points):
-        path = tmp_path_factory.getbasetemp()
-        filepath = path / "param_headers_are_used_param_hbs_gr_0.csv"
-        csv_file_relay = CSVFileRelay(
-            data_handler=DataHandlerMock(data_points=data_points[0]),
-            target_file=filepath,
-            header_buffer_size=10,
-            headers=["header1", "header2", "header3", "header4"],
+            header_buffer_size=header_buffer_size,
+            headers=headers,
+            overwrite_file=True,
         )
         csv_file_relay.start(blocking=True)
         assert_file_content(filepath, data_points[1])
