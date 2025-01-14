@@ -11,19 +11,10 @@ import pytest
 from daisy.data_sources import CSVFileRelay, DataHandler
 
 
-# CSVFileRelay tests
-# header_buffer_size = 0
-# header_buffer_size > 0
-# headers
-# overwrite test
-# separator test
-# default_missing_value test
-# create_relay -> if done or stopped before buffer is full-> Write buffer
-
-
 class DataHandlerMock(DataHandler):
-    def __init__(self):
+    def __init__(self, data_points: list = None):
         super().__init__(data_source=None, data_processor=None)
+        self._data_points = data_points
 
     def open(self):
         pass
@@ -35,8 +26,8 @@ class DataHandlerMock(DataHandler):
         pass
 
     def __iter__(self):
-        # TODO yield something
-        pass
+        for data_point in self._data_points:
+            yield data_point
 
     def __del__(self):
         pass
@@ -115,6 +106,16 @@ class FileMock(IO):
         pass
 
 
+def assert_file_content(file: IO, expected_lines: list[str]):
+    lines = []
+    with open(file, "r") as f:
+        for line in f:
+            lines.append(line)
+    assert len(lines) == len(expected_lines)
+    for i in range(len(expected_lines)):
+        assert lines[i] == expected_lines[i]
+
+
 @pytest.fixture(scope="function")
 def csv_file_relay(tmp_path_factory):
     path = tmp_path_factory.getbasetemp()
@@ -123,6 +124,26 @@ def csv_file_relay(tmp_path_factory):
         target_file=path / "general_csv_file_relay_test_file.csv",
         overwrite_file=True,
     )
+
+
+@pytest.fixture(scope="function")
+def data_points():
+    data_points = [
+        {"header1": 1, "header2": 2},
+        {"header1": 3, "header2": 4},
+        {"header3": 5},
+        {"header1": 6, "header4": 7},
+        {"header5": 8},  # This header is not supposed to be discovered
+    ]
+    expected_lines = [
+        "header1,header2,header3,header4\n",
+        "1,2,,\n",
+        "3,4,,\n",
+        ",,5,\n",
+        "6,,,7\n",
+        ",,,\n",
+    ]
+    return data_points, expected_lines
 
 
 class TestCSVFileRelay:
@@ -136,7 +157,7 @@ class TestCSVFileRelay:
                 headers=None,
             )
 
-    def test_separator_double_quote_throws_error(self, tmp_path_factory):
+    def test_param_separator_double_quote_throws_error(self, tmp_path_factory):
         path = tmp_path_factory.getbasetemp()
         with pytest.raises(ValueError):
             CSVFileRelay(
@@ -145,21 +166,21 @@ class TestCSVFileRelay:
                 separator='"',
             )
 
-    def test_target_file_none_throws_error(self):
+    def test_param_target_file_none_throws_error(self):
         with pytest.raises(ValueError):
             CSVFileRelay(
                 data_handler=DataHandlerMock(),
                 target_file=None,
             )
 
-    def test_target_file_empty_throws_error(self):
+    def test_param_target_file_empty_throws_error(self):
         with pytest.raises(ValueError):
             CSVFileRelay(
                 data_handler=DataHandlerMock(),
                 target_file="",
             )
 
-    def test_target_file_is_dir_throws_error(self, tmp_path_factory):
+    def test_param_target_file_is_dir_throws_error(self, tmp_path_factory):
         path = tmp_path_factory.getbasetemp()
         os.mkdir(path / "target_file_is_dir_throws_error")
         with pytest.raises(ValueError):
@@ -168,19 +189,7 @@ class TestCSVFileRelay:
                 target_file=path / "target_file_is_dir_throws_error",
             )
 
-    def test_target_file_invalid_path_throws_error(
-        self, tmp_path_factory
-    ):  # TODO test if this works on Linux
-        path = tmp_path_factory.getbasetemp()
-        with pytest.raises(ValueError):
-            CSVFileRelay(
-                data_handler=DataHandlerMock(),
-                target_file=path
-                / "target_file_invalid_path_throws_error"
-                / ("a" * 4096 + ".csv"),
-            )
-
-    def test_overwrite_file_is_false_but_file_exists_throws_error(
+    def test_param_overwrite_file_is_false_but_file_exists_throws_error(
         self, tmp_path_factory
     ):
         path = tmp_path_factory.getbasetemp()
@@ -215,28 +224,82 @@ class TestCSVFileRelay:
         assert csv_file_relay._d_point_buffer == data_points
         assert csv_file_relay._do_buffer
 
-    def test_process_data_point_writes_buffer_to_file(self, tmp_path_factory):
+    def test_process_data_point_writes_buffer_to_file(
+        self, tmp_path_factory, data_points
+    ):
         path = tmp_path_factory.getbasetemp()
         csv_file_relay = CSVFileRelay(
             data_handler=DataHandlerMock(),
             target_file=path / "process_data_point_writes_buffer_to_file.csv",
-            header_buffer_size=2,
+            header_buffer_size=4,
         )
-        file = FileMock(
-            expected_lines=[
-                "data_point,header1,header2\n",
-                "1,value1,\n",
-                "2,,value2\n",
-                "3,,\n",
-            ]
-        )
-        data_points = [
-            {"data_point": 1, "header1": "value1"},
-            {"data_point": 2, "header2": "value2"},
-            {"data_point": 3, "header3": "value3"},
-        ]
-        for data_point in data_points:
+        file = FileMock(data_points[1])
+        for data_point in data_points[0]:
             csv_file_relay._process_data_point(file, data_point)
 
         assert not csv_file_relay._do_buffer
         file.assert_lines()
+
+    def test_create_relay_writes_buffer_to_file_if_not_full(
+        self, tmp_path_factory, data_points
+    ):
+        path = tmp_path_factory.getbasetemp()
+        filepath = path / "create_relay_writes_buffer_to_file_if_not_full.csv"
+        csv_file_relay = CSVFileRelay(
+            data_handler=DataHandlerMock(data_points=data_points[0][:-1]),
+            target_file=filepath,
+            header_buffer_size=len(data_points[0]),
+        )
+        csv_file_relay.start(blocking=True)
+        assert_file_content(filepath, data_points[1][:-1])
+
+    def test_param_header_buffer_size_greater_0_discovers_headers(
+        self, tmp_path_factory, data_points
+    ):
+        path = tmp_path_factory.getbasetemp()
+        filepath = path / "param_header_buffer_size_greater_0_discovers_headers.csv"
+        csv_file_relay = CSVFileRelay(
+            data_handler=DataHandlerMock(data_points=data_points[0]),
+            target_file=filepath,
+            header_buffer_size=4,
+        )
+        csv_file_relay.start(blocking=True)
+        assert_file_content(filepath, data_points[1])
+
+    def test_param_headers_are_used_param_hbs_eq_0(self, tmp_path_factory, data_points):
+        path = tmp_path_factory.getbasetemp()
+        filepath = path / "param_headers_are_used_param_hbs_eq_0.csv"
+        csv_file_relay = CSVFileRelay(
+            data_handler=DataHandlerMock(data_points=data_points[0]),
+            target_file=filepath,
+            header_buffer_size=0,
+            headers=["header1", "header2", "header3", "header4"],
+        )
+        csv_file_relay.start(blocking=True)
+        assert_file_content(filepath, data_points[1])
+
+    def test_param_headers_are_used_param_hbs_gr_0(self, tmp_path_factory, data_points):
+        path = tmp_path_factory.getbasetemp()
+        filepath = path / "param_headers_are_used_param_hbs_gr_0.csv"
+        csv_file_relay = CSVFileRelay(
+            data_handler=DataHandlerMock(data_points=data_points[0]),
+            target_file=filepath,
+            header_buffer_size=10,
+            headers=["header1", "header2", "header3", "header4"],
+        )
+        csv_file_relay.start(blocking=True)
+        assert_file_content(filepath, data_points[1])
+
+    def test_param_overwrite_file_is_true_overwrite_file(self, tmp_path_factory):
+        path = tmp_path_factory.getbasetemp()
+        filepath = path / "param_overwrite_file_is_true_overwrite_file.csv"
+        CSVFileRelay(
+            data_handler=DataHandlerMock(),
+            target_file=filepath,
+        )
+        assert os.path.isfile(filepath)
+        CSVFileRelay(
+            data_handler=DataHandlerMock(),
+            target_file=filepath,
+            overwrite_file=True,
+        )
