@@ -1,4 +1,4 @@
-# Copyright (C) 2024 DAI-Labor and others
+# Copyright (C) 2024-2025 DAI-Labor and others
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -19,6 +19,8 @@ import logging
 import os
 from abc import ABC, abstractmethod
 from typing import IO, Iterator
+
+from natsort import natsorted
 
 from daisy.communication import StreamEndpoint
 
@@ -189,7 +191,9 @@ class CSVFileDataSource(DataSource):
         self._files = []
         for path in tmp_files:
             if os.path.isdir(path):
-                self._files += [os.path.join(path, file) for file in os.listdir(path)]
+                self._files += [
+                    os.path.join(path, file) for file in natsorted(os.listdir(path))
+                ]
             else:
                 self._files.append(path)
 
