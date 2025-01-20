@@ -115,6 +115,7 @@ def _parse_args() -> argparse.Namespace:
         "--input-file",
         "-f",
         type=str,
+        default="--input-file /mnt/h/daisy_datasets/Jamming/merged_data_preprocessed.csv",
         metavar="FILE",
         required=True,
         help="The input CSV file to read.",
@@ -210,6 +211,13 @@ def create_relay():
         multithreading=args.handler_multithreading,
         buffer_size=args.handler_buffer_size,
     )
+
+    # test
+    data_source.open()
+
+    for sample in data_source:
+        print(sample)
+
 
     # Model
     optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
