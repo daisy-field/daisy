@@ -19,6 +19,8 @@ import tensorflow as tf
 from tensorflow import Tensor
 from tensorflow import keras
 
+from daisy.federated_learning.model_classes.vae import DetectorVAE
+
 
 class FederatedModel(ABC):
     """An abstract model wrapper that offers the same methods, no matter the type of
@@ -95,11 +97,17 @@ class TFFederatedModel(FederatedModel):
         :param epochs: Number of epochs (rounds) during training.
         """
         self._model = model
-        if loss is not None:
-            self._model.compile(optimizer=optimizer, loss=loss, metrics=metrics)
+        # behandelt dynamische custom loss Funktionen anderes als statische standard loss Funktionen
+        if (isinstance(loss, keras.losses.Loss) or  # Klassenbasierte benutzerdefinierte Verluste
+                callable(loss) or  # Callable Funktionen (inkl. Lambda)
+                isinstance(loss, tf.Tensor) or  # TensorFlow Tensoren
+                tf.is_tensor(loss) or  # Alle TensorFlow-Tensoren, inkl. KerasTensor
+                isinstance(loss, keras.layers.Layer) or  # Benutzerdefinierte Schichten, die `add_loss` verwenden
+                hasattr(loss, "__call__")):  # Objekte mit einer __call__-Methode
+            self._model.add_loss(loss)
+            self._model.compile(optimizer=optimizer, metrics=metrics or [])
         else:
-            self._model.compile(optimizer=optimizer, metrics=metrics)
-
+            self._model.compile(optimizer=optimizer, loss=loss, metrics=metrics or [])
         self._batch_size = batch_size
         self._epochs = epochs
 
@@ -187,9 +195,9 @@ class TFFederatedModel(FederatedModel):
     def get_fvae(
             cls,
             input_size: int,
-            latent_dim: int = 2,
+            latent_dim: int = 10,
+            hidden_layers: list[int] = [20, 15],
             optimizer: str | keras.optimizers.Optimizer = "Adam",
-            loss: str | keras.losses.Loss = "mse",
             metrics: list[str | Callable | keras.metrics.Metric] = None,
             batch_size: int = 32,
             epochs: int = 1,
@@ -208,42 +216,13 @@ class TFFederatedModel(FederatedModel):
         :return: Initialized VAE model.
         """
 
-        # Encoder
-        inputs = keras.layers.Input(shape=(input_size,))
-        hidden = keras.layers.Dense(int(input_size/2), activation='relu')(inputs)
-        z_mean = keras.layers.Dense(latent_dim)(hidden)
-        z_log_var = keras.layers.Dense(latent_dim)(hidden)
-
-        # Sampling-Funktion
-        def sampling(args):
-            z_mean, z_log_var = args
-            epsilon = keras.backend.random_normal(shape=(keras.backend.shape(z_mean)[0], latent_dim), mean=0., stddev=1.0)
-            return z_mean + keras.backend.exp(0.5 * z_log_var) * epsilon
-
-        z = keras.layers.Lambda(sampling, output_shape=(latent_dim,))([z_mean, z_log_var])
-
-        # Decoder
-        decoder_hidden = keras.layers.Dense(int(input_size/2), activation='relu')
-        decoder_output = keras.layers.Dense(input_size, activation='sigmoid')
-        hidden_decoded = decoder_hidden(z)
-        outputs = decoder_output(hidden_decoded)
-
-        # VAE Modell
-        vae = keras.models.Model(inputs, outputs)
-
-        # Rekonstruktionsverlust
-        reconstruction_loss = keras.losses.binary_crossentropy(inputs, outputs)
-        reconstruction_loss *= input_size
-
-        # Kullback-Leibler-Divergenz
-        kl_loss = -0.5 * keras.backend.sum(1 + z_log_var - keras.backend.square(z_mean) - keras.backend.exp(z_log_var), axis=-1)
-        vae_loss = keras.backend.mean(reconstruction_loss + kl_loss)
-
-        vae.add_loss(vae_loss)
+        vae_detector = DetectorVAE(input_size, hidden_layers = hidden_layers, latent_dim = latent_dim)
+        vae = vae_detector.model
+        loss = vae_detector.loss
 
         vae.summary()
 
-        return TFFederatedModel(vae, optimizer, None, metrics, batch_size, epochs)
+        return TFFederatedModel(vae, optimizer, loss, metrics, batch_size, epochs)
 
     @classmethod
     def get_ftae(

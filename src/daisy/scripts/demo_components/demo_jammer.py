@@ -115,7 +115,7 @@ def _parse_args() -> argparse.Namespace:
         "--input-file",
         "-f",
         type=str,
-        default="--input-file /mnt/h/daisy_datasets/Jamming/merged_data_preprocessed.csv",
+        default="--input-file /mnt/h/daisy_datasets/Jamming/merged_data_preprocessed_only_one_lable.csv",
         metavar="FILE",
         required=True,
         help="The input CSV file to read.",
@@ -215,19 +215,13 @@ def create_relay():
     # test
     data_source.open()
 
-    for sample in data_source:
-        print(sample)
+    #for sample in data_source:
+    #    print(sample)
 
 
     # Model
-    optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
-    loss = tf.keras.losses.MeanAbsoluteError()
-    id_fn = TFFederatedModel.get_fae(
-        input_size=65,
-        optimizer=optimizer,
-        loss=loss,
-        batch_size=args.batchSize,
-        epochs=1,
+    id_fn = TFFederatedModel.get_fvae(
+        input_size=35,
     )
     t_m = EMAvgTM(alpha=0.05)
     err_fn = tf.keras.losses.MeanAbsoluteError(reduction=tf.keras.losses.Reduction.NONE)
@@ -240,7 +234,7 @@ def create_relay():
         data_handler=data_handler,
         batch_size=args.batchSize,
         model=model,
-        label_split=65,
+        label_split=35,
         metrics=metrics,
         m_aggr_server=m_aggr_serv,
         eval_server=eval_serv,
