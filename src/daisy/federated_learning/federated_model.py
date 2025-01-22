@@ -98,12 +98,18 @@ class TFFederatedModel(FederatedModel):
         """
         self._model = model
         # behandelt dynamische custom loss Funktionen anderes als statische standard loss Funktionen
-        if (isinstance(loss, keras.losses.Loss) or  # Klassenbasierte benutzerdefinierte Verluste
-                callable(loss) or  # Callable Funktionen (inkl. Lambda)
-                isinstance(loss, tf.Tensor) or  # TensorFlow Tensoren
-                tf.is_tensor(loss) or  # Alle TensorFlow-Tensoren, inkl. KerasTensor
-                isinstance(loss, keras.layers.Layer) or  # Benutzerdefinierte Schichten, die `add_loss` verwenden
-                hasattr(loss, "__call__")):  # Objekte mit einer __call__-Methode
+        if (
+            isinstance(
+                loss, keras.losses.Loss
+            )  # Klassenbasierte benutzerdefinierte Verluste
+            or callable(loss)  # Callable Funktionen (inkl. Lambda)
+            or isinstance(loss, tf.Tensor)  # TensorFlow Tensoren
+            or tf.is_tensor(loss)  # Alle TensorFlow-Tensoren, inkl. KerasTensor
+            or isinstance(
+                loss, keras.layers.Layer
+            )  # Benutzerdefinierte Schichten, die `add_loss` verwenden
+            or hasattr(loss, "__call__")
+        ):  # Objekte mit einer __call__-Methode
             self._model.add_loss(loss)
             self._model.compile(optimizer=optimizer, metrics=metrics or [])
         else:
@@ -193,14 +199,14 @@ class TFFederatedModel(FederatedModel):
 
     @classmethod
     def get_fvae(
-            cls,
-            input_size: int,
-            latent_dim: int = 10,
-            hidden_layers: list[int] = [20, 15],
-            optimizer: str | keras.optimizers.Optimizer = "Adam",
-            metrics: list[str | Callable | keras.metrics.Metric] = None,
-            batch_size: int = 32,
-            epochs: int = 1,
+        cls,
+        input_size: int,
+        latent_dim: int = 10,
+        hidden_layers: list[int] = [20, 15],
+        optimizer: str | keras.optimizers.Optimizer = "Adam",
+        metrics: list[str | Callable | keras.metrics.Metric] = None,
+        batch_size: int = 32,
+        epochs: int = 1,
     ) -> Self:
         """
         Factory class method to create a simple Variational Autoencoder (VAE) model
@@ -216,7 +222,9 @@ class TFFederatedModel(FederatedModel):
         :return: Initialized VAE model.
         """
 
-        vae_detector = DetectorVAE(input_size, hidden_layers = hidden_layers, latent_dim = latent_dim)
+        vae_detector = DetectorVAE(
+            input_size, hidden_layers=hidden_layers, latent_dim=latent_dim
+        )
         vae = vae_detector.model
         loss = vae_detector.loss
 
@@ -226,13 +234,13 @@ class TFFederatedModel(FederatedModel):
 
     @classmethod
     def get_ftae(
-            cls,
-            input_size: int,
-            optimizer: str | keras.optimizers.Optimizer = "Adam",
-            loss: str | keras.losses.Loss = "mse",
-            metrics: list[str | Callable | keras.metrics.Metric] = None,
-            batch_size: int = 32,
-            epochs: int = 1,
+        cls,
+        input_size: int,
+        optimizer: str | keras.optimizers.Optimizer = "Adam",
+        loss: str | keras.losses.Loss = "mse",
+        metrics: list[str | Callable | keras.metrics.Metric] = None,
+        batch_size: int = 32,
+        epochs: int = 1,
     ) -> Self:
         """Factory class method to create a simple federated transformer autoencoder model of a
         fixed depth but with variable input size.
@@ -246,7 +254,9 @@ class TFFederatedModel(FederatedModel):
         :return: Initialized federated autoencoder model.
         """
 
-        enc_inputs = keras.layers.Input(shape=(input_size,))  # input_dim ist die Anzahl der Merkmale
+        enc_inputs = keras.layers.Input(
+            shape=(input_size,)
+        )  # input_dim ist die Anzahl der Merkmale
         x = keras.layers.Dense(32)(enc_inputs)
         x = keras.layers.LayerNormalization(epsilon=1e-6)(x)
 
@@ -268,6 +278,7 @@ class TFFederatedModel(FederatedModel):
         ftae.summary()
 
         return TFFederatedModel(ftae, optimizer, loss, metrics, batch_size, epochs)
+
 
 class FederatedIFTM(FederatedModel):
     """Double union of two federated models, following the IFTM hybrid  model

@@ -36,7 +36,7 @@ from daisy.data_sources import (
     CSVFileDataSource,
     DataProcessor,
     DataHandler,
-    pcap_nn_aggregator
+    pcap_nn_aggregator,
 )
 import tensorflow as tf
 
@@ -164,7 +164,7 @@ def _parse_args() -> argparse.Namespace:
         default=32,
         metavar="",
         help="Batch size during processing of data "
-             "(mini-batches are multiples of that argument)",
+        "(mini-batches are multiples of that argument)",
     )
     client_options.add_argument(
         "--updateInterval",
@@ -259,9 +259,8 @@ def create_relay():
     # test
     data_source.open()
 
-    #for sample in data_source:
+    # for sample in data_source:
     #    print(sample)
-
 
     # Model
     id_fn = TFFederatedModel.get_fvae(
