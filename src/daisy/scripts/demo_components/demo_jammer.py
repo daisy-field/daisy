@@ -1,12 +1,10 @@
 import argparse
 import logging
 
-from daisy.communication import StreamEndpoint
 from daisy.data_sources import (
     CSVFileDataSource,
     DataProcessor,
     DataHandler,
-    DataHandlerRelay,
     pcap_nn_aggregator
 )
 import tensorflow as tf
