@@ -1,3 +1,34 @@
+# Copyright (C) 2024-2025 DAI-Labor and others
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+"""Pre-configured demonstration client for a federated Jamming Detection System (fJDS),
+designed to collaboratively learn with other clients through a centralized model
+aggregation server using the federated averaging (FedAvg) technique. This client
+is specifically configured to process pre-processed 5G traffic data from
+5G antenna infrastructure, focusing on the detection
+of deliberate jamming attacks.
+
+This demonstration client can operate either as part of a federated setup,
+interacting with a model aggregation server and optionally prediction/evaluation
+aggregation servers, or as a standalone detection system. The full demonstration
+topology typically includes the following components from the `generic_fids_components`
+subpackage:
+
+    * model_aggr_server - Aggregates models from multiple clients.
+    * pred_aggr_server - Aggregates prediction results from clients.
+    * eval_aggr_server - Aggregates evaluation metrics from clients.
+
+All these components, along with this client, can be found in the
+`generic_fids_components` subpackage and can be launched via Python or the command line.
+Depending on the specific demonstration setup, any combination of these components can
+be utilized.
+
+Author: Simon Torka
+Modified: 04.11.24
+"""
+
 import argparse
 import logging
 
@@ -15,6 +46,13 @@ from daisy.federated_learning import TFFederatedModel, FederatedIFTM, EMAvgTM
 
 
 def _parse_args() -> argparse.Namespace:
+    """Parses command-line arguments.
+
+    Defines and organizes options for logging, server configurations, client settings,
+    and performance configurations.
+
+    :return: Parsed arguments as an argparse.Namespace object.
+    """
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
@@ -158,6 +196,10 @@ def _parse_args() -> argparse.Namespace:
 
 
 def check_args(args):
+    """Configures logging based on the parsed arguments.
+
+    :param args: Parsed command-line arguments.
+    """
     match args.loglevel:
         case 0:
             log_level = logging.ERROR
@@ -185,6 +227,10 @@ def check_args(args):
 
 
 def create_relay():
+    """Creates and starts the federated client relay.
+
+    This function initializes the data sources, models, metrics, and client configuration.
+    """
     # Args parsing
     args = _parse_args()
     check_args(args)
