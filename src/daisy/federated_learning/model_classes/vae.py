@@ -61,7 +61,7 @@ class DetectorVAE:
             else:
                 h = keras.layers.Dense(units, activation="relu")(h)
 
-            h = keras.layers.Dropout(0.1)(h)
+            # h = keras.layers.Dropout(0.1)(h)
 
             self.encoder_layers.append(h)
 
@@ -83,13 +83,13 @@ class DetectorVAE:
         # Dynamisch versteckte Schichten im Decoder hinzufügen
         for idx, units in enumerate(reversed(self.hidden_layers)):
             h = keras.layers.Dense(units, activation="relu")(h)
-            h = keras.layers.Dropout(0.1)(h)
+            # h = keras.layers.Dropout(0.1)(h)
 
             # Skip-Connection => only for unet
             if self.is_unet:
                 h = concatenate([h, self.encoder_layers[-(idx + 1)]])
 
-        h = keras.layers.Dense(self.input_dim, activation="tanh")(h)
+        h = keras.layers.Dense(self.input_dim, activation="sigmoid")(h)
 
         return keras.models.Model(latent_inputs, h, name="decoder")
 
@@ -119,7 +119,9 @@ class DetectorVAE:
         :param z_mean: Mean of the latent distribution.
         :return: The calculated loss value.
         """
-        xent_loss = tf.keras.losses.binary_crossentropy(x, x_decoded_mean)
+        xent_loss = tf.keras.losses.mean_squared_error(
+            x, x_decoded_mean
+        )  # binary_crossentropy
         # xent_loss *= input_dim
         kl_loss = 1 + z_log_var - tf.square(z_mean) - tf.exp(z_log_var)
         kl_loss = tf.reduce_sum(kl_loss, axis=-1)

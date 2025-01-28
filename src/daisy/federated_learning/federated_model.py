@@ -201,12 +201,12 @@ class TFFederatedModel(FederatedModel):
     def get_fvae(
         cls,
         input_size: int,
-        latent_dim: int = 10,
-        hidden_layers: list[int] = [20, 15],
+        latent_dim: int = 4,
+        hidden_layers: list[int] = [15, 12],
         optimizer: str | keras.optimizers.Optimizer = "Adam",
         metrics: list[str | Callable | keras.metrics.Metric] = None,
-        batch_size: int = 32,
-        epochs: int = 1,
+        batch_size: int = 64,
+        epochs: int = 5,
     ) -> Self:
         """
         Factory class method to create a simple Variational Autoencoder (VAE) model

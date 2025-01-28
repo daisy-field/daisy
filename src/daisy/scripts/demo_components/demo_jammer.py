@@ -40,9 +40,12 @@ from daisy.data_sources import (
 )
 import tensorflow as tf
 
+from daisy.data_sources.jammerdetection_traffic import scale_data_point
 from daisy.evaluation import ConfMatrSlidingWindowEvaluation
 from daisy.federated_ids_components import FederatedOnlineClient
 from daisy.federated_learning import TFFederatedModel, FederatedIFTM, EMAvgTM
+
+from keras.optimizers import Adam
 
 
 def _parse_args() -> argparse.Namespace:
@@ -214,7 +217,7 @@ def check_args(args):
         logging.basicConfig(
             format="%(asctime)s %(levelname)-8s %(name)-10s %(message)s",
             datefmt="%Y-%m-%d %H:%M:%S",
-            level=log_level,
+            level=20,  # log_level,
         )
     else:
         logging.basicConfig(
@@ -247,7 +250,33 @@ def create_relay():
     data_source = CSVFileDataSource(
         files=args.input_file, name="JammerClient:DataSource"
     )
-    data_processor = DataProcessor().dict_to_array(nn_aggregator=pcap_nn_aggregator)
+
+    features_to_keep = [
+        "Jammer_On",
+        "CQI_DLLA",
+        "MCS_DLLA",
+        "CQI_Change_DLLA",
+        "Nack_DLLA",
+        "Alloc_RBs_DLLA",
+        "UL-BLER-CRC_UELink",
+        "C2I_UELink",
+        "Connected_UELink",
+        "Layers_DLLA",
+        "RI_Change_DLLA",
+        "Margin_ChangeM_DLLA",
+        "DL_Aggregation_Level_1_DLLA",
+        "DLAL_2_DLLA",
+        "DLAL_4_DLLA",
+        "DLAL_8_DLLA",
+        "DLAL_16_DLLA",
+    ]
+
+    data_processor = (
+        DataProcessor()
+        .keep_dict_feature(features_to_keep)
+        .add_func(scale_data_point)
+        .dict_to_array(nn_aggregator=pcap_nn_aggregator)
+    )
     data_handler = DataHandler(
         data_source=data_source,
         data_processor=data_processor,
@@ -263,8 +292,10 @@ def create_relay():
     #    print(sample)
 
     # Model
+    optimizer = Adam(learning_rate=0.003)
+
     id_fn = TFFederatedModel.get_fvae(
-        input_size=35,
+        optimizer=optimizer, input_size=16, metrics=["accuracy"]
     )
     t_m = EMAvgTM(alpha=0.05)
     err_fn = tf.keras.losses.MeanAbsoluteError(reduction=tf.keras.losses.Reduction.NONE)
@@ -277,7 +308,7 @@ def create_relay():
         data_handler=data_handler,
         batch_size=args.batchSize,
         model=model,
-        label_split=35,
+        label_split=16,
         metrics=metrics,
         m_aggr_server=m_aggr_serv,
         eval_server=eval_serv,
