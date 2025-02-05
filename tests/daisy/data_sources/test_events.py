@@ -9,11 +9,13 @@ from pyparsing import ParseException
 from daisy.data_sources import EventHandler
 
 
+# noinspection PyProtectedMember
 @pytest.fixture
 def event_parser():
     return EventHandler()._parser
 
 
+# noinspection PyTypeChecker
 class TestEventParser:
     @pytest.mark.parametrize(
         "expression,error_expected",
@@ -84,38 +86,75 @@ class TestEventParser:
         else:
             event_parser.parse(expression)
 
-    def test_parser_logic1(self, event_parser):
-        expression = "feature = true"
+    @pytest.mark.parametrize(
+        "expression,data,expected",
+        [
+            pytest.param("feature = value", {"feature": "value"}, True, id="=-true"),
+            pytest.param(
+                "feature = incorrect", {"feature": "value"}, False, id="=-false"
+            ),
+            pytest.param(
+                "value in feature", {"feature": ["value", "other"]}, True, id="in-true"
+            ),
+            pytest.param("value in feature", {"feature": []}, False, id="in-false"),
+        ],
+    )
+    def test_parser_comparator(self, event_parser, expression, data, expected):
         func = event_parser.parse(expression=expression)
+        assert func([data]) == expected
 
-        cur_dict = {"feature": "true"}
-        expectation = True
-        assert func([cur_dict]) == expectation
-        cur_dict = {"feature": "false"}
-        expectation = False
-        assert (
-            func([cur_dict]) == expectation
-        ), f'Expression "{expression}" and dictionary {cur_dict} did not evaluate to expected result "{expectation}"'
+    @pytest.mark.parametrize(
+        "expression,expectations,variables",
+        [
+            ("feature0 = 1", (False, True), 1),
+            ("feature0 = 1 and feature1 = 1", (False, False, False, True), 2),
+            ("feature0 = 1 or feature1 = 1", (False, True, True, True), 2),
+            ("not feature0 = 1", (True, False), 1),
+            ("(feature0 = 1)", (False, True), 1),
+            ("(feature0 = 1) and feature1 = 1", (False, False, False, True), 2),
+            ("feature0 = 1 and (feature1 = 1)", (False, False, False, True), 2),
+            ("(feature0 = 1) and (feature1 = 1)", (False, False, False, True), 2),
+            ("(feature0 = 1 and feature1 = 1)", (False, False, False, True), 2),
+            ("((feature0 = 1) and feature1 = 1)", (False, False, False, True), 2),
+            ("not (feature0 = 1 and feature1 = 1)", (True, True, True, False), 2),
+            ("not (feature0 = 1 and not feature1 = 1)", (True, True, False, True), 2),
+            (
+                "feature0 = 1 and (feature1 = 1 or feature2 = 1)",
+                (False, False, False, False, False, True, True, True),
+                3,
+            ),
+            (
+                "(feature0 = 1 and feature1 = 1) or feature2 = 1",
+                (False, True, False, True, False, True, True, True),
+                3,
+            ),
+        ],
+    )
+    def test_parser_logic(self, event_parser, expression, expectations, variables):
+        func = event_parser.parse(expression=expression)
+        for permutation in range(2**variables):
+            cur_data = {}
+            for i in range(variables):
+                cur_data["feature" + str(i)] = str(permutation >> variables - 1 - i & 1)
 
+            assert (
+                func([cur_data]) == expectations[permutation]
+            ), f'Expression "{expression}" and dictionary {cur_data} did not evaluate to expected result "{expectations[permutation]}"'
 
-# =
-# in
-# and
-# or
-# not
+    @pytest.mark.parametrize(
+        "expression",
+        [
+            "feature = value and",
+            "feature = value or feature",
+            "feature = value and feature =",
+        ],
+    )
+    def test_parser_incomplete_expression_raises_exception(
+        self, event_parser, expression
+    ):
+        with pytest.raises(ParseException):
+            event_parser.parse(expression)
 
-# base word
-# breacket word
-# comparator
-# boperator
-# uoperator
-# [bracket word]
-# operand
-# pars ( parser )
-# pars + boperator + pars
-# uoperator + pars
-
-# synstax tests
-# logic tests
-# is the whole expression read?
-# test value from first dictionary is selected
+    def test_parser_first_data_occurrence_is_used(self, event_parser):
+        func = event_parser.parse("feature = 0")
+        assert func([{"feature": "0"}, {"feature": "1"}])
