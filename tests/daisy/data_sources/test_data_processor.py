@@ -122,8 +122,9 @@ def test_flatten_dict(data_processor, flat_dict):
     assert data_processor.process(test_dict) == flat_dict[1]
 
 
-def test_flatten_dict_value_error(data_processor):
-    test_dict = [
+@pytest.mark.parametrize(
+    "test_dict",
+    [
         OrderedDict(
             [
                 ("key1.key2", "value"),
@@ -136,7 +137,9 @@ def test_flatten_dict_value_error(data_processor):
                 ("key1.key2", "value"),
             ]
         ),
-    ]
+    ],
+)
+def test_flatten_dict_value_error(data_processor, test_dict):
     data_processor.flatten_dict()
     with pytest.raises(ValueError):
         data_processor.process(test_dict)
