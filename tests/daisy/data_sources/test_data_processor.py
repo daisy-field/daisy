@@ -52,6 +52,7 @@ def test_no_added_func(data_processor, example_dict):
 
 def test_func_order(data_processor, example_dict):
     def concat_number_to_values(number):
+        # noinspection PyShadowingNames
         def _concat_number_to_values(data_point, number):
             return {key: data_point[key] + str(number) for key in data_point}
 
@@ -142,11 +143,3 @@ def test_flatten_dict_value_error(data_processor, test_dict):
     data_processor.flatten_dict()
     with pytest.raises(ValueError):
         data_processor.process(test_dict)
-
-
-def test_dict_to_array():
-    pass  # TODO
-
-
-def test_dict_to_json():
-    pass  # TODO

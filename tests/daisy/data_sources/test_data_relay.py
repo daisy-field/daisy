@@ -11,6 +11,7 @@ import pytest
 from daisy.data_sources import CSVFileRelay, DataHandler
 
 
+# noinspection PyTypeChecker
 class DataHandlerMock(DataHandler):
     def __init__(self, data_points: list = None):
         super().__init__(data_source=None, data_processor=None)
@@ -106,6 +107,7 @@ class FileMock(IO):
         pass
 
 
+# noinspection PyTypeChecker
 def assert_file_content(file: IO, expected_lines: list[str]):
     lines = []
     with open(file, "r") as f:
@@ -150,6 +152,7 @@ def data_points():
     return data_points, expected_lines
 
 
+# noinspection PyTypeChecker
 class TestCSVFileRelay:
     def test_no_headers_or_discovery_throws_error(self, csv_file_relay_path):
         with pytest.raises(ValueError):
