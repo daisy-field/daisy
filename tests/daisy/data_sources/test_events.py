@@ -137,9 +137,10 @@ class TestEventParser:
             for i in range(variables):
                 cur_data["feature" + str(i)] = str(permutation >> variables - 1 - i & 1)
 
-            assert (
-                func([cur_data]) == expectations[permutation]
-            ), f'Expression "{expression}" and dictionary {cur_data} did not evaluate to expected result "{expectations[permutation]}"'
+            assert func([cur_data]) == expectations[permutation], (
+                f'Expression "{expression}" and dictionary {cur_data} did not evaluate to expected '
+                f'result "{expectations[permutation]}"'
+            )
 
     @pytest.mark.parametrize(
         "expression",
