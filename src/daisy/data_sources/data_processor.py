@@ -16,9 +16,11 @@ import json
 import logging
 from collections.abc import MutableMapping
 from typing import Callable, Self
-from typing_extensions import deprecated
 
 import numpy as np
+from typing_extensions import deprecated
+
+from daisy.data_sources import EventHandler
 
 
 class DataProcessor:
@@ -174,6 +176,44 @@ class DataProcessor:
         dictionary and converts it to a JSON string.
         """
         return self.add_func(lambda d_point: json.dumps(d_point))
+
+    def add_event_handler(self, event_handler: EventHandler) -> Self:
+        """Adds the provided event handler to the processor to evaluate the data points
+        based on the event handlers events.
+
+        :param event_handler: Event handler to use.
+        """
+        return self.add_func(lambda d_point: event_handler.evaluate(d_point))
+
+    def enrich_dict_feature(
+        self,
+        feature: str,
+        enricher: Callable[[dict], object],
+        force_overwrite: bool = False,
+        suppress_errors: bool = False,
+    ) -> Self:
+        """Enriches the data point by adding the given feature using the provided
+        enricher function. The enricher function is fed the data point and should
+        return the desired value for the feature. If the feature already exists, an
+        error will be raised. If suppress errors is enabled, an info log will be
+        created instead. All errors and logs can be suppressed using force overwrite.
+
+        :param feature: Feature to enrich.
+        :param enricher: Enricher function to be applied to the feature.
+        :param force_overwrite: Whether to overwrite an existing feature.
+        :param suppress_errors: Whether to suppress errors during enrichment
+        :raises KeyError: If the feature already exists and is not suppressed.
+        """
+
+        def enrich_dict_feature_func(d_point: dict) -> dict:
+            if feature in d_point and not force_overwrite:
+                if not suppress_errors:
+                    raise KeyError(f"Feature '{feature}' already exists")
+                self._logger.info(f"Feature '{feature}' already in data point.")
+            d_point[feature] = enricher(d_point)
+            return d_point
+
+        return self.add_func(lambda d_point: enrich_dict_feature_func(d_point))
 
     def process(self, o_point: object) -> object:
         """Processes the given data point using the provided functions. The functions

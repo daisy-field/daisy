@@ -15,9 +15,12 @@ import logging
 import sys
 from datetime import datetime
 from typing import Callable, Self, Optional
+from warnings import deprecated
+
 import pyparsing as pp
 
 
+@deprecated("Timestamps should be part of the condition_fn, deprecating this class.")
 class Event:
     """Specific event, with a start and an end timestamp, its label, and conditions
     whether a data point should be labeled as such (function evaluating to true if
@@ -300,7 +303,9 @@ class EventHandler:
     """
 
     _parser: EventParser
+    # deprecated
     _events: list[Event]
+    _event_label_pairs: list[tuple[str, Callable[[list[dict]], bool]]]
     _default_label: str
     _label_feature: str
     _error_label: str
@@ -330,11 +335,16 @@ class EventHandler:
 
         self._parser = EventParser()
         self._events = []
+        self._event_label_pairs = []
         self._default_label = default_label
         self._label_feature = label_feature
         self._error_label = error_label
         self._hide_errors = hide_errors
 
+    @deprecated("Timestamps are no longer supported. Use append_event instead.")
+    # The parsed condition_fn does not require a list of dictionaries after this
+    # method is removed. E.g. the function _get_value becomes obsolete and the condition
+    # should be Callable[[dict], bool] instead of Callable[[list[dict]], bool]
     def add_event(
         self, start_time: datetime, end_time: datetime, label: str, condition: str = ""
     ) -> Self:
@@ -392,6 +402,58 @@ class EventHandler:
             self._events.append(Event(start_time, end_time, label, lambda _: True))
         return self
 
+    def append_event(self, label: str, condition: str) -> Self:
+        """Adds an event to the event handler. The events will be evaluated in the
+        order they are provided. Each event has a label that will be used to label data
+        points that fall under that event, and a condition. The condition is
+        a string and has to follow a certain grammar:
+
+        exp := pars + (binary_op + pars)? |
+                unary_op + pars
+        pars := operand | '(' + exp + ')'
+        operand := word + comparator + word
+        word := [any character except [] !"'<=>\\()] |
+                '[' + [any character except []!"'<=>\\()] + ']'   Note that whitespaces
+                                                                  are allowed with
+                                                                  brackets
+        comparator := '=' | 'in'
+        binary_op := 'and' | 'or'
+        unary_op := 'not'
+
+        For comparators, the feature in the dictionary is always expected on the left
+        side of the comparator, except with the 'in' operator, where it is expected
+        on the right.
+
+        Some example expressions are:
+        ip.addr = 10.1.1.1      When the function is called with a dictionary, it will
+                                be searched for the key ip.addr. Its value will be
+                                compared to 10.1.1.1
+        tcp in protocols        The dictionary will be searched for the key protocols.
+                                The function 'tcp in <value of protocols>' will be
+                                evaluated.
+
+        Concatenation examples are:
+        ip.addr = 10.1.1.1 and tcp in protocols
+        (ip.addr = 10.1.1.1 or ip.addr = 192.168.1.1) and tcp in protocols
+        not (ip.addr = 10.1.1.1 or ip.addr = 192.168.1.1) and tcp in protocols
+
+        The returned function can be called using a list of dictionaries. The
+        dictionaries will be searched in the provided order and the first occurrence
+        of a feature in one of the dictionaries will be used. This can be used to
+        provide meta information about a data point additionally to the data point
+        itself.
+
+        :param label: Label of event.
+        :param condition: Condition(s) data points have to fulfill for this event.
+        """
+        self._logger.debug(f"Adding new event with condition {condition}")
+        if not condition:
+            raise ValueError("Condition cannot be empty")
+        self._event_label_pairs.append((label, self._parser.parse(condition)))
+
+        return self
+
+    @deprecated("Use the evaluate method instead.")
     def process(
         self,
         timestamp: datetime,
@@ -421,6 +483,34 @@ class EventHandler:
             try:
                 if event.evaluate(timestamp, data):
                     data_point[self._label_feature] = event.label
+                    return data_point
+            except KeyError as e:
+                if not self._hide_errors:
+                    raise e
+                self._logger.error(f"Error while evaluating event: {e}")
+                data_point[self._label_feature] = self._error_label
+                return data_point
+        data_point[self._label_feature] = self._default_label
+        return data_point
+
+    def evaluate(self, data_point: dict) -> dict:
+        """Iterates through all events and checks for each event if it applies to
+        the provided data point. If it does, the data point will be labeled with the
+        label provided by the event. If no event matches the data point, it will be
+        labeled with the default label.
+
+        :param data_point: Data point to label.
+        preference over data point when checking conditions.
+        processing and errors are suppressed.
+        :return: Labelled data point.
+        :raises KeyError: Data point does not contain feature used by a conditions and
+        errors are not suppressed, i.e. redirected to log + data point is assigned
+        the error label.
+        """
+        for label, condition in self._event_label_pairs:
+            try:
+                if condition([data_point]):
+                    data_point[self._label_feature] = label
                     return data_point
             except KeyError as e:
                 if not self._hide_errors:
