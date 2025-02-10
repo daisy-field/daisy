@@ -15,9 +15,9 @@ import logging
 import sys
 from datetime import datetime
 from typing import Callable, Self, Optional
-from warnings import deprecated
 
 import pyparsing as pp
+from typing_extensions import deprecated
 
 
 @deprecated("Timestamps should be part of the condition_fn, deprecating this class.")
