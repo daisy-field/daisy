@@ -215,6 +215,34 @@ class DataProcessor:
 
         return self.add_func(lambda d_point: enrich_dict_feature_func(d_point))
 
+    def merge_dict(
+        self,
+        new_features: dict,
+        force_overwrite: bool = False,
+        suppress_errors: bool = False,
+    ) -> Self:
+        """Merges the provided dictionary into the data point. If the feature already
+        exists, an error will be raised. If suppress errors is enabled, an info log
+        will be created instead. All errors and logs can be suppressed using force
+        overwrite.
+
+        :param new_features: Dictionary to merge into the data point.
+        :param force_overwrite: Whether to overwrite an existing feature.
+        :param suppress_errors: Whether to suppress errors during enrichment.
+        :raises KeyError: If the feature already exists and is not suppressed.
+        """
+
+        def merge_dict_func(d_point: dict) -> dict:
+            for key, value in new_features.items():
+                if key in d_point and not force_overwrite:
+                    if not suppress_errors:
+                        raise KeyError(f"Feature '{key}' already exists")
+                    self._logger.info(f"Feature '{key}' already in data point.")
+                d_point[key] = value
+            return d_point
+
+        return self.add_func(lambda d_point: merge_dict_func(d_point))
+
     def process(self, o_point: object) -> object:
         """Processes the given data point using the provided functions. The functions
         are carried out in the order they were added. If no functions were provided,
