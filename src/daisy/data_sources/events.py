@@ -240,7 +240,7 @@ class EventParser:
             return self._create_unary_fn(result, operation, expression)
 
         if operation in self._comparators:
-            return self._create_comparator_fn(dictionary, operation)
+            return self._create_comparator_fn(dictionary, operation, expression)
 
         raise NotImplementedError(
             f"Operation '{operation}' not supported in EventParser for "
