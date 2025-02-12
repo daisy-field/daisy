@@ -82,13 +82,15 @@ class EventParser:
     exp := pars + (binary_op + pars)? |
             unary_op + pars
     pars := operand | '(' + exp + ')'
-    operand := word + comparator + word
+    operand := cast + comparator + cast
+    cast := cast_op + '!' + word | word
     word := [any character except [] !"'<=>\\()] |
             '[' + [any character except []!"'<=>\\()] + ']'   Note that whitespaces are
                                                               allowed with brackets
     comparator := '=' | 'in'
     binary_op := 'and' | 'or'
     unary_op := 'not'
+    cast_op := 's' | 'i' | 'f' | 'd'
 
     For comparators, the feature in the dictionary is always expected on the left side
     of the comparator, except with the 'in' operator, where it is expected on the right.
@@ -104,11 +106,28 @@ class EventParser:
         ip.addr = 10.1.1.1 and tcp in protocols
         (ip.addr = 10.1.1.1 or ip.addr = 192.168.1.1) and tcp in protocols
         not (ip.addr = 10.1.1.1 or ip.addr = 192.168.1.1) and tcp in protocols
+        port = i!22             The 22 will be cast to integer before comparison.
 
     The returned function can be called using a list of dictionaries. The dictionaries
     will be searched in the provided order and the first occurrence of a feature in one
     of the dictionaries will be used. This can be used to provide meta information about
     a data point additionally to the data point itself.
+
+    Values in the expression can be cast to different types to support proper comparison.
+    The supported castings are string (s), integer (i), float (f), and datetime (d).
+    For datetime casting, the following formats are supported:
+    time since epoch
+    DD.MM.YY-HH:MM:SS.ffffffZZZ
+    DD.MM.YY-HH:MM:SSZZZ
+    DD.MM.YY HH:MM:SS.ffffffZZZ
+    DD.MM.YY HH:MM:SSZZZ
+    HH:MM:SS.ffffff
+    HH:MM:SS
+
+    ZZZ denotes the timezone. In case only the time without date is provided, the
+    current date will be used. Note, that the casting is performed when the
+    function is called with a data point. This causes the "current date" to be
+    the date when the data point is evaluated.
     """
 
     # The comparators and operators used by the parser
@@ -165,32 +184,33 @@ class EventParser:
         :raises ParseError: Any condition/expression does not follow parser's grammar.
         """
         tree = self._parser.parseString(expression, parseAll=True)
-        return self._process_child(tree)
+        return self._process_child(tree, expression)
 
     def _process_child(
-        self, tree: pp.ParseResults
+        self, tree: pp.ParseResults, expression: str
     ) -> Optional[Callable[[list[dict]], bool]]:
         """Recursively processes the provided parse tree and returns a function that
         evaluates the data points passed to it.
 
         :param tree: The parse tree to process
+        :param expression: The original expression. Passed for error handling purposes
         """
         result = {}
         if isinstance(tree, pp.ParseResults):
             # Evaluate all children first
             if tree.haskeys():
                 for key, _ in reversed(tree.asDict().items()):
-                    result[key] = self._process_child(tree.pop())
+                    result[key] = self._process_child(tree.pop(), expression)
             else:
-                return self._process_child(tree.pop())
+                return self._process_child(tree.pop(), expression)
         else:
             # On leaf node do nothing
             return None
 
-        return self._create_fn(tree.asDict(), result)
+        return self._create_fn(tree.asDict(), result, expression)
 
     def _create_fn(
-        self, dictionary: dict, result: dict
+        self, dictionary: dict, result: dict, expression: str
     ) -> Callable[[list[dict]], bool]:
         """Creates a function based on the provided input. The provided dictionary
         should contain any of the keys _op, _var1, and _var2 from this class.
@@ -204,6 +224,7 @@ class EventParser:
 
         :param dictionary: Dictionary used to evaluate the function to generate.
         :param result: Dictionary containing results of previous runs of this function.
+        :param expression: The original expression. Passed for error handling purposes
         :raises NotImplementedError: Operators used are unsupported by this class.
         Only happens when class has been modified/overridden.
         """
@@ -213,20 +234,21 @@ class EventParser:
         operation = dictionary[self._op]
 
         if operation in self._binary_operators:
-            return self._create_binary_fn(result, operation)
+            return self._create_binary_fn(result, operation, expression)
 
         if operation in self._unary_operators:
-            return self._create_unary_fn(result, operation)
+            return self._create_unary_fn(result, operation, expression)
 
         if operation in self._comparators:
             return self._create_comparator_fn(dictionary, operation)
 
         raise NotImplementedError(
-            f"Operation {operation} not supported in EventParser."
+            f"Operation '{operation}' not supported in EventParser for "
+            f"condition '{expression}'."
         )
 
     def _create_binary_fn(
-        self, result: dict, operation: str
+        self, result: dict, operation: str, expression: str
     ) -> Callable[[list[dict]], bool]:
         """Creates the binary function part. The results of previous runs of the
         create_fn method are used in this function to combine them using binary
@@ -234,6 +256,7 @@ class EventParser:
 
         :param result: Dictionary containing the results of previous runs.
         :param operation: Operation to perform.
+        :param expression: The original expression. Passed for error handling purposes
         :raises NotImplementedError: Operators used are unsupported by this class.
         Only happens when class has been modified/overridden.
         """
@@ -246,11 +269,12 @@ class EventParser:
                 return lambda data: result[self._var1](data) or result[self._var2](data)
             case _:
                 raise NotImplementedError(
-                    f"Operation {operation} not supported in EventParser."
+                    f"Operation '{operation}' not supported in EventParser for "
+                    f"condition '{expression}'."
                 )
 
     def _create_unary_fn(
-        self, result: dict, operation: str
+        self, result: dict, operation: str, expression: str
     ) -> Callable[[list[dict]], bool]:
         """Creates the unary function part. The results of previous runs of the
         create_fn method are used in this function to combine them using unary
@@ -258,6 +282,7 @@ class EventParser:
 
         :param result: Dictionary containing the results of previous runs
         :param operation: Operation to perform.
+        :param expression: The original expression. Passed for error handling purposes
         :raises NotImplementedError: Operators used are unsupported by this class.
         Only happens when class has been modified/overridden.
         """
@@ -266,11 +291,12 @@ class EventParser:
                 return lambda data: not result[self._var1](data)
             case _:
                 raise NotImplementedError(
-                    f"Operation {operation} not supported in EventParser."
+                    f"Operation '{operation}' not supported in EventParser for "
+                    f"condition '{expression}'."
                 )
 
     def _create_comparator_fn(
-        self, dictionary: dict, operation: str
+        self, dictionary: dict, operation: str, expression: str
     ) -> Callable[[list[dict]], bool]:
         """Creates the comparisons of the function. The dictionary should contain
         a feature, operation, and value. Based on the comparator, a function is
@@ -279,40 +305,88 @@ class EventParser:
         :param dictionary: Dictionary containing feature and value to use for the
         generated function.
         :param operation: Operation to perform.
+        :param expression: The original expression. Passed for error handling purposes
         :raises NotImplementedError: Operators used are unsupported by this class.
         Only happens when class has been modified/overridden.
         """
         match operation:
             case "=":
-                return lambda data: _get_value(
+                self._check_feature(dictionary[self._var1][0])
+                return lambda data: _get_value_from_feature(
                     dictionary[self._var1][0], data
                 ) == self._get_value(dictionary[self._var2][0])
             case "in":
+                self._check_feature(dictionary[self._var2][1])
                 return (
                     lambda data: self._get_value(dictionary[self._var1][0])
-                    in _get_value(dictionary[self._var2][0], data)
-                    if _get_value(dictionary[self._var2][0], data)
+                    in _get_value_from_feature(dictionary[self._var2][0], data)
+                    if _get_value_from_feature(dictionary[self._var2][0], data)
                     else False
                 )
             case _:
                 raise NotImplementedError(
-                    f"Operation {operation} not supported in EventParser."
+                    f"Operation '{operation}' not supported in EventParser for "
+                    f"condition '{expression}'."
                 )
 
+    def _check_feature(self, feature: object, expression: str):
+        """Checks the given feature for errors.
+
+        :param feature: The feature to check.
+        :param expression: The original expression. Passed for error handling purposes
+        :throws RuntimeError: If the feature is invalid.
+        """
+        if isinstance(feature, dict):
+            raise RuntimeError(
+                f"Tried casting feature '{feature[self._word][0]}' using "
+                f"casting operator '{feature[self._cast]}' in event condition "
+                f"'{expression}'."
+            )
+
     def _get_value(self, dictionary: dict) -> object:
+        """Gets the value from the dictionary. If a cast operation is defined,
+        the value will be cast to the desired type.
+
+        :param dictionary: The dictionary to get the value from.
+        :return: The (optionally) cast value
+        :raises NotImplementedError: Operators used are unsupported by this class.
+        :raises ValueError: If a cast operation fails
+        """
         if self._cast not in dictionary:
             return dictionary
         match dictionary[self._cast]:
             case "i":
-                return int(dictionary[self._word][0])
+                try:
+                    return int(dictionary[self._word][0])
+                except ValueError:
+                    raise ValueError(
+                        f"Casting '{dictionary[self._word][0]}' to integer failed."
+                    )
             case "s":
-                return str(dictionary[self._word][0])
+                try:
+                    return str(dictionary[self._word][0])
+                except ValueError:
+                    raise ValueError(
+                        f"Casting '{dictionary[self._word][0]}' to string failed."
+                    )
             case "f":
-                return float(dictionary[self._word][0])
+                try:
+                    return float(dictionary[self._word][0])
+                except ValueError:
+                    raise ValueError(
+                        f"Casting '{dictionary[self._word][0]}' to float failed."
+                    )
             case "d":
-                raise NotImplementedError("Not yet implemented.")
-        # TODO datetime
-        raise NotImplementedError("Casting is not defined")
+                try:
+                    return _cast_to_datetime(dictionary[self._word][0])
+                except ValueError:
+                    raise ValueError(
+                        f"Casting '{dictionary[self._word][0]}' to datetime failed."
+                    )
+
+        raise NotImplementedError(
+            f"The given cast '{dictionary[self._cast]}' is not implemented."
+        )
 
 
 class EventHandler:
@@ -376,7 +450,8 @@ class EventHandler:
         exp := pars + (binary_op + pars)? |
                 unary_op + pars
         pars := operand | '(' + exp + ')'
-        operand := word + comparator + word
+        operand := cast + comparator + cast
+        cast := cast_op + '!' + word | word
         word := [any character except [] !"'<=>\\()] |
                 '[' + [any character except []!"'<=>\\()] + ']'   Note that whitespaces
                                                                   are allowed with
@@ -384,6 +459,7 @@ class EventHandler:
         comparator := '=' | 'in'
         binary_op := 'and' | 'or'
         unary_op := 'not'
+        cast_op := 's' | 'i' | 'f' | 'd'
 
         For comparators, the feature in the dictionary is always expected on the left
         side of the comparator, except with the 'in' operator, where it is expected
@@ -401,6 +477,23 @@ class EventHandler:
         ip.addr = 10.1.1.1 and tcp in protocols
         (ip.addr = 10.1.1.1 or ip.addr = 192.168.1.1) and tcp in protocols
         not (ip.addr = 10.1.1.1 or ip.addr = 192.168.1.1) and tcp in protocols
+
+        Values in the expression can be cast to different types to support proper
+        comparison.
+        The supported castings are string (s), integer (i), float (f), and datetime (d).
+        For datetime casting, the following formats are supported:
+        time since epoch
+        DD.MM.YY-HH:MM:SS.ffffffZZZ
+        DD.MM.YY-HH:MM:SSZZZ
+        DD.MM.YY HH:MM:SS.ffffffZZZ
+        DD.MM.YY HH:MM:SSZZZ
+        HH:MM:SS.ffffff
+        HH:MM:SS
+
+        ZZZ denotes the timezone. In case only the time without date is provided, the
+        current date will be used. Note, that the casting is performed when the
+        function is called with a data point. This causes the "current date" to be
+        the date when the data point is evaluated.
 
         The returned function can be called using a list of dictionaries. The
         dictionaries will be searched in the provided order and the first occurrence
@@ -431,7 +524,8 @@ class EventHandler:
         exp := pars + (binary_op + pars)? |
                 unary_op + pars
         pars := operand | '(' + exp + ')'
-        operand := word + comparator + word
+        operand := cast + comparator + cast
+        cast := cast_op + '!' + word | word
         word := [any character except [] !"'<=>\\()] |
                 '[' + [any character except []!"'<=>\\()] + ']'   Note that whitespaces
                                                                   are allowed with
@@ -439,6 +533,7 @@ class EventHandler:
         comparator := '=' | 'in'
         binary_op := 'and' | 'or'
         unary_op := 'not'
+        cast_op := 's' | 'i' | 'f' | 'd'
 
         For comparators, the feature in the dictionary is always expected on the left
         side of the comparator, except with the 'in' operator, where it is expected
@@ -457,11 +552,24 @@ class EventHandler:
         (ip.addr = 10.1.1.1 or ip.addr = 192.168.1.1) and tcp in protocols
         not (ip.addr = 10.1.1.1 or ip.addr = 192.168.1.1) and tcp in protocols
 
-        The returned function can be called using a list of dictionaries. The
-        dictionaries will be searched in the provided order and the first occurrence
-        of a feature in one of the dictionaries will be used. This can be used to
-        provide meta information about a data point additionally to the data point
-        itself.
+        Values in the expression can be cast to different types to support proper
+        comparison.
+        The supported castings are string (s), integer (i), float (f), and datetime (d).
+        For datetime casting, the following formats are supported:
+        time since epoch
+        DD.MM.YY-HH:MM:SS.ffffffZZZ
+        DD.MM.YY-HH:MM:SSZZZ
+        DD.MM.YY HH:MM:SS.ffffffZZZ
+        DD.MM.YY HH:MM:SSZZZ
+        HH:MM:SS.ffffff
+        HH:MM:SS
+
+        ZZZ denotes the timezone. In case only the time without date is provided, the
+        current date will be used. Note, that the casting is performed when the
+        function is called with a data point. This causes the "current date" to be
+        the date when the data point is evaluated.
+
+        The returned function can be called using a dictionary.
 
         :param label: Label of event.
         :param condition: Condition(s) data points have to fulfill for this event.
@@ -542,7 +650,7 @@ class EventHandler:
         return data_point
 
 
-def _get_value(feature: str, data: list[dict]) -> object:
+def _get_value_from_feature(feature: str, data: list[dict]) -> object:
     """Iterates through the provided dictionaries and returns the value of the first
     occurrence of the provided feature.
 
@@ -553,3 +661,60 @@ def _get_value(feature: str, data: list[dict]) -> object:
         if feature in dictionary:
             return dictionary[feature]
     raise KeyError(f"Could not find {feature} in {data}")
+
+
+def _cast_to_datetime(exp: str) -> datetime:
+    """Casts the given string to a datetime object. The following formats
+    are supported (ZZZ is the timezone):
+
+    DD.MM.YY-HH:MM:SS.ffffffZZZ
+    DD.MM.YY-HH:MM:SSZZZ
+    DD.MM.YY HH:MM:SS.ffffffZZZ
+    DD.MM.YY HH:MM:SSZZZ
+    HH:MM:SS.ffffff
+    HH:MM:SS
+    time since epoch
+
+    If only the time is provided without the specific date, the current
+    date and timezone will be used.
+
+    :param exp: The expression to cast
+    :return: a datetime
+    :raises ValueError: If the given expression does not match any of
+    the supported formats.
+    """
+    try:
+        return datetime.fromtimestamp(float(exp))
+    except ValueError:
+        pass
+    try:
+        return datetime.strptime(exp, "%d.%m.%y-%H:%M:%S.%f%Z")
+    except ValueError:
+        pass
+    try:
+        return datetime.strptime(exp, "%d.%m.%y %H:%M:%S.%f%Z")
+    except ValueError:
+        pass
+    try:
+        return datetime.strptime(exp, "%d.%m.%y-%H:%M:%S%Z")
+    except ValueError:
+        pass
+    try:
+        return datetime.strptime(exp, "%d.%m.%y %H:%M:%S%Z")
+    except ValueError:
+        pass
+    try:
+        return datetime.combine(
+            datetime.today().date(),
+            datetime.strptime(exp, "%H:%M:%S.%f").time(),
+        )
+    except ValueError:
+        pass
+    try:
+        return datetime.combine(
+            datetime.today().date(),
+            datetime.strptime(exp, "%H:%M:%S").time(),
+        )
+    except ValueError:
+        pass
+    raise ValueError(f"Given date {exp} does not match any date or time pattern.")
