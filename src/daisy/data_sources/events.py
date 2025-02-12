@@ -115,11 +115,14 @@ class EventParser:
     _comparators: list[str] = ["=", "in"]
     _binary_operators: list[str] = ["and", "or"]
     _unary_operators: list[str] = ["not"]
+    _casts: str = "sifd"
 
     # Identifiers used inside the parser to mark specific tokens
     _var1: str = "var1"
     _var2: str = "var2"
     _op: str = "op"
+    _cast: str = "cast"
+    _word: str = "word"
 
     _parser: pp.ParserElement
 
@@ -132,10 +135,12 @@ class EventParser:
 
         base_word = pp.Word(pp.printables, exclude_chars="[] !\"'<=>\\()")
         bracket_word = pp.Word(pp.printables + " ", exclude_chars="[]!\"'<=>\\()")
+        cast_types = pp.Char(self._casts)
 
         comparator = pp.oneOf(self._comparators)
         boperator = pp.oneOf(self._binary_operators)
         uoperator = pp.oneOf(self._unary_operators)
+        cast_op = pp.oneOf("!")
         lpar = pp.Suppress("(")
         rpar = pp.Suppress(")")
         lbr = pp.Suppress("[")
@@ -143,7 +148,8 @@ class EventParser:
 
         self._parser = pp.Forward()
         word = base_word | lbr + bracket_word + rbr
-        operand = pp.Group(word(self._var1) + comparator(self._op) + word(self._var2))
+        cast = pp.Group(cast_types(self._cast) + cast_op + word(self._word)) | word
+        operand = pp.Group(cast(self._var1) + comparator(self._op) + cast(self._var2))
         pars = operand | lpar + self._parser + rpar
 
         self._parser <<= pp.Group(
@@ -278,13 +284,12 @@ class EventParser:
         """
         match operation:
             case "=":
-                return (
-                    lambda data: _get_value(dictionary[self._var1][0], data)
-                    == dictionary[self._var2][0]
-                )
+                return lambda data: _get_value(
+                    dictionary[self._var1][0], data
+                ) == self._get_value(dictionary[self._var2][0])
             case "in":
                 return (
-                    lambda data: dictionary[self._var1][0]
+                    lambda data: self._get_value(dictionary[self._var1][0])
                     in _get_value(dictionary[self._var2][0], data)
                     if _get_value(dictionary[self._var2][0], data)
                     else False
@@ -293,6 +298,21 @@ class EventParser:
                 raise NotImplementedError(
                     f"Operation {operation} not supported in EventParser."
                 )
+
+    def _get_value(self, dictionary: dict) -> object:
+        if self._cast not in dictionary:
+            return dictionary
+        match dictionary[self._cast]:
+            case "i":
+                return int(dictionary[self._word][0])
+            case "s":
+                return str(dictionary[self._word][0])
+            case "f":
+                return float(dictionary[self._word][0])
+            case "d":
+                raise NotImplementedError("Not yet implemented.")
+        # TODO datetime
+        raise NotImplementedError("Casting is not defined")
 
 
 class EventHandler:
