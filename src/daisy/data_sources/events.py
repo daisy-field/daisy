@@ -124,10 +124,8 @@ class EventParser:
     HH:MM:SS.ffffff
     HH:MM:SS
 
-    ZZZ denotes the timezone. In case only the time without date is provided, the
-    current date will be used. Note, that the casting is performed when the
-    function is called with a data point. This causes the "current date" to be
-    the date when the data point is evaluated.
+    ZZZ denotes the timezone. In case only the time without date is provided, the date
+    when the condition is parsed will be used.
     """
 
     # The comparators and operators used by the parser
@@ -312,13 +310,18 @@ class EventParser:
         match operation:
             case "=":
                 self._check_feature(dictionary[self._var1][0], expression)
-                return lambda data: _get_value_from_feature(
-                    dictionary[self._var1][0], data
-                ) == self._get_value(dictionary[self._var2][0])
+                value = self._get_value(dictionary[self._var2][0])
+                return (
+                    lambda data: _get_value_from_feature(
+                        dictionary[self._var1][0], data
+                    )
+                    == value
+                )
             case "in":
                 self._check_feature(dictionary[self._var2][1], expression)
+                value = self._get_value(dictionary[self._var1][0])
                 return (
-                    lambda data: self._get_value(dictionary[self._var1][0])
+                    lambda data: value
                     in _get_value_from_feature(dictionary[self._var2][0], data)
                     if _get_value_from_feature(dictionary[self._var2][0], data)
                     else False
@@ -491,9 +494,7 @@ class EventHandler:
         HH:MM:SS
 
         ZZZ denotes the timezone. In case only the time without date is provided, the
-        current date will be used. Note, that the casting is performed when the
-        function is called with a data point. This causes the "current date" to be
-        the date when the data point is evaluated.
+        date when the condition is parsed will be used ("today").
 
         The returned function can be called using a list of dictionaries. The
         dictionaries will be searched in the provided order and the first occurrence
@@ -565,9 +566,7 @@ class EventHandler:
         HH:MM:SS
 
         ZZZ denotes the timezone. In case only the time without date is provided, the
-        current date will be used. Note, that the casting is performed when the
-        function is called with a data point. This causes the "current date" to be
-        the date when the data point is evaluated.
+        date when the condition is parsed will be used ("today").
 
         The returned function can be called using a dictionary.
 
