@@ -311,12 +311,12 @@ class EventParser:
         """
         match operation:
             case "=":
-                self._check_feature(dictionary[self._var1][0])
+                self._check_feature(dictionary[self._var1][0], expression)
                 return lambda data: _get_value_from_feature(
                     dictionary[self._var1][0], data
                 ) == self._get_value(dictionary[self._var2][0])
             case "in":
-                self._check_feature(dictionary[self._var2][1])
+                self._check_feature(dictionary[self._var2][1], expression)
                 return (
                     lambda data: self._get_value(dictionary[self._var1][0])
                     in _get_value_from_feature(dictionary[self._var2][0], data)
