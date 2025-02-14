@@ -27,5 +27,4 @@ jobs:
         if: success() || failure()
       - name: Run Tests with pytest
         run: |
-          pytest --doctest-modules --junitxml=junit/test-results.xml 
-          --cov=com --cov-report=xml --cov-report=html
+          pytest
