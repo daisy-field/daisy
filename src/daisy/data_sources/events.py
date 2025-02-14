@@ -87,10 +87,10 @@ class EventParser:
     word := [any character except [] !"'<=>\\()] |
             '[' + [any character except []!"'<=>\\()] + ']'   Note that whitespaces are
                                                               allowed with brackets
-    comparator := '=' | 'in'
+    comparator := '=' | 'in' | '<' | '>' | '<=' | '>='
     binary_op := 'and' | 'or'
     unary_op := 'not'
-    cast_op := 's' | 'i' | 'f' | 'd'
+    cast_op := 's' | 'i' | 'f' | 't'
 
     For comparators, the feature in the dictionary is always expected on the left side
     of the comparator, except with the 'in' operator, where it is expected on the right.
@@ -114,27 +114,24 @@ class EventParser:
     a data point additionally to the data point itself.
 
     Values in the expression can be cast to different types to support proper comparison.
-    The supported castings are string (s), integer (i), float (f), and datetime (d).
-    For datetime casting, the following formats are supported:
+    The supported castings are string (s), integer (i), float (f), and timestamp(t).
+    For timestamp casting, the following formats are supported:
     time since epoch
-    DD.MM.YY-HH:MM:SS.ffffffZZZ
-    DD.MM.YY-HH:MM:SSZZZ
-    DD.MM.YY HH:MM:SS.ffffffZZZ
-    DD.MM.YY HH:MM:SSZZZ
-    HH:MM:SS.ffffff
-    HH:MM:SS
+    DD.MM.YY-HH:MM:SS.ffffff
+    DD.MM.YY-HH:MM:SS
+    DD.MM.YY HH:MM:SS.ffffff
+    DD.MM.YY HH:MM:SS
 
-    ZZZ denotes the timezone. In case only the time without date is provided, the
-    current date will be used. Note, that the casting is performed when the
-    function is called with a data point. This causes the "current date" to be
-    the date when the data point is evaluated.
+    For all cases, except the time since epoch, the timezone can be specified using
+    an offset from UTC in the form +/-HHMM[SS[.ffffff]], e.g. -0200, +0000. If no
+    offset is specified, UTC is assumed.
     """
 
     # The comparators and operators used by the parser
-    _comparators: list[str] = ["=", "in"]
+    _comparators: list[str] = ["=", "in", "<=", ">=", "<", ">"]
     _binary_operators: list[str] = ["and", "or"]
     _unary_operators: list[str] = ["not"]
-    _casts: str = "sifd"
+    _casts: str = "sift"
 
     # Identifiers used inside the parser to mark specific tokens
     _var1: str = "var1"
@@ -309,20 +306,31 @@ class EventParser:
         :raises NotImplementedError: Operators used are unsupported by this class.
         Only happens when class has been modified/overridden.
         """
+        if operation == "in":
+            self._check_feature(dictionary[self._var2][1], expression)
+            value = self._get_value(dictionary[self._var1][0])
+            return (
+                lambda data: value
+                in _get_value_from_feature(dictionary[self._var2][0], data)
+                if _get_value_from_feature(dictionary[self._var2][0], data)
+                else False
+            )
+
+        feature = dictionary[self._var1][0]
+        self._check_feature(feature, expression)
+        value = self._get_value(dictionary[self._var2][0])
+
         match operation:
             case "=":
-                self._check_feature(dictionary[self._var1][0])
-                return lambda data: _get_value_from_feature(
-                    dictionary[self._var1][0], data
-                ) == self._get_value(dictionary[self._var2][0])
-            case "in":
-                self._check_feature(dictionary[self._var2][1])
-                return (
-                    lambda data: self._get_value(dictionary[self._var1][0])
-                    in _get_value_from_feature(dictionary[self._var2][0], data)
-                    if _get_value_from_feature(dictionary[self._var2][0], data)
-                    else False
-                )
+                return lambda data: _get_value_from_feature(feature, data) == value
+            case "<":
+                return lambda data: _get_value_from_feature(feature, data) < value
+            case ">":
+                return lambda data: _get_value_from_feature(feature, data) > value
+            case "<=":
+                return lambda data: _get_value_from_feature(feature, data) <= value
+            case ">=":
+                return lambda data: _get_value_from_feature(feature, data) >= value
             case _:
                 raise NotImplementedError(
                     f"Operation '{operation}' not supported in EventParser for "
@@ -376,9 +384,9 @@ class EventParser:
                     raise ValueError(
                         f"Casting '{dictionary[self._word][0]}' to float failed."
                     )
-            case "d":
+            case "t":
                 try:
-                    return _cast_to_datetime(dictionary[self._word][0])
+                    return _cast_to_timestamp(dictionary[self._word][0])
                 except ValueError:
                     raise ValueError(
                         f"Casting '{dictionary[self._word][0]}' to datetime failed."
@@ -456,10 +464,10 @@ class EventHandler:
                 '[' + [any character except []!"'<=>\\()] + ']'   Note that whitespaces
                                                                   are allowed with
                                                                   brackets
-        comparator := '=' | 'in'
+        comparator := '=' | 'in' | '<' | '>' | '<=' | '>='
         binary_op := 'and' | 'or'
         unary_op := 'not'
-        cast_op := 's' | 'i' | 'f' | 'd'
+        cast_op := 's' | 'i' | 'f' | 't'
 
         For comparators, the feature in the dictionary is always expected on the left
         side of the comparator, except with the 'in' operator, where it is expected
@@ -480,20 +488,17 @@ class EventHandler:
 
         Values in the expression can be cast to different types to support proper
         comparison.
-        The supported castings are string (s), integer (i), float (f), and datetime (d).
-        For datetime casting, the following formats are supported:
+        The supported castings are string (s), integer (i), float (f), and timestamp(t).
+        For timestamp casting, the following formats are supported:
         time since epoch
-        DD.MM.YY-HH:MM:SS.ffffffZZZ
-        DD.MM.YY-HH:MM:SSZZZ
-        DD.MM.YY HH:MM:SS.ffffffZZZ
-        DD.MM.YY HH:MM:SSZZZ
-        HH:MM:SS.ffffff
-        HH:MM:SS
+        DD.MM.YY-HH:MM:SS.ffffff
+        DD.MM.YY-HH:MM:SS
+        DD.MM.YY HH:MM:SS.ffffff
+        DD.MM.YY HH:MM:SS
 
-        ZZZ denotes the timezone. In case only the time without date is provided, the
-        current date will be used. Note, that the casting is performed when the
-        function is called with a data point. This causes the "current date" to be
-        the date when the data point is evaluated.
+        For all cases, except the time since epoch, the timezone can be specified using
+        an offset from UTC in the form +/-HHMM[SS[.ffffff]], e.g. -0200, +0000. If no
+        offset is specified, UTC is assumed.
 
         The returned function can be called using a list of dictionaries. The
         dictionaries will be searched in the provided order and the first occurrence
@@ -530,10 +535,10 @@ class EventHandler:
                 '[' + [any character except []!"'<=>\\()] + ']'   Note that whitespaces
                                                                   are allowed with
                                                                   brackets
-        comparator := '=' | 'in'
+        comparator := '=' | 'in' | '<' | '>' | '<=' | '>='
         binary_op := 'and' | 'or'
         unary_op := 'not'
-        cast_op := 's' | 'i' | 'f' | 'd'
+        cast_op := 's' | 'i' | 'f' | 't'
 
         For comparators, the feature in the dictionary is always expected on the left
         side of the comparator, except with the 'in' operator, where it is expected
@@ -554,20 +559,17 @@ class EventHandler:
 
         Values in the expression can be cast to different types to support proper
         comparison.
-        The supported castings are string (s), integer (i), float (f), and datetime (d).
-        For datetime casting, the following formats are supported:
+        The supported castings are string (s), integer (i), float (f), and timestamp(t).
+        For timestamp casting, the following formats are supported:
         time since epoch
-        DD.MM.YY-HH:MM:SS.ffffffZZZ
-        DD.MM.YY-HH:MM:SSZZZ
-        DD.MM.YY HH:MM:SS.ffffffZZZ
-        DD.MM.YY HH:MM:SSZZZ
-        HH:MM:SS.ffffff
-        HH:MM:SS
+        DD.MM.YY-HH:MM:SS.ffffff
+        DD.MM.YY-HH:MM:SS
+        DD.MM.YY HH:MM:SS.ffffff
+        DD.MM.YY HH:MM:SS
 
-        ZZZ denotes the timezone. In case only the time without date is provided, the
-        current date will be used. Note, that the casting is performed when the
-        function is called with a data point. This causes the "current date" to be
-        the date when the data point is evaluated.
+        For all cases, except the time since epoch, the timezone can be specified using
+        an offset from UTC in the form +/-HHMM[SS[.ffffff]], e.g. -0200, +0000. If no
+        offset is specified, UTC is assumed.
 
         The returned function can be called using a dictionary.
 
@@ -663,20 +665,18 @@ def _get_value_from_feature(feature: str, data: list[dict]) -> object:
     raise KeyError(f"Could not find {feature} in {data}")
 
 
-def _cast_to_datetime(exp: str) -> datetime:
-    """Casts the given string to a datetime object. The following formats
-    are supported (ZZZ is the timezone):
+def _cast_to_timestamp(exp: str) -> float:
+    """Casts the given string to a timestamp. The following formats are supported:
 
-    DD.MM.YY-HH:MM:SS.ffffffZZZ
-    DD.MM.YY-HH:MM:SSZZZ
-    DD.MM.YY HH:MM:SS.ffffffZZZ
-    DD.MM.YY HH:MM:SSZZZ
-    HH:MM:SS.ffffff
-    HH:MM:SS
+    DD.MM.YYTHH:MM:SS.ffffff
+    DD.MM.YYTHH:MM:SS
+    DD.MM.YY HH:MM:SS.ffffff
+    DD.MM.YY HH:MM:SS
     time since epoch
 
-    If only the time is provided without the specific date, the current
-    date and timezone will be used.
+    For all cases, except the time since epoch, the timezone can be specified using
+    an offset from UTC in the form +/-HHMM[SS[.ffffff]], e.g. -0200, +0000. If no
+    offset is specified, UTC is assumed.
 
     :param exp: The expression to cast
     :return: a datetime
@@ -684,37 +684,39 @@ def _cast_to_datetime(exp: str) -> datetime:
     the supported formats.
     """
     try:
-        return datetime.fromtimestamp(float(exp))
+        return float(exp)
     except ValueError:
         pass
     try:
-        return datetime.strptime(exp, "%d.%m.%y-%H:%M:%S.%f%Z")
+        return datetime.strptime(exp, "%d.%m.%yT%H:%M:%S.%f%z").timestamp()
     except ValueError:
         pass
     try:
-        return datetime.strptime(exp, "%d.%m.%y %H:%M:%S.%f%Z")
+        return datetime.strptime(exp, "%d.%m.%y %H:%M:%S.%f%z").timestamp()
     except ValueError:
         pass
     try:
-        return datetime.strptime(exp, "%d.%m.%y-%H:%M:%S%Z")
+        return datetime.strptime(exp + "+0000", "%d.%m.%yT%H:%M:%S.%f%z").timestamp()
     except ValueError:
         pass
     try:
-        return datetime.strptime(exp, "%d.%m.%y %H:%M:%S%Z")
+        return datetime.strptime(exp + "+0000", "%d.%m.%y %H:%M:%S.%f%z").timestamp()
     except ValueError:
         pass
     try:
-        return datetime.combine(
-            datetime.today().date(),
-            datetime.strptime(exp, "%H:%M:%S.%f").time(),
-        )
+        return datetime.strptime(exp, "%d.%m.%yT%H:%M:%S%z").timestamp()
     except ValueError:
         pass
     try:
-        return datetime.combine(
-            datetime.today().date(),
-            datetime.strptime(exp, "%H:%M:%S").time(),
-        )
+        return datetime.strptime(exp, "%d.%m.%y %H:%M:%S%z").timestamp()
+    except ValueError:
+        pass
+    try:
+        return datetime.strptime(exp + "+0000", "%d.%m.%yT%H:%M:%S%z").timestamp()
+    except ValueError:
+        pass
+    try:
+        return datetime.strptime(exp + "+0000", "%d.%m.%y %H:%M:%S%z").timestamp()
     except ValueError:
         pass
     raise ValueError(f"Given date {exp} does not match any date or time pattern.")
