@@ -52,7 +52,7 @@ from daisy.data_sources import (
     PysharkProcessor,
     pcap_f_features,
     pcap_nn_aggregator,
-    demo_202303_label_data_point,
+    march23_event_handler,
 )
 from daisy.evaluation import ConfMatrSlidingWindowEvaluation
 from daisy.federated_ids_components import FederatedOnlineClient
@@ -184,15 +184,13 @@ def create_client():
     source = PcapDataSource(
         f"{args.pcapBasePath}/diginet-cohda-box-dsrc{args.clientId}"
     )
-    processor = (
+    processor = (  # TODO the processor has to be tested!!
         PysharkProcessor()
         .packet_to_dict()
         .select_dict_features(features=pcap_f_features, default_value=np.nan)
-        .add_func(
-            lambda o_point: demo_202303_label_data_point(
-                client_id=args.clientId, d_point=o_point
-            )
-        )
+        .merge_dict({"client_id": args.clientId})
+        .add_event_handler(march23_event_handler)
+        .remove_dict_features(["client_id"])
         .dict_to_array(nn_aggregator=pcap_nn_aggregator)
     )
     data_handler = DataHandler(data_source=source, data_processor=processor)

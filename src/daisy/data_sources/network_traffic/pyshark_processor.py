@@ -25,7 +25,6 @@ from pyshark.packet.layers.json_layer import JsonLayer
 from pyshark.packet.layers.xml_layer import XmlLayer
 from pyshark.packet.packet import Packet
 
-from .. import select_feature
 from ..data_processor import DataProcessor, flatten_dict
 
 # Exemplary network feature filter, supporting cohda-box (V2x) messages, besides
@@ -366,18 +365,10 @@ def create_pyshark_processor(
     :param nn_aggregator: The aggregator, which should map features to integers
     """
     return (
-        DataProcessor(name=name)
-        .add_func(lambda o_point: packet_to_dict(o_point))
-        .add_func(
-            lambda o_point: select_feature(
-                d_point=o_point, f_features=f_features, default_value=np.nan
-            )
-        )
-        .add_func(
-            lambda o_point: dict_to_numpy_array(
-                d_point=o_point, nn_aggregator=nn_aggregator
-            )
-        )
+        PysharkProcessor(name=name)
+        .packet_to_dict()
+        .select_dict_features(f_features, default_value=np.nan)
+        .dict_to_array(nn_aggregator)
     )
 
 

@@ -22,13 +22,12 @@ from daisy.communication import StreamEndpoint
 from daisy.data_sources import (
     DataHandler,
     DataProcessor,
-    packet_to_dict,
-    remove_feature,
     LivePysharkDataSource,
     SimpleRemoteDataSource,
     CSVFileRelay,
     DataHandlerRelay,
     EventHandler,
+    PysharkProcessor,
 )
 
 
@@ -440,9 +439,9 @@ def create_data_processor(args, f_features, events):
 
     if args.toFile:
         return (
-            DataProcessor()
-            .add_func(lambda o_point: packet_to_dict(o_point))
-            .add_func(lambda o_point: remove_feature(o_point, f_features))
+            PysharkProcessor()
+            .packet_to_dict()
+            .remove_dict_features(f_features)
             .add_func(
                 lambda o_point: events.process(
                     datetime.fromtimestamp(float(o_point.get("meta.time_epoch", 0))),
