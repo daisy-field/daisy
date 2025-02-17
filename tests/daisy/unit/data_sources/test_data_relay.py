@@ -152,7 +152,6 @@ def data_points():
     return data_points, expected_lines
 
 
-# noinspection PyTypeChecker
 class TestCSVFileRelay:
     def test_no_headers_or_discovery_throws_error(self, csv_file_relay_path):
         with pytest.raises(ValueError):
@@ -173,6 +172,7 @@ class TestCSVFileRelay:
                 separator='"',
             )
 
+    # noinspection PyTypeChecker
     def test_param_target_file_none_throws_error(self):
         with pytest.raises(ValueError):
             CSVFileRelay(
@@ -251,6 +251,7 @@ class TestCSVFileRelay:
         assert not csv_file_relay._do_buffer
         file.assert_lines()
 
+    # noinspection PyTypeChecker
     @pytest.mark.parametrize(
         "header_buffer_size,headers,skip_last_datapoint",
         [
