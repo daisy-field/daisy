@@ -22,9 +22,17 @@ jobs:
           pip install .[dev]
       - name: Run Pre-Commit
         uses: pre-commit/action@v3.0.1
+      - name: Run Tests with pytest and coverage
+        run: |
+          mkdir --parents reports/coverage
+          pytest --junitxml=reports/junit/junit.xml --cov=daisy --cov-report=xml 
+          mv coverage.xml reports/coverage/coverage.xml
+        if: success() || failure()
+      - name: Generate test and coverage badges
+        run: |
+          genbadge tests -o reports/junit/tests-badge.svg
+          genbadge coverage -o reports/coverage/coverage-badge.svg
       - name: Apply Changes
         uses: pre-commit-ci/lite-action@v1.0.2
         if: success() || failure()
-      - name: Run Tests with pytest
-        run: |
-          pytest
+        continue-on-error: true # to be removed (once repository is public)
