@@ -185,8 +185,12 @@ class CSVFileDataSource(DataSource):
         self._logger.info("Initializing CSV file data source...")
         if isinstance(files, str):
             tmp_files = [files]
-        else:
+        elif isinstance(files, list):
             tmp_files = files
+        else:
+            raise TypeError(
+                f"Expected either string or list of strings, but got {type(files)}"
+            )
 
         self._files = []
         for path in tmp_files:
