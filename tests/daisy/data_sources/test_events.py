@@ -4,6 +4,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 import pytest
+from datetime import datetime, timezone
 from pyparsing import ParseException
 
 from daisy.data_sources import EventHandler
@@ -23,6 +24,15 @@ class TestEventParser:
             # Comparators
             ("feature=value", False),
             ("value in feature", False),
+            ("feature < value", False),
+            ("feature > value", False),
+            ("feature <= value", False),
+            ("feature >= value", False),
+            # Castings
+            ("feature = s!value", False),
+            ("feature = i!123", False),
+            ("feature = f!123.123", False),
+            ("feature = t!123.123", False),
             # Binary Operators
             ("feature = value and value in feature", False),
             ("feature = value or value in feature", False),
@@ -39,6 +49,8 @@ class TestEventParser:
             ("((feature = value) and value in feature)", False),
             ("not (feature = value and value in feature)", False),
             ("not (feature = value and not value in feature)", False),
+            # Castings: Incorrect casts
+            ("feature = g!value", True),
             # Binary Operators as Comparators
             ("feature and value", True),
             ("feature or value", True),
@@ -97,6 +109,18 @@ class TestEventParser:
                 "value in feature", {"feature": ["value", "other"]}, True, id="in-true"
             ),
             pytest.param("value in feature", {"feature": []}, False, id="in-false"),
+            pytest.param("feature < i!22", {"feature": 21}, True, id="21<22-true"),
+            pytest.param("feature < i!22", {"feature": 22}, False, id="22<22-false"),
+            pytest.param("feature < i!22", {"feature": 23}, False, id="23<22-false"),
+            pytest.param("feature > i!22", {"feature": 21}, False, id="21>22-false"),
+            pytest.param("feature > i!22", {"feature": 22}, False, id="22>22-false"),
+            pytest.param("feature > i!22", {"feature": 23}, True, id="23>22-true"),
+            pytest.param("feature <= i!22", {"feature": 21}, True, id="21<22-true"),
+            pytest.param("feature <= i!22", {"feature": 22}, True, id="22<22-true"),
+            pytest.param("feature <= i!22", {"feature": 23}, False, id="23<22-false"),
+            pytest.param("feature >= i!22", {"feature": 21}, False, id="21>=22-false"),
+            pytest.param("feature >= i!22", {"feature": 22}, True, id="22>=22-true"),
+            pytest.param("feature >= i!22", {"feature": 23}, True, id="23>=22-true"),
         ],
     )
     def test_parser_comparator(self, event_parser, expression, data, expected):
@@ -159,3 +183,65 @@ class TestEventParser:
     def test_parser_first_data_occurrence_is_used(self, event_parser):
         func = event_parser.parse("feature = 0")
         assert func([{"feature": "0"}, {"feature": "1"}])
+
+    _test_datetime = datetime(
+        year=2003, month=6, day=12, hour=3, minute=6, second=12, tzinfo=timezone.utc
+    )
+
+    @pytest.mark.parametrize(
+        "expression,data,expectation",
+        [
+            ("feature = s!22", {"feature": "22"}, True),
+            ("feature = s!22", {"feature": 22}, False),
+            ("feature = i!22", {"feature": 22}, True),
+            ("feature = i!22", {"feature": "22"}, False),
+            ("feature = f!22.2", {"feature": 22.2}, True),
+            ("feature = t!1055387172.0", {"feature": _test_datetime.timestamp()}, True),
+            (
+                "feature = t!12.06.03T03:06:12",
+                {"feature": _test_datetime.timestamp()},
+                True,
+            ),
+            (
+                "feature = t!12.06.03T03:06:12.000",
+                {"feature": _test_datetime.timestamp()},
+                True,
+            ),
+            (
+                "feature = t![12.06.03 03:06:12]",
+                {"feature": _test_datetime.timestamp()},
+                True,
+            ),
+            (
+                "feature = t![12.06.03 03:06:12.000]",
+                {"feature": _test_datetime.timestamp()},
+                True,
+            ),
+            (
+                "feature = t!12.06.03T01:06:12-02:00",
+                {"feature": _test_datetime.timestamp()},
+                True,
+            ),
+            (
+                "feature = t!12.06.03T01:06:12.000-02:00",
+                {"feature": _test_datetime.timestamp()},
+                True,
+            ),
+            (
+                "feature = t![12.06.03 01:06:12-02:00]",
+                {"feature": _test_datetime.timestamp()},
+                True,
+            ),
+            (
+                "feature = t![12.06.03 01:06:12.000-02:00]",
+                {"feature": _test_datetime.timestamp()},
+                True,
+            ),
+        ],
+    )
+    def test_parser_cast_is_correct(self, event_parser, expression, data, expectation):
+        assert event_parser.parse(expression)([data]) == expectation
+
+    def test_parser_incorrect_time_format_raises_exception(self, event_parser):
+        with pytest.raises(ValueError):
+            event_parser.parse("feature = t!1.1.01L1:2:3")

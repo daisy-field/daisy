@@ -307,7 +307,7 @@ class EventParser:
         Only happens when class has been modified/overridden.
         """
         if operation == "in":
-            self._check_feature(dictionary[self._var2][1], expression)
+            self._check_feature(dictionary[self._var2][0], expression)
             value = self._get_value(dictionary[self._var1][0])
             return (
                 lambda data: value

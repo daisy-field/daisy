@@ -20,7 +20,7 @@ from typing import Callable, Self
 import numpy as np
 from typing_extensions import deprecated
 
-from daisy.data_sources import EventHandler
+from .events import EventHandler
 
 
 class DataProcessor:
