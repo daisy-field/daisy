@@ -24,8 +24,10 @@ jobs:
         uses: pre-commit/action@v3.0.1
       - name: Run Tests with pytest and coverage
         run: |
-          pytest --cov=daisy --cov-report=xml
-          genbadge coverage -i coverage.xml -o .github/workflows/coverage-badge.svg
+          mkdir --parents reports/coverage
+          pytest --cov=daisy --cov-report=xml --cov-report=html
+          genbadge coverage -i coverage.xml -o reports/coverage/coverage-badge.svg
+          rm -rf reports/coverage/htmlcov; mv htmlcov reports/coverage/htmlcov
         if: success() || failure()
       - name: Apply Changes
         uses: pre-commit-ci/lite-action@v1.0.2
