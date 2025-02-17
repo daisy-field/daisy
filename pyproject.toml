@@ -124,7 +124,7 @@ dependencies = [
 # projects.
 [project.optional-dependencies] # Optional
 cuda = ["tensorflow[and-cuda]~=2.15.0"]
-dev = ["pre-commit", "ruff", "pytest~=8.3.3", "pytest-cov~=6.0.0"]
+dev = ["pre-commit", "ruff", "pytest~=8.3.3", "pytest-cov~=6.0.0", "genbadge[coverage]"]
 #dev = ["check-manifest"]
 
 # List URLs that are relevant to your project
