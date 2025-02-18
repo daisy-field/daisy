@@ -68,7 +68,11 @@ class Event:
         timestamp and the condition function uses this key, then the value of the first
         dictionary will be used.
         """
-        if self.start_time <= timestamp <= self.end_time:
+        if (
+            self.start_time.timestamp()
+            <= timestamp.timestamp()
+            <= self.end_time.timestamp()
+        ):
             return self._condition_fn(data)
         else:
             return False

@@ -260,7 +260,9 @@ def _add_layer_to_dict(layer: (XmlLayer, JsonLayer)) -> (dict, list):
         return _add_layer_field_container_to_dict(layer)
 
     elif isinstance(layer, LayerField):
-        return {layer.name: layer.show}
+        return {
+            layer.name: layer.show
+        }  # TODO test if .show is present (not None) first and use alternative if needed
 
     # Backwards Compatibility for JSON-mode
     elif isinstance(layer, list):
