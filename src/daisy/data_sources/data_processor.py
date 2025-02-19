@@ -119,7 +119,11 @@ class DataProcessor:
             """
             items = {}
             for key, val in dictionary.items():
-                cur_key = par_key + separator + key if par_key != "" else key
+                cur_key = (
+                    par_key + separator + key
+                    if par_key != "" and not key.startswith(par_key + separator)
+                    else key
+                )
                 if isinstance(val, MutableMapping):
                     sub_items = flatten_dict_func(val, par_key=cur_key)
                     for subkey in sub_items.keys():
