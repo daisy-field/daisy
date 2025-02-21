@@ -9,7 +9,7 @@ Author: Jonathan Ackerschewski, Fabian Hofmann
 Modified: 04.11.2024
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from typing_extensions import deprecated
 
@@ -65,32 +65,32 @@ march23_event_handler = (
 _deprecated_march23_event_handler = (
     EventHandler(default_label="0")
     .add_event(
-        datetime(2023, 3, 6, 12, 34, 17, tzinfo=timezone.utc),
-        datetime(2023, 3, 6, 12, 40, 28, tzinfo=timezone.utc),
+        datetime(2023, 3, 6, 12, 34, 17, tzinfo=timezone(timedelta(hours=1))),
+        datetime(2023, 3, 6, 12, 40, 28, tzinfo=timezone(timedelta(hours=1))),
         "1",
         "client_id = 5 and (http in meta.protocols or tcp in meta.protocols) and 192.168.213.86 in ip.addr and 185. in ip.addr",
     )
     .add_event(
-        datetime(2023, 3, 6, 12, 49, 4, tzinfo=timezone.utc),
-        datetime(2023, 3, 6, 13, 23, 16, tzinfo=timezone.utc),
+        datetime(2023, 3, 6, 12, 49, 4, tzinfo=timezone(timedelta(hours=1))),
+        datetime(2023, 3, 6, 13, 23, 16, tzinfo=timezone(timedelta(hours=1))),
         "2",
         "client_id = 5 and (ssh in meta.protocols or tcp in meta.protocols) and 192.168.230.3 in ip.addr and 192.168.213.86 in ip.addr",
     )
     .add_event(
-        datetime(2023, 3, 6, 13, 25, 27, tzinfo=timezone.utc),
-        datetime(2023, 3, 6, 13, 31, 11, tzinfo=timezone.utc),
+        datetime(2023, 3, 6, 13, 25, 27, tzinfo=timezone(timedelta(hours=1))),
+        datetime(2023, 3, 6, 13, 31, 11, tzinfo=timezone(timedelta(hours=1))),
         "3",
         "client_id = 5 and (ssh in meta.protocols or tcp in meta.protocols) and 192.168.230.3 in ip.addr and 192.168.213.86 in ip.addr",
     )
     .add_event(
-        datetime(2023, 3, 6, 12, 49, 4, tzinfo=timezone.utc),
-        datetime(2023, 3, 6, 13, 23, 16, tzinfo=timezone.utc),
+        datetime(2023, 3, 6, 12, 49, 4, tzinfo=timezone(timedelta(hours=1))),
+        datetime(2023, 3, 6, 13, 23, 16, tzinfo=timezone(timedelta(hours=1))),
         "4",
         "client_id = 2 and (ssh in meta.protocols or tcp in meta.protocols) and 192.168.230.3 in ip.addr and 130.149.98.119 in ip.addr",
     )
     .add_event(
-        datetime(2023, 3, 6, 13, 25, 27, tzinfo=timezone.utc),
-        datetime(2023, 3, 6, 13, 31, 11, tzinfo=timezone.utc),
+        datetime(2023, 3, 6, 13, 25, 27, tzinfo=timezone(timedelta(hours=1))),
+        datetime(2023, 3, 6, 13, 31, 11, tzinfo=timezone(timedelta(hours=1))),
         "5",
         "client_id = 2 and (ssh in meta.protocols or tcp in meta.protocols) and 192.168.230.3 in ip.addr and 130.149.98.119 in ip.addr",
     )

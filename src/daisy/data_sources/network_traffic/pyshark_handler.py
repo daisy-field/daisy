@@ -12,11 +12,11 @@ Modified: 04.11.24
 """
 
 import logging
-from natsort import natsorted
 import os
 from typing import Iterator, Optional
 
 import pyshark
+from natsort import natsorted
 from pyshark.capture.capture import TSharkCrashException
 from pyshark.capture.file_capture import FileCapture
 from pyshark.capture.live_capture import LiveCapture
@@ -157,7 +157,8 @@ class PcapDataSource(DataSource):
         while try_counter < self._try_counter:
             try:
                 self._cur_file_handle = pyshark.FileCapture(
-                    self._pcap_files[self._cur_file_counter]
+                    self._pcap_files[self._cur_file_counter],
+                    use_json=True,
                 )
                 break
             except TSharkCrashException:
