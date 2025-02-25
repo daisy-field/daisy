@@ -48,7 +48,9 @@ class LivePysharkDataSource(DataSource):
         super().__init__(name)
 
         self._logger.info("Initializing live pyshark data source...")
-        self._capture = pyshark.LiveCapture(interface=interfaces, bpf_filter=bpf_filter)
+        self._capture = pyshark.LiveCapture(
+            interface=interfaces, bpf_filter=bpf_filter, use_json=True
+        )
         self._logger.info("Live pyshark data source initialized.")
 
     def open(self):

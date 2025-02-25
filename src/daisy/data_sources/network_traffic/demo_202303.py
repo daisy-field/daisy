@@ -27,36 +27,36 @@ march23_event_handler = (
     EventHandler(default_label="0")
     .append_event(
         "1",
-        "meta.time_epoch > t!06.03.23T12:34:17 and "
-        "meta.time_epoch < t!06.03.23T12:40:28 and (client_id = i!5 and "
+        "meta.time_epoch > t!06.03.23T12:34:17+01:00 and "
+        "meta.time_epoch < t!06.03.23T12:40:28+01:00 and (client_id = i!5 and "
         "(http in meta.protocols or tcp in meta.protocols) and "
         "192.168.213.86 in ip.addr and 185. in ip.addr)",
     )
     .append_event(
         "2",
-        "meta.time_epoch > t!06.03.23T12:49:04 and"
-        "meta.time_epoch < t!06.03.23T13:23:16 and"
+        "meta.time_epoch > t!06.03.23T12:49:04+01:00 and"
+        "meta.time_epoch < t!06.03.23T13:23:16+01:00 and"
         "(client_id = i!5 and (ssh in meta.protocols or tcp in meta.protocols) and "
         "192.168.230.3 in ip.addr and 192.168.213.86 in ip.addr)",
     )
     .append_event(
         "3",
-        "meta.time_epoch > t!06.03.23T13:25:27 and"
-        "meta.time_epoch < t!06.03.23T13:31:11 and"
+        "meta.time_epoch > t!06.03.23T13:25:27+01:00 and"
+        "meta.time_epoch < t!06.03.23T13:31:11+01:00 and"
         "(client_id = i!5 and (ssh in meta.protocols or tcp in meta.protocols) and "
         "192.168.230.3 in ip.addr and 192.168.213.86 in ip.addr)",
     )
     .append_event(
         "4",
-        "meta.time_epoch > t!06.03.23T12:49:04 and"
-        "meta.time_epoch < t!06.03.23T13:23:16 and"
+        "meta.time_epoch > t!06.03.23T12:49:04+01:00 and"
+        "meta.time_epoch < t!06.03.23T13:23:16+01:00 and"
         "(client_id = i!2 and (ssh in meta.protocols or tcp in meta.protocols) and "
         "192.168.230.3 in ip.addr and 130.149.98.119 in ip.addr)",
     )
     .append_event(
         "5",
-        "meta.time_epoch > t!06.03.23T13:25:27 and"
-        "meta.time_epoch < t!06.03.23T13:31:11 and"
+        "meta.time_epoch > t!06.03.23T13:25:27+01:00 and"
+        "meta.time_epoch < t!06.03.23T13:31:11+01:00 and"
         "(client_id = i!2 and (ssh in meta.protocols or tcp in meta.protocols) and "
         "192.168.230.3 in ip.addr and 130.149.98.119 in ip.addr)",
     )

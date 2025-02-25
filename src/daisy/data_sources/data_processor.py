@@ -243,6 +243,44 @@ class DataProcessor:
 
         return self.add_func(lambda d_point: merge_dict_func(d_point))
 
+    def cast_dict_features(
+        self,
+        features: str | list[str],
+        cast: Callable[[object], object] | list[Callable[[object], object]],
+    ) -> Self:
+        """Casts the given feature(s) using the provided cast function(s). For both
+        features and casts a single or multiple values can be provided. If only one
+        cast function is provided with multiple features, all given features will
+        be cast using the single cast function. Otherwise, the same amount of cast
+        functions and features should be provided.
+
+
+        :param features: The features to cast.
+        :param cast: The cast function(s) to apply.
+        :raises ValueError: If the amount of features and cast functions is not equal.
+        (Only if more than one cast function is provided.)
+        """
+
+        def cast_func(d_point: dict) -> dict:
+            if isinstance(features, list) and isinstance(cast, list):
+                if len(features) != len(cast):
+                    raise ValueError(
+                        f"Features and casts must have the same length. "
+                        f"Features has {len(features)} and casts has {len(cast)} items."
+                    )
+            _features = features
+            if isinstance(features, str):
+                _features = [features]
+
+            for i in range(len(_features)):
+                if isinstance(cast, list):
+                    d_point[_features[i]] = cast[i](d_point[_features[i]])
+                else:
+                    d_point[_features[i]] = cast(d_point[_features[i]])
+            return d_point
+
+        return self.add_func(lambda d_point: cast_func(d_point))
+
     def process(self, o_point: object) -> object:
         """Processes the given data point using the provided functions. The functions
         are carried out in the order they were added. If no functions were provided,
