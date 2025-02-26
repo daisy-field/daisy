@@ -23,7 +23,6 @@ from ..events import EventHandler
 # 4: "SSH Brute Force Response"
 # 5: "SSH Data Leakage"
 march23_event_handler = (
-    # TODO test this! Check if the same number of packets is marked with the appropriate labels as the old version
     EventHandler(default_label="0")
     .append_event(
         "1",
