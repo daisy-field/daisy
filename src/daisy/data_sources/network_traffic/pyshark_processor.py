@@ -348,9 +348,12 @@ def _add_list_to_dict(
         dictionary[layer.get_field(field_name).layer_name] = value_list
 
     else:
-        dictionary[next(iter(value_list[0].keys()))] = [
-            res[next(iter(value_list[0].keys()))] for res in value_list
-        ]
+        try:
+            dictionary[next(iter(value_list[0].keys()))] = [
+                res[next(iter(value_list[0].keys()))] for res in value_list
+            ]
+        except KeyError:
+            pass
     return dictionary
 
 
