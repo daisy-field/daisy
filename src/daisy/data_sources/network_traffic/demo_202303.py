@@ -28,8 +28,8 @@ march23_event_handler = (
     .append_event(
         "1",
         "meta.time_epoch > t!06.03.23T12:34:17+01:00 and "
-        "meta.time_epoch < t!06.03.23T12:40:28+01:00 and (client_id = i!5 and "
-        "(http in meta.protocols or tcp in meta.protocols) and "
+        "meta.time_epoch < t!06.03.23T12:40:28+01:00 and "
+        "(client_id = i!5 and (http in meta.protocols or tcp in meta.protocols) and "
         "192.168.213.86 in ip.addr and 185. in ip.addr)",
     )
     .append_event(

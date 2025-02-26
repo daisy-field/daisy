@@ -184,11 +184,12 @@ def create_client():
     source = PcapDataSource(
         f"{args.pcapBasePath}/diginet-cohda-box-dsrc{args.clientId}"
     )
-    processor = (  # TODO the processor has to be tested!!
+    processor = (
         PysharkProcessor()
         .packet_to_dict()
         .select_dict_features(features=pcap_f_features, default_value=np.nan)
         .merge_dict({"client_id": args.clientId})
+        .cast_dict_features(["meta.time_epoch", "ip.addr"], [float, str])
         .add_event_handler(march23_event_handler)
         .remove_dict_features(["client_id"])
         .dict_to_array(nn_aggregator=pcap_nn_aggregator)
