@@ -26,6 +26,7 @@ from daisy.federated_learning import FederatedModel
 from daisy.federated_ids_components import FederatedOnlineNode
 from daisy.federated_ids_components.node import _try_ops
 from daisy.personalized_fl_components.generative.generative_model import GenerativeModel
+from daisy.model_poisoning.model_poisoning import model_poisoning
 
 
 class pflGenerativeNode(FederatedOnlineNode):
@@ -141,7 +142,7 @@ class pflGenerativeNode(FederatedOnlineNode):
                 else:
                     self._logger.debug(i)
 
-            params = self.model_poisoning(current_params, self._poisoningMode)
+            params = model_poisoning(current_params, self._poisoningMode, self._generative_model)
             self._m_aggr_server.send(params)
 
             self._logger.info(
@@ -330,51 +331,3 @@ class pflGenerativeNode(FederatedOnlineNode):
         sns.heatmap(correlation_matrix, annot=False, cmap="coolwarm", fmt=".2f")
         plt.title(name)
         fig.savefig(path + name, dpi=fig.dpi)
-
-    def model_poisoning(self, current_params, poisoning_mode):
-        """
-        Function for poisoning model weights. Based on the current params and the poisoning mode, the
-        function either retruns a list of random values, zeros or inverted parameters with the same shape
-        as the original parameters. If poisoning mode is none, the original parameters are returned.
-
-        :param current_params: List of current model weights.
-        :param poisoning_mode: Poisoning mode, either None, zeros, random or inverse.
-        :return: poisoned parameters
-        """
-
-        poisoned_params = []
-
-        if poisoning_mode is None:
-            self._logger.info("Send unpoisoned parameters")
-            return current_params
-        else:
-            if poisoning_mode == "zeros":
-                for layer in current_params:
-                    if isinstance(layer, int) or isinstance(layer, float):
-                        poisoned_params.append(0)
-                    else:
-                        poisoned_params.append(np.zeros_like(layer))
-                self._generative_model.set_parameters(poisoned_params)  # new_params)
-                self._logger.info("Model poisoning: Set GAN weights to zero")
-
-            elif poisoning_mode == "random":
-                for layer in current_params:
-                    if isinstance(layer, int) or isinstance(layer, float):
-                        poisoned_params.append(np.random.random())
-                    else:
-                        poisoned_params.append(np.random.random_sample(layer.shape))
-                self._generative_model.set_parameters(poisoned_params)
-
-            elif self._poisoningMode == "inverse":
-                for layer in current_params:
-                    poisoned_params.append(layer * -1)
-                # Skipped setting new GAN parameters, as we need to inverse the real GAN parameters next round
-
-            self._logger.info("Poisoned Parameters:")
-            for i in poisoned_params:
-                if not (isinstance(i, int) or isinstance(i, float)):
-                    self._logger.info(i.shape)
-                else:
-                    self._logger.info(i)
-            self._logger.info("Send poisoned params to model aggregation server...")
-            return poisoned_params

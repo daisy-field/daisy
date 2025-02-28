@@ -10,7 +10,7 @@ from . import views
 
 router = routers.DefaultRouter()
 router.register(r"metrics", views.MetricsSerializerView)
-router.register(r"metricslong", views.MetricsSerializerView)
+router.register(r"metricslong", views.MetricsLongSerializerView)
 router.register(r"aggregation", views.AggregationSerializerView)
 router.register(r"prediction", views.PredictionSerializerView)
 router.register(r"alert", views.AlertsSerializerView)

@@ -25,6 +25,8 @@ from daisy.communication import StreamEndpoint
 from daisy.data_sources import DataHandler
 from daisy.federated_learning import FederatedModel, ModelAggregator
 
+from daisy.src.daisy.model_poisoning.model_poisoning import model_poisoning
+
 
 class FederatedOnlineNode(ABC):
     """Abstract class for generic federated nodes, that learn cooperatively on
@@ -502,36 +504,9 @@ class FederatedOnlineClient(FederatedOnlineNode):
                 else:
                     self._logger.info(i)
 
-            poisoned_params = []
+            poisoned_params = model_poisoning(current_params, self._poisoningMode, self._model)
+            self._m_aggr_server.send(poisoned_params)
 
-            if self._poisoningMode is None:
-                self._m_aggr_server.send(current_params)
-            else:
-                if self._poisoningMode == "zeros":
-                    for layer in current_params:
-                        if isinstance(layer, int) or isinstance(layer, float):
-                            poisoned_params.append(0)
-                        else:
-                            poisoned_params.append(np.zeros_like(layer))
-                elif self._poisoningMode == "random":
-                    for layer in current_params:
-                        if isinstance(layer, int) or isinstance(layer, float):
-                            poisoned_params.append(np.random.random())
-                        else:
-                            poisoned_params.append(np.random.random_sample(layer.shape))
-                elif self._poisoningMode == "inverse":
-                    for layer in current_params:
-                        poisoned_params.append(layer * -1)
-
-                self._logger.info("Poisoned Parameters:")
-                for i in poisoned_params:
-                    if not (isinstance(i, int) or isinstance(i, float)):
-                        self._logger.info(i.shape)
-                    else:
-                        self._logger.info(i)
-
-                self._m_aggr_server.send(poisoned_params)
-                self._model.set_parameters(poisoned_params)  # new_params)
 
             self._logger.debug(
                 "Receiving global model parameters from model aggregation server..."
@@ -551,9 +526,7 @@ class FederatedOnlineClient(FederatedOnlineNode):
                 )
                 return
 
-            if self._poisoningMode is not None:
-                self._model.set_parameters(poisoned_params)  # new_params)
-            else:
+            if self._poisoningMode is None or self._poisoningMode == "inverse":
                 self._logger.debug("Updating local model with global parameters...")
                 new_params = cast(np.array, m_aggr_msg)
                 self._model.set_parameters(new_params)
