@@ -110,7 +110,12 @@ dependencies = [
     "django~=5.0.1",
     "djangorestframework~=3.14.0",
     "pyparsing~=3.2.0",
-    "typing-extensions~=4.12.2"
+    "typing-extensions~=4.12.2",
+    "psutil~=7.0.0",
+    "matplotlib~=3.10.1",
+    "pandas~=2.2.3",
+    "scikit-learn~=1.6.1",
+    "seaborn~=0.13.2"
 ]
 
 # List additional groups of dependencies here (e.g. development

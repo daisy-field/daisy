@@ -3,14 +3,17 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""AutoModelScaler for choosing the most suitable local model based on the local hardware constraints
+"""AutoModelScaler for choosing the most suitable local model based on the local
+hardware constraints
 
 Author: Seraphin Zunzer
 Modified: 13.01.25
 """
 
 import logging
+
 import psutil
+
 from daisy.personalized_fl_components.local_models import (
     TFFederatedModel_small,
     TFFederatedModel_medium,
@@ -53,7 +56,8 @@ class AutoModelScaler:
         self, identifier, input_size, optimizer, loss, batchSize, epochs
     ):
         """
-        Manually select a model size. Currently, "small", "medium" and "large" models are available
+        Manually select a model size. Currently, "small", "medium" and "large" models
+        are available
 
         :param identifier: identifier for model size, i.e. small, medium or large.
         :param input_size: input size of the model.
@@ -94,8 +98,8 @@ class AutoModelScaler:
         return id_fn
 
     def choose_model(self, inputSize, optimizer, loss, batchSize, epochs):
-        """Automatically chooses a Federated Model of the three available model sizes, by
-        evaluating the current cpu usage.
+        """Automatically chooses a Federated Model of the three available model sizes,
+        by evaluating the current cpu usage.
 
         :param input_size: input size of the model.
         :param optimizer: optimizer of the model.

@@ -3,7 +3,8 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""A generative worker node, using the federated GAN to add synthetic data to the local model training.
+"""A generative worker node, using the federated GAN to add synthetic data to the local
+model training.
 
 Author: Seraphin Zunzer
 Modified: 13.01.25
@@ -12,19 +13,18 @@ Modified: 13.01.25
 from time import sleep, time
 from typing import cast
 
-import numpy as np
-import tensorflow as tf
-import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 import seaborn as sns
+import tensorflow as tf
 from sklearn.preprocessing import MinMaxScaler
-
 
 from daisy.communication import StreamEndpoint
 from daisy.data_sources import DataHandler
-from daisy.federated_learning import FederatedModel
 from daisy.federated_ids_components import FederatedOnlineNode
 from daisy.federated_ids_components.node import _try_ops
+from daisy.federated_learning import FederatedModel
 from daisy.personalized_fl_components.generative.generative_model import GenerativeModel
 from daisy.model_poisoning.model_poisoning import model_poisoning
 
@@ -32,7 +32,8 @@ from daisy.model_poisoning.model_poisoning import model_poisoning
 class pflGenerativeNode(FederatedOnlineNode):
     """Implementation of a federated online node, using a generative model
     for the knowledge exchange in personalized federated learning.
-    In pFL, the local nodes model differ. Therefore, a generative model is trained and exchanged in a federated manner,
+    In pFL, the local nodes model differ. Therefore, a generative model is trained and
+    exchanged in a federated manner,
     to locally create augmented data of other nodes."""
 
     _m_aggr_server: StreamEndpoint
@@ -59,8 +60,8 @@ class pflGenerativeNode(FederatedOnlineNode):
         update_interval_t: int = None,
         poisoning_mode: str = None,
     ):
-        """Creates a new federated online client for data augmentation. Now, additionally to the local node,
-        a generative model is stored in the node.
+        """Creates a new federated online client for data augmentation. Now,
+        additionally to the local node, a generative model is stored in the node.
 
         :param data_handler: Data handler of data stream to draw data points from.
         :param batch_size: Minibatch size for each prediction-fitting step.
@@ -244,8 +245,8 @@ class pflGenerativeNode(FederatedOnlineNode):
 
     def _process_batch(self):
         """Processes the current batch for both running a prediction and fitting the
-        generative model around the databatch. Augmented data from generative model is added to training batch
-        used for training the local intrusion detection model.
+        generative model around the databatch. Augmented data from generative model is
+        added to training batch used for training the local intrusion detection model.
         Also sends results to both the aggregation and the
         evaluation server, if available and provided in the beginning,
         before flushing the minibatch window.
@@ -318,8 +319,9 @@ class pflGenerativeNode(FederatedOnlineNode):
 
     def create_heatmap(self, data, path: str, name: str):
         """
-        Create a heatmap based of attributes data. Image ist saved under the given name at the given path.
-        Useful to compare synthetic data correlations with real data correlations.
+        Create a heatmap based of attributes data. Image ist saved under the given name
+        at the given path. Useful to compare synthetic data correlations with real data
+        correlations.
 
         :param data: dataset to create the heatmap from.
         :param path: location to store the image.
