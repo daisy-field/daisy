@@ -367,7 +367,7 @@ class DistillativeModelAggregator(FederatedOnlineAggregator):
         self._update_dashboard(
             "/aggregation/",
             {
-                "agg_status": "Operational",  # TODO add len(client_models)
+                "agg_status": "Operational",
                 "agg_count": len(clients),
             },
         )
