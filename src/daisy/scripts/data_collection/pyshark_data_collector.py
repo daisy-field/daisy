@@ -362,26 +362,32 @@ def check_args(args):
             logging.error("You must specify a local and remote IP address.")
             exit(1)
 
+    return log_level
 
-def create_data_source(args):
+
+def create_data_source(args, log_level):
     """Creates and returns the data handler"""
 
     if args.localSource:
         return LivePysharkDataSource(
             name="data_collector:live_data_source",
+            log_level=log_level,
             interfaces=args.interfaces,
             bpf_filter=args.filter,
         )
     else:
         stream_endpoint = StreamEndpoint(
             name="data_collector:stream_endpoint",
+            log_level=log_level,
             addr=(args.local_ip, args.local_port),
             remote_addr=(args.remote_ip, args.remote_port),
             acceptor=True,
             multithreading=args.io_multithreading,
         )
         return SimpleRemoteDataSource(
-            endpoint=stream_endpoint, name="data_collector:remote_data_source"
+            endpoint=stream_endpoint,
+            name="data_collector:remote_data_source",
+            log_level=log_level,
         )
 
 
@@ -432,7 +438,7 @@ def read_collection_files(args):
     return f_features, events, headers
 
 
-def create_data_processor(args, f_features, events):
+def create_data_processor(args, f_features, events, log_level):
     """Creates the data processor, which either processes the data points on the
     machine the data is written to file or returns the data points unprocessed
     for relaying to another machine.
@@ -440,7 +446,7 @@ def create_data_processor(args, f_features, events):
 
     if args.toFile:
         return (
-            DataProcessor()
+            DataProcessor(log_level=log_level)
             .add_func(lambda o_point: packet_to_dict(o_point))
             .add_func(lambda o_point: remove_feature(o_point, f_features))
             .add_func(
@@ -454,7 +460,7 @@ def create_data_processor(args, f_features, events):
         return DataProcessor()
 
 
-def create_relay(args, data_handler, headers):
+def create_relay(args, data_handler, headers, log_level):
     """Creates the relay. This is either a CSVFileRelay if the data should be written
     to file or a DataSourceRelay if the data should be transferred to another machine.
     """
@@ -464,6 +470,7 @@ def create_relay(args, data_handler, headers):
             data_handler=data_handler,
             target_file=args.outputFile,
             name="data_collector:csv_file_relay",
+            log_level=log_level,
             header_buffer_size=args.csv_header_buffer,
             headers=headers,
             overwrite_file=args.overwrite,
@@ -473,6 +480,7 @@ def create_relay(args, data_handler, headers):
     else:
         stream_endpoint_out = StreamEndpoint(
             name="data_relay:stream_endpoint_out",
+            log_level=log_level,
             addr=(args.out_local_ip, args.out_local_port),
             remote_addr=(args.out_remote_ip, args.out_remote_port),
             acceptor=False,
@@ -481,6 +489,7 @@ def create_relay(args, data_handler, headers):
             data_handler=data_handler,
             endpoint=stream_endpoint_out,
             name="data_relay:data_relay",
+            log_level=log_level,
         )
 
 
@@ -491,20 +500,21 @@ def create_collector():
     """
     # Args parsing
     args = _parse_args()
-    check_args(args)
+    log_level = check_args(args)
 
-    data_source = create_data_source(args)
+    data_source = create_data_source(args, log_level)
     f_features, events, headers = read_collection_files(args)
-    data_processor = create_data_processor(args, f_features, events)
+    data_processor = create_data_processor(args, f_features, events, log_level)
 
     data_handler = DataHandler(
         data_source=data_source,
         data_processor=data_processor,
         name="data_collector:data_handler",
+        log_level=log_level,
         multithreading=args.processing_multithreading,
     )
 
-    relay = create_relay(args, data_handler, headers)
+    relay = create_relay(args, data_handler, headers, log_level)
 
     relay.start()
     input("Press Enter to stop server...")

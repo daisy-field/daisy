@@ -93,6 +93,7 @@ class FederatedOnlineNode(ABC):
         batch_size: int,
         model: FederatedModel,
         name: str = "",
+        log_level: int = logging.WARN,
         label_split: int = 2**32,
         supervised: bool = False,
         metrics: list[tf.keras.metrics.Metric] = None,
@@ -109,6 +110,7 @@ class FederatedOnlineNode(ABC):
         :param batch_size: Minibatch size for each prediction-fitting step.
         :param model: Actual model to be fitted and run predictions on in online manner.
         :param name: Name of federated online node for logging purposes.
+        :param log_level: Logging level for logging purposes.
         :param label_split: Split index within data point vector between input and
         true label(s). Default is no labels.
         :param supervised: Learning mode for model (supervised/unsupervised). Default
@@ -125,6 +127,7 @@ class FederatedOnlineNode(ABC):
         X seconds, do a sync update.
         """
         self._logger = logging.getLogger(name)
+        self._logger.setLevel(log_level)
         self._logger.info("Initializing federated online node...")
 
         self._data_handler = data_handler
@@ -413,6 +416,8 @@ class FederatedOnlineClient(FederatedOnlineNode):
         m_aggr_server: tuple[str, int],
         timeout: int = 10,
         name: str = "",
+        log_level: int = logging.WARN,
+        stream_endpoint_log_level: int = logging.WARN,
         label_split: int = 2**32,
         supervised: bool = False,
         metrics: list[tf.keras.metrics.Metric] = None,
@@ -432,6 +437,8 @@ class FederatedOnlineClient(FederatedOnlineNode):
         :param timeout: Timeout for waiting to receive global model updates from
         model aggregation server.
         :param name: Name of federated online node for logging purposes.
+        :param log_level: Logging level for logging purposes.
+        :param stream_endpoint_log_level: Logging level for logging purposes.
         :param label_split: Split index within data point vector between input and
         true label(s). Default is no labels.
         :param supervised: Learning mode for model (supervised/unsupervised). Default
@@ -453,6 +460,7 @@ class FederatedOnlineClient(FederatedOnlineNode):
             batch_size=batch_size,
             model=model,
             name=name,
+            log_level=log_level,
             label_split=label_split,
             supervised=supervised,
             metrics=metrics,
@@ -465,6 +473,7 @@ class FederatedOnlineClient(FederatedOnlineNode):
 
         self._m_aggr_server = StreamEndpoint(
             name="MAggrServer",
+            log_level=stream_endpoint_log_level,
             remote_addr=m_aggr_server,
             acceptor=False,
             multithreading=True,
@@ -607,6 +616,7 @@ class FederatedOnlinePeer(FederatedOnlineNode):
         model: FederatedModel,
         m_aggr: ModelAggregator,
         name: str = "",
+        log_level: int = logging.WARN,
         label_split: int = 2**32,
         supervised: bool = False,
         metrics: list[tf.keras.metrics.Metric] = None,
@@ -623,6 +633,7 @@ class FederatedOnlinePeer(FederatedOnlineNode):
         :param model: Actual model to be fitted and run predictions on in online manner.
         :param m_aggr: Model aggregator for local model aggregation.
         :param name: Name of federated online node for logging purposes.
+        :param log_level: Logging level for logging purposes.
         :param label_split: Split index within data point vector between input and
         true label(s). Default is no labels.
         :param supervised: Learning mode for model (supervised/unsupervised). Default
@@ -643,6 +654,7 @@ class FederatedOnlinePeer(FederatedOnlineNode):
             batch_size=batch_size,
             model=model,
             name=name,
+            log_level=log_level,
             label_split=label_split,
             supervised=supervised,
             metrics=metrics,

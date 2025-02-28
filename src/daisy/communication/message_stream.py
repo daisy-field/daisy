@@ -14,12 +14,13 @@ import ctypes
 import logging
 import pickle
 import queue
-import select
 import socket
 import sys
 import threading
 from time import sleep, time
 from typing import Callable, Iterable, Optional, Self
+
+import select
 
 # noinspection PyUnresolvedReferences
 from lz4.frame import compress, decompress
@@ -77,6 +78,7 @@ class EndpointSocket:
     def __init__(
         self,
         name: str,
+        log_level: int = logging.WARN,
         addr: tuple[str, int] = None,
         remote_addr: tuple[str, int] = None,
         acceptor: bool = True,
@@ -91,6 +93,7 @@ class EndpointSocket:
         registered, then the current one will throw an error.
 
         :param name: Name of endpoint for logging purposes.
+        :param log_level: Logging level for logging purposes.
         :param addr: Address of endpoint. Mandatory in acceptor mode (acceptor set to
         True), for initiators this fixes the address the endpoint is bound to.
         :param remote_addr: Address of remote endpoint to be connected to. Mandatory in
@@ -106,6 +109,7 @@ class EndpointSocket:
         or if the address/remote address is not provided for acceptor/initiator.
         """
         self._logger = logging.getLogger(name + "-Socket")
+        self._logger.setLevel(log_level)
         self._logger.info(f"Initializing endpoint socket {addr, remote_addr}...")
 
         self._addr = addr if addr is not None else ("0.0.0.0", 0)
@@ -776,6 +780,7 @@ class StreamEndpoint:
     def __init__(
         self,
         name: str = "StreamEndpoint",
+        log_level: int = logging.WARN,
         addr: tuple[str, int] = None,
         remote_addr: tuple[str, int] = None,
         acceptor: bool = True,
@@ -791,6 +796,7 @@ class StreamEndpoint:
         """Creates a new endpoint.
 
         :param name: Name of endpoint for logging purposes.
+        :param log_level: Logging level for logging purposes.
         :param addr: Address of endpoint.
         :param remote_addr: Address of remote endpoint to be connected to. Optional in
         acceptor mode.
@@ -813,6 +819,7 @@ class StreamEndpoint:
         down of the endpoint may still be called separately.
         """
         self._logger = logging.getLogger(name)
+        self._logger.setLevel(log_level)
         self._logger.info(f"Initializing endpoint {addr, remote_addr}...")
 
         self._endpoint_socket = EndpointSocket(
@@ -1141,6 +1148,7 @@ class StreamEndpoint:
         objects: Iterable,
         remote_addr: tuple[str, int],
         name: str = "QuickSenderEndpoint",
+        log_level: int = logging.WARN,
         addr: tuple[str, int] = None,
         send_b_size: int = 65536,
         compression: bool = False,
@@ -1165,6 +1173,7 @@ class StreamEndpoint:
         def quick_sender_ep():
             endpoint = StreamEndpoint(
                 name=name,
+                log_level=log_level,
                 addr=addr,
                 remote_addr=remote_addr,
                 acceptor=False,
@@ -1247,6 +1256,7 @@ class EndpointServer:
     _c_lock: threading.Lock
 
     _name: str
+    _stream_endpoint_log_level: int
     _addr: tuple[str, int]
     _send_b_size: int
     _recv_b_size: int
@@ -1264,6 +1274,8 @@ class EndpointServer:
         self,
         addr: tuple[str, int],
         name: str = "EndpointServer",
+        log_level: int = logging.WARN,
+        stream_endpoint_log_level: int = logging.WARN,
         c_timeout: int = None,
         send_b_size: int = 65536,
         recv_b_size: int = 65536,
@@ -1278,6 +1290,8 @@ class EndpointServer:
 
         :param addr: Address of endpoint server.
         :param name: Name of endpoint server for logging purposes.
+        :param log_level: Logging level for logging purposes.
+        :param stream_endpoint_log_level: Logging level for stream endpoint logging
         :param c_timeout: Timeout (secs) for disconnected connection endpoints when
         performing periodic cleanup. Default is no cleanup.
         :param send_b_size: Underlying send buffer size of all connection sockets.
@@ -1298,6 +1312,8 @@ class EndpointServer:
         shutdown and cleanup of the actual endpoint is still done by the server.
         """
         self._logger = logging.getLogger(name)
+        self._logger.setLevel(log_level)
+        self._stream_endpoint_log_level = stream_endpoint_log_level
         self._logger.info(f"Initializing endpoint server {addr}...")
 
         self._connections = {}
@@ -1488,6 +1504,7 @@ class EndpointServer:
             self._logger.debug(logging_prefix + "Preparing endpoint for connection...")
             new_connection = StreamEndpoint(
                 name=f"{self._name}-{self._n_connections}",
+                log_level=self._stream_endpoint_log_level,
                 addr=self._addr,
                 remote_addr=None,
                 acceptor=True,

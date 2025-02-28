@@ -43,15 +43,21 @@ class DataHandlerRelay:
     _completed = threading.Event
 
     def __init__(
-        self, data_handler: DataHandler, endpoint: StreamEndpoint, name: str = ""
+        self,
+        data_handler: DataHandler,
+        endpoint: StreamEndpoint,
+        name: str = "",
+        log_level: int = logging.WARN,
     ):
         """Creates a new data handler relay.
 
         :param data_handler: Data handler to relay data points from.
         :param endpoint: Streaming endpoint to which data points are relayed to.
         :param name: Name of data source relay for logging purposes.
+        :param log_level: Logging level for logging purposes.
         """
         self._logger = logging.getLogger(name)
+        self._logger.setLevel(log_level)
         self._logger.info("Initializing data handler relay...")
 
         self._started = False
@@ -169,6 +175,7 @@ class CSVFileRelay:
         data_handler: DataHandler,
         target_file: str | Path,
         name: str = "",
+        log_level: int = logging.WARN,
         header_buffer_size: int = 1000,
         headers: tuple[str, ...] = None,
         overwrite_file: bool = False,
@@ -183,6 +190,7 @@ class CSVFileRelay:
         :param target_file: The path to the (new) CSV file. The parent directories
         will be created if not existent.
         :param name: Name of the relay for logging purposes.
+        :param log_level: Logging level for logging purposes.
         :param header_buffer_size: Number of packets to buffer to generate a common
         header via auto-detection. Note it is not guaranteed that all
         features/headers of all data points in the (possible infinite) stream will be
@@ -201,6 +209,7 @@ class CSVFileRelay:
             * If file path provided is not valid.
         """
         self._logger = logging.getLogger(name)
+        self._logger.setLevel(log_level)
         self._logger.info("Initializing file relay...")
 
         self._started = False

@@ -54,6 +54,7 @@ class DataHandler:
         data_source: DataSource,
         data_processor: DataProcessor,
         name: str = "",
+        log_level: int = logging.WARN,
         multithreading: bool = False,
         buffer_size: int = 1024,
     ):
@@ -63,10 +64,12 @@ class DataHandler:
         :param data_processor: Processor containing the methods on how to process
         individual data points.
         :param name: Name of data source relay for logging purposes.
+        :param log_level: Logging level for logging purposes.
         :param multithreading: Enables transparent multithreading for speedup.
         :param buffer_size: Size of shared buffer in multithreading mode.
         """
         self._logger = logging.getLogger(name)
+        self._logger.setLevel(log_level)
         self._logger.info("Initializing data handler...")
 
         self._opened = False

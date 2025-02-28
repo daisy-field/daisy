@@ -12,11 +12,11 @@ Modified: 04.11.24
 """
 
 import logging
-from natsort import natsorted
 import os
 from typing import Iterator, Optional
 
 import pyshark
+from natsort import natsorted
 from pyshark.capture.capture import TSharkCrashException
 from pyshark.capture.file_capture import FileCapture
 from pyshark.capture.live_capture import LiveCapture
@@ -37,7 +37,13 @@ class LivePysharkDataSource(DataSource):
     _capture: LiveCapture
     _generator: Iterator[Packet]
 
-    def __init__(self, name: str = "", interfaces: list = "any", bpf_filter: str = ""):
+    def __init__(
+        self,
+        name: str = "",
+        log_level: int = logging.WARN,
+        interfaces: list = "any",
+        bpf_filter: str = "",
+    ):
         """Creates a new basic pyshark live capture handler on the given interfaces.
 
         :param name: Name of data source for logging purposes.
@@ -45,7 +51,7 @@ class LivePysharkDataSource(DataSource):
         interfaces.
         :param bpf_filter: Pcap conform filter to filter or ignore certain traffic.
         """
-        super().__init__(name)
+        super().__init__(name=name, log_level=log_level)
 
         self._logger.info("Initializing live pyshark data source...")
         self._capture = pyshark.LiveCapture(interface=interfaces, bpf_filter=bpf_filter)
