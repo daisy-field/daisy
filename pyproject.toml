@@ -168,3 +168,11 @@ demo_202303_client = "daisy.scripts.demo_components:demo_202303_client"
 requires = ["setuptools"]  # REQUIRED if [build-system] table is used
 # The name of the Python object that frontends will use to perform the build:
 build-backend = "setuptools.build_meta"  # If not defined, then legacy behavior can happen.
+
+[tool.pytest.ini_options]
+pythonpath = "src"
+# Changes import style for running tests. Refer to:
+# https://docs.pytest.org/en/stable/explanation/goodpractices.html#choosing-an-import-mode
+addopts = [
+    "--import-mode=importlib",
+]
