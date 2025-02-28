@@ -43,7 +43,8 @@ recommended to use a
 project. For CUDA-enabled GPU cards (mainly on Ubuntu and various Linux distributions),
 there is additional support directly integrated into DAISY via the `[cuda]` option;
 this functionality requires NVIDIA® GPU drivers and is supported through and by
-[Tensorflow](https://github.com/tensorflow/tensorflow/blob/master/README.md).
+[Tensorflow](https://github.com/tensorflow/tensorflow/blob/master/README.md). For live traffic capture and pcap reading functionality, 
+[Tshark](https://tshark.dev/setup/install/) is required.
 
 ```shell
 git clone https://github.com/daisy-field/daisy.git
