@@ -5,8 +5,9 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 """An adapted federated online aggregator to be able to aggregate personalized models.
-  The models size of a node in pFL is determined by auto_model_scaler.py and collected by the model aggregator.
-  The model aggregator uses multi teacher knowledge distillation to exchange knowledge between these models.
+  The models size of a node in pFL is determined by auto_model_scaler.py and collected
+  by the model aggregator. The model aggregator uses multi teacher knowledge
+  distillation to exchange knowledge between these models.
 
 Author: Seraphin Zunzer
 Modified: 13.01.25
@@ -17,14 +18,12 @@ from time import sleep
 from typing import cast, Sequence
 
 import numpy as np
-
-
 import tensorflow as tf
 from tensorflow import keras
 
 from daisy.communication import StreamEndpoint
-from daisy.federated_learning import ModelAggregator, FederatedIFTM, SMAvgTM
 from daisy.federated_ids_components import FederatedOnlineAggregator
+from daisy.federated_learning import ModelAggregator, FederatedIFTM, SMAvgTM
 from daisy.personalized_fl_components.auto_model_scaler import AutoModelScaler
 
 
@@ -112,7 +111,8 @@ class DistillativeModelAggregator(FederatedOnlineAggregator):
 
     def generate_random_data(self, num_samples, input_shape):
         """
-        Fuction to generate normal distributed gaussian samples for knowledge distillation process.
+        Fuction to generate normal distributed gaussian samples for knowledge
+        distillation process.
         :param num_samples: number of synthetic samples to create.
         :param input_shape: shape of the created synthetic vectors
 
@@ -122,8 +122,8 @@ class DistillativeModelAggregator(FederatedOnlineAggregator):
 
     def knowledge_distillation(self, input_data, teacher_model, student_model, epochs):
         """
-        Conducts the supervised training of the global model, based on the predictions of the received
-        student models from the nodes.
+        Conducts the supervised training of the global model, based on the predictions
+        of the received student models from the nodes.
 
         :param input_data: random input data for creating predictions.
         :param teacher_model: the teacher model to extract knowledge from.
@@ -139,7 +139,8 @@ class DistillativeModelAggregator(FederatedOnlineAggregator):
         """
         Multi teacher knowledge distillation, based on the list of client weights.
         We initialize each node model, get the predictions on the random dataset,
-        and train the student global model in a supervised manner based on these predictions.
+        and train the student global model in a supervised manner based on these
+        predictions.
 
         :param client_models: List of client model weights.
         """

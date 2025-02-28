@@ -3,19 +3,21 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""An adapted federated node implementing a personalization algorithm, using generative learning
-for learning personalized models. Instead of handling the different shapes and sizes of models in the model aggreagtor,
-this approach aims to train equal Generative Adversarial Networks (GANs) on each node to produce synthetic data with
-similar statistics to the local data stream. These data generators are exchanged and aggregated using the classical
-federated learning approach e.g. FedAvg and used by the nodes to mix synthetic data into the arriving data stream.
+"""An adapted federated node implementing a personalization algorithm, using generative
+learning for learning personalized models. Instead of handling the different shapes and
+sizes of models in the model aggreagtor, this approach aims to train equal Generative
+Adversarial Networks (GANs) on each node to produce synthetic data with similar
+statistics to the local data stream. These data generators are exchanged and aggregated
+using the classical federated learning approach e.g. FedAvg and used by the nodes to mix
+synthetic data into the arriving data stream.
 
 Author: Seraphin Zunzer
 Modified: 13.01.25
 """
 
+import logging
 from abc import abstractmethod
 from typing import Self
-import logging
 
 import numpy as np
 import tensorflow as tf
@@ -27,9 +29,9 @@ from daisy.federated_learning import FederatedModel
 
 
 class GenerativeModel(FederatedModel):
-    """An abstract Generative Model wrapper that offers the same methods, no matter the type of
-    underlying model. Must always be implemented if a new model type is to be used in
-    the personalized federated learning system using generative models.
+    """An abstract Generative Model wrapper that offers the same methods, no matter the
+    type of underlying model. Must always be implemented if a new model type is to be
+    used in the personalized federated learning system using generative models.
     """
 
     @abstractmethod
@@ -159,7 +161,8 @@ class GenerativeGAN(GenerativeModel):
         gan._discriminator = gan.make_discriminator_model()
 
         gan._param_split = len(gan._generator.get_weights())
-        # currently not needed, can be interesting for aggregating generator AND discriminator weights
+        # currently not needed, can be interesting for aggregating generator AND
+        # discriminator weights
 
         return gan
 
@@ -212,7 +215,8 @@ class GenerativeGAN(GenerativeModel):
     def create_synthetic_data(self, n: int = 100):
         """Create n synthetic data points using the generator model.
         These datapoints should be mixed with the locally arriving
-        datastream to include globally learned knowledge in the local intrusion detection model.
+        datastream to include globally learned knowledge in the local intrusion
+        detection model.
 
         :param n: number of synthetic datapoints to create
         """

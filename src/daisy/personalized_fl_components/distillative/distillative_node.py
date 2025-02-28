@@ -16,18 +16,18 @@ import tensorflow as tf
 
 from daisy.communication import StreamEndpoint
 from daisy.data_sources import DataHandler
-from daisy.federated_learning import FederatedIFTM, SMAvgTM, FederatedModel
 from daisy.federated_ids_components import FederatedOnlineNode
 from daisy.federated_ids_components.node import _try_ops
+from daisy.federated_learning import FederatedIFTM, SMAvgTM, FederatedModel
 from daisy.personalized_fl_components.auto_model_scaler import AutoModelScaler
 
 
 class pflDistillativeNode(FederatedOnlineNode):
     """Node for learning personalized models using the concept of
     knowledge distillation, as the node also needs to perform knowledge distillation.
-    Only difference to a normal node is, that the global model may have a different shape.
-    Needs to be started with the corresponding distilative model aggregation server
-    to be able to aggregate heterogeneous models
+    Only difference to a normal node is, that the global model may have a different
+    shape. Needs to be started with the corresponding distilative model aggregation
+    server to be able to aggregate heterogeneous models
     """
 
     _m_aggr_server: StreamEndpoint
@@ -111,7 +111,8 @@ class pflDistillativeNode(FederatedOnlineNode):
 
     def generate_random_data(self, num_samples, input_shape):
         """
-        Fuction to generate normal distributed gaussian samples for knowledge distillation process.
+        Fuction to generate normal distributed gaussian samples for knowledge
+        distillation process.
         :param num_samples: number of synthetic samples to create.
         :param input_shape: shape of the created synthetic vectors
 
@@ -121,8 +122,8 @@ class pflDistillativeNode(FederatedOnlineNode):
 
     def knowledge_distillation(self, input_data, teacher_model, student_model, epochs):
         """
-        Conducts the supervised training of the global model, based on the predictions of the received
-        student models from the nodes.
+        Conducts the supervised training of the global model, based on the predictions
+        of the received student models from the nodes.
 
         :param input_data: random input data for creating predictions.
         :param teacher_model: the teacher model to extract knowledge from.
@@ -139,9 +140,9 @@ class pflDistillativeNode(FederatedOnlineNode):
         """
         Single teacher knowledge distillation.
         We initialize the global model, get the predictions on the random dataset,
-        and train the student global model in a supervised manner based on these predictions.
-        Note that there is no return as there is no need to set the new local model weight
-        This is already done by training.
+        and train the student global model in a supervised manner based on these
+        predictions. Note that there is no return as there is no need to set the new
+        local model weight This is already done by training.
 
         :param client_models: List of client model weights.
         """
@@ -235,7 +236,8 @@ class pflDistillativeNode(FederatedOnlineNode):
                 return
 
             if self._poisoningMode is None or self._poisoningMode == "inverse":
-                # poisoning mode: random or zeros -> we dont need to update local parameters
+                # poisoning mode: random or zeros -> we dont need to update local
+                # parameters
                 self._logger.debug("Updating local model with global parameters...")
                 self.distillative_aggregation(m_aggr_msg)
 
@@ -301,7 +303,8 @@ class pflDistillativeNode(FederatedOnlineNode):
                     "with received global parameters..."
                 )
                 if self._poisoningMode is None or self._poisoningMode == "inverse":
-                    # poisoning mode: random or zeros -> we dont need to update local parameters
+                    # poisoning mode: random or zeros -> we dont need to update local
+                    # parameters
                     self._logger.debug("Updating local model with global parameters...")
                     self.distillative_aggregation(m_aggr_msg)
 
@@ -313,9 +316,10 @@ class pflDistillativeNode(FederatedOnlineNode):
 
     def model_poisoning(self, current_params, poisoning_mode):
         """
-        Function for poisoning model weights. Based on the current params and the poisoning mode, the
-        function either retruns a list of random values, zeros or inverted parameters with the same shape
-        as the original parameters. If poisoning mode is none, the original parameters are returned.
+        Function for poisoning model weights. Based on the current params and the
+        poisoning mode, the function either retruns a list of random values, zeros or
+        inverted parameters with the same shape as the original parameters. If poisoning
+        mode is none, the original parameters are returned.
 
         :param current_params: List of current model weights.
         :param poisoning_mode: Poisoning mode, either None, zeros, random or inverse.
@@ -347,7 +351,8 @@ class pflDistillativeNode(FederatedOnlineNode):
             elif self._poisoningMode == "inverse":
                 for layer in current_params:
                     poisoned_params.append(layer * -1)
-                # Skipped setting new model parameters, as we need to inverse the real parameters next round
+                # Skipped setting new model parameters, as we need to inverse the real
+                # parameters next round
 
             self._logger.info("Poisoned Parameters:")
             for i in poisoned_params:
