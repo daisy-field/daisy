@@ -14,9 +14,7 @@ Modified: 04.04.24
 # TODO Future Work: Defining granularity of logging in inits
 # TODO Future Work: Args for client-side ports in init
 
-import argparse
 import logging
-import pathlib
 import threading
 from abc import ABC, abstractmethod
 from queue import Empty
@@ -30,23 +28,10 @@ from daisy.chord import ChordDHTPeer
 from daisy.communication import StreamEndpoint
 from daisy.data_sources import (
     DataHandler,
-    DataProcessor,
-    PcapDataSource,
-    packet_to_dict,
-    select_feature,
-    default_f_features,
-    demo_202312_label_data_point,
-    dict_to_numpy_array,
-    default_nn_aggregator,
 )
-from daisy.evaluation import ConfMatrSlidingWindowEvaluation
 from daisy.federated_learning import (
     FederatedModel,
     ModelAggregator,
-    FederatedIFTM,
-    FedAvgAggregator,
-    TFFederatedModel,
-    MadTM,
 )
 
 
@@ -828,119 +813,3 @@ def _try_ops(*operations: Callable, logger: logging.Logger):
             logger.warning(
                 f"{e.__class__.__name__}({e}) while trying to execute {op}: {e}"
             )
-
-
-if __name__ == "__main__":
-    logging.basicConfig(
-        format="%(asctime)s %(levelname)-8s %(name)-10s %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-        level=logging.INFO,
-    )
-
-    parser = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
-    parser.add_argument("--port", type=int, default=None, help="Port of peer")
-    parser.add_argument(
-        "--joinPort", type=int, default=None, help="Port of peer to join dht on"
-    )
-    parser.add_argument(
-        "--evalServ",
-        default="localhost",
-        metavar="",
-        help="IP or hostname of evaluation server",
-    )
-    parser.add_argument(
-        "--evalServPort",
-        type=int,
-        default=8001,
-        choices=range(1, 65535),
-        metavar="",
-        help="Port of evaluation server",
-    )
-    parser.add_argument(
-        "--pcapBasePath",
-        type=pathlib.Path,
-        default="/home/fabian/Repositories/datasets/v2x_2023-03-06",
-        metavar="",
-        help="Path to the march23 v2x dataset directory (root)",
-    )
-    parser.add_argument(
-        "--clientId",
-        type=int,
-        choices=[2, 5],
-        required=True,
-        help="ID of client (decides which data to draw from set)",
-    )
-    parser.add_argument(
-        "--batchSize",
-        type=int,
-        default=256,
-        metavar="",
-        help="Batch size during processing of data "
-        "(mini-batches are multiples of that argument)",
-    )
-    args = parser.parse_args()
-
-    eval_serv = None
-    if args.evalServ != "0.0.0.0":
-        eval_serv = (args.evalServ, args.evalServPort)
-
-    # Model
-    optimizer = tf.keras.optimizers.Adam(learning_rate=0.01)
-    loss = tf.keras.losses.MeanAbsoluteError()
-    id_fn = TFFederatedModel.get_fae(
-        input_size=65,
-        optimizer=optimizer,
-        loss=loss,
-        batch_size=args.batchSize,
-        epochs=1,
-    )
-
-    t_m = MadTM(window_size=args.batchSize * 8, threshold=2.2)
-    err_fn = tf.keras.losses.MeanAbsoluteError(reduction=tf.keras.losses.Reduction.NONE)
-    model = FederatedIFTM(identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn)
-
-    metrics = [ConfMatrSlidingWindowEvaluation(window_size=args.batchSize * 8)]
-
-    source = PcapDataSource(
-        f"{args.pcapBasePath}/diginet-cohda-box-dsrc{args.clientId}"
-    )
-    processor = (
-        DataProcessor()
-        .add_func(lambda o_point: packet_to_dict(o_point))
-        .add_func(
-            lambda o_point: select_feature(
-                d_point=o_point, f_features=default_f_features, default_value=np.nan
-            )
-        )
-        .add_func(
-            lambda o_point: demo_202312_label_data_point(
-                client_id=args.clientId, d_point=o_point
-            )
-        )
-        .add_func(
-            lambda o_point: dict_to_numpy_array(
-                d_point=o_point, nn_aggregator=default_nn_aggregator
-            )
-        )
-    )
-    data_handler = DataHandler(data_source=source, data_processor=processor)
-
-    join_addr = None
-    if args.joinPort:
-        join_addr = ("127.0.0.1", args.joinPort)
-    federated_node = FederatedOnlinePeer(
-        data_handler=data_handler,
-        model=model,
-        batch_size=args.batchSize * 8,
-        m_aggr=FedAvgAggregator(),
-        eval_server=eval_serv,
-        port=int(args.port),
-        metrics=metrics,
-        dht_join_addr=join_addr,
-        label_split=65,
-    )
-    federated_node.start()
-    input("Press Enter to stop peer...")
-    federated_node.stop()

@@ -3,7 +3,9 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""
+"""Collection of federated learning configurations. It basically provides functions to create a client using
+different fl strategies, that are used by the demo scripts.
+
 Author: Seraphin Zunzer, Fabian Hofmann
 Modified: 02.03.25
 """
