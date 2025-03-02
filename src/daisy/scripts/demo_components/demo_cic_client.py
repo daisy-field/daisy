@@ -63,9 +63,9 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--csvBasePath",
         type=pathlib.Path,
-        default="/home/fabian/Documents/DAI-Lab/COBRA-5G/D-IDS/Datasets/v2x_2023-03-06",
+        default="/home/fabian/Documents/DAI-Lab/COBRA-5G/D-IDS/Datasets/CIC_IDS2017",
         metavar="",
-        help="Path to the march23 v2x dataset directory (root)",
+        help="Path to the CIC-IDS2017 dataset directory (root)",
     )
 
     server_options = parser.add_argument_group("Server Options")
@@ -98,25 +98,25 @@ def _parse_args() -> argparse.Namespace:
         help="Port of evaluation server",
     )
     server_options.add_argument(
-        "--aggrServ",
+        "--predServ",
         default="0.0.0.0",
         metavar="",
-        help="IP or hostname of aggregation server",
+        help="IP or hostname of prediction server",
     )
     server_options.add_argument(
-        "--aggrServPort",
+        "--predServPort",
         type=int,
         default=8002,
         choices=range(1, 65535),
         metavar="",
-        help="Port of aggregation server",
+        help="Port of prediction server",
     )
 
     client_options = parser.add_argument_group("Client Options")
     client_options.add_argument(
         "--batchSize",
         type=int,
-        default=32,
+        default=256,
         metavar="",
         help="Batch size during processing of data "
         "(mini-batches are multiples of that argument)",
@@ -189,9 +189,9 @@ def create_client():
     eval_serv = None
     if args.evalServ != "0.0.0.0":
         eval_serv = (args.evalServ, args.evalServPort)
-    aggr_serv = None
-    if args.aggrServ != "0.0.0.0":
-        aggr_serv = (args.aggrServ, args.aggrServPort)
+    pred_serv = None
+    if args.predServ != "0.0.0.0":
+        pred_serv = (args.predServ, args.predServPort)
 
     source = CSVFileDataSource(files=f"{args.csvBasePath}/{args.clientId}.csv")
     processor = (
@@ -215,7 +215,7 @@ def create_client():
             metrics,
             m_aggr_serv,
             eval_serv,
-            aggr_serv,
+            pred_serv,
             input_size=78,
             label_split=78,
         )
@@ -229,7 +229,7 @@ def create_client():
             metrics,
             m_aggr_serv,
             eval_serv,
-            aggr_serv,
+            pred_serv,
             input_size=78,
             label_split=78,
         )
@@ -243,7 +243,7 @@ def create_client():
             metrics,
             m_aggr_serv,
             eval_serv,
-            aggr_serv,
+            pred_serv,
             input_size=78,
             label_split=78,
         )

@@ -11,19 +11,47 @@ the samples of that data stream at every step.
 Author: Fabian Hofmann
 Modified: 04.04.24
 """
+# TODO Future Work: Defining granularity of logging in inits
+# TODO Future Work: Args for client-side ports in init
 
+import argparse
 import logging
+import pathlib
 import threading
 from abc import ABC, abstractmethod
+from queue import Empty
 from time import sleep, time
 from typing import Callable, cast, Optional
 
 import numpy as np
 import tensorflow as tf
 
+from daisy.chord import ChordDHTPeer
 from daisy.communication import StreamEndpoint
-from daisy.data_sources import DataHandler
-from daisy.federated_learning import FederatedModel, ModelAggregator
+from daisy.data_sources import (
+    DataHandler,
+    DataProcessor,
+    PcapDataSource,
+    packet_to_dict,
+    select_feature,
+    default_f_features,
+    demo_202312_label_data_point,
+    dict_to_numpy_array,
+    default_nn_aggregator,
+)
+from daisy.evaluation import ConfMatrSlidingWindowEvaluation
+from daisy.federated_learning import (
+    FederatedModel,
+    ModelAggregator,
+    FederatedIFTM,
+    FedAvgAggregator,
+    TFFederatedModel,
+    MadTM,
+)
+
+
+# TODO Future Work: Defining granularity of logging in inits
+# TODO Future Work: Args for client-side ports in init
 
 from daisy.src.daisy.model_poisoning.model_poisoning import model_poisoning
 
@@ -137,7 +165,9 @@ class FederatedOnlineNode(ABC):
         self._model = model
         self._m_lock = threading.Lock()
 
-        if label_split == 2**32 and (supervised or len(metrics) == 0):
+        if label_split == 2**32 and (
+            supervised or metrics is None or len(metrics) == 0
+        ):
             raise ValueError("Supervised and/or evaluation mode requires labels!")
         self._label_split = label_split
         self._supervised = supervised
@@ -504,9 +534,10 @@ class FederatedOnlineClient(FederatedOnlineNode):
                 else:
                     self._logger.info(i)
 
-            poisoned_params = model_poisoning(current_params, self._poisoningMode, self._model)
+            poisoned_params = model_poisoning(
+                current_params, self._poisoningMode, self._model
+            )
             self._m_aggr_server.send(poisoned_params)
-
 
             self._logger.debug(
                 "Receiving global model parameters from model aggregation server..."
@@ -602,14 +633,22 @@ class FederatedOnlineClient(FederatedOnlineNode):
 
 
 class FederatedOnlinePeer(FederatedOnlineNode):
-    """
-    :var _peers: TBD
-    :var _topology: TBD
+    """TODO by @lotta
+    TODO Tit for Tat parameter
     """
 
-    _peers: list[StreamEndpoint]
-    _topology: object
+    _topology: ChordDHTPeer
+    _topology_thread: threading.Thread
+    _addr: tuple[str, int]
+    _dht_join_addr: tuple[str, int]
+
     _m_aggr: ModelAggregator
+    _num_peers: int
+    _choked_peers: set
+
+    model: FederatedModel
+
+    _logger: logging.Logger
 
     def __init__(
         self,
@@ -617,15 +656,17 @@ class FederatedOnlinePeer(FederatedOnlineNode):
         batch_size: int,
         model: FederatedModel,
         m_aggr: ModelAggregator,
+        port: int,
         name: str = "",
         label_split: int = 2**32,
         supervised: bool = False,
         metrics: list[tf.keras.metrics.Metric] = None,
         eval_server: tuple[str, int] = None,
         aggr_server: tuple[str, int] = None,
-        sync_mode: bool = True,
         update_interval_s: int = None,
         update_interval_t: int = None,
+        dht_join_addr: tuple[str, int] = None,
+        num_peers: int = 4,
     ):
         """Creates a new federated online peer.
 
@@ -659,28 +700,117 @@ class FederatedOnlinePeer(FederatedOnlineNode):
             metrics=metrics,
             eval_server=eval_server,
             aggr_server=aggr_server,
-            sync_mode=sync_mode,
+            sync_mode=False,
             update_interval_s=update_interval_s,
             update_interval_t=update_interval_t,
         )
-
+        self._addr = ("127.0.0.1", port)
+        self._dht_join_addr = dht_join_addr
         self._m_aggr = m_aggr
+        self._topology = ChordDHTPeer(addr=self._addr, cluster_size=num_peers)
+        self._num_peers = num_peers
+        self._choked_peers = set()
+        self._started = False
+
+        self._logger = logging.getLogger("FED_NODE")
+        self._logger.setLevel(logging.INFO)
 
     def setup(self):
         """ """
-        raise NotImplementedError
+        # start dht
+        self._topology_thread = threading.Thread(
+            target=lambda: self._topology.start(self._dht_join_addr), daemon=True
+        )
+        self._topology_thread.start()
+        return
 
     def cleanup(self):
-        """ """
+        """TODO implement"""
         raise NotImplementedError
 
-    def fed_update(self):
-        """"""
-        raise NotImplementedError
+    def fed_update(self, models: list[list[np.ndarray]] = None):
+        """ """
+        if models is not None and len(models) > 0:
+            self._logger.info(
+                f"Calculating federated Update with {len(models)} models."
+            )
+            self._model.set_parameters(self._m_aggr.aggregate(models))
+            self._logger.info("Model metrics: ")
 
     def create_async_fed_learner(self):
         """ """
-        raise NotImplementedError
+        # TODO sample based/ time based
+        # TODO favoritenliste mit peers die schonal geantwortet haben
+        #  wann/wie oft wird optimistic unchoking durchgeführt,
+        #  wann/wie oft tit for tat -> Paper sagt alle 10 sek. default
+        start = time()
+        tft_timer = start
+        auto_modelsharing_timer = start
+        full_unchoke_timer = start
+        models = []
+        while self._started:
+            if time() - full_unchoke_timer >= 60:
+                self._choked_peers.clear()
+            if time() - auto_modelsharing_timer >= 30:
+                self._send_model_and_choke_receiving_peer()
+                auto_modelsharing_timer = time()
+            if time() - tft_timer >= 10:
+                models = self._tit_for_tat()
+                tft_timer = time()
+            if models and len(models) >= 4:
+                with self._m_lock:
+                    models.append(self._model.get_parameters())
+                    self.fed_update(models)
+                models.clear()
+            else:
+                sleep(1)
+
+    def _send_model_and_choke_receiving_peer(self):
+        # best effort solution, take what is there
+        peers = self._get_peers_for_cluster()
+        for peer in peers:
+            if peer in self._choked_peers:
+                continue
+            with self._m_lock:
+                self._topology.fed_models_outgoing.put(
+                    (peer, self._model.get_parameters())
+                )
+                self._choked_peers.add(peer)
+
+    def _get_peers_for_cluster(self):
+        peers = set()
+        while len(peers) < self._num_peers:
+            try:
+                peers.add(self._topology.fed_peers.get_nowait())
+            except Empty:
+                self._logger.info(
+                    f"Sampled {len(self._choked_peers)} Peers from Network."
+                )
+                return peers
+
+    def _tit_for_tat(self) -> list[list[np.ndarray]]:
+        fed_peers_and_models = self._get_peer_models_from_topology_queue()
+        fed_models = []
+        for fed_peer in fed_peers_and_models:
+            fed_model = fed_peers_and_models[fed_peer]
+            if fed_peer in self._choked_peers:
+                self._choked_peers.remove(fed_peer)
+            else:
+                self._topology.fed_models_outgoing.put((fed_peer, fed_model))
+            fed_models.append(fed_model)
+        return fed_models
+
+    def _get_peer_models_from_topology_queue(self):
+        fed_peers_and_models = {}
+        while len(fed_peers_and_models) < self._num_peers:
+            try:
+                fed_peer, fed_model = self._topology.fed_models_incoming.get_nowait()
+                fed_peers_and_models[fed_peer] = fed_model
+            except Empty:
+                self._logger.info(
+                    f"Retrieved {len(fed_peers_and_models)} Models from network."
+                )
+                return fed_peers_and_models
 
 
 def _try_ops(*operations: Callable, logger: logging.Logger):
@@ -698,3 +828,119 @@ def _try_ops(*operations: Callable, logger: logging.Logger):
             logger.warning(
                 f"{e.__class__.__name__}({e}) while trying to execute {op}: {e}"
             )
+
+
+if __name__ == "__main__":
+    logging.basicConfig(
+        format="%(asctime)s %(levelname)-8s %(name)-10s %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+        level=logging.INFO,
+    )
+
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parser.add_argument("--port", type=int, default=None, help="Port of peer")
+    parser.add_argument(
+        "--joinPort", type=int, default=None, help="Port of peer to join dht on"
+    )
+    parser.add_argument(
+        "--evalServ",
+        default="localhost",
+        metavar="",
+        help="IP or hostname of evaluation server",
+    )
+    parser.add_argument(
+        "--evalServPort",
+        type=int,
+        default=8001,
+        choices=range(1, 65535),
+        metavar="",
+        help="Port of evaluation server",
+    )
+    parser.add_argument(
+        "--pcapBasePath",
+        type=pathlib.Path,
+        default="/home/fabian/Repositories/datasets/v2x_2023-03-06",
+        metavar="",
+        help="Path to the march23 v2x dataset directory (root)",
+    )
+    parser.add_argument(
+        "--clientId",
+        type=int,
+        choices=[2, 5],
+        required=True,
+        help="ID of client (decides which data to draw from set)",
+    )
+    parser.add_argument(
+        "--batchSize",
+        type=int,
+        default=256,
+        metavar="",
+        help="Batch size during processing of data "
+        "(mini-batches are multiples of that argument)",
+    )
+    args = parser.parse_args()
+
+    eval_serv = None
+    if args.evalServ != "0.0.0.0":
+        eval_serv = (args.evalServ, args.evalServPort)
+
+    # Model
+    optimizer = tf.keras.optimizers.Adam(learning_rate=0.01)
+    loss = tf.keras.losses.MeanAbsoluteError()
+    id_fn = TFFederatedModel.get_fae(
+        input_size=65,
+        optimizer=optimizer,
+        loss=loss,
+        batch_size=args.batchSize,
+        epochs=1,
+    )
+
+    t_m = MadTM(window_size=args.batchSize * 8, threshold=2.2)
+    err_fn = tf.keras.losses.MeanAbsoluteError(reduction=tf.keras.losses.Reduction.NONE)
+    model = FederatedIFTM(identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn)
+
+    metrics = [ConfMatrSlidingWindowEvaluation(window_size=args.batchSize * 8)]
+
+    source = PcapDataSource(
+        f"{args.pcapBasePath}/diginet-cohda-box-dsrc{args.clientId}"
+    )
+    processor = (
+        DataProcessor()
+        .add_func(lambda o_point: packet_to_dict(o_point))
+        .add_func(
+            lambda o_point: select_feature(
+                d_point=o_point, f_features=default_f_features, default_value=np.nan
+            )
+        )
+        .add_func(
+            lambda o_point: demo_202312_label_data_point(
+                client_id=args.clientId, d_point=o_point
+            )
+        )
+        .add_func(
+            lambda o_point: dict_to_numpy_array(
+                d_point=o_point, nn_aggregator=default_nn_aggregator
+            )
+        )
+    )
+    data_handler = DataHandler(data_source=source, data_processor=processor)
+
+    join_addr = None
+    if args.joinPort:
+        join_addr = ("127.0.0.1", args.joinPort)
+    federated_node = FederatedOnlinePeer(
+        data_handler=data_handler,
+        model=model,
+        batch_size=args.batchSize * 8,
+        m_aggr=FedAvgAggregator(),
+        eval_server=eval_serv,
+        port=int(args.port),
+        metrics=metrics,
+        dht_join_addr=join_addr,
+        label_split=65,
+    )
+    federated_node.start()
+    input("Press Enter to stop peer...")
+    federated_node.stop()
