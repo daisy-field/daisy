@@ -38,7 +38,7 @@ components.
 There are also different options to choose pFL at startup.
 
 Author: Fabian Hofmann, Seraphin Zunzer
-Modified: 13.01.25
+Modified: 02.03.25
 """
 
 import argparse
@@ -57,19 +57,12 @@ from daisy.data_sources import (
     demo_202303_label_data_point,
 )
 from daisy.evaluation import ConfMatrSlidingWindowEvaluation
-from daisy.federated_ids_components import FederatedOnlineClient
-from daisy.federated_learning import TFFederatedModel, FederatedIFTM
-
-from daisy.personalized_fl_components.generative.generative_model import GenerativeGAN
-from daisy.personalized_fl_components.auto_model_scaler import AutoModelScaler
-from daisy.personalized_fl_components.generative.generative_node import (
-    pflGenerativeNode,
-)
-from daisy.personalized_fl_components.distillative.distillative_node import (
-    pflDistillativeNode,
-)
-
 from daisy.federated_learning import SMAvgTM
+from daisy.scripts.demo_components.fl_configs import (
+    load_generative_pfl_conf,
+    load_distillative_pfl_conf,
+    load_traditional_fl_conf,
+)
 
 
 def _parse_args() -> argparse.Namespace:
@@ -245,122 +238,49 @@ def create_client():
     metrics = [ConfMatrSlidingWindowEvaluation(window_size=args.batchSize * 8)]
 
     if args.pflMode is None:
-        optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
-        loss = tf.keras.losses.MeanAbsoluteError()
-        id_fn = TFFederatedModel.get_fae(
+        load_traditional_fl_conf(
+            args,
+            t_m,
+            err_fn,
+            data_handler,
+            metrics,
+            m_aggr_serv,
+            eval_serv,
+            aggr_serv,
             input_size=65,
-            optimizer=optimizer,
-            loss=loss,
-            batch_size=args.batchSize,
-            epochs=1,
-        )
-        model = FederatedIFTM(identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn)
-
-        # Client
-        client = FederatedOnlineClient(
-            data_handler=data_handler,
-            batch_size=args.batchSize,
-            model=model,
             label_split=65,
-            metrics=metrics,
-            m_aggr_server=m_aggr_serv,
-            eval_server=eval_serv,
-            aggr_server=aggr_serv,
-            update_interval_t=args.updateInterval,
-            poisoning_mode=args.poisoningMode,
         )
-        client.start()
-        input("Press Enter to stop client...")
-        client.stop()
 
     if args.pflMode == "generative":
-        optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
-        loss = tf.keras.losses.MeanAbsoluteError()
-        id_fn = None
-        input_size = 65
-        epochs = 1
-        ams = AutoModelScaler()
-
-        if args.autoModel:
-            id_fn = ams.choose_model(
-                input_size, optimizer, loss, args.batchSize, epochs
-            )
-        if not args.autoModel:
-            id_fn = ams.get_manual_model(
-                args.manualModel, input_size, optimizer, loss, args.batchSize, epochs
-            )
-
-        model = FederatedIFTM(identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn)
-
-        generative_gan = GenerativeGAN.create_gan(
+        load_generative_pfl_conf(
+            args,
+            t_m,
+            err_fn,
+            data_handler,
+            metrics,
+            m_aggr_serv,
+            eval_serv,
+            aggr_serv,
             input_size=65,
-            discriminator_optimizer=tf.keras.optimizers.Adam(learning_rate=0.00001),
-            generator_optimizer=tf.keras.optimizers.Adam(learning_rate=0.00001),
-        )
-
-        # Client
-        client = pflGenerativeNode(
-            data_handler=data_handler,
-            batch_size=args.batchSize,
-            model=model,
             label_split=65,
-            metrics=metrics,
-            m_aggr_server=m_aggr_serv,
-            eval_server=eval_serv,
-            aggr_server=aggr_serv,
-            update_interval_t=args.updateInterval,
-            generative_model=generative_gan,
-            poisoning_mode=args.poisoningMode,
         )
-        client.start()
-        input("Press Enter to stop client...")
-        client.stop()
 
     if args.pflMode == "distillative":
-        optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
-        loss = tf.keras.losses.MeanAbsoluteError()
-        id_fn = None
-        input_size = 65
-        epochs = 1
-        aMS = AutoModelScaler()
-
-        if args.autoModel:
-            print("AUTO MODEL")
-            id_fn = aMS.choose_model(
-                input_size, optimizer, loss, args.batchSize, epochs
-            )
-        else:
-            print("Manual MODEL")
-            print(args.manualModel)
-            id_fn = aMS.get_manual_model(
-                args.manualModel, input_size, optimizer, loss, args.batchSize, epochs
-            )
-
-        model = FederatedIFTM(identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn)
-
-        # Client
-        client = pflDistillativeNode(
-            data_handler=data_handler,
-            batch_size=args.batchSize,
-            model=model,
-            label_split=65,
-            metrics=metrics,
-            m_aggr_server=m_aggr_serv,
-            eval_server=eval_serv,
-            aggr_server=aggr_serv,
-            update_interval_t=args.updateInterval,
-            poisoning_mode=args.poisoningMode,
+        load_distillative_pfl_conf(
+            args,
+            t_m,
+            err_fn,
+            data_handler,
+            metrics,
+            m_aggr_serv,
+            eval_serv,
+            aggr_serv,
             input_size=65,
+            label_split=65,
         )
-        client.start()
-        input("Press Enter to stop client...")
-        client.stop()
 
     if args.pflMode == "layerwise":
         raise NotImplementedError
-
-    input("Press Enter to stop client...")
-    client.stop()
 
 
 if __name__ == "__main__":
