@@ -116,6 +116,7 @@ dependencies = [
     "pandas~=2.2.3",
     "scikit-learn~=1.6.1",
     "seaborn~=0.13.2"
+    "natsort~=8.4.0"
 ]
 
 # List additional groups of dependencies here (e.g. development
@@ -128,7 +129,7 @@ dependencies = [
 # projects.
 [project.optional-dependencies] # Optional
 cuda = ["tensorflow[and-cuda]~=2.15.0"]
-dev = ["coverage", "pre-commit", "ruff"]
+dev = ["pre-commit", "ruff", "pytest~=8.3.3", "pytest-cov~=6.0.0", "genbadge[coverage]"]
 #dev = ["check-manifest"]
 
 # List URLs that are relevant to your project
@@ -159,6 +160,7 @@ dashboard = "daisy.scripts.generic_fids_components:dashboard"
 demo_202303_client = "daisy.scripts.demo_components:demo_202303_client"
 demo_cic_client = "daisy.scripts.demo_components:demo_cic_client"
 demo_dsfids_client = "daisy.scripts.demo_components:demo_dsfids_client"
+
 # This is configuration specific to the `setuptools` build backend.
 # If you are using a different build backend, you will need to change this.
 [tool.setuptools]
@@ -173,3 +175,11 @@ demo_dsfids_client = "daisy.scripts.demo_components:demo_dsfids_client"
 requires = ["setuptools"]  # REQUIRED if [build-system] table is used
 # The name of the Python object that frontends will use to perform the build:
 build-backend = "setuptools.build_meta"  # If not defined, then legacy behavior can happen.
+
+[tool.pytest.ini_options]
+pythonpath = "src"
+# Changes import style for running tests. Refer to:
+# https://docs.pytest.org/en/stable/explanation/goodpractices.html#choosing-an-import-mode
+addopts = [
+    "--import-mode=importlib",
+]

@@ -20,6 +20,8 @@ import os
 from abc import ABC, abstractmethod
 from typing import IO, Iterator
 
+from natsort import natsorted
+
 from daisy.communication import StreamEndpoint
 
 
@@ -183,13 +185,19 @@ class CSVFileDataSource(DataSource):
         self._logger.info("Initializing CSV file data source...")
         if isinstance(files, str):
             tmp_files = [files]
-        else:
+        elif isinstance(files, list):
             tmp_files = files
+        else:
+            raise TypeError(
+                f"Expected either string or list of strings, but got {type(files)}"
+            )
 
         self._files = []
         for path in tmp_files:
             if os.path.isdir(path):
-                self._files += [os.path.join(path, file) for file in os.listdir(path)]
+                self._files += [
+                    os.path.join(path, file) for file in natsorted(os.listdir(path))
+                ]
             else:
                 self._files.append(path)
 

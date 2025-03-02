@@ -33,6 +33,7 @@ from ..data_processor import DataProcessor, flatten_dict
 pcap_f_features = (
     "meta.len",
     "meta.time",
+    "meta.time_epoch",
     "meta.protocols",
     "ip.addr",
     "sll.halen",

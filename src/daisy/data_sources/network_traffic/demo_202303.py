@@ -63,7 +63,7 @@ def demo_202303_label_data_point(client_id: int, d_point: dict) -> dict:
     :return: Labeled data point.
     """
     return _march23_event_handler.process(
-        datetime.strptime(d_point["meta.time"], "%Y-%m-%d %H:%M:%S.%f"),
+        datetime.fromtimestamp(float(d_point["meta.time_epoch"])),
         d_point,
         [{"client_id": client_id}],
     )
