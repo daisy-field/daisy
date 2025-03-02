@@ -1,4 +1,4 @@
-# Copyright (C) 2024 DAI-Labor and others
+# Copyright (C) 2024-2025 DAI-Labor and others
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -22,7 +22,6 @@ import hashlib
 import logging
 import queue
 import random
-import threading
 import time
 import typing
 from time import sleep
@@ -258,13 +257,12 @@ class ChordDHTPeer:
 
     def _purge_dropout_peers(self):
         if self._predecessor and (
-                time.time() - self._stabilize_recv_timestamp
-                > self._default_ttl * 2
+            time.time() - self._stabilize_recv_timestamp > self._default_ttl * 2
         ):
             self._purge_predecessor_if_dropout()
 
         if self._successor and (
-                time.time() - self._notify_recv_timestamp > self._default_ttl * 2
+            time.time() - self._notify_recv_timestamp > self._default_ttl * 2
         ):
             self._purge_successor_if_dropout()  # Zeit bis Ring wieder geschlossen ist, ist relativ hoch wenn zwei Knoten  # back to back ausfallen, allerdings ist das okay, da die wahrscheinlichkeit  # für dieses Ergnis in einem unendlich großen Ring gegen null konvergiert  # if self._predecessor is None and  # self._successor is None and  # len(self._fingers) == 0:  #   exit()
 

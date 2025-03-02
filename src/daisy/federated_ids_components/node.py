@@ -15,6 +15,7 @@ Modified: 04.04.24
 # TODO Future Work: Args for client-side ports in init
 
 import logging
+import sys
 import threading
 from abc import ABC, abstractmethod
 from queue import Empty
@@ -38,7 +39,7 @@ from daisy.federated_learning import (
 # TODO Future Work: Defining granularity of logging in inits
 # TODO Future Work: Args for client-side ports in init
 
-from daisy.src.daisy.model_poisoning.model_poisoning import model_poisoning
+from daisy.model_poisoning.model_poisoning import model_poisoning
 
 
 class FederatedOnlineNode(ABC):
@@ -324,7 +325,20 @@ class FederatedOnlineNode(ABC):
         if self._aggr_serv is not None:
             self._aggr_serv.send((x_data, y_pred))
         if len(self._metrics) > 0:
-            eval_res = {metric.name: metric(y_true, y_pred) for metric in self._metrics}
+            try:
+                eval_res = {
+                    metric.name: metric(y_true, y_pred) for metric in self._metrics
+                }
+            except ValueError as e:
+                self._logger.error(e)
+                self._logger.error(
+                    "There occurred an error when comparing predictions with true labels. Check if the labels of the used dataset are correctly processed and if the label_split variable was set to the right value when configuring the client"
+                )
+                sys.exit(1)
+
+            self._logger.error(
+                f"AsyncLearner: Evaluation results for minibatch: {eval_res}"
+            )
             self._logger.debug(
                 f"AsyncLearner: Evaluation results for minibatch: {eval_res}"
             )
@@ -520,7 +534,7 @@ class FederatedOnlineClient(FederatedOnlineNode):
                     self._logger.info(i)
 
             poisoned_params = model_poisoning(
-                current_params, self._poisoningMode, self._model
+                current_params, self._poisoningMode, model=self._model
             )
             self._m_aggr_server.send(poisoned_params)
 
