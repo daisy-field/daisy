@@ -46,7 +46,7 @@ class DataHandlerRelay:
         self,
         data_handler: DataHandler,
         endpoint: StreamEndpoint,
-        name: str = "",
+        name: str = "DataHandlerRelay",
         log_level: int = None,
     ):
         """Creates a new data handler relay.
@@ -175,7 +175,7 @@ class CSVFileRelay:
         self,
         data_handler: DataHandler,
         target_file: str | Path,
-        name: str = "",
+        name: str = "CSVFileRelay",
         log_level: int = None,
         header_buffer_size: int = 1000,
         headers: tuple[str, ...] = None,

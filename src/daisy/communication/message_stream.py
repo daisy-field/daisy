@@ -58,6 +58,7 @@ class EndpointSocket:
     _act_l_counts: dict[tuple[str, int], int] = {}
     _lock = threading.Lock()
     _cls_logger: logging.Logger = logging.getLogger("EndpointSocketCLS")
+    _cls_logger_log_level: int = None
 
     _logger: logging.Logger
 
@@ -77,7 +78,7 @@ class EndpointSocket:
 
     def __init__(
         self,
-        name: str,
+        name: str = "EndpointSocket",
         log_level: int = None,
         addr: tuple[str, int] = None,
         remote_addr: tuple[str, int] = None,
@@ -108,9 +109,12 @@ class EndpointSocket:
         :raises ValueError: If the remote address is already taken for the acceptor,
         or if the address/remote address is not provided for acceptor/initiator.
         """
-        self._logger = logging.getLogger(name + "-Socket")
+        self._logger = logging.getLogger(name)
         if log_level:
             self._logger.setLevel(log_level)
+            if self._cls_logger_log_level or log_level < self._cls_logger_log_level:
+                self._cls_logger.setLevel(log_level)
+                self._cls_logger_log_level = log_level
         self._logger.info(f"Initializing endpoint socket {addr, remote_addr}...")
 
         self._addr = addr if addr is not None else ("0.0.0.0", 0)
@@ -340,6 +344,11 @@ class EndpointSocket:
             self._sock, self._addr = self._get_c_socket(self._addr, self._remote_addr)
         self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, self._send_b_size)
         self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, self._recv_b_size)
+
+    @classmethod
+    def set_class_method_log_level(cls, log_level: int):
+        cls._cls_logger.setLevel(log_level)
+        cls._cls_logger_log_level = log_level
 
     @classmethod
     def _reg_remote(cls, remote_addr: tuple[str, int]):
@@ -782,6 +791,7 @@ class StreamEndpoint:
         self,
         name: str = "StreamEndpoint",
         log_level: int = None,
+        endpoint_socket_log_level: int = None,
         addr: tuple[str, int] = None,
         remote_addr: tuple[str, int] = None,
         acceptor: bool = True,
@@ -825,7 +835,8 @@ class StreamEndpoint:
         self._logger.info(f"Initializing endpoint {addr, remote_addr}...")
 
         self._endpoint_socket = EndpointSocket(
-            name=name,
+            name=name + ".Socket",
+            log_level=endpoint_socket_log_level,
             addr=addr,
             remote_addr=remote_addr,
             acceptor=acceptor,

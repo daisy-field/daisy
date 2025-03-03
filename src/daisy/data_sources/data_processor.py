@@ -35,7 +35,7 @@ class DataProcessor:
     _logger: logging.Logger
     _functions: list[Callable]
 
-    def __init__(self, name: str = "", log_level: int = None):
+    def __init__(self, name: str = "DataProcessor", log_level: int = None):
         """Creates a data processor.
 
         :param name: Name of processor for logging purposes.

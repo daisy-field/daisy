@@ -174,7 +174,7 @@ class PysharkProcessor(DataProcessor):
     @classmethod
     def create_simple_processor(
         cls,
-        name: str = "",
+        name: str = "PysharkProcessor",
         log_level: int = None,
         f_features: list[str, ...] = pcap_f_features,
         nn_aggregator: Callable[[str, object], object] = pcap_nn_aggregator,
@@ -354,7 +354,7 @@ def _add_layer_field_container_to_dict(
 # noinspection DuplicatedCode
 @deprecated("Use PysharkProcessor.create_simple_processor() instead")
 def create_pyshark_processor(
-    name: str = "",
+    name: str = "PysharkProcessor",
     log_level: int = None,
     f_features: list[str, ...] = pcap_f_features,
     nn_aggregator: Callable[[str, object], object] = pcap_nn_aggregator,

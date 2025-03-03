@@ -39,7 +39,7 @@ class LivePysharkDataSource(DataSource):
 
     def __init__(
         self,
-        name: str = "",
+        name: str = "LivePysharkDataSource",
         log_level: int = None,
         interfaces: list = "any",
         bpf_filter: str = "",
@@ -95,7 +95,9 @@ class PcapDataSource(DataSource):
     _cur_file_handle: Optional[FileCapture]
     _try_counter: int
 
-    def __init__(self, *file_names: str, try_counter: int = 3, name: str = ""):
+    def __init__(
+        self, *file_names: str, try_counter: int = 3, name: str = "PcapDataSource"
+    ):
         """Creates a new pcap file data source.
 
         :param file_names: List of paths of single files or directories containing

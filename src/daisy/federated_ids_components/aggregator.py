@@ -63,7 +63,7 @@ class FederatedOnlineAggregator(ABC):
     def __init__(
         self,
         addr: tuple[str, int],
-        name: str = "",
+        name: str = "FederatedOnlineAggregator",
         log_level: int = None,
         timeout: int = 10,
         dashboard_url: str = None,
@@ -213,7 +213,7 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
         self,
         m_aggr: ModelAggregator,
         addr: tuple[str, int],
-        name: str = "",
+        name: str = "FederatedModelAggregator",
         log_level: int = None,
         timeout: int = 10,
         update_interval: int = None,
@@ -449,7 +449,7 @@ class FederatedValueAggregator(FederatedOnlineAggregator):
     def __init__(
         self,
         addr: tuple[str, int],
-        name: str = "",
+        name: str = "FederatedValueAggregator",
         log_level: int = None,
         timeout: int = 10,
         window_size: int = None,
@@ -549,7 +549,7 @@ class FederatedPredictionAggregator(FederatedValueAggregator):
     def __init__(
         self,
         addr: tuple[str, int],
-        name: str = "",
+        name: str = "FederatedPredictionAggregator",
         log_level: int = None,
         timeout: int = 10,
         window_size: int = None,
@@ -643,7 +643,7 @@ class FederatedEvaluationAggregator(FederatedValueAggregator):
     def __init__(
         self,
         addr: tuple[str, int],
-        name: str = "",
+        name: str = "FederatedEvaluationAggregator",
         log_level: int = None,
         timeout: int = 10,
         window_size: int = None,

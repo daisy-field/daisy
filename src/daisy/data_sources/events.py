@@ -313,7 +313,7 @@ class EventHandler:
         label_feature: str = "label",
         error_label: str = "error",
         hide_errors: bool = False,
-        name: str = "",
+        name: str = "EventHandler",
         log_level: int = None,
     ):
         """Creates an event handler used to label data points.

@@ -53,7 +53,7 @@ class DataHandler:
         self,
         data_source: DataSource,
         data_processor: DataProcessor,
-        name: str = "",
+        name: str = "DataHandler",
         log_level: int = None,
         multithreading: bool = False,
         buffer_size: int = 1024,
