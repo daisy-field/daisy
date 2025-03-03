@@ -25,79 +25,8 @@ from pyshark.packet.layers.json_layer import JsonLayer
 from pyshark.packet.layers.xml_layer import XmlLayer
 from pyshark.packet.packet import Packet
 
-from .. import select_feature
 from ..data_processor import DataProcessor, flatten_dict
-
-# Exemplary network feature filter, supporting cohda-box (V2x) messages, besides
-# TCP/IP and ETH.
-pcap_f_features = (
-    "meta.len",
-    "meta.time",
-    "meta.time_epoch",
-    "meta.protocols",
-    "ip.addr",
-    "sll.halen",
-    "sll.pkttype",
-    "sll.eth",
-    "sll.hatype",
-    "sll.unused",
-    "ipv6.tclass",
-    "ipv6.flow",
-    "ipv6.nxt",
-    "ipv6.src_host",
-    "ipv6.host",
-    "ipv6.hlim",
-    "sll.ltype",
-    "cohda.Type",
-    "cohda.Ret",
-    "cohda.llc.MKxIFMsg.Ret",
-    "ipv6.addr",
-    "ipv6.dst",
-    "ipv6.plen",
-    "tcp.stream",
-    "tcp.payload",
-    "tcp.urgent_pointer",
-    "tcp.port",
-    "tcp.options.nop",
-    "tcp.options.timestamp",
-    "tcp.flags",
-    "tcp.window_size_scalefactor",
-    "tcp.dstport",
-    "tcp.len",
-    "tcp.checksum",
-    "tcp.window_size",
-    "tcp.srcport",
-    "tcp.checksum.status",
-    "tcp.nxtseq",
-    "tcp.status",
-    "tcp.analysis.bytes_in_flight",
-    "tcp.analysis.push_bytes_sent",
-    "tcp.ack",
-    "tcp.hdr_len",
-    "tcp.seq",
-    "tcp.window_size_value",
-    "data.data",
-    "data.len",
-    "tcp.analysis.acks_frame",
-    "tcp.analysis.ack_rtt",
-    "eth.src.addr",
-    "eth.src.eth.src_resolved",
-    "eth.src.ig",
-    "eth.src.src_resolved",
-    "eth.src.addr_resolved",
-    "ip.proto",
-    "ip.dst_host",
-    "ip.flags",
-    "ip.len",
-    "ip.checksum",
-    "ip.checksum.status",
-    "ip.version",
-    "ip.host",
-    "ip.status",
-    "ip.id",
-    "ip.hdr_len",
-    "ip.ttl",
-)
+from daisy.demos.v2x_23_03 import pcap_f_features
 
 
 def pcap_nn_aggregator(key: str, value: object) -> int | float:
@@ -366,18 +295,10 @@ def create_pyshark_processor(
     :param nn_aggregator: The aggregator, which should map features to integers
     """
     return (
-        DataProcessor(name=name)
-        .add_func(lambda o_point: packet_to_dict(o_point))
-        .add_func(
-            lambda o_point: select_feature(
-                d_point=o_point, f_features=f_features, default_value=np.nan
-            )
-        )
-        .add_func(
-            lambda o_point: dict_to_numpy_array(
-                d_point=o_point, nn_aggregator=nn_aggregator
-            )
-        )
+        PysharkProcessor(name=name)
+        .packet_to_dict()
+        .select_dict_features(features=f_features, default_value=np.nan)
+        .dict_to_array(nn_aggregator=nn_aggregator)
     )
 
 

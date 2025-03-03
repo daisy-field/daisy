@@ -89,7 +89,7 @@ class DistillativeModelAggregator(FederatedOnlineAggregator):
         # define global student model
         optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
         loss = tf.keras.losses.MeanAbsoluteError()
-        batchSize = 32
+        batch_size = 32
         t_m = SMAvgTM()
         epochs = 10
         err_fn = tf.keras.losses.MeanAbsoluteError(
@@ -97,7 +97,7 @@ class DistillativeModelAggregator(FederatedOnlineAggregator):
         )
         aMS = AutoModelScaler()
         id_fn = aMS.get_manual_model(
-            "large", input_size, optimizer, loss, batchSize, epochs
+            "large", input_size, optimizer, loss, batch_size, epochs
         )
         self._global_model = FederatedIFTM(
             identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn
@@ -146,14 +146,14 @@ class DistillativeModelAggregator(FederatedOnlineAggregator):
         """
 
         self._logger.debug("Generate random samples")
-        X_synthetic = self.generate_random_data(1000, self._input_size)
+        x_synthetic = self.generate_random_data(1000, self._input_size)
         self._logger.debug(f"Start MTKD of {len(client_models)} teachers")
 
         for model_params in client_models:
             # initialize teacher model, later based on uuid
             optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
             loss = tf.keras.losses.MeanAbsoluteError()
-            batchSize = 32
+            batch_size = 32
             t_m = SMAvgTM()
             epochs = 3
             err_fn = tf.keras.losses.MeanAbsoluteError(
@@ -165,7 +165,7 @@ class DistillativeModelAggregator(FederatedOnlineAggregator):
                 input_size=self._input_size,
                 optimizer=optimizer,
                 loss=loss,
-                batchSize=batchSize,
+                batch_size=batch_size,
                 epochs=2,
             )
             teacher_model = FederatedIFTM(
@@ -191,7 +191,7 @@ class DistillativeModelAggregator(FederatedOnlineAggregator):
             )
 
             self.knowledge_distillation(
-                X_synthetic, teacher_model, self._global_model, epochs
+                x_synthetic, teacher_model, self._global_model, epochs
             )
 
             self._logger.debug("Continue with next teacher")

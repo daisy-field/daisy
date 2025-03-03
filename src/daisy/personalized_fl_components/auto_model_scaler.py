@@ -53,7 +53,7 @@ class AutoModelScaler:
         return total, available, used, percentage
 
     def get_manual_model(
-        self, identifier, input_size, optimizer, loss, batchSize, epochs
+        self, identifier, input_size, optimizer, loss, batch_size, epochs
     ):
         """
         Manually select a model size. Currently, "small", "medium" and "large" models
@@ -63,7 +63,7 @@ class AutoModelScaler:
         :param input_size: input size of the model.
         :param optimizer: optimizer of the model.
         :param loss: loss function of the model.
-        :param batchSize: batch size.
+        :param batch_size: batch size.
         :param epochs: number of epochs.
         :return: Federated Model
         """
@@ -74,7 +74,7 @@ class AutoModelScaler:
                 input_size=input_size,
                 optimizer=optimizer,
                 loss=loss,
-                batch_size=batchSize,
+                batch_size=batch_size,
                 epochs=epochs,
             )
         if identifier == "medium":
@@ -83,7 +83,7 @@ class AutoModelScaler:
                 input_size=input_size,
                 optimizer=optimizer,
                 loss=loss,
-                batch_size=batchSize,
+                batch_size=batch_size,
                 epochs=epochs,
             )
         if identifier == "large":
@@ -92,19 +92,19 @@ class AutoModelScaler:
                 input_size=input_size,
                 optimizer=optimizer,
                 loss=loss,
-                batch_size=batchSize,
+                batch_size=batch_size,
                 epochs=epochs,
             )
         return id_fn
 
-    def choose_model(self, inputSize, optimizer, loss, batchSize, epochs):
+    def choose_model(self, input_size, optimizer, loss, batch_size, epochs):
         """Automatically chooses a Federated Model of the three available model sizes,
         by evaluating the current cpu usage.
 
         :param input_size: input size of the model.
         :param optimizer: optimizer of the model.
         :param loss: loss function of the model.
-        :param batchSize: batch size.
+        :param batch_size: batch size.
         :param epochs: number of epochs.
         :return: Federated Model
         """
@@ -116,27 +116,27 @@ class AutoModelScaler:
         if cpu_percentage > 90:
             self._logger.info("Auto Selected small model...")
             return TFFederatedModel_small.get_fae(
-                input_size=inputSize,
+                input_size=input_size,
                 optimizer=optimizer,
                 loss=loss,
-                batch_size=batchSize,
+                batch_size=batch_size,
                 epochs=epochs,
             )
         elif cpu_percentage > 50:
             self._logger.info("Auto Selected medium model...")
             return TFFederatedModel_medium.get_fae(
-                input_size=inputSize,
+                input_size=input_size,
                 optimizer=optimizer,
                 loss=loss,
-                batch_size=batchSize,
+                batch_size=batch_size,
                 epochs=epochs,
             )
         else:
             self._logger.info("Auto Selected large model...")
             return TFFederatedModel_large.get_fae(
-                input_size=inputSize,
+                input_size=input_size,
                 optimizer=optimizer,
                 loss=loss,
-                batch_size=batchSize,
+                batch_size=batch_size,
                 epochs=epochs,
             )

@@ -19,15 +19,12 @@ import tensorflow as tf
 
 from daisy.data_sources import (
     DataHandler,
-    DataProcessor,
     PcapDataSource,
-    packet_to_dict,
-    select_feature,
-    default_f_features,
-    demo_202312_label_data_point,
-    dict_to_numpy_array,
-    default_nn_aggregator,
+    pcap_nn_aggregator,
+    PysharkProcessor,
 )
+
+from daisy.demos.v2x_23_03 import pcap_f_features, demo_202303_label_data_point
 
 
 from daisy.evaluation import ConfMatrSlidingWindowEvaluation
@@ -118,23 +115,15 @@ if __name__ == "__main__":
         f"{args.pcapBasePath}/diginet-cohda-box-dsrc{args.clientId}"
     )
     processor = (
-        DataProcessor()
-        .add_func(lambda o_point: packet_to_dict(o_point))
+        PysharkProcessor()
+        .packet_to_dict()
+        .select_dict_features(features=pcap_f_features, default_value=np.nan)
         .add_func(
-            lambda o_point: select_feature(
-                d_point=o_point, f_features=default_f_features, default_value=np.nan
-            )
-        )
-        .add_func(
-            lambda o_point: demo_202312_label_data_point(
+            lambda o_point: demo_202303_label_data_point(
                 client_id=args.clientId, d_point=o_point
             )
         )
-        .add_func(
-            lambda o_point: dict_to_numpy_array(
-                d_point=o_point, nn_aggregator=default_nn_aggregator
-            )
-        )
+        .dict_to_array(nn_aggregator=pcap_nn_aggregator)
     )
     data_handler = DataHandler(data_source=source, data_processor=processor)
 

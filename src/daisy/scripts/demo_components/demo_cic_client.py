@@ -27,10 +27,8 @@ from daisy.data_sources import (
 from daisy.evaluation import ConfMatrSlidingWindowEvaluation
 from daisy.data_sources import CSVFileDataSource, DataProcessor
 
-from daisy.data_sources.network_traffic.cic import (
-    cic_label_data_point,
-    csv_nn_aggregator,
-)
+from daisy.demos.cicids import cic_label_data_point
+from daisy.data_sources import pcap_nn_aggregator
 
 from daisy.federated_learning import SMAvgTM
 
@@ -197,7 +195,7 @@ def create_client():
     processor = (
         DataProcessor()
         .add_func(lambda o_point: cic_label_data_point(d_point=o_point))
-        .dict_to_array(nn_aggregator=csv_nn_aggregator)
+        .dict_to_array(nn_aggregator=pcap_nn_aggregator)
     )
 
     data_handler = DataHandler(data_source=source, data_processor=processor)

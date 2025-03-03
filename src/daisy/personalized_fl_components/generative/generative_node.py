@@ -143,7 +143,11 @@ class pflGenerativeNode(FederatedOnlineNode):
                 else:
                     self._logger.debug(i)
 
-            params = model_poisoning(current_params, self._poisoningMode, self._generative_model)
+            params = model_poisoning(
+                current_params=current_params,
+                poisoning_mode=self._poisoningMode,
+                model=self._generative_model,
+            )
             self._m_aggr_server.send(params)
 
             self._logger.info(
@@ -269,7 +273,7 @@ class pflGenerativeNode(FederatedOnlineNode):
         self._logger.debug("AsyncLearner: Processing minibatch...")
         y_pred = self._model.predict(x_data)
         self._logger.debug(
-            f"AsyncLearner: Pr" f"ediction results for minibatch: {(x_data, y_pred)}"
+            f"AsyncLearner: Prediction results for minibatch: {(x_data, y_pred)}"
         )
         if self._aggr_serv is not None:
             self._aggr_serv.send((x_data, y_pred))

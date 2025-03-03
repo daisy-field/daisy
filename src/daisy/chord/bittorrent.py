@@ -1,4 +1,4 @@
-# Copyright (C) 2024 DAI-Labor and others
+# Copyright (C) 2024-2025 DAI-Labor and others
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -26,7 +26,8 @@ class BitTorrentPeer(FederatedOnlinePeerToNetworkInterface):
         bt_addr: tuple[str, int],
     ) -> None:
         self._tracker_peer = ChordDHTPeer(
-            peer_id=self._bt_hash_func(self._bt_addr), addr=self._bt_addr
+            peer_id=self._bt_hash_func(self._bt_addr),
+            addr=self._bt_addr,  # TODO what parameter is peer_id supposed to be?
         )
         super().__init__()
 

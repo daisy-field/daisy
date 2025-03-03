@@ -15,7 +15,7 @@ Modified: 02.03.25
 import numpy as np
 
 
-def model_poisoning(self, current_params, poisoning_mode, model):
+def model_poisoning(self, current_params, poisoning_mode, model):  # TODO self???
     """Function for poisoning model weights. Based on the current parameters and the poisoning mode, the
     function either returns a list of random, zeroed or inverted parameters with the same shape
     as the original parameters. If poisoning mode is none, the original parameters are returned.

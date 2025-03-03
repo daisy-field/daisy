@@ -52,10 +52,9 @@ from daisy.data_sources import (
     DataHandler,
     PcapDataSource,
     PysharkProcessor,
-    pcap_f_features,
     pcap_nn_aggregator,
-    demo_202303_label_data_point,
 )
+from daisy.demos.v2x_23_03 import pcap_f_features, demo_202303_label_data_point
 from daisy.evaluation import ConfMatrSlidingWindowEvaluation
 from daisy.federated_learning import SMAvgTM
 from daisy.scripts.demo_components.fl_configs import (

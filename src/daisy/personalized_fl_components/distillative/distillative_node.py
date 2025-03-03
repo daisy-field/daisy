@@ -137,7 +137,7 @@ class pflDistillativeNode(FederatedOnlineNode):
             self._logger.info(f"Knowledge Distillation {epoch}/{epochs}")
             student_model.fit(input_data, teacher_logits)
 
-    def distillative_aggregation(self, new_params):
+    def distillative_aggregation(self, new_params):  # TODO What type is this?
         """
         Single teacher knowledge distillation.
         We initialize the global model, get the predictions on the random dataset,
@@ -145,18 +145,18 @@ class pflDistillativeNode(FederatedOnlineNode):
         predictions. Note that there is no return as there is no need to set the new
         local model weight This is already done by training.
 
-        :param client_models: List of client model weights.
+        :param client_models: List of client model weights.  TODO what parameter is this? And where is new_params?
         """
 
         input_shape = self._input_size
         self._logger.debug("Generate normal distributed random samples")
-        X_synthetic = self.generate_random_data(1000, input_shape)
+        x_synthetic = self.generate_random_data(1000, input_shape)
         self._logger.debug("Start distillation of global model into local model")
 
         # initialize global model
         optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
         loss = tf.keras.losses.MeanAbsoluteError()
-        batchSize = 32
+        batch_size = 32
         t_m = SMAvgTM()
         err_fn = tf.keras.losses.MeanAbsoluteError(
             reduction=tf.keras.losses.Reduction.NONE
@@ -167,7 +167,7 @@ class pflDistillativeNode(FederatedOnlineNode):
             input_size=input_shape,
             optimizer=optimizer,
             loss=loss,
-            batchSize=batchSize,
+            batch_size=batch_size,
             epochs=2,
         )
         teacher_model = FederatedIFTM(
@@ -189,7 +189,7 @@ class pflDistillativeNode(FederatedOnlineNode):
 
         teacher_model.set_parameters(new_params)
         self._logger.info("Teacher model initialized, starting distillation process")
-        self.knowledge_distillation(X_synthetic, teacher_model, self._model, epochs=2)
+        self.knowledge_distillation(x_synthetic, teacher_model, self._model, epochs=2)
         self._logger.info("Distillation finished")
 
     def fed_update(self):
@@ -215,7 +215,9 @@ class pflDistillativeNode(FederatedOnlineNode):
                 else:
                     self._logger.debug(i)
 
-            params = model_poisoning(current_params, self._poisoningMode, self.model)
+            params = model_poisoning(
+                current_params, self._poisoningMode, self.model
+            )  # TODO self.model does not exist!!
             self._m_aggr_server.send(params)
 
             self._logger.debug(

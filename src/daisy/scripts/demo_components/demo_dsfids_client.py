@@ -30,10 +30,7 @@ from daisy.data_sources import (
 from daisy.evaluation import ConfMatrSlidingWindowEvaluation
 from daisy.federated_learning import SMAvgTM
 from daisy.data_sources import CSVFileDataSource
-from daisy.data_sources.network_traffic.dsfids import (
-    dsfids_label_data_point,
-    dsfids_f_features,
-)
+from daisy.demos.dsfids import dsfids_f_features, dsfids_label_data_point
 
 from daisy.scripts.demo_components.fl_configs import (
     load_generative_pfl_conf,

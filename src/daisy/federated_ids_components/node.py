@@ -534,7 +534,9 @@ class FederatedOnlineClient(FederatedOnlineNode):
                     self._logger.info(i)
 
             poisoned_params = model_poisoning(
-                current_params, self._poisoningMode, model=self._model
+                current_params=current_params,
+                poisoning_mode=self._poisoningMode,
+                model=self._model,
             )
             self._m_aggr_server.send(poisoned_params)
 
