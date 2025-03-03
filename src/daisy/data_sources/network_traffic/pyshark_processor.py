@@ -175,7 +175,7 @@ class PysharkProcessor(DataProcessor):
     def create_simple_processor(
         cls,
         name: str = "",
-        log_level: int = logging.WARN,
+        log_level: int = None,
         f_features: list[str, ...] = pcap_f_features,
         nn_aggregator: Callable[[str, object], object] = pcap_nn_aggregator,
     ) -> Self:
@@ -184,7 +184,7 @@ class PysharkProcessor(DataProcessor):
         ready for to be further processed by detection models.
 
         :param name: Name of processor for logging purposes.
-        :param log_level: Logging level.
+        :param log_level: Logging level for logging purposes.
         :param f_features: Features to extract from the packets.
         :param nn_aggregator: Aggregator, which should map non-numerical features to
         integers / floats.
@@ -355,7 +355,7 @@ def _add_layer_field_container_to_dict(
 @deprecated("Use PysharkProcessor.create_simple_processor() instead")
 def create_pyshark_processor(
     name: str = "",
-    log_level: int = logging.WARN,
+    log_level: int = None,
     f_features: list[str, ...] = pcap_f_features,
     nn_aggregator: Callable[[str, object], object] = pcap_nn_aggregator,
 ):
@@ -365,7 +365,7 @@ def create_pyshark_processor(
     detection models.
 
     :param name: The name for logging purposes
-    :param log_level: The logging level
+    :param log_level: Logging level for logging purposes
     :param f_features: The features to extract from the packets
     :param nn_aggregator: The aggregator, which should map features to integers
     """

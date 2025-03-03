@@ -44,7 +44,7 @@ class DataSource(ABC):
 
     _logger: logging.Logger
 
-    def __init__(self, name: str = "", log_level: int = logging.WARN):
+    def __init__(self, name: str = "", log_level: int = None):
         """Creates a data source. Note that this should not enable the immediate
         generation of data points via __iter__() --- this behavior is implemented
         through open() (see the class documentation for more information).
@@ -53,7 +53,8 @@ class DataSource(ABC):
         :param log_level: Logging level for logging purposes.
         """
         self._logger = logging.getLogger(name)
-        self._logger.setLevel(log_level)
+        if log_level:
+            self._logger.setLevel(log_level)
 
     @abstractmethod
     def open(self):
@@ -90,7 +91,7 @@ class SimpleDataSource(DataSource):
     _generator: Iterator[object]
 
     def __init__(
-        self, generator: Iterator[object], name: str = "", log_level: int = logging.WARN
+        self, generator: Iterator[object], name: str = "", log_level: int = None
     ):
         """Creates a data source, simply wrapping it around the given generator.
 
@@ -125,9 +126,7 @@ class SimpleRemoteDataSource(DataSource):
 
     _endpoint: StreamEndpoint
 
-    def __init__(
-        self, endpoint: StreamEndpoint, name: str = "", log_level: int = logging.WARN
-    ):
+    def __init__(self, endpoint: StreamEndpoint, name: str = "", log_level: int = None):
         """Creates a new remote data source from a given stream endpoint. If no
         endpoint is provided, creates a new one instead with basic parameters.
 
@@ -181,9 +180,7 @@ class CSVFileDataSource(DataSource):
     _cur_csv: csv.reader
     _cur_headers: list[str]
 
-    def __init__(
-        self, files: str | list[str], name: str = "", log_level: int = logging.WARN
-    ):
+    def __init__(self, files: str | list[str], name: str = "", log_level: int = None):
         """Creates a new CSV file data source. Either a single file or a list of files
         are expected as the input.
 

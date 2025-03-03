@@ -93,7 +93,7 @@ class FederatedOnlineNode(ABC):
         batch_size: int,
         model: FederatedModel,
         name: str = "",
-        log_level: int = logging.WARN,
+        log_level: int = None,
         label_split: int = 2**32,
         supervised: bool = False,
         metrics: list[tf.keras.metrics.Metric] = None,
@@ -127,7 +127,8 @@ class FederatedOnlineNode(ABC):
         X seconds, do a sync update.
         """
         self._logger = logging.getLogger(name)
-        self._logger.setLevel(log_level)
+        if log_level:
+            self._logger.setLevel(log_level)
         self._logger.info("Initializing federated online node...")
 
         self._data_handler = data_handler
@@ -416,8 +417,8 @@ class FederatedOnlineClient(FederatedOnlineNode):
         m_aggr_server: tuple[str, int],
         timeout: int = 10,
         name: str = "",
-        log_level: int = logging.WARN,
-        stream_endpoint_log_level: int = logging.WARN,
+        log_level: int = None,
+        stream_endpoint_log_level: int = None,
         label_split: int = 2**32,
         supervised: bool = False,
         metrics: list[tf.keras.metrics.Metric] = None,
@@ -616,7 +617,7 @@ class FederatedOnlinePeer(FederatedOnlineNode):
         model: FederatedModel,
         m_aggr: ModelAggregator,
         name: str = "",
-        log_level: int = logging.WARN,
+        log_level: int = None,
         label_split: int = 2**32,
         supervised: bool = False,
         metrics: list[tf.keras.metrics.Metric] = None,

@@ -35,14 +35,15 @@ class DataProcessor:
     _logger: logging.Logger
     _functions: list[Callable]
 
-    def __init__(self, name: str = "", log_level: int = logging.WARN):
+    def __init__(self, name: str = "", log_level: int = None):
         """Creates a data processor.
 
         :param name: Name of processor for logging purposes.
         :param log_level: Logging level for logging purposes.
         """
         self._logger = logging.getLogger(name)
-        self._logger.setLevel(log_level)
+        if log_level:
+            self._logger.setLevel(log_level)
         self._functions = []
 
     def add_func(self, func: Callable[[object], object]) -> Self:

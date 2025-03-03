@@ -314,7 +314,7 @@ class EventHandler:
         error_label: str = "error",
         hide_errors: bool = False,
         name: str = "",
-        log_level: int = logging.WARN,
+        log_level: int = None,
     ):
         """Creates an event handler used to label data points.
 
@@ -330,7 +330,8 @@ class EventHandler:
         :param log_level: Logging level for logging purposes.
         """
         self._logger = logging.getLogger(name)
-        self._logger.setLevel(log_level)
+        if log_level:
+            self._logger.setLevel(log_level)
 
         self._parser = EventParser()
         self._events = []

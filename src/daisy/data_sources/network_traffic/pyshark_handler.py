@@ -40,7 +40,7 @@ class LivePysharkDataSource(DataSource):
     def __init__(
         self,
         name: str = "",
-        log_level: int = logging.WARN,
+        log_level: int = None,
         interfaces: list = "any",
         bpf_filter: str = "",
     ):

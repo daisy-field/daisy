@@ -54,7 +54,7 @@ class DataHandler:
         data_source: DataSource,
         data_processor: DataProcessor,
         name: str = "",
-        log_level: int = logging.WARN,
+        log_level: int = None,
         multithreading: bool = False,
         buffer_size: int = 1024,
     ):
@@ -69,7 +69,8 @@ class DataHandler:
         :param buffer_size: Size of shared buffer in multithreading mode.
         """
         self._logger = logging.getLogger(name)
-        self._logger.setLevel(log_level)
+        if log_level:
+            self._logger.setLevel(log_level)
         self._logger.info("Initializing data handler...")
 
         self._opened = False

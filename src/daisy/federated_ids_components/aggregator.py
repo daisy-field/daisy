@@ -64,7 +64,7 @@ class FederatedOnlineAggregator(ABC):
         self,
         addr: tuple[str, int],
         name: str = "",
-        log_level: int = logging.WARN,
+        log_level: int = None,
         timeout: int = 10,
         dashboard_url: str = None,
     ):
@@ -78,7 +78,8 @@ class FederatedOnlineAggregator(ABC):
         on class implementations (see class docstring).
         """
         self._logger = logging.getLogger(name)
-        self._logger.setLevel(log_level)
+        if log_level:
+            self._logger.setLevel(log_level)
         self._logger.info("Initializing federated online aggregator...")
 
         self._aggr_serv = EndpointServer(
@@ -213,7 +214,7 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
         m_aggr: ModelAggregator,
         addr: tuple[str, int],
         name: str = "",
-        log_level: int = logging.WARN,
+        log_level: int = None,
         timeout: int = 10,
         update_interval: int = None,
         num_clients: int = None,
@@ -449,7 +450,7 @@ class FederatedValueAggregator(FederatedOnlineAggregator):
         self,
         addr: tuple[str, int],
         name: str = "",
-        log_level: int = logging.WARN,
+        log_level: int = None,
         timeout: int = 10,
         window_size: int = None,
         dashboard_url: str = None,
@@ -549,7 +550,7 @@ class FederatedPredictionAggregator(FederatedValueAggregator):
         self,
         addr: tuple[str, int],
         name: str = "",
-        log_level: int = logging.WARN,
+        log_level: int = None,
         timeout: int = 10,
         window_size: int = None,
         dashboard_url: str = None,
@@ -643,7 +644,7 @@ class FederatedEvaluationAggregator(FederatedValueAggregator):
         self,
         addr: tuple[str, int],
         name: str = "",
-        log_level: int = logging.WARN,
+        log_level: int = None,
         timeout: int = 10,
         window_size: int = None,
         dashboard_url: str = None,

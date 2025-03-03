@@ -47,7 +47,7 @@ class DataHandlerRelay:
         data_handler: DataHandler,
         endpoint: StreamEndpoint,
         name: str = "",
-        log_level: int = logging.WARN,
+        log_level: int = None,
     ):
         """Creates a new data handler relay.
 
@@ -57,7 +57,8 @@ class DataHandlerRelay:
         :param log_level: Logging level for logging purposes.
         """
         self._logger = logging.getLogger(name)
-        self._logger.setLevel(log_level)
+        if log_level:
+            self._logger.setLevel(log_level)
         self._logger.info("Initializing data handler relay...")
 
         self._started = False
@@ -175,7 +176,7 @@ class CSVFileRelay:
         data_handler: DataHandler,
         target_file: str | Path,
         name: str = "",
-        log_level: int = logging.WARN,
+        log_level: int = None,
         header_buffer_size: int = 1000,
         headers: tuple[str, ...] = None,
         overwrite_file: bool = False,
@@ -209,7 +210,8 @@ class CSVFileRelay:
             * If file path provided is not valid.
         """
         self._logger = logging.getLogger(name)
-        self._logger.setLevel(log_level)
+        if log_level:
+            self._logger.setLevel(log_level)
         self._logger.info("Initializing file relay...")
 
         self._started = False

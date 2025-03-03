@@ -78,7 +78,7 @@ class EndpointSocket:
     def __init__(
         self,
         name: str,
-        log_level: int = logging.WARN,
+        log_level: int = None,
         addr: tuple[str, int] = None,
         remote_addr: tuple[str, int] = None,
         acceptor: bool = True,
@@ -109,7 +109,8 @@ class EndpointSocket:
         or if the address/remote address is not provided for acceptor/initiator.
         """
         self._logger = logging.getLogger(name + "-Socket")
-        self._logger.setLevel(log_level)
+        if log_level:
+            self._logger.setLevel(log_level)
         self._logger.info(f"Initializing endpoint socket {addr, remote_addr}...")
 
         self._addr = addr if addr is not None else ("0.0.0.0", 0)
@@ -780,7 +781,7 @@ class StreamEndpoint:
     def __init__(
         self,
         name: str = "StreamEndpoint",
-        log_level: int = logging.WARN,
+        log_level: int = None,
         addr: tuple[str, int] = None,
         remote_addr: tuple[str, int] = None,
         acceptor: bool = True,
@@ -819,7 +820,8 @@ class StreamEndpoint:
         down of the endpoint may still be called separately.
         """
         self._logger = logging.getLogger(name)
-        self._logger.setLevel(log_level)
+        if log_level:
+            self._logger.setLevel(log_level)
         self._logger.info(f"Initializing endpoint {addr, remote_addr}...")
 
         self._endpoint_socket = EndpointSocket(
@@ -1148,7 +1150,7 @@ class StreamEndpoint:
         objects: Iterable,
         remote_addr: tuple[str, int],
         name: str = "QuickSenderEndpoint",
-        log_level: int = logging.WARN,
+        log_level: int = None,
         addr: tuple[str, int] = None,
         send_b_size: int = 65536,
         compression: bool = False,
@@ -1162,6 +1164,7 @@ class StreamEndpoint:
         :param objects: Iterable of objects to send to remote endpoint.
         :param remote_addr: Address of remote endpoint to send messages to.
         :param name: Name of endpoint for logging purposes.
+        :param log_level: Logging level for logging purposes.
         :param addr: Address of endpoint.
         :param send_b_size: Underlying send buffer size of socket.
         :param compression: Enables lz4 stream compression for bandwidth optimization.
@@ -1274,8 +1277,8 @@ class EndpointServer:
         self,
         addr: tuple[str, int],
         name: str = "EndpointServer",
-        log_level: int = logging.WARN,
-        stream_endpoint_log_level: int = logging.WARN,
+        log_level: int = None,
+        stream_endpoint_log_level: int = None,
         c_timeout: int = None,
         send_b_size: int = 65536,
         recv_b_size: int = 65536,
@@ -1312,7 +1315,8 @@ class EndpointServer:
         shutdown and cleanup of the actual endpoint is still done by the server.
         """
         self._logger = logging.getLogger(name)
-        self._logger.setLevel(log_level)
+        if log_level:
+            self._logger.setLevel(log_level)
         self._stream_endpoint_log_level = stream_endpoint_log_level
         self._logger.info(f"Initializing endpoint server {addr}...")
 
