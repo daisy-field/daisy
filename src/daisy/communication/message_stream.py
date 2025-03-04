@@ -763,8 +763,8 @@ class StreamEndpoint:
     _unmarshal_f: Callable[[bytes], object]
 
     _multithreading: bool
-    _sender: threading.Thread
-    _receiver: threading.Thread
+    _sender: Optional[threading.Thread]
+    _receiver: Optional[threading.Thread]
     _send_buffer: queue.Queue[bytes]
     _recv_buffer: queue.Queue[bytes]
 
@@ -833,6 +833,8 @@ class StreamEndpoint:
             self._unmarshal_f = unmarshal_f
 
         self._multithreading = multithreading
+        self._sender = None
+        self._receiver = None
         self._send_buffer = queue.Queue(maxsize=buffer_size)
         self._recv_buffer = queue.Queue(maxsize=buffer_size)
 
