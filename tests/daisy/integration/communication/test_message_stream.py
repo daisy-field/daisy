@@ -1,24 +1,53 @@
-# Copyright (C) 2024-2025 DAI-Labor and others
+# Copyright (C) 2025 DAI-Labor and others
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""Collection of various tests of the message stream module for endpoints and
-endpoint server. These tests are merely for development purposes only and are not
-unit-test compliant. Due to the nature of multi-threading, these tests may or may not
-be deterministic as well.
+import pytest
 
-Currently, the following test-modules are provided:
+from daisy.communication import StreamEndpoint
 
-    * simple_acceptor - Acceptor endpoint (server) side test functions.
-    * simple_initiator - Initiator endpoint (client) side test functions.
-    * simple_server - Dedicated endpoint server function to create test servers.
 
-To start any tests, initiator(s) must always be launched in tandem with either
-acceptors(s) or a server from their respective modules. Some acceptor tests can also
-be launched in standalone manner. See their modules' and their respective functions'
-docstrings for more information.
+@pytest.fixture
+def example_list():
+    return [1, 2, 3, 4, 5]
 
-Author: Fabian Hofmann
-Modified: 10.04.24
-"""
+
+@pytest.fixture(scope="function")
+def simple_initiator(multithreading):
+    return StreamEndpoint(
+        name="Initiator",
+        addr=("127.0.0.1", 13000),
+        remote_addr=("127.0.0.1", 32000),
+        acceptor=False,
+        multithreading=multithreading.param,
+    )
+
+
+@pytest.fixture(scope="function")
+def simple_acceptor(multithreading):
+    return StreamEndpoint(
+        name="Acceptor",
+        addr=("127.0.0.1", 32000),
+        remote_addr=("127.0.0.1", 13000),
+        acceptor=True,
+        multithreading=multithreading.param,
+    )
+
+
+# @pytest.fixture(scope="function")
+
+
+class TestStreamEndpoint:
+    @pytest.mark.parametrize(
+        "simple_initiator,simple_acceptor",
+        [
+            (True, True),
+            (False, False),
+            (True, False),
+            (False, True),
+        ],
+        indirect=True,
+    )
+    def test_acceptor(self, simple_initiator, simple_acceptor):
+        print(simple_initiator._multithreading, simple_acceptor._multithreading)

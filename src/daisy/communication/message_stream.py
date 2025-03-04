@@ -25,7 +25,7 @@ from typing import Callable, Iterable, Optional, Self
 from lz4.frame import compress, decompress
 
 
-class EndpointSocket:
+class _EndpointSocket:
     """A bundle of up to two sockets, that is used to communicate with another
     endpoint over a persistent TCP connection in synchronous manner. Supports
     authentication and encryption over SSL, and stream compression using LZ4.
@@ -758,7 +758,7 @@ class StreamEndpoint:
 
     _logger: logging.Logger
 
-    _endpoint_socket: EndpointSocket
+    _endpoint_socket: _EndpointSocket
     _marshal_f: Callable[[object], bytes]
     _unmarshal_f: Callable[[bytes], object]
 
@@ -815,7 +815,7 @@ class StreamEndpoint:
         self._logger = logging.getLogger(name)
         self._logger.info(f"Initializing endpoint {addr, remote_addr}...")
 
-        self._endpoint_socket = EndpointSocket(
+        self._endpoint_socket = _EndpointSocket(
             name=name,
             addr=addr,
             remote_addr=remote_addr,
