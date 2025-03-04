@@ -15,6 +15,7 @@ import logging
 import sys
 from datetime import datetime
 from typing import Callable, Self, Optional
+
 import pyparsing as pp
 
 
@@ -312,7 +313,8 @@ class EventHandler:
         label_feature: str = "label",
         error_label: str = "error",
         hide_errors: bool = False,
-        name: str = "",
+        name: str = "EventHandler",
+        log_level: int = None,
     ):
         """Creates an event handler used to label data points.
 
@@ -325,8 +327,11 @@ class EventHandler:
         an event, only printing them out in the logs instead of exciting, labeling
         the data point as erroneous.
         :param name: Name of event handler for logging purposes.
+        :param log_level: Logging level for logging purposes.
         """
         self._logger = logging.getLogger(name)
+        if log_level:
+            self._logger.setLevel(log_level)
 
         self._parser = EventParser()
         self._events = []

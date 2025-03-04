@@ -12,11 +12,11 @@ Modified: 04.11.24
 """
 
 import logging
-from natsort import natsorted
 import os
 from typing import Iterator, Optional
 
 import pyshark
+from natsort import natsorted
 from pyshark.capture.capture import TSharkCrashException
 from pyshark.capture.file_capture import FileCapture
 from pyshark.capture.live_capture import LiveCapture
@@ -37,15 +37,22 @@ class LivePysharkDataSource(DataSource):
     _capture: LiveCapture
     _generator: Iterator[Packet]
 
-    def __init__(self, name: str = "", interfaces: list = "any", bpf_filter: str = ""):
+    def __init__(
+        self,
+        name: str = "LivePysharkDataSource",
+        log_level: int = None,
+        interfaces: list = "any",
+        bpf_filter: str = "",
+    ):
         """Creates a new basic pyshark live capture handler on the given interfaces.
 
         :param name: Name of data source for logging purposes.
+        :param log_level: Logging level of data source.
         :param interfaces: Network interfaces to capture. If not given, runs on all
         interfaces.
         :param bpf_filter: Pcap conform filter to filter or ignore certain traffic.
         """
-        super().__init__(name)
+        super().__init__(name=name, log_level=log_level)
 
         self._logger.info("Initializing live pyshark data source...")
         self._capture = pyshark.LiveCapture(interface=interfaces, bpf_filter=bpf_filter)
@@ -89,7 +96,13 @@ class PcapDataSource(DataSource):
     _cur_file_handle: Optional[FileCapture]
     _try_counter: int
 
-    def __init__(self, *file_names: str, try_counter: int = 3, name: str = ""):
+    def __init__(
+        self,
+        *file_names: str,
+        try_counter: int = 3,
+        name: str = "PcapDataSource",
+        log_level: int = None,
+    ):
         """Creates a new pcap file data source.
 
         :param file_names: List of paths of single files or directories containing
@@ -99,8 +112,9 @@ class PcapDataSource(DataSource):
         :param try_counter: Number of attempts to open a specific pcap file until
         throwing an exception.
         :param name: Name of data source for logging purposes.
+        :param log_level: Logging level of data source.
         """
-        super().__init__(name)
+        super().__init__(name=name, log_level=log_level)
 
         self._logger.info("Initializing pcap file data source...")
         self._pcap_files = []

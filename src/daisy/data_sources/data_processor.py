@@ -16,9 +16,9 @@ import json
 import logging
 from collections.abc import MutableMapping
 from typing import Callable, Self
-from typing_extensions import deprecated
 
 import numpy as np
+from typing_extensions import deprecated
 
 
 class DataProcessor:
@@ -35,12 +35,15 @@ class DataProcessor:
     _logger: logging.Logger
     _functions: list[Callable]
 
-    def __init__(self, name: str = ""):
+    def __init__(self, name: str = "DataProcessor", log_level: int = None):
         """Creates a data processor.
 
         :param name: Name of processor for logging purposes.
+        :param log_level: Logging level of processor.
         """
         self._logger = logging.getLogger(name)
+        if log_level:
+            self._logger.setLevel(log_level)
         self._functions = []
 
     def add_func(self, func: Callable[[object], object]) -> Self:
