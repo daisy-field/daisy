@@ -14,13 +14,12 @@ import ctypes
 import logging
 import pickle
 import queue
+import select
 import socket
 import sys
 import threading
 from time import sleep, time
 from typing import Callable, Iterable, Optional, Self
-
-import select
 
 # noinspection PyUnresolvedReferences
 from lz4.frame import compress, decompress
@@ -44,6 +43,7 @@ class EndpointSocket:
     if counter reaches zero.
     :cvar _lock: General purpose lock to ensure safe access to class variables.
     :cvar _cls_logger: General purpose logger for class methods.
+    :cvar _cls_log_level: Log level of class methods.
     """
 
     _listen_socks: dict[tuple[str, int], tuple[socket.socket, threading.Lock]] = {}
@@ -58,7 +58,7 @@ class EndpointSocket:
     _act_l_counts: dict[tuple[str, int], int] = {}
     _lock = threading.Lock()
     _cls_logger: logging.Logger = logging.getLogger("EndpointSocketCLS")
-    _cls_logger_log_level: int = None
+    _cls_log_level: int = None
 
     _logger: logging.Logger
 
@@ -94,7 +94,7 @@ class EndpointSocket:
         registered, then the current one will throw an error.
 
         :param name: Name of endpoint for logging purposes.
-        :param log_level: Logging level for logging purposes.
+        :param log_level: Logging level of endpoint socket.
         :param addr: Address of endpoint. Mandatory in acceptor mode (acceptor set to
         True), for initiators this fixes the address the endpoint is bound to.
         :param remote_addr: Address of remote endpoint to be connected to. Mandatory in
@@ -112,9 +112,7 @@ class EndpointSocket:
         self._logger = logging.getLogger(name)
         if log_level:
             self._logger.setLevel(log_level)
-            if self._cls_logger_log_level or log_level < self._cls_logger_log_level:
-                self._cls_logger.setLevel(log_level)
-                self._cls_logger_log_level = log_level
+            self.set_cls_log_level(log_level)
         self._logger.info(f"Initializing endpoint socket {addr, remote_addr}...")
 
         self._addr = addr if addr is not None else ("0.0.0.0", 0)
@@ -346,9 +344,15 @@ class EndpointSocket:
         self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, self._recv_b_size)
 
     @classmethod
-    def set_class_method_log_level(cls, log_level: int):
-        cls._cls_logger.setLevel(log_level)
-        cls._cls_logger_log_level = log_level
+    def set_cls_log_level(cls, log_level: int):
+        """Sets the log level on the class level, iff it is not already lower to begin
+        with (to not supress the logging of other endpoints who share this class).
+
+        :param log_level: Log level to set.
+        """
+        if cls._cls_log_level is None or log_level < cls._cls_log_level:
+            cls._cls_logger.setLevel(log_level)
+            cls._cls_log_level = log_level
 
     @classmethod
     def _reg_remote(cls, remote_addr: tuple[str, int]):
@@ -807,7 +811,7 @@ class StreamEndpoint:
         """Creates a new endpoint.
 
         :param name: Name of endpoint for logging purposes.
-        :param log_level: Logging level for logging purposes.
+        :param log_level: Logging level of endpoint.
         :param addr: Address of endpoint.
         :param remote_addr: Address of remote endpoint to be connected to. Optional in
         acceptor mode.
@@ -1270,7 +1274,7 @@ class EndpointServer:
     _c_lock: threading.Lock
 
     _name: str
-    _stream_endpoint_log_level: int
+    _endpoint_log_level: int
     _addr: tuple[str, int]
     _send_b_size: int
     _recv_b_size: int
@@ -1289,7 +1293,7 @@ class EndpointServer:
         addr: tuple[str, int],
         name: str = "EndpointServer",
         log_level: int = None,
-        stream_endpoint_log_level: int = None,
+        endpoint_log_level: int = None,
         c_timeout: int = None,
         send_b_size: int = 65536,
         recv_b_size: int = 65536,
@@ -1304,8 +1308,8 @@ class EndpointServer:
 
         :param addr: Address of endpoint server.
         :param name: Name of endpoint server for logging purposes.
-        :param log_level: Logging level for logging purposes.
-        :param stream_endpoint_log_level: Logging level for stream endpoint logging
+        :param log_level: Logging level of server.
+        :param endpoint_log_level: Logging level of the server's endpoints.
         :param c_timeout: Timeout (secs) for disconnected connection endpoints when
         performing periodic cleanup. Default is no cleanup.
         :param send_b_size: Underlying send buffer size of all connection sockets.
@@ -1328,7 +1332,7 @@ class EndpointServer:
         self._logger = logging.getLogger(name)
         if log_level:
             self._logger.setLevel(log_level)
-        self._stream_endpoint_log_level = stream_endpoint_log_level
+        self._endpoint_log_level = endpoint_log_level
         self._logger.info(f"Initializing endpoint server {addr}...")
 
         self._connections = {}
@@ -1519,7 +1523,7 @@ class EndpointServer:
             self._logger.debug(logging_prefix + "Preparing endpoint for connection...")
             new_connection = StreamEndpoint(
                 name=f"{self._name}-{self._n_connections}",
-                log_level=self._stream_endpoint_log_level,
+                log_level=self._endpoint_log_level,
                 addr=self._addr,
                 remote_addr=None,
                 acceptor=True,

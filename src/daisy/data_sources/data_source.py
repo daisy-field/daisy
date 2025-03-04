@@ -50,7 +50,7 @@ class DataSource(ABC):
         through open() (see the class documentation for more information).
 
         :param name: Name of data source for logging purposes.
-        :param log_level: Logging level for logging purposes.
+        :param log_level: Logging level of data source.
         """
         self._logger = logging.getLogger(name)
         if log_level:
@@ -100,7 +100,7 @@ class SimpleDataSource(DataSource):
 
         :param generator: Generator object from which data points are retrieved.
         :param name: Name of data source for logging purposes.
-        :param log_level: Logging level for logging purposes.
+        :param log_level: Logging level of data source.
         """
         super().__init__(name=name, log_level=log_level)
 
@@ -140,7 +140,7 @@ class SimpleRemoteDataSource(DataSource):
 
         :param endpoint: Streaming endpoint from which data points are retrieved.
         :param name: Name of data source for logging purposes.
-        :param log_level: Logging level for logging purposes.
+        :param log_level: Logging level of data source.
         """
         super().__init__(name=name, log_level=log_level)
 
@@ -199,8 +199,8 @@ class CSVFileDataSource(DataSource):
 
         :param files: Either a single CSV file/directory or a list of CSV
         files/directories to read.
-        :param name: name of Data Source for logging purposes.
-        :param log_level: Logging level for logging purposes.
+        :param name: name of data source for logging purposes.
+        :param log_level: Logging level of data source.
         """
         super().__init__(name=name, log_level=log_level)
 
@@ -217,6 +217,7 @@ class CSVFileDataSource(DataSource):
         self._files = []
         for path in tmp_files:
             if os.path.isdir(path):
+                # noinspection PyArgumentList
                 self._files += [
                     os.path.join(path, file) for file in natsorted(os.listdir(path))
                 ]
@@ -266,7 +267,8 @@ class CSVFileDataSource(DataSource):
         cur_dict = {}
         if len(line) != len(header):
             raise ValueError(
-                f"Malformed line detected. Line length does not match header length: {line}"
+                f"Malformed line detected. Line length does not match header length: "
+                f"{line}"
             )
         for header_counter in range(len(header)):
             cur_dict[header[header_counter]] = line[header_counter]

@@ -112,7 +112,7 @@ class FederatedOnlineNode(ABC):
         :param batch_size: Minibatch size for each prediction-fitting step.
         :param model: Actual model to be fitted and run predictions on in online manner.
         :param name: Name of federated online node for logging purposes.
-        :param log_level: Logging level for logging purposes.
+        :param log_level: Logging level of node.
         :param label_split: Split index within data point vector between input and
         true label(s). Default is no labels.
         :param supervised: Learning mode for model (supervised/unsupervised). Default
@@ -445,7 +445,7 @@ class FederatedOnlineClient(FederatedOnlineNode):
         :param timeout: Timeout for waiting to receive global model updates from
         model aggregation server.
         :param name: Name of federated online node for logging purposes.
-        :param log_level: Logging level for logging purposes.
+        :param log_level: Logging level of client.
         :param stream_endpoint_log_level: Logging level for logging purposes.
         :param label_split: Split index within data point vector between input and
         true label(s). Default is no labels.
@@ -642,7 +642,7 @@ class FederatedOnlinePeer(FederatedOnlineNode):
         :param model: Actual model to be fitted and run predictions on in online manner.
         :param m_aggr: Model aggregator for local model aggregation.
         :param name: Name of federated online node for logging purposes.
-        :param log_level: Logging level for logging purposes.
+        :param log_level: Logging level for peer..
         :param label_split: Split index within data point vector between input and
         true label(s). Default is no labels.
         :param supervised: Learning mode for model (supervised/unsupervised). Default

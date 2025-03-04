@@ -39,7 +39,7 @@ class DataProcessor:
         """Creates a data processor.
 
         :param name: Name of processor for logging purposes.
-        :param log_level: Logging level for logging purposes.
+        :param log_level: Logging level of processor.
         """
         self._logger = logging.getLogger(name)
         if log_level:

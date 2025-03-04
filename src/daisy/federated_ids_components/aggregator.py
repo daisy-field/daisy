@@ -72,7 +72,7 @@ class FederatedOnlineAggregator(ABC):
 
         :param addr: Address of aggregation server for federated nodes to report to.
         :param name: Name of federated online aggregator for logging purposes.
-        :param log_level: Logging level for logging purposes.
+        :param log_level: Logging level of aggregator.
         :param timeout: Timeout for waiting to receive message from federated nodes.
         :param dashboard_url: URL to dashboard to report aggregated data to, depending
         on class implementations (see class docstring).
@@ -83,7 +83,7 @@ class FederatedOnlineAggregator(ABC):
         self._logger.info("Initializing federated online aggregator...")
 
         self._aggr_serv = EndpointServer(
-            name="Server", addr=addr, c_timeout=timeout, multithreading=True
+            addr=addr, name=name + ".Server", c_timeout=timeout, multithreading=True
         )
         self._timeout = timeout
 
@@ -229,7 +229,7 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
         :param m_aggr: Actual aggregator to aggregate models with.
         :param addr: Address of aggregation server for clients to connect to.
         :param name: Name of federated model aggregator for logging purposes.
-        :param log_level: Logging level for logging purposes.
+        :param log_level: Logging level of aggregator.
         :param timeout: Timeout for waiting to receive local model updates from
         federated clients.
         :param update_interval: Sets how often the aggregation server should do a (
@@ -459,7 +459,7 @@ class FederatedValueAggregator(FederatedOnlineAggregator):
 
         :param addr: Address of aggregation server for federated nodes to report to.
         :param name: Name of federated value aggregator for logging purposes.
-        :param log_level: Logging level for logging purposes.
+        :param log_level: Logging level of aggregator.
         :param timeout: Timeout for waiting to receive message from federated nodes.
         :param window_size: Maximum number of latest received entries stored for each
         federated node.
@@ -559,7 +559,7 @@ class FederatedPredictionAggregator(FederatedValueAggregator):
 
         :param addr: Address of aggregation server for federated nodes to report to.
         :param name: Name of federated prediction aggregator for logging purposes.
-        :param log_level: Logging level for logging purposes.
+        :param log_level: Logging level of aggregator.
         :param timeout: Timeout for waiting to receive message from federated nodes.
         :param window_size: Maximum number of latest received entries stored for each
         federated node.
@@ -653,7 +653,7 @@ class FederatedEvaluationAggregator(FederatedValueAggregator):
 
         :param addr: Address of aggregation server for federated nodes to report to.
         :param name: Name of federated evaluation aggregator for logging purposes.
-        :param log_level: Logging level for logging purposes.
+        :param log_level: Logging level of aggregator.
         :param timeout: Timeout for waiting to receive message from federated nodes.
         :param window_size: Maximum number of latest received entries stored for each
         federated node.
@@ -670,7 +670,7 @@ class FederatedEvaluationAggregator(FederatedValueAggregator):
 
     def create_fed_aggr(self):
         """Starts the loop to continuously poll the federated nodes for new evaluation
-        metric results to receive and process, before adding them to the datastructure
+        metric results to receive and process, before adding them to the data structure
         and reporting them to the dashboard. Also reports the overall status of the
         network and the connected nodes to the dashboard if available.
         """

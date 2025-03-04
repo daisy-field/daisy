@@ -184,7 +184,7 @@ class PysharkProcessor(DataProcessor):
         ready for to be further processed by detection models.
 
         :param name: Name of processor for logging purposes.
-        :param log_level: Logging level for logging purposes.
+        :param log_level: Logging level of processor.
         :param f_features: Features to extract from the packets.
         :param nn_aggregator: Aggregator, which should map non-numerical features to
         integers / floats.
@@ -365,7 +365,7 @@ def create_pyshark_processor(
     detection models.
 
     :param name: The name for logging purposes
-    :param log_level: Logging level for logging purposes
+    :param log_level: Logging level of processor.
     :param f_features: The features to extract from the packets
     :param nn_aggregator: The aggregator, which should map features to integers
     """

@@ -47,6 +47,7 @@ class LivePysharkDataSource(DataSource):
         """Creates a new basic pyshark live capture handler on the given interfaces.
 
         :param name: Name of data source for logging purposes.
+        :param log_level: Logging level of data source.
         :param interfaces: Network interfaces to capture. If not given, runs on all
         interfaces.
         :param bpf_filter: Pcap conform filter to filter or ignore certain traffic.
@@ -96,7 +97,11 @@ class PcapDataSource(DataSource):
     _try_counter: int
 
     def __init__(
-        self, *file_names: str, try_counter: int = 3, name: str = "PcapDataSource"
+        self,
+        *file_names: str,
+        try_counter: int = 3,
+        name: str = "PcapDataSource",
+        log_level: int = None,
     ):
         """Creates a new pcap file data source.
 
@@ -107,8 +112,9 @@ class PcapDataSource(DataSource):
         :param try_counter: Number of attempts to open a specific pcap file until
         throwing an exception.
         :param name: Name of data source for logging purposes.
+        :param log_level: Logging level of data source.
         """
-        super().__init__(name)
+        super().__init__(name=name, log_level=log_level)
 
         self._logger.info("Initializing pcap file data source...")
         self._pcap_files = []

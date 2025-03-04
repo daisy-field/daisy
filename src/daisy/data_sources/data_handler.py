@@ -63,8 +63,8 @@ class DataHandler:
         :param data_source: Actual source that provisions data points to data handler.
         :param data_processor: Processor containing the methods on how to process
         individual data points.
-        :param name: Name of data source relay for logging purposes.
-        :param log_level: Logging level for logging purposes.
+        :param name: Name of data handler for logging purposes.
+        :param log_level: Logging level of data handler.
         :param multithreading: Enables transparent multithreading for speedup.
         :param buffer_size: Size of shared buffer in multithreading mode.
         """
