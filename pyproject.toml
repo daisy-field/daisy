@@ -126,7 +126,7 @@ dependencies = [
 # projects.
 [project.optional-dependencies] # Optional
 cuda = ["tensorflow[and-cuda]~=2.15.0"]
-dev = ["coverage", "pre-commit", "ruff"]
+dev = ["pre-commit", "ruff", "pytest~=8.3.3", "pytest-cov~=6.0.0", "genbadge[coverage]"]
 #dev = ["check-manifest"]
 
 # List URLs that are relevant to your project
@@ -172,3 +172,11 @@ demo_jammer = "daisy.scripts.demo_components:demo_jammer"
 requires = ["setuptools"]  # REQUIRED if [build-system] table is used
 # The name of the Python object that frontends will use to perform the build:
 build-backend = "setuptools.build_meta"  # If not defined, then legacy behavior can happen.
+
+[tool.pytest.ini_options]
+pythonpath = "src"
+# Changes import style for running tests. Refer to:
+# https://docs.pytest.org/en/stable/explanation/goodpractices.html#choosing-an-import-mode
+addopts = [
+    "--import-mode=importlib",
+]

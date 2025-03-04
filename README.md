@@ -4,6 +4,7 @@
 > **S**ecurit**y**-Oriented Edge Computing Environments.
 
 [![CI](https://github.com/daisy-field/daisy/actions/workflows/ci.yml/badge.svg)](https://github.com/daisy-field/daisy/actions/workflows/ci.yml)
+[![Coverage Status](.github/workflows/coverage-badge.svg)](.github/workflows/coverage-badge.svg)
 [![License: MPL 2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](https://github.com/daisy-field/daisy/blob/main/LICENSE.txt)
 [![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/release/python-3110/)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
@@ -42,7 +43,8 @@ recommended to use a
 project. For CUDA-enabled GPU cards (mainly on Ubuntu and various Linux distributions),
 there is additional support directly integrated into DAISY via the `[cuda]` option;
 this functionality requires NVIDIA® GPU drivers and is supported through and by
-[Tensorflow](https://github.com/tensorflow/tensorflow/blob/master/README.md).
+[Tensorflow](https://github.com/tensorflow/tensorflow/blob/master/README.md). For live traffic capture and pcap reading functionality, 
+[Tshark](https://tshark.dev/setup/install/) is required.
 
 ```shell
 git clone https://github.com/daisy-field/daisy.git
