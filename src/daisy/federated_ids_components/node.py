@@ -272,7 +272,9 @@ class FederatedOnlineNode(ABC):
                 self._minibatch_inputs.append(sample[: self._label_split])
                 self._minibatch_labels.append(sample[self._label_split :])
 
-                if len(self._minibatch_inputs) > self._batch_size:
+                if (
+                    len(self._minibatch_inputs) >= self._batch_size
+                ):  # müsste das nicht >= sein? das war >
                     self._logger.debug("AsyncLearner: Processing full minibatch...")
                     with self._m_lock:
                         self._process_batch()

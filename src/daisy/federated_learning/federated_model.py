@@ -152,7 +152,9 @@ class TFFederatedModel(FederatedModel):
         :param x_data: Input data.
         :return: Predicted output tensor.
         """
-        if len(x_data) > self._batch_size:
+        if (
+            len(x_data) >= self._batch_size
+        ):  # was ist der unterschied dieser zwei aufrufe? müsste da nicht >= sein. Es war =
             return self._model.predict(x=x_data, batch_size=self._batch_size)
         return self._model(x_data, training=False).numpy()
 
@@ -205,8 +207,8 @@ class TFFederatedModel(FederatedModel):
         hidden_layers: list[int] = [15, 12],
         optimizer: str | keras.optimizers.Optimizer = "Adam",
         metrics: list[str | Callable | keras.metrics.Metric] = None,
-        batch_size: int = 64,
-        epochs: int = 5,
+        batch_size: int = 32,
+        epochs: int = 1,
     ) -> Self:
         """
         Factory class method to create a simple Variational Autoencoder (VAE) model
