@@ -34,9 +34,10 @@ __all__ = [
     "pcap_f_features",
     "pcap_nn_aggregator",
     "demo_202303_label_data_point",
+    "march23_event_handler",
 ]
 
-from .demo_202303 import demo_202303_label_data_point
+from .demo_202303 import demo_202303_label_data_point, march23_event_handler
 from .pyshark_handler import LivePysharkDataSource, PcapDataSource
 from .pyshark_processor import (
     create_pyshark_processor,

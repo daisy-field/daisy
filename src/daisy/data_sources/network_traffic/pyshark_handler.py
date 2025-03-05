@@ -55,7 +55,9 @@ class LivePysharkDataSource(DataSource):
         super().__init__(name=name, log_level=log_level)
 
         self._logger.info("Initializing live pyshark data source...")
-        self._capture = pyshark.LiveCapture(interface=interfaces, bpf_filter=bpf_filter)
+        self._capture = pyshark.LiveCapture(
+            interface=interfaces, bpf_filter=bpf_filter, use_json=True
+        )
         self._logger.info("Live pyshark data source initialized.")
 
     def open(self):
@@ -171,7 +173,8 @@ class PcapDataSource(DataSource):
         while try_counter < self._try_counter:
             try:
                 self._cur_file_handle = pyshark.FileCapture(
-                    self._pcap_files[self._cur_file_counter]
+                    self._pcap_files[self._cur_file_counter],
+                    use_json=True,
                 )
                 break
             except TSharkCrashException:
