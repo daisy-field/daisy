@@ -17,13 +17,13 @@ import sys
 from collections import defaultdict
 from ipaddress import AddressValueError
 from typing import Callable, Self
-from typing_extensions import deprecated
 
 import numpy as np
 from pyshark.packet.fields import LayerField, LayerFieldsContainer
 from pyshark.packet.layers.json_layer import JsonLayer
 from pyshark.packet.layers.xml_layer import XmlLayer
 from pyshark.packet.packet import Packet
+from typing_extensions import deprecated
 
 from ..data_processor import DataProcessor, flatten_dict
 
@@ -207,7 +207,8 @@ class PysharkProcessor(DataProcessor):
     @classmethod
     def create_simple_processor(
         cls,
-        name: str = "",
+        name: str = "PysharkProcessor",
+        log_level: int = None,
         f_features: list[str, ...] = pcap_f_features,
         nn_aggregator: Callable[[str, object], object] = pcap_nn_aggregator,
     ) -> Self:
@@ -216,12 +217,13 @@ class PysharkProcessor(DataProcessor):
         ready for to be further processed by detection models.
 
         :param name: Name of processor for logging purposes.
+        :param log_level: Logging level of processor.
         :param f_features: Features to extract from the packets.
         :param nn_aggregator: Aggregator, which should map non-numerical features to
         integers / floats.
         """
         return (
-            PysharkProcessor(name=name)
+            PysharkProcessor(name=name, log_level=log_level)
             .packet_to_dict()
             .select_dict_features(features=f_features, default_value=np.nan)
             .dict_to_array(nn_aggregator=nn_aggregator)
@@ -388,7 +390,8 @@ def _add_layer_field_container_to_dict(
 # noinspection DuplicatedCode
 @deprecated("Use PysharkProcessor.create_simple_processor() instead")
 def create_pyshark_processor(
-    name: str = "",
+    name: str = "PysharkProcessor",
+    log_level: int = None,
     f_features: list[str, ...] = pcap_f_features,
     nn_aggregator: Callable[[str, object], object] = pcap_nn_aggregator,
 ):
@@ -398,11 +401,12 @@ def create_pyshark_processor(
     detection models.
 
     :param name: The name for logging purposes
+    :param log_level: Logging level of processor.
     :param f_features: The features to extract from the packets
     :param nn_aggregator: The aggregator, which should map features to integers
     """
     return (
-        PysharkProcessor(name=name)
+        PysharkProcessor(name=name, log_level=log_level)
         .packet_to_dict()
         .select_dict_features(f_features, default_value=np.nan)
         .dict_to_array(nn_aggregator)

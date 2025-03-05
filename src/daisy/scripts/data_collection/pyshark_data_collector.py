@@ -367,20 +367,21 @@ def create_data_source(args):
 
     if args.localSource:
         return LivePysharkDataSource(
-            name="data_collector:live_data_source",
+            name="data_collector.live_data_source",
             interfaces=args.interfaces,
             bpf_filter=args.filter,
         )
     else:
         stream_endpoint = StreamEndpoint(
-            name="data_collector:stream_endpoint",
+            name="data_collector.stream_endpoint",
             addr=(args.local_ip, args.local_port),
             remote_addr=(args.remote_ip, args.remote_port),
             acceptor=True,
             multithreading=args.io_multithreading,
         )
         return SimpleRemoteDataSource(
-            endpoint=stream_endpoint, name="data_collector:remote_data_source"
+            endpoint=stream_endpoint,
+            name="data_collector.remote_data_source",
         )
 
 
@@ -462,7 +463,7 @@ def create_relay(args, data_handler, headers):
         return CSVFileRelay(
             data_handler=data_handler,
             target_file=args.outputFile,
-            name="data_collector:csv_file_relay",
+            name="data_collector.csv_file_relay",
             header_buffer_size=args.csv_header_buffer,
             headers=headers,
             overwrite_file=args.overwrite,
@@ -471,7 +472,7 @@ def create_relay(args, data_handler, headers):
         )
     else:
         stream_endpoint_out = StreamEndpoint(
-            name="data_relay:stream_endpoint_out",
+            name="data_relay.stream_endpoint_out",
             addr=(args.out_local_ip, args.out_local_port),
             remote_addr=(args.out_remote_ip, args.out_remote_port),
             acceptor=False,
@@ -479,7 +480,7 @@ def create_relay(args, data_handler, headers):
         return DataHandlerRelay(
             data_handler=data_handler,
             endpoint=stream_endpoint_out,
-            name="data_relay:data_relay",
+            name="data_relay.data_relay",
         )
 
 
@@ -499,7 +500,7 @@ def create_collector():
     data_handler = DataHandler(
         data_source=data_source,
         data_processor=data_processor,
-        name="data_collector:data_handler",
+        name="data_collector.data_handler",
         multithreading=args.processing_multithreading,
     )
 
