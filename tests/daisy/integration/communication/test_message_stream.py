@@ -22,8 +22,7 @@ def simple_initiator(request):
         acceptor=False,
         multithreading=request.param,
     )
-    yield initiator
-    initiator.stop(shutdown=True).wait()
+    return initiator
 
 
 @pytest.fixture(scope="function")
@@ -35,14 +34,11 @@ def simple_acceptor(request):
         acceptor=True,
         multithreading=request.param,
     )
-    yield acceptor
-    acceptor.stop(shutdown=True).wait()
-
-
-# @pytest.fixture(scope="function")
+    return acceptor
 
 
 class TestStreamEndpoint:
+    @pytest.mark.slow_integration_test
     @pytest.mark.parametrize(
         "simple_initiator, simple_acceptor",
         [
@@ -53,7 +49,7 @@ class TestStreamEndpoint:
         ],
         indirect=["simple_initiator", "simple_acceptor"],
     )
-    def test_acceptor(
+    def test_send_recv(
         self,
         simple_initiator: StreamEndpoint,
         simple_acceptor: StreamEndpoint,
@@ -75,3 +71,8 @@ class TestStreamEndpoint:
             acceptor_recv_list.append(simple_acceptor.receive())
 
         assert initiator_recv_list == acceptor_recv_list == example_list
+
+        initiator_stp = simple_initiator.stop(shutdown=True)
+        acceptor_stp = simple_acceptor.stop(shutdown=True)
+        initiator_stp.wait()
+        acceptor_stp.wait()
