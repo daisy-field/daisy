@@ -20,8 +20,8 @@ from daisy.communication import EndpointServer
 def simple_server():
     """Setup and start of ping-pong server (see module docstring)."""
     with EndpointServer(
-        name="Testserver",
         addr=("127.0.0.1", 13000),
+        name="Testserver",
         c_timeout=None,
         multithreading=True,
         keep_alive=False,
