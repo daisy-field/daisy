@@ -891,7 +891,7 @@ class StreamEndpoint:
         self._logger.info("Endpoint started.")
         return self._ready
 
-    def stop(self, shutdown=False, timeout=10, blocking=True):
+    def stop(self, shutdown=False, timeout=10, blocking=True) -> threading.Event:
         """Stops the endpoint and closes the stream, cleaning up underlying
         datastructures. If multithreading is enabled, waits for both endpoint threads
         to stop before finishing. Note this does not guarantee the sending and
@@ -944,7 +944,8 @@ class StreamEndpoint:
                 )
                 self._endpoint_socket.close(shutdown)
                 self._shutdown = True
-                return
+                self._stopped.set()
+                return self._stopped
             else:
                 raise RuntimeError(
                     "Endpoint has not been started or already shut down!"

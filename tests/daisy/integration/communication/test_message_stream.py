@@ -22,7 +22,6 @@ def simple_initiator(request):
         acceptor=False,
         multithreading=request.param,
     )
-    initiator.start()
     yield initiator
     initiator.stop(shutdown=True).wait()
 
@@ -36,7 +35,6 @@ def simple_acceptor(request):
         acceptor=True,
         multithreading=request.param,
     )
-    acceptor.start()
     yield acceptor
     acceptor.stop(shutdown=True).wait()
 
@@ -55,5 +53,25 @@ class TestStreamEndpoint:
         ],
         indirect=["simple_initiator", "simple_acceptor"],
     )
-    def test_acceptor(self, simple_initiator, simple_acceptor):
-        assert simple_initiator._multithreading == simple_acceptor._multithreading
+    def test_acceptor(
+        self,
+        simple_initiator: StreamEndpoint,
+        simple_acceptor: StreamEndpoint,
+        example_list: list,
+    ):
+        initiator_rdy = simple_initiator.start()
+        acceptor_rdy = simple_acceptor.start()
+        initiator_rdy.wait()
+        acceptor_rdy.wait()
+
+        for element in example_list:
+            simple_initiator.send(element)
+            simple_acceptor.send(element)
+
+        initiator_recv_list = []
+        acceptor_recv_list = []
+        for _ in range(5):
+            initiator_recv_list.append(simple_initiator.receive())
+            acceptor_recv_list.append(simple_acceptor.receive())
+
+        assert initiator_recv_list == acceptor_recv_list == example_list
