@@ -16,3 +16,4 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           assignees: fshofmann
           numOfAssignee: 1
+          abortIfPreviousAssignees: true
