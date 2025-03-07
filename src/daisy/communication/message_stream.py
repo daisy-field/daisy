@@ -494,7 +494,9 @@ class _EndpointSocket:
         Supports address resolution.
 
         :param addr: Address of listen socket.
-        :return: A tupel consisting of the address, the socket, and a lock to be used
+        :param new_endpoint: Flag whether the calling endpoint is new and should be
+        counted as part of the set of endpoints using this socket.
+        :return: A tuple consisting of the address, the socket, and a lock to be used
         for accessing the socket.
         :raises RuntimeError: If none of the addresses/aliases succeed to create a
         working socket.

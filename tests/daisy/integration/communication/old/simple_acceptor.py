@@ -80,30 +80,6 @@ def multithreaded_acceptor(num_threads: int):
         sleep(random.randrange(2))
 
 
-def clashing_acceptor():
-    """Creates multiple acceptor endpoints that have the same address (which is
-    supported by the underlying endpoint sockets) but also the same remote (initiator)
-    address which should result in a double registration causing an error.
-    """
-    endpoint_1 = StreamEndpoint(  # noqa: F841
-        name=f"Acceptor-{1}",
-        addr=("127.0.0.1", 13000),
-        remote_addr=("127.0.0.1", 32000),
-        acceptor=True,
-        multithreading=True,
-        buffer_size=10000,
-    )
-
-    endpoint_2 = StreamEndpoint(  # noqa: F841
-        name=f"Acceptor-{2}",
-        addr=("127.0.0.1", 13000),
-        remote_addr=("127.0.0.1", 32000),
-        acceptor=True,
-        multithreading=True,
-        buffer_size=10000,
-    )
-
-
 def single_message_acceptor():
     """Creates and starts an acceptor to perform a single receive before stopping the
     endpoint, to test if endpoints can be stopped while they are receiving multiple
@@ -122,31 +98,6 @@ def single_message_acceptor():
     print(endpoint.receive())
     endpoint.stop()
     print("No Block")
-
-
-def simple_acceptor():
-    """Creates and starts an acceptor to perform an endless ping-pong tests with the
-    opposing initiator, sending out "pong" and receiving "ping" messages.
-    """
-    endpoint = StreamEndpoint(
-        name="Acceptor",
-        addr=("127.0.0.1", 32000),
-        remote_addr=("127.0.0.1", 13000),
-        acceptor=True,
-        multithreading=True,
-        buffer_size=10000,
-    )
-    endpoint.start()
-
-    i = 0
-    while True:
-        endpoint.send(f"pong {i}")
-        try:
-            print(endpoint.receive(5))
-        except TimeoutError:
-            print("nothing to receive")
-        sleep(2)
-        i += 1
 
 
 if __name__ == "__main__":

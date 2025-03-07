@@ -82,63 +82,6 @@ def multithreaded_initiator(num_threads: int):
         sleep(random.randrange(2))
 
 
-def one_time_initiator():
-    """Creates and starts an initiator to perform one multiple "ping" sends before
-    stopping the endpoint, all of which done through the helper class method of the
-    endpoint class.
-    """
-    StreamEndpoint.create_quick_sender_ep(
-        ["ping", "ping2", "ping3", "ping4", "ping5", "ping6", "ping7", "ping8"],
-        remote_addr=("127.0.0.1", 13000),
-        blocking=True,
-    )
-
-
-def single_message_initiator():
-    """Creates and starts an initiator to perform a single send before stopping the
-    endpoint, to test if endpoints can be stopped while they are about to send a
-    message. This test is not deterministic due to scheduling.
-    """
-    endpoint = StreamEndpoint(
-        name="Initiator",
-        addr=("127.0.0.1", 13000),
-        remote_addr=("127.0.0.1", 32000),
-        acceptor=False,
-        multithreading=True,
-        buffer_size=10000,
-    )
-    endpoint.start()
-
-    endpoint.send("ping")
-
-    endpoint.stop()
-
-
-def simple_initiator():
-    """Creates and starts an initiator to perform an endless ping-pong tests with the
-    opposing initiator, sending out "ping" and receiving "pong" messages.
-    """
-    endpoint = StreamEndpoint(
-        name="Initiator",
-        addr=("127.0.0.1", 13000),
-        remote_addr=("127.0.0.1", 32000),
-        acceptor=False,
-        multithreading=True,
-        buffer_size=10000,
-    )
-    endpoint.start()
-
-    i = 0
-    while True:
-        endpoint.send(f"ping {i}")
-        try:
-            print(endpoint.receive(5))
-        except TimeoutError:
-            print("nothing to receive")
-        sleep(2)
-        i += 1
-
-
 if __name__ == "__main__":
     logging.basicConfig(
         format="%(asctime)s %(levelname)-8s %(name)-10s %(message)s",
@@ -148,5 +91,5 @@ if __name__ == "__main__":
 
     # simple_initiator()
     # single_message_initiator()
-    one_time_initiator()
+    # one_time_initiator()
     # multithreaded_initiator(5)
