@@ -103,12 +103,12 @@ class DetectorVAE:
         outputs = self.decoder(z)
 
         model = keras.models.Model(inputs, outputs, name="vae")
-        loss = DetectorVAE.vae_loss(inputs, outputs, z_log_var, z_mean)
+        loss = DetectorVAE.vae_loss(inputs, outputs, z_log_var, z_mean, self.input_dim)
         return model, loss
 
     @staticmethod
     # Eigenständige Schicht für den Verlust
-    def vae_loss(x, x_decoded_mean, z_log_var, z_mean):
+    def vae_loss(x, x_decoded_mean, z_log_var, z_mean, input_dim):
         """Defines the loss function for the VAE.
 
         Combines reconstruction loss and KL divergence.
@@ -122,6 +122,8 @@ class DetectorVAE:
         xent_loss = tf.keras.losses.mean_squared_error(
             x, x_decoded_mean
         )  # binary_crossentropy
+        xent_loss *= input_dim
+
         # xent_loss *= input_dim
         kl_loss = 1 + z_log_var - tf.square(z_mean) - tf.exp(z_log_var)
         kl_loss = tf.reduce_sum(kl_loss, axis=-1)

@@ -12,7 +12,7 @@ class StreamingMinMaxScaler:
         self.min_val = None
         self.max_val = None
         self.feature_range = feature_range
-        self.range_diff = feature_range[1] - feature_range[0]
+        self.range_diff = abs(feature_range[1] - feature_range[0])
 
     def partial_fit(self, X: Union[List[float], np.ndarray]):
         """

@@ -390,6 +390,31 @@ class FederatedIFTM(FederatedModel):
         # Train IF
         self._if.fit(x_data, y_true)
 
+        # for test
+        tensor = self._tm.predict(pred_errs)
+        detections = tensor.numpy().astype(int).reshape(-1, 1)
+
+        # das sind die predictions self._tm.predict(pred_errs) true ist jammer on false jammer of die batchsoze ist 32
+        # dassind die echten labels y_data
+        if np.all(y_data):
+            print("Alle Datenpunkte gejammt")
+        elif not np.any(y_data):
+            print("Keiner der Datenpunkte gejammt")
+        else:
+            print("Einige der Datenpunkte gejammt, andere nicht")
+
+        if np.all(detections):
+            print("Alle Vorhersagen weißen auf jamming hin")
+        elif not np.any(detections):
+            print("Keine der Vorhersagen weißt auf jamming hin")
+        else:
+            print("Einige der Vorhersagen weißt auf jamming hin")
+
+        if np.array_equal(y_data, detections):
+            print("Vorhersage und Realität stimmen überein")
+        else:
+            print("Vorhersage und Realität stimmen nicht überein")
+
     def predict(self, x_data) -> Optional[Tensor]:
         """Makes a prediction on the given data and returns it by calling the wrapped
         models; first the IF to make a prediction, after which the error can be

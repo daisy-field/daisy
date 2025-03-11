@@ -248,7 +248,7 @@ def create_relay():
 
     # Datasource
     data_source = CSVFileDataSource(
-        files=args.input_file, name="JammerClient:DataSource"
+        files=[args.input_file for _ in range(10)], name="JammerClient:DataSource"
     )
 
     features_to_keep = [
@@ -295,7 +295,11 @@ def create_relay():
     optimizer = Adam(learning_rate=0.003)
 
     id_fn = TFFederatedModel.get_fvae(
-        optimizer=optimizer, input_size=16, metrics=["accuracy"]
+        input_size=16,
+        optimizer=optimizer,
+        batch_size=args.batchSize,
+        epochs=1,
+        metrics=["accuracy"],
     )
     t_m = EMAvgTM(alpha=0.05)
     err_fn = tf.keras.losses.MeanAbsoluteError(reduction=tf.keras.losses.Reduction.NONE)
