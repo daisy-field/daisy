@@ -25,6 +25,8 @@ from django.http import HttpResponse
 import json
 import csv
 
+SERVER_URL = "http://10.20.0.31:8000/"
+
 
 def index(request):
     theme = request.session.get("is_dark_theme")
@@ -174,7 +176,7 @@ def aggregate(request):
             "server_count": "agg_count",
             "server_time": "agg_time",
             "server_text": "Aggregation",
-            "server_url": "http://127.0.0.1:8000/aggregation/",
+            "server_url": SERVER_URL + "aggregation/",
         },
     )
 
@@ -193,7 +195,7 @@ def predict(request):
             "server_count": "pred_count",
             "server_time": "pred_time",
             "server_text": "Prediction",
-            "server_url": "http://127.0.0.1:8000/prediction/",
+            "server_url": SERVER_URL + "prediction/",
         },
     )
 
@@ -212,7 +214,7 @@ def evaluate(request):
             "server_count": "eval_count",
             "server_time": "eval_time",
             "server_text": "Evaluation",
-            "server_url": "http://127.0.0.1:8000/evaluation/",
+            "server_url": SERVER_URL + "evaluation/",
         },
     )
 
