@@ -30,7 +30,13 @@ def create_dashboard():
 
     os.system(f"python {dashboard_path} makemigrations")
     os.system(f"python {dashboard_path} migrate")
-    os.system(f"python {dashboard_path} runserver")
+    DASHBOARD_IP = os.getenv(
+        "DASHBOARD_PORT", "0.0.0.0"
+    )  # Standardport 8000, falls keine Variable gesetzt ist
+    DASHBOARD_PORT = os.getenv(
+        "DASHBOARD_PORT", "8000"
+    )  # Standardport 8000, falls keine Variable gesetzt ist
+    os.system(f"python {dashboard_path} runserver {DASHBOARD_IP}:{DASHBOARD_PORT}")
 
 
 if __name__ == "__main__":
