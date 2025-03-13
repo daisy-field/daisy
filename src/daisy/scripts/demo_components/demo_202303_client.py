@@ -200,7 +200,7 @@ def create_client():
     optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
     loss = tf.keras.losses.MeanAbsoluteError()
     id_fn = TFFederatedModel.get_fae(
-        input_size=65,
+        input_size=44,
         optimizer=optimizer,
         loss=loss,
         batch_size=args.batchSize,
@@ -217,7 +217,7 @@ def create_client():
         data_handler=data_handler,
         batch_size=args.batchSize,
         model=model,
-        label_split=65,
+        label_split=44,
         metrics=metrics,
         m_aggr_server=m_aggr_serv,
         eval_server=eval_serv,
