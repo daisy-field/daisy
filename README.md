@@ -177,11 +177,11 @@ docker run -it --network host --name daisy daisy bash
 ```shell
 dashboard
 
-pred_aggr_server --serv localhost
+pred_aggr_server
 
-model_aggr_server --serv localhost
+model_aggr_server
 
-eval_aggr_server --serv localhost
+eval_aggr_server
 
 demo_202303_client --clientId 5 --pcapBasePath /path/to/datasets/v2x_2023-03-06 \
 --modelAggrServ localhost --updateInterval 5 --evalServ localhost --aggrServ localhost
