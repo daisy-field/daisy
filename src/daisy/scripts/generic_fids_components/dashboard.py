@@ -30,7 +30,7 @@ def create_dashboard():
 
     os.system(f"python {dashboard_path} makemigrations")
     os.system(f"python {dashboard_path} migrate")
-    dashboard_ip = os.getenv("DASHBOARD_PORT", "0.0.0.0")
+    dashboard_ip = os.getenv("DASHBOARD_IP", "0.0.0.0")
     dashboard_port = os.getenv("DASHBOARD_PORT", "8000")
     os.system(f"python {dashboard_path} runserver {dashboard_ip}:{dashboard_port}")
 
