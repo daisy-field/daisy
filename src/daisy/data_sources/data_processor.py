@@ -12,6 +12,7 @@ Author: Fabian Hofmann, Jonathan Ackerschewski
 Modified: 04.11.2024
 """
 
+import itertools
 import json
 import logging
 from collections.abc import MutableMapping
@@ -35,7 +36,9 @@ class DataProcessor(Iterator):
     add_func() to provide additional pre-built processing steps.
     """
 
+    _name: str
     _logger: logging.Logger
+    _log_level: int
     _functions: list[Callable]
     _data_source: DataSource
     _generator: Iterator
@@ -43,20 +46,29 @@ class DataProcessor(Iterator):
     def __init__(
         self,
         data_source: DataSource,
+        generator: Iterator = None,
         name: str = "DataProcessor",
         log_level: int = None,
     ):
-        """Creates a data processor.
+        """Creates a data processor. If the generator isn't provided explicitly, it
+        will be created from the data source.
 
+        :param data_source: The data source to process.
+        :param generator: The generator from the given data source.
         :param name: Name of processor for logging purposes.
         :param log_level: Logging level of processor.
         """
+        self._name = name
         self._logger = logging.getLogger(name)
+        self._log_level = log_level
         if log_level:
             self._logger.setLevel(log_level)
         self._functions = []
         self._data_source = data_source
-        self._generator = iter(data_source)
+        if generator:
+            self._generator = generator
+        else:
+            self._generator = iter(data_source)
 
     def __iter__(self):
         return self
@@ -76,6 +88,30 @@ class DataProcessor(Iterator):
 
     def close(self):
         self._data_source.close()
+
+    def tee(self, n: int = 2):
+        """Splits the processor into multiple and returns the newly created processors.
+        All processing functions added before the split will have been applied to the
+        data points. Processing functions added after the split only affect the
+        processor to which they were added.
+
+        :param n: The number of processors to split into.
+        :returns: A tuple of all newly created processors.
+        """
+        iters = itertools.tee(self, n)
+        results = []
+        counter = 0
+        for iterator in iters:
+            results.append(
+                DataProcessor(
+                    data_source=self._data_source,
+                    generator=iterator,
+                    name=self._name + f".{counter}",
+                    log_level=self._log_level,
+                )
+            )
+            counter += 1
+        return tuple(results)
 
     def add_func(self, func: Callable[[object], object]) -> Self:
         """Adds a function to the processor to the end of its function list.
