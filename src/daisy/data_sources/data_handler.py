@@ -22,7 +22,6 @@ from typing import Iterator
 import numpy as np
 
 from .data_processor import DataProcessor
-from .data_source import DataSource
 
 
 class DataHandler:
@@ -38,7 +37,6 @@ class DataHandler:
 
     _logger: logging.Logger
 
-    _data_source: DataSource
     _data_processor: DataProcessor
 
     _multithreading: bool
@@ -51,7 +49,6 @@ class DataHandler:
 
     def __init__(
         self,
-        data_source: DataSource,
         data_processor: DataProcessor,
         name: str = "DataHandler",
         log_level: int = None,
@@ -60,7 +57,6 @@ class DataHandler:
     ):
         """Creates a new data handler.
 
-        :param data_source: Actual source that provisions data points to data handler.
         :param data_processor: Processor containing the methods on how to process
         individual data points.
         :param name: Name of data handler for logging purposes.
@@ -77,7 +73,6 @@ class DataHandler:
         self._exhausted = False
         self._completed = threading.Event()
 
-        self._data_source = data_source
         self._data_processor = data_processor
 
         self._multithreading = multithreading
@@ -99,7 +94,7 @@ class DataHandler:
         self._opened = True
         self._exhausted = False
         self._completed.clear()
-        self._data_source.open()
+        self._data_processor.open()
 
         if self._multithreading:
             self._loader = threading.Thread(target=self._create_loader, daemon=True)
@@ -116,7 +111,7 @@ class DataHandler:
         if not self._opened:
             raise RuntimeError("Data handler has not been opened!")
         self._opened = False
-        self._data_source.close()
+        self._data_processor.close()
 
         if self._multithreading:
             self._loader.join()
@@ -129,21 +124,18 @@ class DataHandler:
         self._logger.info(
             "AsyncLoader: Starting to process data points in asynchronous mode..."
         )
-        for o_point in self._data_source:
-            while self._opened:
-                try:
-                    self._logger.debug(
-                        f"AsyncLoader: Storing processed data point in buffer "
-                        f"(length: {self._buffer.qsize()})..."
-                    )
-                    self._buffer.put(self._data_processor.process(o_point), timeout=10)
-                    break
-                except queue.Full:
-                    self._logger.warning(
-                        "AsyncLoader: Timeout triggered: Buffer full. Retrying..."
-                    )
-            if not self._opened:
+        while self._opened:
+            try:
+                self._logger.debug(
+                    f"AsyncLoader: Storing processed data point in buffer "
+                    f"(length: {self._buffer.qsize()})..."
+                )
+                self._buffer.put(next(self._data_processor), timeout=10)
                 break
+            except queue.Full:
+                self._logger.warning(
+                    "AsyncLoader: Timeout triggered: Buffer full. Retrying..."
+                )
         if self._opened:
             self._exhausted = True
             self._logger.info("AsyncLoader: Data source exhausted, stopping...")
@@ -170,8 +162,7 @@ class DataHandler:
                 except queue.Empty:
                     self._logger.warning("Timeout triggered: Buffer empty. Retrying...")
         else:
-            for o_point in self._data_source:
-                yield self._data_processor.process(o_point)
+            yield from self._data_processor
         self._logger.info("Data source exhausted or closed.")
         self._completed.set()
 

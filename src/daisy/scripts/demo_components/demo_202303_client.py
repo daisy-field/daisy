@@ -185,7 +185,7 @@ def create_client():
         f"{args.pcapBasePath}/diginet-cohda-box-dsrc{args.clientId}"
     )
     processor = (
-        PysharkProcessor()
+        PysharkProcessor(data_source=source)
         .packet_to_dict()
         .select_dict_features(features=pcap_f_features, default_value=np.nan)
         .merge_dict({"client_id": args.clientId})
@@ -194,7 +194,7 @@ def create_client():
         .remove_dict_features(["client_id"])
         .dict_to_array(nn_aggregator=pcap_nn_aggregator)
     )
-    data_handler = DataHandler(data_source=source, data_processor=processor)
+    data_handler = DataHandler(data_processor=processor)
 
     # Model
     optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)

@@ -15,15 +15,16 @@ Modified: 04.11.2024
 import json
 import logging
 from collections.abc import MutableMapping
-from typing import Callable, Self
+from typing import Callable, Self, Iterator
 
 import numpy as np
 from typing_extensions import deprecated
 
+from .data_source import DataSource
 from .events import EventHandler
 
 
-class DataProcessor:
+class DataProcessor(Iterator):
     """Base class for generic data stream processing, in pipelined fashion. The
     processing steps are implemented as functions independent of each other, carried
     out in one specific order for each data point in the stream. For these functions,
@@ -36,8 +37,15 @@ class DataProcessor:
 
     _logger: logging.Logger
     _functions: list[Callable]
+    _data_source: DataSource
+    _generator: Iterator
 
-    def __init__(self, name: str = "DataProcessor", log_level: int = None):
+    def __init__(
+        self,
+        data_source: DataSource,
+        name: str = "DataProcessor",
+        log_level: int = None,
+    ):
         """Creates a data processor.
 
         :param name: Name of processor for logging purposes.
@@ -47,6 +55,27 @@ class DataProcessor:
         if log_level:
             self._logger.setLevel(log_level)
         self._functions = []
+        self._data_source = data_source
+        self._generator = iter(data_source)
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        """Processes the next data point using the provided functions. The functions
+        are carried out in the order they were added. If no functions were provided,
+        the data point is returned unchanged (noop).
+        """
+        next_data_point = next(self._generator)
+        for func in self._functions:
+            next_data_point = func(next_data_point)
+        return next_data_point
+
+    def open(self):
+        self._data_source.open()
+
+    def close(self):
+        self._data_source.close()
 
     def add_func(self, func: Callable[[object], object]) -> Self:
         """Adds a function to the processor to the end of its function list.
@@ -283,19 +312,6 @@ class DataProcessor:
             return d_point
 
         return self.add_func(lambda d_point: cast_func(d_point))
-
-    def process(self, o_point: object) -> object:
-        """Processes the given data point using the provided functions. The functions
-        are carried out in the order they were added. If no functions were provided,
-        the data point is returned unchanged (noop).
-
-        Note process() is usually called by the data handler during data processing and
-        should not be called directly.
-        """
-        point = o_point
-        for func in self._functions:
-            point = func(point)
-        return point
 
 
 @deprecated("Use DataProcessor.remove_features() instead")
