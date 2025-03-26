@@ -75,7 +75,8 @@ Follow the instructions to perform an initial demo. There is also a [minimum wor
 example](#minimum-working-example) with all necessary components for a setup of two
 federated detection nodes, the aggregation servers, and a dashboard to display the
 results. Note that some of the demos require additional input as in data sources
-which are not part of this project.
+which are not part of this project, but require a path to a local version of our 
+[data set repository](https://github.com/daisy-field/datasets).
 
 ## Developing
 
@@ -122,7 +123,7 @@ However, if you want to use DAISY in docker, some of the image's layers must be 
 
 ```shell
 docker build -t daisy .
-docker build -t daisygpu . --build-arg build_version=gpu
+docker build -t daisygpu . --build-arg build_version=gpu  # gpu support (optional)
 ```
 
 Afterward, the docker container can be run with in interactive shell mode to be used
@@ -132,6 +133,22 @@ like after installing DAISY from the shell (see above):
 docker run -it --network host --name daisy daisy bash
 ```
 
+You can also deploy one of the bundled demo setups, including the [minimum working
+example](#minimum-working-example), directly via `docker compose` from the 
+compose files provided in the demos directory. This forces a default configuration 
+of all the components, except of the path to the data sets that need to be passed via 
+an environment variable:
+
+```shell
+# Arg Setup
+export DATASET_PATH=/path/to/datasets/v2x_2023-03-06
+export BUILD_VERSION=gpu  # gpu support (optional)
+
+docker compose -f demos/v2x_2023-03-06.yml up
+```
+
+Once fully deployed and running, the dashboard will be reachable over 
+http://localhost:8000/.
 
 [//]: # ()
 
