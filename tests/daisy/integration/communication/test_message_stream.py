@@ -15,6 +15,7 @@ from daisy.communication import StreamEndpoint
 def reset():
     yield
 
+    # noinspection PyProtectedMember
     from daisy.communication.message_stream import _EndpointSocket
 
     _EndpointSocket._listen_socks = {}
@@ -112,6 +113,9 @@ class TestStreamEndpoint:
         simple_acceptor: StreamEndpoint,
         example_list: list,
     ):
+        """Creates and starts an acceptor-initiator pair to send and receive five
+        messages each.
+        """
         initiator_rdy = simple_initiator.start()
         acceptor_rdy = simple_acceptor.start()
         initiator_rdy.wait()
