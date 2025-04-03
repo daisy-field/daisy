@@ -46,19 +46,7 @@ def simple_initiator(request):
     return initiator
 
 
-@pytest.fixture(scope="function")
-def simple_acceptor(request):
-    acceptor = StreamEndpoint(
-        name="Acceptor",
-        addr=("127.0.0.1", 32000),
-        remote_addr=("127.0.0.1", 13000),
-        acceptor=True,
-        multithreading=request.param,
-    )
-    return acceptor
-
-
-class TestStreamEndpoint:
+class TestEndpointServer:
     @pytest.mark.slow_integration_test
     @pytest.mark.parametrize(
         "simple_initiator, simple_acceptor",
