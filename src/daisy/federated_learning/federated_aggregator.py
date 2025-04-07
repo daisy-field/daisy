@@ -1,4 +1,4 @@
-# Copyright (C) 2024 DAI-Labor and others
+# Copyright (C) 2024-2025 DAI-Labor and others
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -19,7 +19,6 @@ from keras import Model
 from difflib import SequenceMatcher
 
 import numpy as np
-import json
 
 
 class Aggregator(ABC):
@@ -233,19 +232,20 @@ class EMAggregator(ModelAggregator):
 
         for i in range(len(models_avg)):
             self._em_avg[i] = (
-                    self._alpha * models_avg[i] + (1 - self._alpha) * self._em_avg[i]
+                self._alpha * models_avg[i] + (1 - self._alpha) * self._em_avg[i]
             )
         return self._em_avg
 
 
 class LCAggregator(Aggregator):
-    """Layerswise commonality aggregator
+    """Layerswise commonality aggregator"""
 
-    """
     _commonalities = {}
+
     def __init__(self, models: dict[int, list[Model]]):
-        """ Creates a new layerwise aggregator. Builds the layer information of all models layers.
-        Finds commonalities between the different models from the layer information.
+        """Creates a new layerwise aggregator. Builds the layer information of all
+        models layers. Finds commonalities between the different models from the layer
+        information.
 
         :param models: dictionary of model layers with their respective archetype id
         """
@@ -259,18 +259,28 @@ class LCAggregator(Aggregator):
                     continue
 
                 # Find layerwise commonalities between two model architectures
-                other_layers = self._commonalities[other_key]['layers']
-                sequence_len, sequence_start_own, sequence_start_other = self.match_layers((layers, other_layers))
+                other_layers = self._commonalities[other_key]["layers"]
+                sequence_len, sequence_start_own, sequence_start_other = (
+                    self.match_layers((layers, other_layers))
+                )
 
                 if sequence_len > 0:
                     # Get indices of layers to share
-                    shareable_layers = np.arange(sequence_start_own, sequence_start_own + sequence_len, dtype=int)
+                    shareable_layers = np.arange(
+                        sequence_start_own, sequence_start_own + sequence_len, dtype=int
+                    )
                     self.get_relevant_weights((model_key, other_key), shareable_layers)
 
-                    shareable_layers = np.arange(sequence_start_other, sequence_start_other + sequence_len, dtype=int)
+                    shareable_layers = np.arange(
+                        sequence_start_other,
+                        sequence_start_other + sequence_len,
+                        dtype=int,
+                    )
                     self.get_relevant_weights((other_key, model_key), shareable_layers)
                 else:
-                    self._commonalities[model_key][other_key] = self._commonalities[other_key][model_key] = []
+                    self._commonalities[model_key][other_key] = self._commonalities[
+                        other_key
+                    ][model_key] = []
 
         print(self._commonalities)
 
@@ -285,21 +295,22 @@ class LCAggregator(Aggregator):
         layers = []
         weight_indices = []
         for i, layer in enumerate(model):
-            layers.append(f'{layer.__class__.__name__};{layer.count_params()}')
+            layers.append(f"{layer.__class__.__name__};{layer.count_params()}")
             weight_indices.extend([i] * len(layer.get_weights()))
         weight_indices = np.asarray(weight_indices)
 
         # Add yourself to the knowledge base
         self._commonalities[model_key] = {
-            'layers': layers,
-            'weight_indices': weight_indices,
+            "layers": layers,
+            "weight_indices": weight_indices,
             model_key: np.arange(len(weight_indices)),
         }
         return layers
 
     @staticmethod
     def match_layers(layers: (list[str], list[str])) -> (int, int, int):
-        """Extract the longest shared sequence between two lists containing the layers in string representation.
+        """Extract the longest shared sequence between two lists containing the layers
+        in string representation.
 
         :param layers: Tuple of lists containing the layers in string representation
         :return: Length of the shared sequence and starting point in each list
@@ -313,16 +324,24 @@ class LCAggregator(Aggregator):
         :param model_ids: Tuple of the two different model ids in the sequence
         :param layer_indices: The indices of the layers that make up the sequence
         """
-        occurrences = \
-            [np.where(index == self._commonalities[model_ids[0]]['weight_indices'])[0] for index in layer_indices]
-        self._commonalities[model_ids[0]][model_ids[1]] = np.concatenate(occurrences).tolist()
+        occurrences = [
+            np.where(index == self._commonalities[model_ids[0]]["weight_indices"])[0]
+            for index in layer_indices
+        ]
+        self._commonalities[model_ids[0]][model_ids[1]] = np.concatenate(
+            occurrences
+        ).tolist()
 
-    def get_aggregation_list(self, base_model: (int, list[np.ndarray]),
-                             models_parameters: list[(int, list[np.ndarray])]) -> (list[list[np.ndarray]], list[float]):
+    def get_aggregation_list(
+        self,
+        base_model: (int, list[np.ndarray]),
+        models_parameters: list[(int, list[np.ndarray])],
+    ) -> (list[list[np.ndarray]], list[float]):
         """Create the denominator and numerator of the weighted averaging formula.
 
         :param base_model: Parameters of the baseline model with the identifier
-        :param models_parameters: List of parameters of the other models with their respective identifiers
+        :param models_parameters: List of parameters of the other models with their
+        respective identifiers
 
         :return: Numerator and denominator of the weighted averaging formula
         """
@@ -331,7 +350,7 @@ class LCAggregator(Aggregator):
         aggregation_list = list(map(lambda x: [x], base_weights))
         weight_list = [1] * len(aggregation_list)
 
-        for (i, (model_id, model_weights)) in enumerate(models_parameters):
+        for i, (model_id, model_weights) in enumerate(models_parameters):
             if len(self._commonalities[base_id][model_id]) == 0:
                 continue
 
@@ -341,18 +360,25 @@ class LCAggregator(Aggregator):
             weight_factor = len(relevant_layers) / len(aggregation_list)
 
             relevant_layers = self._commonalities[base_id][model_id]
-            for (j, idx) in enumerate(relevant_layers):
+            for j, idx in enumerate(relevant_layers):
                 aggregation_list[idx].append(relevant_weights[j] * weight_factor)
                 weight_list[idx] += weight_factor
         return aggregation_list, weight_list
 
-    def aggregate(self, base_model: (int, list[np.ndarray]), models_parameters: list[(int, list[np.ndarray])]) \
-            -> list[np.ndarray]:
+    def aggregate(
+        self,
+        base_model: (int, list[np.ndarray]),
+        models_parameters: list[(int, list[np.ndarray])],
+    ) -> list[np.ndarray]:
         """Aggregate models on the base models.
 
         :param base_model: The baseline model with its id and parameters
         :param models_parameters: A list of models' parameters and their ids.
         :return: Aggregated model
         """
-        aggregation_list, weight_list = self.get_aggregation_list(base_model, models_parameters)
-        return [sum(layer) / weight_list[j] for (j, layer) in enumerate(aggregation_list)]
+        aggregation_list, weight_list = self.get_aggregation_list(
+            base_model, models_parameters
+        )
+        return [
+            sum(layer) / weight_list[j] for (j, layer) in enumerate(aggregation_list)
+        ]
