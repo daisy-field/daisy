@@ -1,4 +1,4 @@
-# Copyright (C) 2024 DAI-Labor and others
+# Copyright (C) 2024-2025 DAI-Labor and others
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -81,7 +81,6 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--pcapBasePath",
         type=pathlib.Path,
-        default="/mnt/d/Arbeit/Uni/Bachelor/datasets/v2x_2023-03-06",
         metavar="",
         help="Path to the march23 v2x dataset directory (root)",
     )
