@@ -1,4 +1,4 @@
-# Copyright (C) 2024 DAI-Labor and others
+# Copyright (C) 2024-2025 DAI-Labor and others
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -174,7 +174,7 @@ def aggregate(request):
             "server_count": "agg_count",
             "server_time": "agg_time",
             "server_text": "Aggregation",
-            "server_url": "http://127.0.0.1:8000/aggregation/",
+            "server_url": "http://localhost:8000/aggregation/",
         },
     )
 
@@ -193,7 +193,7 @@ def predict(request):
             "server_count": "pred_count",
             "server_time": "pred_time",
             "server_text": "Prediction",
-            "server_url": "http://127.0.0.1:8000/prediction/",
+            "server_url": "http://localhost:8000/prediction/",
         },
     )
 
@@ -212,7 +212,7 @@ def evaluate(request):
             "server_count": "eval_count",
             "server_time": "eval_time",
             "server_text": "Evaluation",
-            "server_url": "http://127.0.0.1:8000/evaluation/",
+            "server_url": "http://localhost:8000/evaluation/",
         },
     )
 

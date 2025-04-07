@@ -1,4 +1,4 @@
-# Copyright (C) 2024 DAI-Labor and others
+# Copyright (C) 2024-2025 DAI-Labor and others
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -16,8 +16,11 @@ Modified: 04.11.24
 
 import csv
 import logging
+import os
 from abc import ABC, abstractmethod
 from typing import IO, Iterator
+
+from natsort import natsorted
 
 from daisy.communication import StreamEndpoint
 
@@ -41,14 +44,17 @@ class DataSource(ABC):
 
     _logger: logging.Logger
 
-    def __init__(self, name: str = ""):
+    def __init__(self, name: str = "DataSource", log_level: int = None):
         """Creates a data source. Note that this should not enable the immediate
         generation of data points via __iter__() --- this behavior is implemented
         through open() (see the class documentation for more information).
 
         :param name: Name of data source for logging purposes.
+        :param log_level: Logging level of data source.
         """
         self._logger = logging.getLogger(name)
+        if log_level:
+            self._logger.setLevel(log_level)
 
     @abstractmethod
     def open(self):
@@ -84,13 +90,19 @@ class SimpleDataSource(DataSource):
 
     _generator: Iterator[object]
 
-    def __init__(self, generator: Iterator[object], name: str = ""):
+    def __init__(
+        self,
+        generator: Iterator[object],
+        name: str = "SimpleDataSource",
+        log_level: int = None,
+    ):
         """Creates a data source, simply wrapping it around the given generator.
 
         :param generator: Generator object from which data points are retrieved.
         :param name: Name of data source for logging purposes.
+        :param log_level: Logging level of data source.
         """
-        super().__init__(name)
+        super().__init__(name=name, log_level=log_level)
 
         self._generator = generator
 
@@ -117,14 +129,20 @@ class SimpleRemoteDataSource(DataSource):
 
     _endpoint: StreamEndpoint
 
-    def __init__(self, endpoint: StreamEndpoint, name: str = ""):
+    def __init__(
+        self,
+        endpoint: StreamEndpoint,
+        name: str = "SimpleRemoteDataSource",
+        log_level: int = None,
+    ):
         """Creates a new remote data source from a given stream endpoint. If no
         endpoint is provided, creates a new one instead with basic parameters.
 
         :param endpoint: Streaming endpoint from which data points are retrieved.
         :param name: Name of data source for logging purposes.
+        :param log_level: Logging level of data source.
         """
-        super().__init__(name)
+        super().__init__(name=name, log_level=log_level)
 
         self._logger.info("Initializing remote data source...")
         self._endpoint = endpoint
@@ -164,34 +182,55 @@ class CSVFileDataSource(DataSource):
     Each CSV is, therefore, expected to have a header line as the first row.
     """
 
-    _files: str | list[str]
-    _is_file_list: bool
+    _files: list[str]
     _cur_index: int
     _cur_handle: IO | None
     _cur_csv: csv.reader
     _cur_headers: list[str]
 
-    def __init__(self, files: str | list[str], name: str = ""):
+    def __init__(
+        self,
+        files: str | list[str],
+        name: str = "CSVFileDataSource",
+        log_level: int = None,
+    ):
         """Creates a new CSV file data source. Either a single file or a list of files
         are expected as the input.
 
-        :param files: Either a single CSV file or a list of CSV files to read.
+        :param files: Either a single CSV file/directory or a list of CSV
+        files/directories to read.
+        :param name: name of data source for logging purposes.
+        :param log_level: Logging level of data source.
         """
-        super().__init__(name)
+        super().__init__(name=name, log_level=log_level)
 
         self._logger.info("Initializing CSV file data source...")
-        self._files = files
-        self._cur_handle = None
         if isinstance(files, str):
-            self._is_file_list = False
-        if isinstance(files, list):
-            self._is_file_list = True
+            tmp_files = [files]
+        elif isinstance(files, list):
+            tmp_files = files
+        else:
+            raise TypeError(
+                f"Expected either string or list of strings, but got {type(files)}"
+            )
+
+        self._files = []
+        for path in tmp_files:
+            if os.path.isdir(path):
+                # noinspection PyArgumentList
+                self._files += [
+                    os.path.join(path, file) for file in natsorted(os.listdir(path))
+                ]
+            else:
+                self._files.append(path)
+
+        self._cur_handle = None
         self._logger.info("CSV file data source initialized.")
 
     def open(self):
         """Starts the CSV file data source by setting required parameters."""
         self._logger.info("Opening CSV file data source...")
-        self._cur_index = -1
+        self._cur_index = 0
 
     def close(self):
         """Closes the CSV file data source."""
@@ -208,12 +247,9 @@ class CSVFileDataSource(DataSource):
         if self._cur_handle:
             self._cur_handle.close()
             self._cur_handle = None
-        self._cur_index += 1
 
-        if self._is_file_list:
-            next_file = self._files[self._cur_index]
-        else:
-            next_file = self._files
+        next_file = self._files[self._cur_index]
+        self._cur_index += 1
 
         self._cur_handle = open(next_file, "r")
         self._cur_csv = csv.reader(self._cur_handle)
@@ -230,16 +266,17 @@ class CSVFileDataSource(DataSource):
         """
         cur_dict = {}
         if len(line) != len(header):
-            self._logger.warning(f"Malformed line detected: {line}")
+            raise ValueError(
+                f"Malformed line detected. Line length does not match header length: "
+                f"{line}"
+            )
         for header_counter in range(len(header)):
             cur_dict[header[header_counter]] = line[header_counter]
         return cur_dict
 
     def __iter__(self) -> Iterator[dict[str, object]]:
         """Iterates through provided CSV files and yields each line as a dictionary."""
-        while (not self._is_file_list and self._cur_index < 0) or (
-            self._is_file_list and self._cur_index < len(self._files) - 1
-        ):
+        while self._cur_index < len(self._files):
             self._open_next_file()
             for line in self._cur_csv:
                 cur_dict = self._line_to_dict(line, self._cur_headers)

@@ -3,7 +3,7 @@ ARG BUILD_VERSION=cpu
 
 
 # Setup of Depedencies:
-FROM python:3.11-slim AS setup
+FROM python:3.12-slim AS setup
 WORKDIR /app
 # setup of venv
 RUN python3 -m venv ./venv
@@ -22,7 +22,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 
 # Setup of Base Image:
-FROM python:3.11-slim AS base
+FROM python:3.12-slim AS base
 WORKDIR /app
 EXPOSE 8000-8003
 # installtion of additional (non-python/venv) dependencies

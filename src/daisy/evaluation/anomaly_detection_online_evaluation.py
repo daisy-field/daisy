@@ -1,4 +1,4 @@
-# Copyright (C) 2024 DAI-Labor and others
+# Copyright (C) 2024-2025 DAI-Labor and others
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -32,7 +32,9 @@ class SlidingWindowEvaluation(keras.metrics.Metric, ABC):
     pred_labels: deque
     _window_size: int
 
-    def __init__(self, name="ad_online_evaluation", window_size: int = None, **kwargs):
+    def __init__(
+        self, name="SlidingWindowEvaluation", window_size: int = None, **kwargs
+    ):
         """Creates a new sliding window evaluation metric.
 
         :param name: Name of metric.
@@ -130,7 +132,7 @@ class ConfMatrSlidingWindowEvaluation(SlidingWindowEvaluation):
     _tn: int
 
     def __init__(
-        self, name="conf_matrix_online_evaluation", window_size: int = None, **kwargs
+        self, name="ConfMatrSlidingWindowEvaluation", window_size: int = None, **kwargs
     ):
         """Creates a new confusion matrix sliding window evaluation metric.
 
@@ -225,7 +227,7 @@ class TFMetricSlidingWindowEvaluation(SlidingWindowEvaluation):
         :param kwargs: Additional metric/layer keywords arguments.
         """
         super().__init__(
-            name=tf_metric.name + "_online_evaluation",
+            name="TFMetricSlidingWindowEvaluation." + tf_metric.name,
             window_size=window_size,
             **kwargs,
         )

@@ -1,4 +1,4 @@
-# Copyright (C) 2024 DAI-Labor and others
+# Copyright (C) 2024-2025 DAI-Labor and others
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -43,6 +43,7 @@ class EndpointSocket:
     if counter reaches zero.
     :cvar _lock: General purpose lock to ensure safe access to class variables.
     :cvar _cls_logger: General purpose logger for class methods.
+    :cvar _cls_log_level: Log level of class methods.
     """
 
     _listen_socks: dict[tuple[str, int], tuple[socket.socket, threading.Lock]] = {}
@@ -57,6 +58,7 @@ class EndpointSocket:
     _act_l_counts: dict[tuple[str, int], int] = {}
     _lock = threading.Lock()
     _cls_logger: logging.Logger = logging.getLogger("EndpointSocketCLS")
+    _cls_log_level: int = None
 
     _logger: logging.Logger
 
@@ -76,7 +78,8 @@ class EndpointSocket:
 
     def __init__(
         self,
-        name: str,
+        name: str = "EndpointSocket",
+        log_level: int = None,
         addr: tuple[str, int] = None,
         remote_addr: tuple[str, int] = None,
         acceptor: bool = True,
@@ -91,6 +94,7 @@ class EndpointSocket:
         registered, then the current one will throw an error.
 
         :param name: Name of endpoint for logging purposes.
+        :param log_level: Logging level of endpoint socket.
         :param addr: Address of endpoint. Mandatory in acceptor mode (acceptor set to
         True), for initiators this fixes the address the endpoint is bound to.
         :param remote_addr: Address of remote endpoint to be connected to. Mandatory in
@@ -105,7 +109,10 @@ class EndpointSocket:
         :raises ValueError: If the remote address is already taken for the acceptor,
         or if the address/remote address is not provided for acceptor/initiator.
         """
-        self._logger = logging.getLogger(name + "-Socket")
+        self._logger = logging.getLogger(name)
+        if log_level:
+            self._logger.setLevel(log_level)
+            self.set_cls_log_level(log_level)
         self._logger.info(f"Initializing endpoint socket {addr, remote_addr}...")
 
         self._addr = addr if addr is not None else ("0.0.0.0", 0)
@@ -335,6 +342,17 @@ class EndpointSocket:
             self._sock, self._addr = self._get_c_socket(self._addr, self._remote_addr)
         self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, self._send_b_size)
         self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, self._recv_b_size)
+
+    @classmethod
+    def set_cls_log_level(cls, log_level: int):
+        """Sets the log level on the class level, iff it is not already lower to begin
+        with (to not supress the logging of other endpoints who share this class).
+
+        :param log_level: Log level to set.
+        """
+        if cls._cls_log_level is None or log_level < cls._cls_log_level:
+            cls._cls_logger.setLevel(log_level)
+            cls._cls_log_level = log_level
 
     @classmethod
     def _reg_remote(cls, remote_addr: tuple[str, int]):
@@ -776,6 +794,8 @@ class StreamEndpoint:
     def __init__(
         self,
         name: str = "StreamEndpoint",
+        log_level: int = None,
+        endpoint_socket_log_level: int = None,
         addr: tuple[str, int] = None,
         remote_addr: tuple[str, int] = None,
         acceptor: bool = True,
@@ -791,6 +811,7 @@ class StreamEndpoint:
         """Creates a new endpoint.
 
         :param name: Name of endpoint for logging purposes.
+        :param log_level: Logging level of endpoint.
         :param addr: Address of endpoint.
         :param remote_addr: Address of remote endpoint to be connected to. Optional in
         acceptor mode.
@@ -813,10 +834,13 @@ class StreamEndpoint:
         down of the endpoint may still be called separately.
         """
         self._logger = logging.getLogger(name)
+        if log_level:
+            self._logger.setLevel(log_level)
         self._logger.info(f"Initializing endpoint {addr, remote_addr}...")
 
         self._endpoint_socket = EndpointSocket(
-            name=name,
+            name=name + ".Socket",
+            log_level=endpoint_socket_log_level,
             addr=addr,
             remote_addr=remote_addr,
             acceptor=acceptor,
@@ -1141,6 +1165,7 @@ class StreamEndpoint:
         objects: Iterable,
         remote_addr: tuple[str, int],
         name: str = "QuickSenderEndpoint",
+        log_level: int = None,
         addr: tuple[str, int] = None,
         send_b_size: int = 65536,
         compression: bool = False,
@@ -1154,6 +1179,7 @@ class StreamEndpoint:
         :param objects: Iterable of objects to send to remote endpoint.
         :param remote_addr: Address of remote endpoint to send messages to.
         :param name: Name of endpoint for logging purposes.
+        :param log_level: Logging level for logging purposes.
         :param addr: Address of endpoint.
         :param send_b_size: Underlying send buffer size of socket.
         :param compression: Enables lz4 stream compression for bandwidth optimization.
@@ -1165,6 +1191,7 @@ class StreamEndpoint:
         def quick_sender_ep():
             endpoint = StreamEndpoint(
                 name=name,
+                log_level=log_level,
                 addr=addr,
                 remote_addr=remote_addr,
                 acceptor=False,
@@ -1247,6 +1274,7 @@ class EndpointServer:
     _c_lock: threading.Lock
 
     _name: str
+    _endpoint_log_level: int
     _addr: tuple[str, int]
     _send_b_size: int
     _recv_b_size: int
@@ -1264,6 +1292,8 @@ class EndpointServer:
         self,
         addr: tuple[str, int],
         name: str = "EndpointServer",
+        log_level: int = None,
+        endpoint_log_level: int = None,
         c_timeout: int = None,
         send_b_size: int = 65536,
         recv_b_size: int = 65536,
@@ -1278,6 +1308,8 @@ class EndpointServer:
 
         :param addr: Address of endpoint server.
         :param name: Name of endpoint server for logging purposes.
+        :param log_level: Logging level of server.
+        :param endpoint_log_level: Logging level of the server's endpoints.
         :param c_timeout: Timeout (secs) for disconnected connection endpoints when
         performing periodic cleanup. Default is no cleanup.
         :param send_b_size: Underlying send buffer size of all connection sockets.
@@ -1298,6 +1330,9 @@ class EndpointServer:
         shutdown and cleanup of the actual endpoint is still done by the server.
         """
         self._logger = logging.getLogger(name)
+        if log_level:
+            self._logger.setLevel(log_level)
+        self._endpoint_log_level = endpoint_log_level
         self._logger.info(f"Initializing endpoint server {addr}...")
 
         self._connections = {}
@@ -1488,6 +1523,7 @@ class EndpointServer:
             self._logger.debug(logging_prefix + "Preparing endpoint for connection...")
             new_connection = StreamEndpoint(
                 name=f"{self._name}-{self._n_connections}",
+                log_level=self._endpoint_log_level,
                 addr=self._addr,
                 remote_addr=None,
                 acceptor=True,

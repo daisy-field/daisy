@@ -1,4 +1,4 @@
-# Copyright (C) 2024 DAI-Labor and others
+# Copyright (C) 2024-2025 DAI-Labor and others
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -63,7 +63,8 @@ class FederatedOnlineAggregator(ABC):
     def __init__(
         self,
         addr: tuple[str, int],
-        name: str = "",
+        name: str = "FederatedOnlineAggregator",
+        log_level: int = None,
         timeout: int = 10,
         dashboard_url: str = None,
     ):
@@ -71,15 +72,18 @@ class FederatedOnlineAggregator(ABC):
 
         :param addr: Address of aggregation server for federated nodes to report to.
         :param name: Name of federated online aggregator for logging purposes.
+        :param log_level: Logging level of aggregator.
         :param timeout: Timeout for waiting to receive message from federated nodes.
         :param dashboard_url: URL to dashboard to report aggregated data to, depending
         on class implementations (see class docstring).
         """
         self._logger = logging.getLogger(name)
+        if log_level:
+            self._logger.setLevel(log_level)
         self._logger.info("Initializing federated online aggregator...")
 
         self._aggr_serv = EndpointServer(
-            name="Server", addr=addr, c_timeout=timeout, multithreading=True
+            addr=addr, name=name + ".Server", c_timeout=timeout, multithreading=True
         )
         self._timeout = timeout
 
@@ -209,7 +213,8 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
         self,
         m_aggr: ModelAggregator,
         addr: tuple[str, int],
-        name: str = "",
+        name: str = "FederatedModelAggregator",
+        log_level: int = None,
         timeout: int = 10,
         update_interval: int = None,
         num_clients: int = None,
@@ -224,6 +229,7 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
         :param m_aggr: Actual aggregator to aggregate models with.
         :param addr: Address of aggregation server for clients to connect to.
         :param name: Name of federated model aggregator for logging purposes.
+        :param log_level: Logging level of aggregator.
         :param timeout: Timeout for waiting to receive local model updates from
         federated clients.
         :param update_interval: Sets how often the aggregation server should do a (
@@ -239,7 +245,11 @@ class FederatedModelAggregator(FederatedOnlineAggregator):
         :param dashboard_url: URL to dashboard to report aggregation statics to.
         """
         super().__init__(
-            addr=addr, name=name, timeout=timeout, dashboard_url=dashboard_url
+            addr=addr,
+            name=name,
+            log_level=log_level,
+            timeout=timeout,
+            dashboard_url=dashboard_url,
         )
 
         self._m_aggr = m_aggr
@@ -439,7 +449,8 @@ class FederatedValueAggregator(FederatedOnlineAggregator):
     def __init__(
         self,
         addr: tuple[str, int],
-        name: str = "",
+        name: str = "FederatedValueAggregator",
+        log_level: int = None,
         timeout: int = 10,
         window_size: int = None,
         dashboard_url: str = None,
@@ -448,6 +459,7 @@ class FederatedValueAggregator(FederatedOnlineAggregator):
 
         :param addr: Address of aggregation server for federated nodes to report to.
         :param name: Name of federated value aggregator for logging purposes.
+        :param log_level: Logging level of aggregator.
         :param timeout: Timeout for waiting to receive message from federated nodes.
         :param window_size: Maximum number of latest received entries stored for each
         federated node.
@@ -455,7 +467,11 @@ class FederatedValueAggregator(FederatedOnlineAggregator):
         filtered by interest) to.
         """
         super().__init__(
-            addr=addr, name=name, timeout=timeout, dashboard_url=dashboard_url
+            addr=addr,
+            name=name,
+            log_level=log_level,
+            timeout=timeout,
+            dashboard_url=dashboard_url,
         )
 
         self._window_size = window_size
@@ -515,7 +531,8 @@ class FederatedValueAggregator(FederatedOnlineAggregator):
         :return: List of values to be added to the sliding window of the respective
         node.
         """
-        self._logger.debug(f"Value received from {node}: {msg}")
+        if self._logger.isEnabledFor(logging.DEBUG):
+            self._logger.debug(f"Value received from {node}: {msg}")
         return [msg]
 
 
@@ -532,7 +549,8 @@ class FederatedPredictionAggregator(FederatedValueAggregator):
     def __init__(
         self,
         addr: tuple[str, int],
-        name: str = "",
+        name: str = "FederatedPredictionAggregator",
+        log_level: int = None,
         timeout: int = 10,
         window_size: int = None,
         dashboard_url: str = None,
@@ -541,6 +559,7 @@ class FederatedPredictionAggregator(FederatedValueAggregator):
 
         :param addr: Address of aggregation server for federated nodes to report to.
         :param name: Name of federated prediction aggregator for logging purposes.
+        :param log_level: Logging level of aggregator.
         :param timeout: Timeout for waiting to receive message from federated nodes.
         :param window_size: Maximum number of latest received entries stored for each
         federated node.
@@ -549,6 +568,7 @@ class FederatedPredictionAggregator(FederatedValueAggregator):
         super().__init__(
             addr=addr,
             name=name,
+            log_level=log_level,
             timeout=timeout,
             window_size=window_size,
             dashboard_url=dashboard_url,
@@ -623,7 +643,8 @@ class FederatedEvaluationAggregator(FederatedValueAggregator):
     def __init__(
         self,
         addr: tuple[str, int],
-        name: str = "",
+        name: str = "FederatedEvaluationAggregator",
+        log_level: int = None,
         timeout: int = 10,
         window_size: int = None,
         dashboard_url: str = None,
@@ -632,6 +653,7 @@ class FederatedEvaluationAggregator(FederatedValueAggregator):
 
         :param addr: Address of aggregation server for federated nodes to report to.
         :param name: Name of federated evaluation aggregator for logging purposes.
+        :param log_level: Logging level of aggregator.
         :param timeout: Timeout for waiting to receive message from federated nodes.
         :param window_size: Maximum number of latest received entries stored for each
         federated node.
@@ -640,6 +662,7 @@ class FederatedEvaluationAggregator(FederatedValueAggregator):
         super().__init__(
             addr=addr,
             name=name,
+            log_level=log_level,
             timeout=timeout,
             window_size=window_size,
             dashboard_url=dashboard_url,
@@ -647,7 +670,7 @@ class FederatedEvaluationAggregator(FederatedValueAggregator):
 
     def create_fed_aggr(self):
         """Starts the loop to continuously poll the federated nodes for new evaluation
-        metric results to receive and process, before adding them to the datastructure
+        metric results to receive and process, before adding them to the data structure
         and reporting them to the dashboard. Also reports the overall status of the
         network and the connected nodes to the dashboard if available.
         """

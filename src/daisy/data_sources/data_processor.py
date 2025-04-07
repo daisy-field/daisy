@@ -1,4 +1,4 @@
-# Copyright (C) 2024 DAI-Labor and others
+# Copyright (C) 2024-2025 DAI-Labor and others
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -16,9 +16,11 @@ import json
 import logging
 from collections.abc import MutableMapping
 from typing import Callable, Self
-from typing_extensions import deprecated
 
 import numpy as np
+from typing_extensions import deprecated
+
+from .events import EventHandler
 
 
 class DataProcessor:
@@ -35,12 +37,15 @@ class DataProcessor:
     _logger: logging.Logger
     _functions: list[Callable]
 
-    def __init__(self, name: str = ""):
+    def __init__(self, name: str = "DataProcessor", log_level: int = None):
         """Creates a data processor.
 
         :param name: Name of processor for logging purposes.
+        :param log_level: Logging level of processor.
         """
         self._logger = logging.getLogger(name)
+        if log_level:
+            self._logger.setLevel(log_level)
         self._functions = []
 
     def add_func(self, func: Callable[[object], object]) -> Self:
@@ -92,16 +97,16 @@ class DataProcessor:
             }
         )
 
-    def flatten_dict(self, seperator: str = ".") -> Self:
+    def flatten_dict(self, separator: str = ".") -> Self:
         """Adds a function to the processor that creates a flat dictionary
         (a dictionary without sub-dictionaries) from the given dictionary. The keys
         of sub-dictionaries are merged into the parent dictionary by combining the
-        keys and adding a seperator:
-        {a: {b: c, d: e}, f: g} becomes {a.b: c, a.d: e, f: g} assuming the seperator
+        keys and adding a separator:
+        {a: {b: c, d: e}, f: g} becomes {a.b: c, a.d: e, f: g} assuming the separator
         as '.'. However, redundant parent keys are greedily eliminated from the
         dictionary and further collisions cause an error.
 
-        :param seperator: Seperator to use.
+        :param separator: Separator to use.
         """
 
         def flatten_dict_func(
@@ -118,8 +123,8 @@ class DataProcessor:
             items = {}
             for key, val in dictionary.items():
                 cur_key = (
-                    par_key + seperator + key
-                    if par_key != "" and not key.startswith(par_key + seperator)
+                    par_key + separator + key
+                    if par_key != "" and not key.startswith(par_key + separator)
                     else key
                 )
                 if isinstance(val, MutableMapping):
@@ -174,6 +179,110 @@ class DataProcessor:
         dictionary and converts it to a JSON string.
         """
         return self.add_func(lambda d_point: json.dumps(d_point))
+
+    def add_event_handler(self, event_handler: EventHandler) -> Self:
+        """Adds the provided event handler to the processor to evaluate the data points
+        based on the event handlers events.
+
+        :param event_handler: Event handler to use.
+        """
+        return self.add_func(lambda d_point: event_handler.evaluate(d_point))
+
+    def enrich_dict_feature(
+        self,
+        feature: str,
+        enricher: Callable[[dict], object],
+        force_overwrite: bool = False,
+        suppress_errors: bool = False,
+    ) -> Self:
+        """Enriches the data point by adding the given feature using the provided
+        enricher function. The enricher function is fed the data point and should
+        return the desired value for the feature. If the feature already exists, an
+        error will be raised. If suppress errors is enabled, an info log will be
+        created instead. All errors and logs can be suppressed using force overwrite.
+
+        :param feature: Feature to enrich.
+        :param enricher: Enricher function to be applied to the feature.
+        :param force_overwrite: Whether to overwrite an existing feature.
+        :param suppress_errors: Whether to suppress errors during enrichment
+        :raises KeyError: If the feature already exists and is not suppressed.
+        """
+
+        def enrich_dict_feature_func(d_point: dict) -> dict:
+            if feature in d_point and not force_overwrite:
+                if not suppress_errors:
+                    raise KeyError(f"Feature '{feature}' already exists")
+                self._logger.info(f"Feature '{feature}' already in data point.")
+            d_point[feature] = enricher(d_point)
+            return d_point
+
+        return self.add_func(lambda d_point: enrich_dict_feature_func(d_point))
+
+    def merge_dict(
+        self,
+        new_features: dict,
+        force_overwrite: bool = False,
+        suppress_errors: bool = False,
+    ) -> Self:
+        """Merges the provided dictionary into the data point. If the feature already
+        exists, an error will be raised. If suppress errors is enabled, an info log
+        will be created instead. All errors and logs can be suppressed using force
+        overwrite.
+
+        :param new_features: Dictionary to merge into the data point.
+        :param force_overwrite: Whether to overwrite an existing feature.
+        :param suppress_errors: Whether to suppress errors during enrichment.
+        :raises KeyError: If the feature already exists and is not suppressed.
+        """
+
+        def merge_dict_func(d_point: dict) -> dict:
+            for key, value in new_features.items():
+                if key in d_point and not force_overwrite:
+                    if not suppress_errors:
+                        raise KeyError(f"Feature '{key}' already exists")
+                    self._logger.info(f"Feature '{key}' already in data point.")
+                d_point[key] = value
+            return d_point
+
+        return self.add_func(lambda d_point: merge_dict_func(d_point))
+
+    def cast_dict_features(
+        self,
+        features: str | list[str],
+        cast: Callable[[object], object] | list[Callable[[object], object]],
+    ) -> Self:
+        """Casts the given feature(s) using the provided cast function(s). For both
+        features and casts a single or multiple values can be provided. If only one
+        cast function is provided with multiple features, all given features will
+        be cast using the single cast function. Otherwise, the same amount of cast
+        functions and features should be provided.
+
+
+        :param features: The features to cast.
+        :param cast: The cast function(s) to apply.
+        :raises ValueError: If the amount of features and cast functions is not equal.
+        (Only if more than one cast function is provided.)
+        """
+
+        def cast_func(d_point: dict) -> dict:
+            if isinstance(features, list) and isinstance(cast, list):
+                if len(features) != len(cast):
+                    raise ValueError(
+                        f"Features and casts must have the same length. "
+                        f"Features has {len(features)} and casts has {len(cast)} items."
+                    )
+            _features = features
+            if isinstance(features, str):
+                _features = [features]
+
+            for i in range(len(_features)):
+                if isinstance(cast, list):
+                    d_point[_features[i]] = cast[i](d_point[_features[i]])
+                else:
+                    d_point[_features[i]] = cast(d_point[_features[i]])
+            return d_point
+
+        return self.add_func(lambda d_point: cast_func(d_point))
 
     def process(self, o_point: object) -> object:
         """Processes the given data point using the provided functions. The functions
@@ -231,32 +340,32 @@ def select_feature(d_point: dict, f_features: list, default_value=None) -> dict:
 @deprecated("Use DataProcessor.flatten() instead")
 def flatten_dict(
     dictionary: (dict, list),
-    seperator: str = ".",
+    separator: str = ".",
     par_key: str = "",
 ) -> dict:
     """Creates a flat dictionary (a dictionary without sub-dictionaries) from the
     given dictionary. The keys of sub-dictionaries are merged into the parent
-    dictionary by combining the keys and adding a seperator: {a: {b: c, d: e}, f: g}
-    becomes {a.b: c, a.d: e, f: g} assuming the seperator as '.'. However,
+    dictionary by combining the keys and adding a separator: {a: {b: c, d: e}, f: g}
+    becomes {a.b: c, a.d: e, f: g} assuming the separator as '.'. However,
     redundant parent keys are greedily eliminated from the dictionary.
 
     :param dictionary: Dictionary to flatten.
-    :param seperator: Seperator to use.
+    :param separator: Separator to use.
     :param par_key: Key of the parent dictionary.
-    :return: Flat dictionary with keys merged and seperated using the seperator.
+    :return: Flat dictionary with keys merged and seperated using the separator.
     :raises ValueError: If there are key-collisions by greedily flattening the
     dictionary.
     """
     items = {}
     for key, val in dictionary.items():
         cur_key = (
-            par_key + seperator + key
-            if par_key != "" and not key.startswith(par_key + seperator)
+            par_key + separator + key
+            if par_key != "" and not key.startswith(par_key + separator)
             else key
         )
         if isinstance(val, MutableMapping):
             # noinspection PyDeprecation
-            sub_items = flatten_dict(val, par_key=cur_key, seperator=seperator)
+            sub_items = flatten_dict(val, par_key=cur_key, separator=separator)
             for subkey in sub_items.keys():
                 if subkey in items:
                     raise ValueError(

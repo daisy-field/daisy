@@ -1,4 +1,4 @@
-# Copyright (C) 2024 DAI-Labor and others
+# Copyright (C) 2024-2025 DAI-Labor and others
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -53,7 +53,8 @@ class DataHandler:
         self,
         data_source: DataSource,
         data_processor: DataProcessor,
-        name: str = "",
+        name: str = "DataHandler",
+        log_level: int = None,
         multithreading: bool = False,
         buffer_size: int = 1024,
     ):
@@ -62,11 +63,14 @@ class DataHandler:
         :param data_source: Actual source that provisions data points to data handler.
         :param data_processor: Processor containing the methods on how to process
         individual data points.
-        :param name: Name of data source relay for logging purposes.
+        :param name: Name of data handler for logging purposes.
+        :param log_level: Logging level of data handler.
         :param multithreading: Enables transparent multithreading for speedup.
         :param buffer_size: Size of shared buffer in multithreading mode.
         """
         self._logger = logging.getLogger(name)
+        if log_level:
+            self._logger.setLevel(log_level)
         self._logger.info("Initializing data handler...")
 
         self._opened = False
