@@ -16,7 +16,8 @@ from collections import deque
 from typing import Self
 
 import tensorflow as tf
-from tensorflow import keras, Tensor
+import keras
+from tensorflow import Tensor
 
 
 class SlidingWindowEvaluation(keras.metrics.Metric, ABC):
