@@ -184,7 +184,7 @@ class ConfMatrSlidingWindowEvaluation(SlidingWindowEvaluation):
 
         :return: Dictionary of all derived scalar (tensor) confusion matrix metrics.
         """
-        accuracy = (self._tp + self._tn) / len(self.true_labels)
+        accuracy = tf.convert_to_tensor((self._tp + self._tn) / len(self.true_labels))
         recall = tf.math.divide_no_nan(self._tp, (self._tp + self._fn))
         tnr = tf.math.divide_no_nan(self._tn, (self._tn + self._fp))
         precision = tf.math.divide_no_nan(self._tp, (self._tp + self._fp))
