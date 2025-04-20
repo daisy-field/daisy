@@ -21,6 +21,13 @@ For the latter, there is a large toolbox of various (example) implementations fo
 these interfaces. Execution i.e. rollout is done through pure python or wrapped inside
 one or multiple docker containers.
 
+> [!CAUTION]
+> DAISY is currently in the pre-alpha stage, as lots of features are still under heavy 
+> testing. Many features more are also still located in their own feature 
+> branches or 
+> located in private mirrors. Use it at your own risk, [feedback](#contributing) 
+> is always welcome. Stay tuned for more cool stuff in the future!
+
 # Table of Contents
 
 1. [Installing / Getting Started](#installing--getting-started)
@@ -250,7 +257,7 @@ question 4 for this.
 ## Contributing
 
 If you'd like to contribute, please fork the repository and use a feature
-branch. Pull requests are warmly welcome.
+branch. Pull requests and bug reports are warmly welcome.
 
 Note that DAISY uses the [
 *Black*](https://black.readthedocs.io/en/stable/the_black_code_style/current_style.html)
