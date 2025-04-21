@@ -9,6 +9,7 @@
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/release/python-3120/)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![Documentation](https://img.shields.io/badge/docs-available-blue)](https://daisy-field.github.io)
 
 DAISY aims to be an end-to-end framework to design, develop, and execute distributed
 intrusion detection systems (IDS) of varying topologies, in an edge-optimized fashion.
