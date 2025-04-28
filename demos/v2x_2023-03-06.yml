@@ -1,10 +1,14 @@
 services:
-  demo_202303_client_2:
-    pull_policy: build
+  daisy_builder:
     build:
       context: ../
       args:
         - BUILD_VERSION=${BUILD_VERSION:-cpu}
+    image: daisy_${BUILD_VERSION:-cpu}:latest
+    pull_policy: build
+  demo_202303_client_2:
+    image: daisy_${BUILD_VERSION:-cpu}:latest
+    pull_policy: never
     tty: true
     restart: on-failure
     environment:
@@ -20,11 +24,8 @@ services:
       --evalServ eval_aggr_server"
       --aggrServ eval_aggr_server
   demo_202303_client_5:
-    pull_policy: build
-    build:
-      context: ../
-      args:
-        - BUILD_VERSION=${BUILD_VERSION:-cpu}
+    image: daisy_${BUILD_VERSION:-cpu}:latest
+    pull_policy: never
     tty: true
     restart: on-failure
     environment:
@@ -40,8 +41,8 @@ services:
       --evalServ eval_aggr_server"
       --aggrServ eval_aggr_server
   model_aggr_server:
-    pull_policy: build
-    build: ../
+    image: daisy_${BUILD_VERSION:-cpu}:latest
+    pull_policy: never
     tty: true
     restart: on-failure
     ports:
@@ -51,8 +52,8 @@ services:
       "model_aggr_server 
       --dashboardURL 'http://dashboard:8000'"
   pred_aggr_server:
-    pull_policy: build
-    build: ../
+    image: daisy_${BUILD_VERSION:-cpu}:latest
+    pull_policy: never
     tty: true
     restart: on-failure
     ports:
@@ -63,8 +64,8 @@ services:
       --windowSize 512 
       --dashboardURL 'http://dashboard:8000'"
   eval_aggr_server:
-    pull_policy: build
-    build: ../
+    image: daisy_${BUILD_VERSION:-cpu}:latest
+    pull_policy: never
     tty: true
     restart: on-failure
     ports:
@@ -75,8 +76,8 @@ services:
       --windowSize 512 
       --dashboardURL 'http://dashboard:8000'"
   dashboard:
-    pull_policy: build
-    build: ../
+    image: daisy_${BUILD_VERSION:-cpu}:latest
+    pull_policy: never
     tty: true
     restart: on-failure
     ports:
