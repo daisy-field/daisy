@@ -1,0 +1,85 @@
+services:
+  daisy_builder:
+    build:
+      context: ../
+      args:
+        - BUILD_VERSION=${BUILD_VERSION:-cpu}
+    image: daisy_${BUILD_VERSION:-cpu}:latest
+    pull_policy: build
+  demo_202303_client_2:
+    image: daisy_${BUILD_VERSION:-cpu}:latest
+    pull_policy: never
+    tty: true
+    restart: on-failure
+    environment:
+      - DATASET_PATH=${DATASET_PATH}
+    volumes:
+      - ${DATASET_PATH}:${DATASET_PATH}
+    command: > 
+      bash -c 
+      "demo_202303_client 
+      --clientId 2 
+      --pcapBasePath ${DATASET_PATH}
+      --modelAggrServ model_aggr_server
+      --evalServ eval_aggr_server"
+      --aggrServ eval_aggr_server
+  demo_202303_client_5:
+    image: daisy_${BUILD_VERSION:-cpu}:latest
+    pull_policy: never
+    tty: true
+    restart: on-failure
+    environment:
+      - DATASET_PATH=${DATASET_PATH}
+    volumes:
+      - ${DATASET_PATH}:${DATASET_PATH}
+    command: >
+      bash -c 
+      "demo_202303_client 
+      --clientId 5
+      --pcapBasePath ${DATASET_PATH}
+      --modelAggrServ model_aggr_server
+      --evalServ eval_aggr_server"
+      --aggrServ eval_aggr_server
+  model_aggr_server:
+    image: daisy_${BUILD_VERSION:-cpu}:latest
+    pull_policy: never
+    tty: true
+    restart: on-failure
+    ports:
+      - "8003:8003"
+    command: > 
+      bash -c 
+      "model_aggr_server 
+      --dashboardURL 'http://dashboard:8000'"
+  pred_aggr_server:
+    image: daisy_${BUILD_VERSION:-cpu}:latest
+    pull_policy: never
+    tty: true
+    restart: on-failure
+    ports:
+      - "8002:8002"
+    command: > 
+      bash -c 
+      "pred_aggr_server 
+      --windowSize 512 
+      --dashboardURL 'http://dashboard:8000'"
+  eval_aggr_server:
+    image: daisy_${BUILD_VERSION:-cpu}:latest
+    pull_policy: never
+    tty: true
+    restart: on-failure
+    ports:
+      - "8001:8001"
+    command: > 
+      bash -c 
+      "eval_aggr_server 
+      --windowSize 512 
+      --dashboardURL 'http://dashboard:8000'"
+  dashboard:
+    image: daisy_${BUILD_VERSION:-cpu}:latest
+    pull_policy: never
+    tty: true
+    restart: on-failure
+    ports:
+      - "8000:8000"
+    command: bash -c "dashboard"

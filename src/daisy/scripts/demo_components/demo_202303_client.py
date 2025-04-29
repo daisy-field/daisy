@@ -43,8 +43,8 @@ import argparse
 import logging
 import pathlib
 
+import keras
 import numpy as np
-import tensorflow as tf
 
 from daisy.data_sources import (
     DataHandler,
@@ -197,8 +197,8 @@ def create_client():
     data_handler = DataHandler(data_processor=processor)
 
     # Model
-    optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
-    loss = tf.keras.losses.MeanAbsoluteError()
+    optimizer = keras.optimizers.Adam(learning_rate=0.001)
+    loss = keras.losses.MeanAbsoluteError()
     id_fn = TFFederatedModel.get_fae(
         input_size=44,
         optimizer=optimizer,
@@ -207,7 +207,7 @@ def create_client():
         epochs=1,
     )
     t_m = EMAvgTM(alpha=0.05)
-    err_fn = tf.keras.losses.MeanAbsoluteError(reduction=tf.keras.losses.Reduction.NONE)
+    err_fn = keras.losses.MeanAbsoluteError(reduction=None)
     model = FederatedIFTM(identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn)
 
     metrics = [ConfMatrSlidingWindowEvaluation(window_size=args.batchSize * 8)]
