@@ -27,17 +27,15 @@ class PoisoningMode(Enum):
     be updated with global parameters (needed for inverse poisoning).
 
     """
+
     NONE = ("No model poisoning", False, True)
     ZERO = ("All zeros poisoning", True, False)
     INVERSE = ("Invert local model", False, True)
     RANDOM = ("Randomizes local model", True, False)
 
     def __init__(
-            self,
-            description: str,
-            overwrite_local_model: bool,
-            accept_global_model: bool
-        ):
+        self, description: str, overwrite_local_model: bool, accept_global_model: bool
+    ):
         self.description = description
         self.overwrite_local_model = overwrite_local_model
         self.accept_global_model = accept_global_model
@@ -47,14 +45,15 @@ class ModelPoisoning:
     """
     Model poisoning class implementing three different poisoning modes.
     """
+
     poisoning_mode: PoisoningMode
 
     def __init__(
-            self,
-            poisoning_mode: PoisoningMode,
-            name: str = "ModelPoisoning",
-            log_level: int = None,
-        ):
+        self,
+        poisoning_mode: PoisoningMode,
+        name: str = "ModelPoisoning",
+        log_level: int = None,
+    ):
         self._logger = logging.getLogger(name)
         if log_level:
             self._logger.setLevel(log_level)
