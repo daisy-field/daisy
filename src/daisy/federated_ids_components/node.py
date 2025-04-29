@@ -19,7 +19,7 @@ from time import sleep, time
 from typing import Callable, cast, Optional
 
 import numpy as np
-import tensorflow as tf
+import keras
 
 from daisy.communication import StreamEndpoint
 from daisy.data_sources import DataHandler
@@ -71,7 +71,7 @@ class FederatedOnlineNode(ABC):
 
     _label_split: int
     _supervised: bool
-    _metrics: list[tf.keras.metrics.Metric]
+    _metrics: list[keras.metrics.Metric]
 
     _eval_serv: Optional[StreamEndpoint]
     _aggr_serv: Optional[StreamEndpoint]
@@ -99,7 +99,7 @@ class FederatedOnlineNode(ABC):
         endpoint_socket_log_level: int = None,
         label_split: int = 2**32,
         supervised: bool = False,
-        metrics: list[tf.keras.metrics.Metric] = None,
+        metrics: list[keras.metrics.Metric] = None,
         eval_server: tuple[str, int] = None,
         aggr_server: tuple[str, int] = None,
         sync_mode: bool = True,
@@ -430,7 +430,7 @@ class FederatedOnlineClient(FederatedOnlineNode):
         endpoint_socket_log_level: int = None,
         label_split: int = 2**32,
         supervised: bool = False,
-        metrics: list[tf.keras.metrics.Metric] = None,
+        metrics: list[keras.metrics.Metric] = None,
         eval_server: tuple[str, int] = None,
         aggr_server: tuple[str, int] = None,
         sync_mode: bool = True,
@@ -641,7 +641,7 @@ class FederatedOnlinePeer(FederatedOnlineNode):
         log_level: int = None,
         label_split: int = 2**32,
         supervised: bool = False,
-        metrics: list[tf.keras.metrics.Metric] = None,
+        metrics: list[keras.metrics.Metric] = None,
         eval_server: tuple[str, int] = None,
         aggr_server: tuple[str, int] = None,
         sync_mode: bool = True,

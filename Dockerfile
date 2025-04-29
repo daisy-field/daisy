@@ -1,9 +1,9 @@
 # syntax=docker/dockerfile:1
 ARG BUILD_VERSION=cpu
 
+
 # Setup of Depedencies:
 FROM python:3.12-slim AS setup
-# System-Updates & Installation von net-tools für netstat
 WORKDIR /app
 # setup of venv
 RUN python3 -m venv ./venv
@@ -27,7 +27,7 @@ WORKDIR /app
 EXPOSE 8000-8003
 # installtion of additional (non-python/venv) dependencies
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive  \
-    apt-get install --no-install-recommends -y tshark net-tools\
+    apt-get install --no-install-recommends -y tshark \
     && rm -rf /var/cache/apt/archives /var/lib/apt/lists
 
 # Import of CPU Dependencies:
