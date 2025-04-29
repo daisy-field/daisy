@@ -131,7 +131,7 @@ However, if you want to use DAISY in docker, some of the image's layers must be 
 
 ```shell
 docker build -t daisy .
-docker build -t daisygpu . --build-arg build_version=gpu  # gpu support (optional)
+docker build -t daisy_gpu . --build-arg build_version=gpu  # gpu support (optional)
 ```
 
 Afterward, the docker container can be run with in interactive shell mode to be used
@@ -149,7 +149,7 @@ an environment variable:
 
 ```shell
 # Arg Setup
-export DATASET_PATH=/path/to/datasets/v2x_2023-03-06
+export DATASET_PATH=/absolute/path/to/datasets/v2x_2023-03-06
 export BUILD_VERSION=gpu  # gpu support (optional)
 
 docker compose -f demos/v2x_2023-03-06.yml up
