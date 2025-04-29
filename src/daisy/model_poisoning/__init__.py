@@ -6,4 +6,4 @@
 
 __all__ = ["ModelPoisoning", "PoisoningMode"]
 
-from model_poisoning import ModelPoisoning, PoisoningMode
+from .model_poisoning import ModelPoisoning, PoisoningMode
