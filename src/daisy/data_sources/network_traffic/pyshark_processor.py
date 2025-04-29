@@ -26,6 +26,7 @@ from pyshark.packet.packet import Packet
 from typing_extensions import deprecated
 
 from ..data_processor import DataProcessor, flatten_dict
+from ..data_source import DataSource
 
 # Exemplary network feature filter, supporting cohda-box (V2x) messages, besides
 # TCP/IP and ETH.
@@ -207,6 +208,7 @@ class PysharkProcessor(DataProcessor):
     @classmethod
     def create_simple_processor(
         cls,
+        data_source: DataSource,
         name: str = "PysharkProcessor",
         log_level: int = None,
         f_features: list[str, ...] = pcap_f_features,
@@ -216,6 +218,7 @@ class PysharkProcessor(DataProcessor):
         data point (nan if not existing) and transforms them into numpy vectors,
         ready for to be further processed by detection models.
 
+        :param data_source: The data source to use.
         :param name: Name of processor for logging purposes.
         :param log_level: Logging level of processor.
         :param f_features: Features to extract from the packets.
@@ -223,7 +226,7 @@ class PysharkProcessor(DataProcessor):
         integers / floats.
         """
         return (
-            PysharkProcessor(name=name, log_level=log_level)
+            PysharkProcessor(name=name, log_level=log_level, data_source=data_source)
             .packet_to_dict()
             .select_dict_features(features=f_features, default_value=np.nan)
             .dict_to_array(nn_aggregator=nn_aggregator)
@@ -390,6 +393,7 @@ def _add_layer_field_container_to_dict(
 # noinspection DuplicatedCode
 @deprecated("Use PysharkProcessor.create_simple_processor() instead")
 def create_pyshark_processor(
+    data_source: DataSource,
     name: str = "PysharkProcessor",
     log_level: int = None,
     f_features: list[str, ...] = pcap_f_features,
@@ -400,13 +404,14 @@ def create_pyshark_processor(
     transforms them into numpy vectors, ready for to be further processed by
     detection models.
 
+    :param data_source: The DataSource to be processed.
     :param name: The name for logging purposes
     :param log_level: Logging level of processor.
     :param f_features: The features to extract from the packets
     :param nn_aggregator: The aggregator, which should map features to integers
     """
     return (
-        PysharkProcessor(name=name, log_level=log_level)
+        PysharkProcessor(name=name, log_level=log_level, data_source=data_source)
         .packet_to_dict()
         .select_dict_features(f_features, default_value=np.nan)
         .dict_to_array(nn_aggregator)

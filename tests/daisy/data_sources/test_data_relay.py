@@ -14,7 +14,7 @@ from daisy.data_sources import CSVFileRelay, DataHandler
 # noinspection PyTypeChecker
 class DataHandlerMock(DataHandler):
     def __init__(self, data_points: list = None):
-        super().__init__(data_source=None, data_processor=None)
+        super().__init__(data_processor=None)
         self._data_points = data_points if data_points is not None else []
 
     def open(self):

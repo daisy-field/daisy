@@ -432,7 +432,7 @@ def read_collection_files(args):
     return f_features, events, headers
 
 
-def create_data_processor(args, f_features, events):
+def create_data_processor(args, data_source, f_features, events):
     """Creates the data processor, which either processes the data points on the
     machine the data is written to file or returns the data points unprocessed
     for relaying to another machine.
@@ -440,7 +440,7 @@ def create_data_processor(args, f_features, events):
 
     if args.toFile:
         return (
-            PysharkProcessor()
+            PysharkProcessor(data_source=data_source)
             .packet_to_dict()
             .remove_dict_features(f_features)
             .add_func(
@@ -451,7 +451,7 @@ def create_data_processor(args, f_features, events):
             )
         )
     else:
-        return DataProcessor()
+        return DataProcessor(data_source=data_source)
 
 
 def create_relay(args, data_handler, headers):
@@ -495,10 +495,9 @@ def create_collector():
 
     data_source = create_data_source(args)
     f_features, events, headers = read_collection_files(args)
-    data_processor = create_data_processor(args, f_features, events)
+    data_processor = create_data_processor(args, data_source, f_features, events)
 
     data_handler = DataHandler(
-        data_source=data_source,
         data_processor=data_processor,
         name="data_collector.data_handler",
         multithreading=args.processing_multithreading,

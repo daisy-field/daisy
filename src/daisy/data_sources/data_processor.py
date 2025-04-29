@@ -12,18 +12,20 @@ Author: Fabian Hofmann, Jonathan Ackerschewski
 Modified: 04.11.2024
 """
 
+import itertools
 import json
 import logging
 from collections.abc import MutableMapping
-from typing import Callable, Self
+from typing import Callable, Self, Iterator
 
 import numpy as np
 from typing_extensions import deprecated
 
+from .data_source import DataSource
 from .events import EventHandler
 
 
-class DataProcessor:
+class DataProcessor(Iterator):
     """Base class for generic data stream processing, in pipelined fashion. The
     processing steps are implemented as functions independent of each other, carried
     out in one specific order for each data point in the stream. For these functions,
@@ -34,19 +36,82 @@ class DataProcessor:
     add_func() to provide additional pre-built processing steps.
     """
 
+    _name: str
     _logger: logging.Logger
+    _log_level: int
     _functions: list[Callable]
+    _data_source: DataSource
+    _generator: Iterator
 
-    def __init__(self, name: str = "DataProcessor", log_level: int = None):
-        """Creates a data processor.
+    def __init__(
+        self,
+        data_source: DataSource,
+        generator: Iterator = None,
+        name: str = "DataProcessor",
+        log_level: int = None,
+    ):
+        """Creates a data processor. If the generator isn't provided explicitly, it
+        will be created from the data source.
 
+        :param data_source: The data source to process.
+        :param generator: The generator from the given data source.
         :param name: Name of processor for logging purposes.
         :param log_level: Logging level of processor.
         """
+        self._name = name
         self._logger = logging.getLogger(name)
+        self._log_level = log_level
         if log_level:
             self._logger.setLevel(log_level)
         self._functions = []
+        self._data_source = data_source
+        if generator:
+            self._generator = generator
+        else:
+            self._generator = iter(data_source)
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        """Processes the next data point using the provided functions. The functions
+        are carried out in the order they were added. If no functions were provided,
+        the data point is returned unchanged (noop).
+        """
+        next_data_point = next(self._generator)
+        for func in self._functions:
+            next_data_point = func(next_data_point)
+        return next_data_point
+
+    def open(self):
+        self._data_source.open()
+
+    def close(self):
+        self._data_source.close()
+
+    def tee(self, n: int = 2):
+        """Splits the processor into multiple and returns the newly created processors.
+        All processing functions added before the split will have been applied to the
+        data points. Processing functions added after the split only affect the
+        processor to which they were added.
+
+        :param n: The number of processors to split into.
+        :returns: A tuple of all newly created processors.
+        """
+        iters = itertools.tee(self, n)
+        results = []
+        counter = 0
+        for iterator in iters:
+            results.append(
+                DataProcessor(
+                    data_source=self._data_source,
+                    generator=iterator,
+                    name=self._name + f".{counter}",
+                    log_level=self._log_level,
+                )
+            )
+            counter += 1
+        return tuple(results)
 
     def add_func(self, func: Callable[[object], object]) -> Self:
         """Adds a function to the processor to the end of its function list.
@@ -283,19 +348,6 @@ class DataProcessor:
             return d_point
 
         return self.add_func(lambda d_point: cast_func(d_point))
-
-    def process(self, o_point: object) -> object:
-        """Processes the given data point using the provided functions. The functions
-        are carried out in the order they were added. If no functions were provided,
-        the data point is returned unchanged (noop).
-
-        Note process() is usually called by the data handler during data processing and
-        should not be called directly.
-        """
-        point = o_point
-        for func in self._functions:
-            point = func(point)
-        return point
 
 
 @deprecated("Use DataProcessor.remove_features() instead")
