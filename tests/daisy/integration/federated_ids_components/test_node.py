@@ -36,7 +36,7 @@ def simple_client():
     # Datasource
     source = PcapDataSource("../../../resources/pcap_v2x_test_file.pcap")
     processor = (
-        PysharkProcessor()
+        PysharkProcessor(data_source=source)
         .packet_to_dict()
         .select_dict_features(features=pcap_f_features, default_value=np.nan)
         .merge_dict({"client_id": 2})
@@ -45,7 +45,7 @@ def simple_client():
         .remove_dict_features(["client_id"])
         .dict_to_array(nn_aggregator=pcap_nn_aggregator)
     )
-    data_handler = DataHandler(data_source=source, data_processor=processor)
+    data_handler = DataHandler(data_processor=processor)
 
     # Model
     optimizer = keras.optimizers.Adam(learning_rate=0.001)
