@@ -9,6 +9,7 @@ services:
   demo_202303_client_2:
     image: daisy_${BUILD_VERSION:-cpu}:latest
     pull_policy: never
+    depends_on: [daisy_builder]
     tty: true
     restart: on-failure
     environment:
@@ -21,11 +22,12 @@ services:
       --clientId 2 
       --pcapBasePath ${DATASET_PATH}
       --modelAggrServ model_aggr_server
-      --evalServ eval_aggr_server"
-      --aggrServ eval_aggr_server
+      --evalServ eval_aggr_server
+      --aggrServ eval_aggr_server"
   demo_202303_client_5:
     image: daisy_${BUILD_VERSION:-cpu}:latest
     pull_policy: never
+    depends_on: [daisy_builder]
     tty: true
     restart: on-failure
     environment:
@@ -38,11 +40,12 @@ services:
       --clientId 5
       --pcapBasePath ${DATASET_PATH}
       --modelAggrServ model_aggr_server
-      --evalServ eval_aggr_server"
-      --aggrServ eval_aggr_server
+      --evalServ eval_aggr_server
+      --aggrServ eval_aggr_server"
   model_aggr_server:
     image: daisy_${BUILD_VERSION:-cpu}:latest
     pull_policy: never
+    depends_on: [daisy_builder]
     tty: true
     restart: on-failure
     ports:
@@ -54,6 +57,7 @@ services:
   pred_aggr_server:
     image: daisy_${BUILD_VERSION:-cpu}:latest
     pull_policy: never
+    depends_on: [daisy_builder]
     tty: true
     restart: on-failure
     ports:
@@ -66,6 +70,7 @@ services:
   eval_aggr_server:
     image: daisy_${BUILD_VERSION:-cpu}:latest
     pull_policy: never
+    depends_on: [daisy_builder]
     tty: true
     restart: on-failure
     ports:
@@ -78,6 +83,7 @@ services:
   dashboard:
     image: daisy_${BUILD_VERSION:-cpu}:latest
     pull_policy: never
+    depends_on: [daisy_builder]
     tty: true
     restart: on-failure
     ports:

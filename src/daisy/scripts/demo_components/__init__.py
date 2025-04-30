@@ -20,6 +20,6 @@ Author: Fabian Hofmann
 Modified: 10.04.24
 """
 
-__all__ = ["demo_202303_client"]
+__all__ = ["v2x_2023_03_06_client"]
 
-from .demo_202303_client import create_client as demo_202303_client
+from .v2x_2023_03_06_client import create_client as v2x_2023_03_06_client
