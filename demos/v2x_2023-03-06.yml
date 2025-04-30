@@ -23,7 +23,7 @@ services:
       --pcapBasePath ${DATASET_PATH}
       --modelAggrServ model_aggr_server
       --evalServ eval_aggr_server
-      --aggrServ eval_aggr_server"
+      --aggrServ pred_aggr_server"
   demo_202303_client_5:
     image: daisy_${BUILD_VERSION:-cpu}:latest
     pull_policy: never
@@ -41,7 +41,7 @@ services:
       --pcapBasePath ${DATASET_PATH}
       --modelAggrServ model_aggr_server
       --evalServ eval_aggr_server
-      --aggrServ eval_aggr_server"
+      --aggrServ pred_aggr_server"
   model_aggr_server:
     image: daisy_${BUILD_VERSION:-cpu}:latest
     pull_policy: never
