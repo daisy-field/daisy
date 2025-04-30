@@ -411,7 +411,7 @@ def read_collection_files(args):
                         start_time, end_time, label, condition = parse_event(event)
                         condition = (
                             condition
-                            + f"and time_epoch > {start_time} and time_epoch < {end_time}"
+                            + f"and meta.time_epoch > {start_time} and meta.time_epoch < {end_time}"
                         )
                         events.add_event(label, condition)
                     except ValueError:
