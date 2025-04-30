@@ -27,23 +27,14 @@ __all__ = [
     "LivePysharkDataSource",
     "PcapDataSource",
     "PysharkProcessor",
-    "create_pyshark_processor",
-    "dict_to_numpy_array",
-    "packet_to_dict",
-    "dict_to_json",
     "pcap_f_features",
     "pcap_nn_aggregator",
-    "demo_202303_label_data_point",
     "march23_event_handler",
 ]
 
-from .demo_202303 import demo_202303_label_data_point, march23_event_handler
+from .demo_202303 import march23_event_handler
 from .pyshark_handler import LivePysharkDataSource, PcapDataSource
 from .pyshark_processor import (
-    create_pyshark_processor,
-    dict_to_numpy_array,
-    packet_to_dict,
-    dict_to_json,
     PysharkProcessor,
     pcap_f_features,
     pcap_nn_aggregator,

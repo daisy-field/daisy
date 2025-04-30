@@ -17,65 +17,6 @@ from datetime import datetime
 from typing import Callable, Self, Optional
 
 import pyparsing as pp
-from typing_extensions import deprecated
-
-
-@deprecated("Timestamps should be part of the condition_fn, deprecating this class.")
-class Event:
-    """Specific event, with a start and an end timestamp, its label, and conditions
-    whether a data point should be labeled as such (function evaluating to true if
-    that is the case, false otherwise).
-    """
-
-    start_time: datetime
-    end_time: datetime
-    label: str
-    _condition_fn: Callable[[list[dict]], bool]
-
-    def __init__(
-        self,
-        start_time: datetime,
-        end_time: datetime,
-        label: str,
-        condition_fn: Callable[[list[dict]], bool],
-    ):
-        """Creates an event, which takes place between start_time and end_time. Data
-        points evaluated true by the condition function should be labeled with the
-        provided label.
-
-        :param start_time: Start time of event.
-        :param end_time: End time of event.
-        :param label: Label by which data points falling in the event should be labeled.
-        :param condition_fn: Condition function used to evaluate if a given data point
-        falls within the event.
-        """
-        self.start_time = start_time
-        self.end_time = end_time
-        self.label = label
-        self._condition_fn = condition_fn
-
-    def evaluate(self, timestamp: datetime, data: list[dict]) -> bool:
-        """Evaluates a single data point using the condition function provided in the
-        constructor. The timestamp is used to determine whether the data point falls
-        within the events time frame. Additional meta information can be provided by
-        passing multiple dictionaries in the data parameter. The dictionaries will be
-        searched in the provided order. The first value found will be used for
-        comparisons in the condition function.
-
-        :param timestamp: The timestamp of the data point.
-        :param data: A single data point and additional meta information. The data
-        is searched in the provided order. E.g. if two dictionaries contain the key
-        timestamp and the condition function uses this key, then the value of the first
-        dictionary will be used.
-        """
-        if (
-            self.start_time.timestamp()
-            <= timestamp.timestamp()
-            <= self.end_time.timestamp()
-        ):
-            return self._condition_fn(data)
-        else:
-            return False
 
 
 class EventParser:
@@ -177,7 +118,7 @@ class EventParser:
             + pp.Optional(boperator(self._op) + self._parser(self._var2))
         ) | pp.Group(uoperator(self._op) + pars(self._var1))
 
-    def parse(self, expression: str) -> Callable[[list[dict]], bool]:
+    def parse(self, expression: str) -> Callable[[dict], bool]:
         """Parses the given expression and returns a function that evaluates data points
         passed to it. This method can raise a parse error if the expression is invalid.
 
@@ -189,7 +130,7 @@ class EventParser:
 
     def _process_child(
         self, tree: pp.ParseResults, expression: str
-    ) -> Optional[Callable[[list[dict]], bool]]:
+    ) -> Optional[Callable[[dict], bool]]:
         """Recursively processes the provided parse tree and returns a function that
         evaluates the data points passed to it.
 
@@ -212,7 +153,7 @@ class EventParser:
 
     def _create_fn(
         self, dictionary: dict, result: dict, expression: str
-    ) -> Callable[[list[dict]], bool]:
+    ) -> Callable[[dict], bool]:
         """Creates a function based on the provided input. The provided dictionary
         should contain any of the keys _op, _var1, and _var2 from this class.
         When the key _op is any of the binary operators, _var1 and _var2 have to be
@@ -250,7 +191,7 @@ class EventParser:
 
     def _create_binary_fn(
         self, result: dict, operation: str, expression: str
-    ) -> Callable[[list[dict]], bool]:
+    ) -> Callable[[dict], bool]:
         """Creates the binary function part. The results of previous runs of the
         create_fn method are used in this function to combine them using binary
         functions (and, or operators).
@@ -276,7 +217,7 @@ class EventParser:
 
     def _create_unary_fn(
         self, result: dict, operation: str, expression: str
-    ) -> Callable[[list[dict]], bool]:
+    ) -> Callable[[dict], bool]:
         """Creates the unary function part. The results of previous runs of the
         create_fn method are used in this function to combine them using unary
         functions (not operator).
@@ -298,7 +239,7 @@ class EventParser:
 
     def _create_comparator_fn(
         self, dictionary: dict, operation: str, expression: str
-    ) -> Callable[[list[dict]], bool]:
+    ) -> Callable[[dict], bool]:
         """Creates the comparisons of the function. The dictionary should contain
         a feature, operation, and value. Based on the comparator, a function is
         returned, which performs the desired comparison.
@@ -314,9 +255,8 @@ class EventParser:
             self._check_feature(dictionary[self._var2][0], expression)
             value = self._get_value(dictionary[self._var1][0])
             return (
-                lambda data: value
-                in _get_value_from_feature(dictionary[self._var2][0], data)
-                if _get_value_from_feature(dictionary[self._var2][0], data)
+                lambda data: value in data[dictionary[self._var2][0]]
+                if data[dictionary[self._var2][0]]
                 else False
             )
 
@@ -326,15 +266,15 @@ class EventParser:
 
         match operation:
             case "=":
-                return lambda data: _get_value_from_feature(feature, data) == value
+                return lambda data: data[feature] == value
             case "<":
-                return lambda data: _get_value_from_feature(feature, data) < value
+                return lambda data: data[feature] < value
             case ">":
-                return lambda data: _get_value_from_feature(feature, data) > value
+                return lambda data: data[feature] > value
             case "<=":
-                return lambda data: _get_value_from_feature(feature, data) <= value
+                return lambda data: data[feature] <= value
             case ">=":
-                return lambda data: _get_value_from_feature(feature, data) >= value
+                return lambda data: data[feature] >= value
             case _:
                 raise NotImplementedError(
                     f"Operation '{operation}' not supported in EventParser for "
@@ -409,9 +349,7 @@ class EventHandler:
     """
 
     _parser: EventParser
-    # deprecated
-    _events: list[Event]
-    _event_label_pairs: list[tuple[str, Callable[[list[dict]], bool]]]
+    _event_label_pairs: list[tuple[str, Callable[[dict], bool]]]
     _default_label: str
     _label_feature: str
     _error_label: str
@@ -451,84 +389,7 @@ class EventHandler:
         self._error_label = error_label
         self._hide_errors = hide_errors
 
-    @deprecated("Timestamps are no longer supported. Use append_event instead.")
-    # The parsed condition_fn does not require a list of dictionaries after this
-    # method is removed. E.g. the function _get_value becomes obsolete and the condition
-    # should be Callable[[dict], bool] instead of Callable[[list[dict]], bool]
-    def add_event(
-        self, start_time: datetime, end_time: datetime, label: str, condition: str = ""
-    ) -> Self:
-        """Adds an event to the event handler. The events will be evaluated in the
-        order they are provided. Each event has a start and end time, a label that will
-        be used to label data points that fall under that event, and an optional
-        condition. The condition is a string and has to follow a certain grammar:
-
-        exp := pars + (binary_op + pars)? |
-                unary_op + pars
-        pars := operand | '(' + exp + ')'
-        operand := cast + comparator + cast
-        cast := cast_op + '!' + word | word
-        word := [any character except [] !"'<=>\\()] |
-                '[' + [any character except []!"'<=>\\()] + ']'   Note that whitespaces
-                                                                  are allowed with
-                                                                  brackets
-        comparator := '=' | 'in' | '<' | '>' | '<=' | '>='
-        binary_op := 'and' | 'or'
-        unary_op := 'not'
-        cast_op := 's' | 'i' | 'f' | 't'
-
-        For comparators, the feature in the dictionary is always expected on the left
-        side of the comparator, except with the 'in' operator, where it is expected
-        on the right.
-
-        Some example expressions are:
-        ip.addr = 10.1.1.1      When the function is called with a dictionary, it will
-                                be searched for the key ip.addr. Its value will be
-                                compared to 10.1.1.1
-        tcp in protocols        The dictionary will be searched for the key protocols.
-                                The function 'tcp in <value of protocols>' will be
-                                evaluated.
-
-        Concatenation examples are:
-        ip.addr = 10.1.1.1 and tcp in protocols
-        (ip.addr = 10.1.1.1 or ip.addr = 192.168.1.1) and tcp in protocols
-        not (ip.addr = 10.1.1.1 or ip.addr = 192.168.1.1) and tcp in protocols
-
-        Values in the expression can be cast to different types to support proper
-        comparison.
-        The supported castings are string (s), integer (i), float (f), and timestamp(t).
-        For timestamp casting, the following formats are supported:
-        time since epoch
-        DD.MM.YY-HH:MM:SS.ffffff
-        DD.MM.YY-HH:MM:SS
-        DD.MM.YY HH:MM:SS.ffffff
-        DD.MM.YY HH:MM:SS
-
-        For all cases, except the time since epoch, the timezone can be specified using
-        an offset from UTC in the form +/-HHMM[SS[.ffffff]], e.g. -0200, +0000. If no
-        offset is specified, UTC is assumed.
-
-        The returned function can be called using a list of dictionaries. The
-        dictionaries will be searched in the provided order and the first occurrence
-        of a feature in one of the dictionaries will be used. This can be used to
-        provide meta information about a data point additionally to the data point
-        itself.
-
-        :param start_time: Start time of event.
-        :param end_time: End time of event.
-        :param label: Label of event.
-        :param condition: Condition(s) data points have to fulfill for this event.
-        """
-        self._logger.debug(f"Adding new event with condition {condition}")
-        if condition:
-            self._events.append(
-                Event(start_time, end_time, label, self._parser.parse(condition))
-            )
-        else:
-            self._events.append(Event(start_time, end_time, label, lambda _: True))
-        return self
-
-    def append_event(self, label: str, condition: str) -> Self:
+    def add_event(self, label: str, condition: str) -> Self:
         """Adds an event to the event handler. The events will be evaluated in the
         order they are provided. Each event has a label that will be used to label data
         points that fall under that event, and a condition. The condition is
@@ -591,46 +452,6 @@ class EventHandler:
 
         return self
 
-    @deprecated("Use the evaluate method instead.")
-    def process(
-        self,
-        timestamp: datetime,
-        data_point: dict,
-        meta_data: list[dict] = None,
-    ) -> dict:
-        """Iterates through all events and checks for each event if it applies to
-        the provided data point. If it does, the data point will be labeled with the
-        label provided by the event. If no event matches the data point, it will be
-        labeled with the default label.
-
-        :param timestamp: Timestamp of data point.
-        :param data_point: Data point to label.
-        :param meta_data: Additional meta information to label data point. Has
-        preference over data point when checking conditions.
-        processing and errors are suppressed.
-        :return: Labelled data point.
-        :raises KeyError: Data points does not contain feature used by a conditions and
-        errors are not suppressed, i.e. redirected to log + data point is assigned
-        the error label.
-        """
-        if meta_data is None:
-            meta_data = []
-        data = meta_data + [data_point]
-
-        for event in self._events:
-            try:
-                if event.evaluate(timestamp, data):
-                    data_point[self._label_feature] = event.label
-                    return data_point
-            except KeyError as e:
-                if not self._hide_errors:
-                    raise e
-                self._logger.error(f"Error while evaluating event: {e}")
-                data_point[self._label_feature] = self._error_label
-                return data_point
-        data_point[self._label_feature] = self._default_label
-        return data_point
-
     def evaluate(self, data_point: dict) -> dict:
         """Iterates through all events and checks for each event if it applies to
         the provided data point. If it does, the data point will be labeled with the
@@ -647,7 +468,7 @@ class EventHandler:
         """
         for label, condition in self._event_label_pairs:
             try:
-                if condition([data_point]):
+                if condition(data_point):
                     data_point[self._label_feature] = label
                     return data_point
             except KeyError as e:
@@ -658,19 +479,6 @@ class EventHandler:
                 return data_point
         data_point[self._label_feature] = self._default_label
         return data_point
-
-
-def _get_value_from_feature(feature: str, data: list[dict]) -> object:
-    """Iterates through the provided dictionaries and returns the value of the first
-    occurrence of the provided feature.
-
-    :param feature: The feature to find.
-    :param data: List of dictionaries to search for the feature.
-    """
-    for dictionary in data:
-        if feature in dictionary:
-            return dictionary[feature]
-    raise KeyError(f"Could not find {feature} in {data}")
 
 
 def _cast_to_timestamp(exp: str) -> float:

@@ -18,7 +18,6 @@ from collections.abc import MutableMapping
 from typing import Callable, Self
 
 import numpy as np
-from typing_extensions import deprecated
 
 from .events import EventHandler
 
@@ -296,88 +295,3 @@ class DataProcessor:
         for func in self._functions:
             point = func(point)
         return point
-
-
-@deprecated("Use DataProcessor.remove_features() instead")
-def remove_feature(d_point: dict, f_features: list) -> dict:
-    """Takes a data point as a dictionary and removes all given features from it.
-
-    :param d_point: Dictionary of data point.
-    :param f_features: List of features to remove.
-    :return: Dictionary of data point with features removed.
-    """
-    for feature in f_features:
-        d_point.pop(feature, None)
-    return d_point
-
-
-@deprecated("Use DataProcessor.keep_features() instead")
-def keep_feature(d_point: dict, f_features: list) -> dict:
-    """Takes a data point as a dictionary and removes all features not in the given
-    list.
-
-    :param d_point: Dictionary of data point.
-    :param f_features: List of features to keep.
-    :return: Dictionary of data point with features kept.
-    """
-    return {key: value for key, value in d_point.items() if key in f_features}
-
-
-@deprecated("Use DataProcessor.select_features() instead")
-def select_feature(d_point: dict, f_features: list, default_value=None) -> dict:
-    """Takes a data point as a dictionary and selects features to keep. If a feature
-    should be kept but isn't present in the data point, it will be added with the
-    default value.
-
-    :param d_point: Dictionary of data point.
-    :param f_features: List of features to select.
-    :param default_value: Default value if feature is not in original data point.
-    :return: Dictionary of data point with selected features.
-    """
-    return {feature: d_point.get(feature, default_value) for feature in f_features}
-
-
-@deprecated("Use DataProcessor.flatten() instead")
-def flatten_dict(
-    dictionary: (dict, list),
-    separator: str = ".",
-    par_key: str = "",
-) -> dict:
-    """Creates a flat dictionary (a dictionary without sub-dictionaries) from the
-    given dictionary. The keys of sub-dictionaries are merged into the parent
-    dictionary by combining the keys and adding a separator: {a: {b: c, d: e}, f: g}
-    becomes {a.b: c, a.d: e, f: g} assuming the separator as '.'. However,
-    redundant parent keys are greedily eliminated from the dictionary.
-
-    :param dictionary: Dictionary to flatten.
-    :param separator: Separator to use.
-    :param par_key: Key of the parent dictionary.
-    :return: Flat dictionary with keys merged and seperated using the separator.
-    :raises ValueError: If there are key-collisions by greedily flattening the
-    dictionary.
-    """
-    items = {}
-    for key, val in dictionary.items():
-        cur_key = (
-            par_key + separator + key
-            if par_key != "" and not key.startswith(par_key + separator)
-            else key
-        )
-        if isinstance(val, MutableMapping):
-            # noinspection PyDeprecation
-            sub_items = flatten_dict(val, par_key=cur_key, separator=separator)
-            for subkey in sub_items.keys():
-                if subkey in items:
-                    raise ValueError(
-                        f"Key collision in dictionary "
-                        f"({subkey, sub_items[subkey]} vs {subkey, items[subkey]})!"
-                    )
-            items.update(sub_items)
-        else:
-            if cur_key in items:
-                raise ValueError(
-                    f"Key collision in dictionary ({cur_key, val} "
-                    f"vs {cur_key, items[cur_key]})!"
-                )
-            items.update({cur_key: val})
-    return items
