@@ -409,7 +409,7 @@ def read_collection_files(args):
                 for event in events_file:
                     try:
                         start_time, end_time, label, condition = parse_event(event)
-                        events.add_event(start_time, end_time, label, condition)
+                        events.add_event(label, condition)
                     except ValueError:
                         logging.warning(
                             f"A line in the event file could not be parsed. Line: "

@@ -11,7 +11,6 @@ Modified: 04.11.2024
 """
 
 import ipaddress
-import json
 import logging
 import sys
 from collections import defaultdict
@@ -23,9 +22,8 @@ from pyshark.packet.fields import LayerField, LayerFieldsContainer
 from pyshark.packet.layers.json_layer import JsonLayer
 from pyshark.packet.layers.xml_layer import XmlLayer
 from pyshark.packet.packet import Packet
-from typing_extensions import deprecated
 
-from ..data_processor import DataProcessor, flatten_dict
+from ..data_processor import DataProcessor
 
 # Exemplary network feature filter, supporting cohda-box (V2x) messages, besides
 # TCP/IP and ETH.
@@ -230,58 +228,6 @@ class PysharkProcessor(DataProcessor):
         )
 
 
-# noinspection DuplicatedCode
-@deprecated("Use DataProcessor.dict_to_array() instead")
-def dict_to_numpy_array(
-    d_point: dict,
-    nn_aggregator: Callable[[str, object], object],
-) -> np.ndarray:
-    """Transform the pyshark data point directly into a numpy array without further
-    processing, aggregating any value that is list into a singular value.
-
-    :param d_point: Data point as dictionary.
-    :param nn_aggregator: Aggregator, which maps non-numerical features to integers
-    or floats.
-    :return: Data point as vector.
-    """
-    l_point = []
-    for key, value in d_point.items():
-        if not isinstance(value, int | float):
-            value = nn_aggregator(key, value)
-        try:
-            if np.isnan(value):
-                value = 0
-        except TypeError as e:
-            raise ValueError(f"Invalid k/v pair: {key}, {value}") from e
-        l_point.append(value)
-    return np.asarray(l_point)
-
-
-# noinspection DuplicatedCode
-@deprecated("Use PysharkProcessor.packet_to_dict() instead")
-def packet_to_dict(p: Packet) -> dict:
-    """Takes a single pyshark packet and converts it into a dictionary.
-
-    :param p: Packet to convert.
-    :return: Dictionary generated from the packet.
-    """
-    p_dict = {}
-
-    meta_dict = {
-        "number": p.number,
-        "len": p.length,
-        "protocols": [x.layer_name for x in p.layers],
-        "time_epoch": p.sniff_timestamp,
-        "time": str(p.sniff_time),
-    }
-    p_dict.update({"meta": meta_dict})
-
-    for layer in p.layers:
-        p_dict.update(_add_layer_to_dict(layer))
-
-    return flatten_dict(p_dict)
-
-
 def _add_layer_to_dict(layer: (XmlLayer, JsonLayer)) -> (dict, list):
     """Creates a dictionary out of a packet captured by pyshark. This is the
     entrypoint for a recursive process.
@@ -385,39 +331,3 @@ def _add_layer_field_container_to_dict(
             dictionary[key].append(value)
 
     return dictionary
-
-
-# noinspection DuplicatedCode
-@deprecated("Use PysharkProcessor.create_simple_processor() instead")
-def create_pyshark_processor(
-    name: str = "PysharkProcessor",
-    log_level: int = None,
-    f_features: list[str, ...] = pcap_f_features,
-    nn_aggregator: Callable[[str, object], object] = pcap_nn_aggregator,
-):
-    """Creates a DataProcessor using functions specifically for pyshark packets,
-    selecting specific features from each data pont (nan if not existing) and
-    transforms them into numpy vectors, ready for to be further processed by
-    detection models.
-
-    :param name: The name for logging purposes
-    :param log_level: Logging level of processor.
-    :param f_features: The features to extract from the packets
-    :param nn_aggregator: The aggregator, which should map features to integers
-    """
-    return (
-        PysharkProcessor(name=name, log_level=log_level)
-        .packet_to_dict()
-        .select_dict_features(f_features, default_value=np.nan)
-        .dict_to_array(nn_aggregator)
-    )
-
-
-@deprecated("Use DataProcessor.dict_to_json() instead")
-def dict_to_json(dictionary: dict) -> str:
-    """Takes a dictionary and returns a json object in form of a string.
-
-    :param dictionary: The dictionary to convert to json string.
-    :return: A JSON string from the dictionary.
-    """
-    return json.dumps(dictionary, indent=2)

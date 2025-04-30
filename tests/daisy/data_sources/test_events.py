@@ -125,7 +125,7 @@ class TestEventParser:
     )
     def test_parser_comparator(self, event_parser, expression, data, expected):
         func = event_parser.parse(expression=expression)
-        assert func([data]) == expected
+        assert func(data) == expected
 
     @pytest.mark.parametrize(
         "expression,expectations,variables",
@@ -161,7 +161,7 @@ class TestEventParser:
             for i in range(variables):
                 cur_data["feature" + str(i)] = str(permutation >> variables - 1 - i & 1)
 
-            assert func([cur_data]) == expectations[permutation], (
+            assert func(cur_data) == expectations[permutation], (
                 f'Expression "{expression}" and dictionary {cur_data} did not evaluate to expected '
                 f'result "{expectations[permutation]}"'
             )
@@ -179,10 +179,6 @@ class TestEventParser:
     ):
         with pytest.raises(ParseException):
             event_parser.parse(expression)
-
-    def test_parser_first_data_occurrence_is_used(self, event_parser):
-        func = event_parser.parse("feature = 0")
-        assert func([{"feature": "0"}, {"feature": "1"}])
 
     _test_datetime = datetime(
         year=2003, month=6, day=12, hour=3, minute=6, second=12, tzinfo=timezone.utc
@@ -240,7 +236,7 @@ class TestEventParser:
         ],
     )
     def test_parser_cast_is_correct(self, event_parser, expression, data, expectation):
-        assert event_parser.parse(expression)([data]) == expectation
+        assert event_parser.parse(expression)(data) == expectation
 
     def test_parser_incorrect_time_format_raises_exception(self, event_parser):
         with pytest.raises(ValueError):
