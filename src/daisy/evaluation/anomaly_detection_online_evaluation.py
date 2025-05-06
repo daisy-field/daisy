@@ -16,7 +16,8 @@ from collections import deque
 from typing import Self
 
 import tensorflow as tf
-from tensorflow import keras, Tensor
+import keras
+from tensorflow import Tensor
 
 
 class SlidingWindowEvaluation(keras.metrics.Metric, ABC):
@@ -32,7 +33,9 @@ class SlidingWindowEvaluation(keras.metrics.Metric, ABC):
     pred_labels: deque
     _window_size: int
 
-    def __init__(self, name="ad_online_evaluation", window_size: int = None, **kwargs):
+    def __init__(
+        self, name="SlidingWindowEvaluation", window_size: int = None, **kwargs
+    ):
         """Creates a new sliding window evaluation metric.
 
         :param name: Name of metric.
@@ -130,7 +133,7 @@ class ConfMatrSlidingWindowEvaluation(SlidingWindowEvaluation):
     _tn: int
 
     def __init__(
-        self, name="conf_matrix_online_evaluation", window_size: int = None, **kwargs
+        self, name="ConfMatrSlidingWindowEvaluation", window_size: int = None, **kwargs
     ):
         """Creates a new confusion matrix sliding window evaluation metric.
 
@@ -181,7 +184,7 @@ class ConfMatrSlidingWindowEvaluation(SlidingWindowEvaluation):
 
         :return: Dictionary of all derived scalar (tensor) confusion matrix metrics.
         """
-        accuracy = (self._tp + self._tn) / len(self.true_labels)
+        accuracy = tf.convert_to_tensor((self._tp + self._tn) / len(self.true_labels))
         recall = tf.math.divide_no_nan(self._tp, (self._tp + self._fn))
         tnr = tf.math.divide_no_nan(self._tn, (self._tn + self._fp))
         precision = tf.math.divide_no_nan(self._tp, (self._tp + self._fp))
@@ -225,7 +228,7 @@ class TFMetricSlidingWindowEvaluation(SlidingWindowEvaluation):
         :param kwargs: Additional metric/layer keywords arguments.
         """
         super().__init__(
-            name=tf_metric.name + "_online_evaluation",
+            name="TFMetricSlidingWindowEvaluation." + tf_metric.name,
             window_size=window_size,
             **kwargs,
         )

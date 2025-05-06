@@ -50,6 +50,7 @@ __all__ = [
     "dict_to_json",
     "pcap_f_features",
     "demo_202303_label_data_point",
+    "march23_event_handler",
     "pcap_nn_aggregator",
     "EventHandler",
 ]
@@ -80,5 +81,6 @@ from .network_traffic import (
     dict_to_json,
     pcap_f_features,
     demo_202303_label_data_point,
+    march23_event_handler,
     pcap_nn_aggregator,
 )

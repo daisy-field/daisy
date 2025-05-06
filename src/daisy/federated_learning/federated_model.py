@@ -14,10 +14,10 @@ Modified: 04.04.24
 from abc import ABC, abstractmethod
 from typing import Callable, Optional, Self
 
+import keras
 import numpy as np
 import tensorflow as tf
 from tensorflow import Tensor
-from tensorflow import keras
 
 from daisy.federated_learning.model_classes.vae import DetectorVAE
 

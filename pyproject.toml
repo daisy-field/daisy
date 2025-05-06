@@ -38,7 +38,7 @@ readme = "README.md" # Optional
 # 'Programming Language' classifiers above, 'pip install' will check this
 # and refuse to install the project if the version does not match. See
 # https://packaging.python.org/guides/distributing-packages-using-setuptools/#python-requires
-requires-python = "~=3.11"
+requires-python = "~=3.12"
 
 # This is either text indicating the license for the distribution, or a file
 # that contains the license
@@ -71,7 +71,6 @@ maintainers = [
     { name = "Fabian Hofmann", email = "fabian.hofmann@dai-labor.de" },
     { name = "Jonathan Ackerschewski", email = "jonathan.ackerschewski@dai-labor.de" },
     { name = "Seraphin Zunzer", email = "SeraphinJasper.Zunzer@gt-arc.com" },
-    { name = "Simon Torka", email = "simon.torka@online.de" },
 ]
 
 # Classifiers help users find your project by categorizing it.
@@ -92,7 +91,7 @@ classifiers = [
     # that you indicate you support Python 3. These classifiers are *not*
     # checked by "pip install". See instead "requires-python" key in this file.
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3 :: Only",
 ]
 
@@ -103,15 +102,15 @@ classifiers = [
 # For an analysis of this field vs pip's requirements files see:
 # https://packaging.python.org/discussions/install-requires-vs-requirements/
 dependencies = [
-    "tensorflow~=2.15.0",
-    "numpy~=1.26.2",
+    "tensorflow~=2.18.0",
+    "numpy~=2.0.2",
     "pyshark~=0.6",
-    "lz4~=4.3.2",
-    "dash~=2.9.2",
-    "plotly~=5.14.1",
-    "django~=5.0.1",
-    "djangorestframework~=3.14.0",
-    "pyparsing~=3.2.0",
+    "lz4~=4.4.3",
+    "dash~=2.18.2",
+    "plotly~=6.0.0",
+    "django~=5.1.6",
+    "djangorestframework~=3.15.2",
+    "pyparsing~=3.2.1",
     "typing-extensions~=4.12.2",
     "natsort~=8.4.0"
 ]
@@ -125,8 +124,8 @@ dependencies = [
 # Similar to `dependencies` above, these must be valid existing
 # projects.
 [project.optional-dependencies] # Optional
-cuda = ["tensorflow[and-cuda]~=2.15.0"]
-dev = ["pre-commit", "ruff", "pytest~=8.3.3", "pytest-cov~=6.0.0", "genbadge[coverage]"]
+cuda = ["tensorflow[and-cuda]~=2.18.0"]
+dev = ["pre-commit", "ruff", "pytest~=8.3.4", "pytest-cov~=6.0.0", "genbadge[coverage]"]
 #dev = ["check-manifest"]
 
 # List URLs that are relevant to your project
@@ -154,7 +153,7 @@ model_aggr_server = "daisy.scripts.generic_fids_components:model_aggr_server"
 eval_aggr_server = "daisy.scripts.generic_fids_components:eval_aggr_server"
 pred_aggr_server = "daisy.scripts.generic_fids_components:pred_aggr_server"
 dashboard = "daisy.scripts.generic_fids_components:dashboard"
-demo_202303_client = "daisy.scripts.demo_components:demo_202303_client"
+demo_202303_client = "daisy.scripts.demo_components:v2x_2023_03_06_client"
 demo_cic_client = "daisy.scripts.demo_components:demo_cic_client"
 demo_dsfids_client = "daisy.scripts.demo_components:demo_dsfids_client"
 demo_jammer = "daisy.scripts.demo_components:demo_jammer"

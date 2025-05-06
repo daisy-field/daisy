@@ -14,20 +14,19 @@ jobs:
       - name: Install Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           cache: 'pip'
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install .[dev]
-      - name: Run Pre-Commit
+      - name: Run pre-commit
         uses: pre-commit/action@v3.0.1
-      - name: Run Tests with pytest and coverage
+      - name: Run tests with pytest and coverage
         run: |
           pytest --cov=daisy --cov-report=xml
           genbadge coverage -i coverage.xml -o .github/workflows/coverage-badge.svg
         if: success() || failure()
-      - name: Apply Changes
-        uses: pre-commit-ci/lite-action@v1.0.2
+      - name: Apply changes with pre-commit-ci-lite
+        uses: pre-commit-ci/lite-action@v1.1.0
         if: success() || failure()
-        continue-on-error: true # to be removed (once repository is public)

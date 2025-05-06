@@ -43,15 +43,22 @@ class DataHandlerRelay:
     _completed = threading.Event
 
     def __init__(
-        self, data_handler: DataHandler, endpoint: StreamEndpoint, name: str = ""
+        self,
+        data_handler: DataHandler,
+        endpoint: StreamEndpoint,
+        name: str = "DataHandlerRelay",
+        log_level: int = None,
     ):
         """Creates a new data handler relay.
 
         :param data_handler: Data handler to relay data points from.
         :param endpoint: Streaming endpoint to which data points are relayed to.
         :param name: Name of data source relay for logging purposes.
+        :param log_level: Logging level of relay.
         """
         self._logger = logging.getLogger(name)
+        if log_level:
+            self._logger.setLevel(log_level)
         self._logger.info("Initializing data handler relay...")
 
         self._started = False
@@ -168,7 +175,8 @@ class CSVFileRelay:
         self,
         data_handler: DataHandler,
         target_file: str | Path,
-        name: str = "",
+        name: str = "CSVFileRelay",
+        log_level: int = None,
         header_buffer_size: int = 1000,
         headers: tuple[str, ...] = None,
         overwrite_file: bool = False,
@@ -183,6 +191,7 @@ class CSVFileRelay:
         :param target_file: The path to the (new) CSV file. The parent directories
         will be created if not existent.
         :param name: Name of the relay for logging purposes.
+        :param log_level: Logging level of relay.
         :param header_buffer_size: Number of packets to buffer to generate a common
         header via auto-detection. Note it is not guaranteed that all
         features/headers of all data points in the (possible infinite) stream will be
@@ -201,6 +210,8 @@ class CSVFileRelay:
             * If file path provided is not valid.
         """
         self._logger = logging.getLogger(name)
+        if log_level:
+            self._logger.setLevel(log_level)
         self._logger.info("Initializing file relay...")
 
         self._started = False
@@ -329,7 +340,8 @@ class CSVFileRelay:
         """Iterates through data points and writes them to the csv file.
 
         :param file: File to write to
-        :raises TypeError: Data point is not of type dictionary. Only dictionaries are supported.
+        :raises TypeError: Data point is not of type dictionary. Only dictionaries are
+        supported.
         """
         for d_point in self._data_handler:
             try:
@@ -347,7 +359,8 @@ class CSVFileRelay:
 
         :param file: File to write to
         :param d_point: data point to process
-        :raises TypeError: Data point is not of type dictionary. Only dictionaries are supported.
+        :raises TypeError: Data point is not of type dictionary. Only dictionaries are
+        supported.
         """
         if not isinstance(d_point, dict):
             raise TypeError("Received data point that is not of type dictionary.")
@@ -364,7 +377,8 @@ class CSVFileRelay:
         self._d_point_counter += 1
 
     def _process_buffer(self, file: IO):
-        """Processes the buffer by detecting the headers and writing its contents to the csv file.
+        """Processes the buffer by detecting the headers and writing its contents to
+        the csv file.
 
         :param file: File to write to
         """

@@ -163,21 +163,21 @@
     }
     function getEval(){
             return $.ajax({
-            url: 'http://127.0.0.1:8000/evaluation/',
+            url: 'http://localhost:8000/evaluation/',
             type: 'GET',
             dataType: 'json'
         })
     }
     function getPred(){
             return $.ajax({
-            url: 'http://127.0.0.1:8000/prediction/',
+            url: 'http://localhost:8000/prediction/',
             type: 'GET',
             dataType: 'json'
         })
     }
     function getAgg(){
             return $.ajax({
-            url: 'http://127.0.0.1:8000/aggregation/',
+            url: 'http://localhost:8000/aggregation/',
             type: 'GET',
             dataType: 'json'
         })

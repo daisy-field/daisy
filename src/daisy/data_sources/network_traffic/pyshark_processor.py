@@ -17,86 +17,62 @@ import sys
 from collections import defaultdict
 from ipaddress import AddressValueError
 from typing import Callable, Self
-from typing_extensions import deprecated
 
 import numpy as np
 from pyshark.packet.fields import LayerField, LayerFieldsContainer
 from pyshark.packet.layers.json_layer import JsonLayer
 from pyshark.packet.layers.xml_layer import XmlLayer
 from pyshark.packet.packet import Packet
+from typing_extensions import deprecated
 
-from .. import select_feature
 from ..data_processor import DataProcessor, flatten_dict
 
 # Exemplary network feature filter, supporting cohda-box (V2x) messages, besides
 # TCP/IP and ETH.
 pcap_f_features = (
-    "meta.len",
-    "meta.time",
-    "meta.time_epoch",
-    "meta.protocols",
+    "data.len",
+    "eth.addr",
+    "eth.dst",
+    "eth.len",
+    "eth.src",
     "ip.addr",
-    "sll.halen",
-    "sll.pkttype",
-    "sll.eth",
-    "sll.hatype",
-    "sll.unused",
-    "ipv6.tclass",
-    "ipv6.flow",
-    "ipv6.nxt",
-    "ipv6.src_host",
-    "ipv6.host",
-    "ipv6.hlim",
-    "sll.ltype",
-    "cohda.Type",
-    "cohda.Ret",
-    "cohda.llc.MKxIFMsg.Ret",
+    "ip.dst",
+    "ip.flags.df",
+    "ip.flags.mf",
+    "ip.flags.rb",
+    "ip.src",
     "ipv6.addr",
     "ipv6.dst",
-    "ipv6.plen",
-    "tcp.stream",
-    "tcp.payload",
-    "tcp.urgent_pointer",
-    "tcp.port",
-    "tcp.options.nop",
-    "tcp.options.timestamp",
-    "tcp.flags",
-    "tcp.window_size_scalefactor",
+    "ipv6.src",
+    "ipv6.tclass",
+    "llc.control.ftype",
+    "llc.control.n_r",
+    "llc.control.n_s",
+    "llc.dsap.ig",
+    "llc.dsap.sap",
+    "llc.ssap.cr",
+    "llc.ssap.sap",
+    "meta.len",
+    "meta.number",
+    "meta.protocols",
+    "meta.time",
+    "meta.time_epoch",
+    "sll.eth",
+    "sll.etype",
+    "sll.halen",
+    "sll.hatype",
+    "sll.ltype",
+    "sll.padding",
+    "sll.pkttype",
+    "sll.trailer",
+    "sll.unused",
+    "ssh.direction",
+    "ssh.protocol",
     "tcp.dstport",
-    "tcp.len",
-    "tcp.checksum",
-    "tcp.window_size",
+    "tcp.port",
+    "tcp.segments.count",
     "tcp.srcport",
-    "tcp.checksum.status",
-    "tcp.nxtseq",
-    "tcp.status",
-    "tcp.analysis.bytes_in_flight",
-    "tcp.analysis.push_bytes_sent",
-    "tcp.ack",
-    "tcp.hdr_len",
-    "tcp.seq",
-    "tcp.window_size_value",
-    "data.data",
-    "data.len",
-    "tcp.analysis.acks_frame",
-    "tcp.analysis.ack_rtt",
-    "eth.src.addr",
-    "eth.src.eth.src_resolved",
-    "eth.src.ig",
-    "eth.src.src_resolved",
-    "eth.src.addr_resolved",
-    "ip.proto",
-    "ip.dst_host",
-    "ip.flags",
-    "ip.len",
-    "ip.checksum",
-    "ip.checksum.status",
-    "ip.version",
-    "ip.host",
-    "ip.status",
-    "ip.id",
-    "ip.hdr_len",
-    "ip.ttl",
+    "udp.port",
 )
 
 
@@ -167,14 +143,72 @@ class PysharkProcessor(DataProcessor):
                 p_dict.update(_add_layer_to_dict(layer))
             return p_dict
 
-        return self.add_func(
-            lambda d_point: packet_to_dict_func(d_point)
-        ).flatten_dict()
+        return (
+            self.add_func(lambda d_point: packet_to_dict_func(d_point))
+            .flatten_dict()
+            .ensure_features_exist()
+        )
+
+    def ensure_features_exist(self) -> Self:
+        """Adds a function ensuring the following features exist in the result
+        dictionary, if related features exist:
+
+        sll.eth
+        ipv6.addr
+        ipv6.src
+        ipv6.dst
+        eth.str
+        eth.dst
+        ip.addr
+        ip.src
+        ip.dst
+        tcp.srcport
+        tcp.dstport
+        """
+        feature_tuples = [
+            ("sll.src.eth", "sll.eth"),
+            ("ipv6.addr", "ipv6.host"),
+            ("eth.src", "eth.src.addr"),
+            ("eth.dst", "eth.dst.addr"),
+            ("ip.addr", "ip.host"),
+        ]
+        features_from_list = [
+            ("ipv6.src", "ipv6.dst", "ipv6.addr"),
+            ("tcp.srcport", "tcp.dstport", "tcp.port"),
+            ("ip.src", "ip.dst", "ip.addr"),
+        ]
+
+        def ensure_features_exist_func(data_point: dict) -> dict:
+            for features in feature_tuples:
+                value = next(
+                    (
+                        data_point[feature]
+                        for feature in features
+                        if feature in data_point
+                    ),
+                    None,
+                )
+                if not value:
+                    continue
+                new_features = {feature: value for feature in features}
+                data_point.update(new_features)
+
+            if "eth.src" in data_point and "eth.dst" in data_point:
+                data_point["eth.addr"] = [data_point["eth.src"], data_point["eth.dst"]]
+
+            for src, dst, parent in features_from_list:
+                if parent in data_point:
+                    data_point[src] = data_point[parent][0]
+                    data_point[dst] = data_point[parent][1]
+            return data_point
+
+        return self.add_func(lambda d_point: ensure_features_exist_func(d_point))
 
     @classmethod
     def create_simple_processor(
         cls,
-        name: str = "",
+        name: str = "PysharkProcessor",
+        log_level: int = None,
         f_features: list[str, ...] = pcap_f_features,
         nn_aggregator: Callable[[str, object], object] = pcap_nn_aggregator,
     ) -> Self:
@@ -183,12 +217,13 @@ class PysharkProcessor(DataProcessor):
         ready for to be further processed by detection models.
 
         :param name: Name of processor for logging purposes.
+        :param log_level: Logging level of processor.
         :param f_features: Features to extract from the packets.
         :param nn_aggregator: Aggregator, which should map non-numerical features to
         integers / floats.
         """
         return (
-            PysharkProcessor(name=name)
+            PysharkProcessor(name=name, log_level=log_level)
             .packet_to_dict()
             .select_dict_features(features=f_features, default_value=np.nan)
             .dict_to_array(nn_aggregator=nn_aggregator)
@@ -261,7 +296,7 @@ def _add_layer_to_dict(layer: (XmlLayer, JsonLayer)) -> (dict, list):
         return _add_layer_field_container_to_dict(layer)
 
     elif isinstance(layer, LayerField):
-        return {layer.name: layer.show}
+        return {layer.name: layer.raw_value}
 
     # Backwards Compatibility for JSON-mode
     elif isinstance(layer, list):
@@ -315,9 +350,12 @@ def _add_list_to_dict(
         dictionary[layer.get_field(field_name).layer_name] = value_list
 
     else:
-        dictionary[next(iter(value_list[0].keys()))] = [
-            res[next(iter(value_list[0].keys()))] for res in value_list
-        ]
+        try:
+            dictionary[next(iter(value_list[0].keys()))] = [
+                res[next(iter(value_list[0].keys()))] for res in value_list
+            ]
+        except KeyError:
+            pass
     return dictionary
 
 
@@ -352,7 +390,8 @@ def _add_layer_field_container_to_dict(
 # noinspection DuplicatedCode
 @deprecated("Use PysharkProcessor.create_simple_processor() instead")
 def create_pyshark_processor(
-    name: str = "",
+    name: str = "PysharkProcessor",
+    log_level: int = None,
     f_features: list[str, ...] = pcap_f_features,
     nn_aggregator: Callable[[str, object], object] = pcap_nn_aggregator,
 ):
@@ -362,22 +401,15 @@ def create_pyshark_processor(
     detection models.
 
     :param name: The name for logging purposes
+    :param log_level: Logging level of processor.
     :param f_features: The features to extract from the packets
     :param nn_aggregator: The aggregator, which should map features to integers
     """
     return (
-        DataProcessor(name=name)
-        .add_func(lambda o_point: packet_to_dict(o_point))
-        .add_func(
-            lambda o_point: select_feature(
-                d_point=o_point, f_features=f_features, default_value=np.nan
-            )
-        )
-        .add_func(
-            lambda o_point: dict_to_numpy_array(
-                d_point=o_point, nn_aggregator=nn_aggregator
-            )
-        )
+        PysharkProcessor(name=name, log_level=log_level)
+        .packet_to_dict()
+        .select_dict_features(f_features, default_value=np.nan)
+        .dict_to_array(nn_aggregator)
     )
 
 
