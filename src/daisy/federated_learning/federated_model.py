@@ -19,6 +19,8 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import Tensor
 
+from daisy.federated_learning.model_classes.vae import DetectorVAE
+
 
 class FederatedModel(ABC):
     """An abstract model wrapper that offers the same methods, no matter the type of
@@ -95,8 +97,23 @@ class TFFederatedModel(FederatedModel):
         :param epochs: Number of epochs (rounds) during training.
         """
         self._model = model
-        self._model.compile(optimizer=optimizer, loss=loss, metrics=metrics)
-
+        # behandelt dynamische custom loss Funktionen anderes als statische standard loss Funktionen
+        if (
+            isinstance(
+                loss, keras.losses.Loss
+            )  # Klassenbasierte benutzerdefinierte Verluste
+            or callable(loss)  # Callable Funktionen (inkl. Lambda)
+            or isinstance(loss, tf.Tensor)  # TensorFlow Tensoren
+            or tf.is_tensor(loss)  # Alle TensorFlow-Tensoren, inkl. KerasTensor
+            or isinstance(
+                loss, keras.layers.Layer
+            )  # Benutzerdefinierte Schichten, die `add_loss` verwenden
+            or hasattr(loss, "__call__")
+        ):  # Objekte mit einer __call__-Methode
+            self._model.add_loss(loss)
+            self._model.compile(optimizer=optimizer, metrics=metrics or [])
+        else:
+            self._model.compile(optimizer=optimizer, loss=loss, metrics=metrics or [])
         self._batch_size = batch_size
         self._epochs = epochs
 
@@ -135,7 +152,9 @@ class TFFederatedModel(FederatedModel):
         :param x_data: Input data.
         :return: Predicted output tensor.
         """
-        if len(x_data) > self._batch_size:
+        if (
+            len(x_data) >= self._batch_size
+        ):  # was ist der unterschied dieser zwei aufrufe? müsste da nicht >= sein. Es war =
             return self._model.predict(x=x_data, batch_size=self._batch_size)
         return self._model(x_data, training=False).numpy()
 
@@ -179,6 +198,88 @@ class TFFederatedModel(FederatedModel):
         fae_outputs = decoder(encoded)
         fae = keras.models.Model(inputs=fae_inputs, outputs=fae_outputs)
         return TFFederatedModel(fae, optimizer, loss, metrics, batch_size, epochs)
+
+    @classmethod
+    def get_fvae(
+        cls,
+        input_size: int,
+        latent_dim: int = 4,
+        hidden_layers: list[int] = [15, 12],
+        optimizer: str | keras.optimizers.Optimizer = "Adam",
+        metrics: list[str | Callable | keras.metrics.Metric] = None,
+        batch_size: int = 32,
+        epochs: int = 1,
+    ) -> Self:
+        """
+        Factory class method to create a simple Variational Autoencoder (VAE) model
+        with a fixed architecture and variable input size.
+
+        :param input_size: Dimensionality of the input/output of the VAE.
+        :param latent_dim: Dimensionality of the latent space.
+        :param optimizer: Optimizer to use during training.
+        :param loss: Loss function to use during training.
+        :param metrics: Evaluation metrics to be displayed during training and testing.
+        :param batch_size: Batch size during training and prediction.
+        :param epochs: Number of epochs during training.
+        :return: Initialized VAE model.
+        """
+
+        vae_detector = DetectorVAE(
+            input_size, hidden_layers=hidden_layers, latent_dim=latent_dim
+        )
+        vae = vae_detector.model
+        loss = vae_detector.loss
+
+        vae.summary()
+
+        return TFFederatedModel(vae, optimizer, loss, metrics, batch_size, epochs)
+
+    @classmethod
+    def get_ftae(
+        cls,
+        input_size: int,
+        optimizer: str | keras.optimizers.Optimizer = "Adam",
+        loss: str | keras.losses.Loss = "mse",
+        metrics: list[str | Callable | keras.metrics.Metric] = None,
+        batch_size: int = 32,
+        epochs: int = 1,
+    ) -> Self:
+        """Factory class method to create a simple federated transformer autoencoder model of a
+        fixed depth but with variable input size.
+
+        :param input_size: Dimensionality of input/output of autoencoder.
+        :param optimizer: Optimizer to use during training.
+        :param loss: Loss function to use during training.
+        :param metrics: Evaluation metrics to be displayed during training and testing.
+        :param batch_size: Batch size during training and prediction.
+        :param epochs: Number of epochs (rounds) during training.
+        :return: Initialized federated autoencoder model.
+        """
+
+        enc_inputs = keras.layers.Input(
+            shape=(input_size,)
+        )  # input_dim ist die Anzahl der Merkmale
+        x = keras.layers.Dense(32)(enc_inputs)
+        x = keras.layers.LayerNormalization(epsilon=1e-6)(x)
+
+        # Expandieren der Dimensionen, damit die Eingabe kompatibel ist mit MultiHeadAttention
+        x = tf.expand_dims(x, axis=1)  # Form: (batch_size, 1, feature_dim)
+
+        for _ in range(4):
+            attn_output = keras.layers.MultiHeadAttention(num_heads=2, key_dim=32)(x, x)
+            x = keras.layers.LayerNormalization(epsilon=1e-6)(x + attn_output)
+
+        # Entfernen der zusätzlichen Dimension, bevor die Dense-Schicht verarbeitet wird
+        x = tf.squeeze(x, axis=1)  # Form: (batch_size, feature_dim)
+
+        # Ausgabeschicht
+        outputs = keras.layers.Dense(units=input_size)(x)  # Rekonstruktion der Eingabe
+
+        ftae = keras.models.Model(enc_inputs, outputs)
+
+        ftae.summary()
+
+        return TFFederatedModel(ftae, optimizer, loss, metrics, batch_size, epochs)
 
 
 class FederatedIFTM(FederatedModel):
@@ -288,6 +389,31 @@ class FederatedIFTM(FederatedModel):
         self._tm.fit(pred_errs, y_data)
         # Train IF
         self._if.fit(x_data, y_true)
+
+        # for test
+        tensor = self._tm.predict(pred_errs)
+        detections = tensor.numpy().astype(int).reshape(-1, 1)
+
+        # das sind die predictions self._tm.predict(pred_errs) true ist jammer on false jammer of die batchsoze ist 32
+        # dassind die echten labels y_data
+        if np.all(y_data):
+            print("Alle Datenpunkte gejammt")
+        elif not np.any(y_data):
+            print("Keiner der Datenpunkte gejammt")
+        else:
+            print("Einige der Datenpunkte gejammt, andere nicht")
+
+        if np.all(detections):
+            print("Alle Vorhersagen weißen auf jamming hin")
+        elif not np.any(detections):
+            print("Keine der Vorhersagen weißt auf jamming hin")
+        else:
+            print("Einige der Vorhersagen weißt auf jamming hin")
+
+        if np.array_equal(y_data, detections):
+            print("Vorhersage und Realität stimmen überein")
+        else:
+            print("Vorhersage und Realität stimmen nicht überein")
 
     def predict(self, x_data) -> Optional[Tensor]:
         """Makes a prediction on the given data and returns it by calling the wrapped
