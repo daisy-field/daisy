@@ -24,9 +24,6 @@ import logging
 
 from daisy.federated_ids_components import FederatedModelAggregator
 from daisy.federated_learning import FedAvgAggregator
-from daisy.personalized_fl_components.distillative.distillative_model_aggregator import (
-    DistillativeModelAggregator,
-)
 
 
 def _parse_args() -> argparse.Namespace:
@@ -84,14 +81,6 @@ def _parse_args() -> argparse.Namespace:
         metavar="",
         help="IP of (external) dashboard server",
     )
-    aggr_options.add_argument(
-        "--pflMode",
-        type=str,
-        choices=["generative", "distillative", "layerwise"],
-        default=None,
-        metavar="",
-        help="Enable personalized FL and choose desired method: generative, distillative, layerwise",
-    )
 
     return parser.parse_args()
 
@@ -120,27 +109,15 @@ def create_server():
 
     aggr = FedAvgAggregator()
 
-    if args.pflMode == "distillative":
-        server = DistillativeModelAggregator(
-            m_aggr=aggr,
-            addr=(args.serv, args.servPort),
-            timeout=args.timeout,
-            update_interval=args.updateInterval,
-            num_clients=args.numClients,
-            dashboard_url=args.dashboardURL,
-        )
-    elif args.pflMode == "layerwise":
-        raise NotImplementedError
-    else:
-        server = FederatedModelAggregator(
-            m_aggr=aggr,
-            addr=(args.serv, args.servPort),
-            timeout=args.timeout,
-            update_interval=args.updateInterval,
-            num_clients=args.numClients,
-            dashboard_url=args.dashboardURL,
-        )
-
+    # Server
+    server = FederatedModelAggregator(
+        m_aggr=aggr,
+        addr=(args.serv, args.servPort),
+        timeout=args.timeout,
+        update_interval=args.updateInterval,
+        num_clients=args.numClients,
+        dashboard_url=args.dashboardURL,
+    )
     server.start()
     input("Press Enter to stop server...")
     server.stop()

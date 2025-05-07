@@ -282,9 +282,7 @@ class FederatedOnlineNode(ABC):
                 self._minibatch_inputs.append(sample[: self._label_split])
                 self._minibatch_labels.append(sample[self._label_split :])
 
-                if (
-                    len(self._minibatch_inputs) >= self._batch_size
-                ):  # müsste das nicht >= sein? das war >
+                if len(self._minibatch_inputs) > self._batch_size:
                     self._logger.debug("AsyncLearner: Processing full minibatch...")
                     with self._m_lock:
                         self._process_batch()
@@ -436,7 +434,6 @@ class FederatedOnlineClient(FederatedOnlineNode):
         sync_mode: bool = True,
         update_interval_s: int = None,
         update_interval_t: int = None,
-        poisoning_mode: str = None,
     ):
         """Creates a new federated online client.
 
@@ -491,7 +488,6 @@ class FederatedOnlineClient(FederatedOnlineNode):
             multithreading=True,
         )
         self._timeout = timeout
-        self._poisoningMode = poisoning_mode
 
     def setup(self):
         _try_ops(lambda: self._m_aggr_server.start(), logger=self._logger)
@@ -515,43 +511,10 @@ class FederatedOnlineClient(FederatedOnlineNode):
         """
         with self._m_lock:
             current_params = self._model.get_parameters()
-            self._logger.info("Model Parameters:")
-            for i in current_params:
-                if not (isinstance(i, int) or isinstance(i, float)):
-                    self._logger.info(i.shape)
-                else:
-                    self._logger.info(i)
-
-            poisoned_params = []
-
-            if self._poisoningMode is None:
-                self._m_aggr_server.send(current_params)
-            else:
-                if self._poisoningMode == "zeros":
-                    for layer in current_params:
-                        if isinstance(layer, int) or isinstance(layer, float):
-                            poisoned_params.append(0)
-                        else:
-                            poisoned_params.append(np.zeros_like(layer))
-                elif self._poisoningMode == "random":
-                    for layer in current_params:
-                        if isinstance(layer, int) or isinstance(layer, float):
-                            poisoned_params.append(np.random.random())
-                        else:
-                            poisoned_params.append(np.random.random_sample(layer.shape))
-                elif self._poisoningMode == "inverse":
-                    for layer in current_params:
-                        poisoned_params.append(layer * -1)
-
-                self._logger.info("Poisoned Parameters:")
-                for i in poisoned_params:
-                    if not (isinstance(i, int) or isinstance(i, float)):
-                        self._logger.info(i.shape)
-                    else:
-                        self._logger.info(i)
-
-                self._m_aggr_server.send(poisoned_params)
-                self._model.set_parameters(poisoned_params)  # new_params)
+            self._logger.debug(
+                "Sending local model parameters to model aggregation server..."
+            )
+            self._m_aggr_server.send(current_params)
 
             self._logger.debug(
                 "Receiving global model parameters from model aggregation server..."
@@ -571,12 +534,9 @@ class FederatedOnlineClient(FederatedOnlineNode):
                 )
                 return
 
-            if self._poisoningMode is not None:
-                self._model.set_parameters(poisoned_params)  # new_params)
-            else:
-                self._logger.debug("Updating local model with global parameters...")
-                new_params = cast(np.array, m_aggr_msg)
-                self._model.set_parameters(new_params)
+            self._logger.debug("Updating local model with global parameters...")
+            new_params = cast(np.array, m_aggr_msg)
+            self._model.set_parameters(new_params)
 
     def create_async_fed_learner(self):
         """Starts the loop to check whether the conditions for a synchronized
