@@ -24,6 +24,7 @@ import keras
 from daisy.communication import StreamEndpoint
 from daisy.data_sources import DataHandler
 from daisy.federated_learning import FederatedModel, ModelAggregator
+from daisy.model_poisoning.model_poisoning import ModelPoisoning, PoisoningMode
 
 
 class FederatedOnlineNode(ABC):
@@ -421,6 +422,7 @@ class FederatedOnlineClient(FederatedOnlineNode):
         batch_size: int,
         model: FederatedModel,
         m_aggr_server: tuple[str, int],
+        model_poisoner: ModelPoisoning = None,
         timeout: int = 10,
         name: str = "FederatedOnlineClient",
         log_level: int = None,
@@ -442,6 +444,7 @@ class FederatedOnlineClient(FederatedOnlineNode):
         :param model: Actual model to be fitted and run predictions on in online manner.
         :param m_aggr_server: Address of centralized model aggregation server
         (see aggregator.py).
+        :param model_poisoner: Model poisoning class
         :param timeout: Timeout for waiting to receive global model updates from
         model aggregation server.
         :param name: Name of federated online node for logging purposes.
@@ -488,6 +491,10 @@ class FederatedOnlineClient(FederatedOnlineNode):
             multithreading=True,
         )
         self._timeout = timeout
+        if model_poisoner:
+            self._model_poisoner = model_poisoner
+        else:
+            self._model_poisoner = ModelPoisoning(PoisoningMode.NONE)
 
     def setup(self):
         _try_ops(lambda: self._m_aggr_server.start(), logger=self._logger)
@@ -511,6 +518,11 @@ class FederatedOnlineClient(FederatedOnlineNode):
         """
         with self._m_lock:
             current_params = self._model.get_parameters()
+            current_params = self._model_poisoner.get_poisoned_parameters(
+                current_params
+            )
+            if self._model_poisoner.poisoning_mode.overwrite_local_model:
+                self._model.set_parameters(current_params)
             self._logger.debug(
                 "Sending local model parameters to model aggregation server..."
             )
@@ -534,9 +546,10 @@ class FederatedOnlineClient(FederatedOnlineNode):
                 )
                 return
 
-            self._logger.debug("Updating local model with global parameters...")
-            new_params = cast(np.array, m_aggr_msg)
-            self._model.set_parameters(new_params)
+            if self._model_poisoner.poisoning_mode.accept_global_model:
+                self._logger.debug("Updating local model with global parameters...")
+                new_params = cast(np.array, m_aggr_msg)
+                self._model.set_parameters(new_params)
 
     def create_async_fed_learner(self):
         """Starts the loop to check whether the conditions for a synchronized
