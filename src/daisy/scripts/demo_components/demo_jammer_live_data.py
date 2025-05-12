@@ -31,21 +31,42 @@ Modified: 04.11.24
 
 import argparse
 import logging
+from datetime import datetime
 
+from daisy.communication import StreamEndpoint
 from daisy.data_sources import (
-    CSVFileDataSource,
     DataProcessor,
     DataHandler,
     pcap_nn_aggregator,
+    JammerWebSocketDataSource,
+    SimpleRemoteDataSource,
 )
 import tensorflow as tf
 
-from daisy.data_sources.jammerdetection_traffic import scale_data_point
 from daisy.evaluation import ConfMatrSlidingWindowEvaluation
 from daisy.federated_ids_components import FederatedOnlineClient
 from daisy.federated_learning import TFFederatedModel, FederatedIFTM, EMAvgTM
 
 from keras.optimizers import Adam
+
+
+def parse_event(line: str) -> tuple[datetime, datetime, str, str]:
+    """Takes a single line and splits it into start and end time, label, and condition
+    for use in the event handler. The line should have the layout:
+        start time, end time, label, condition
+    The start and end times should be floats representing the time since epoch. The
+    label and condition should be strings.
+
+    :param line: A single line
+    :return: The start and end times, the label and the condition
+    """
+    parts = line.split(",")
+    start_time = datetime.fromtimestamp(float(parts[0].strip()))
+    end_time = datetime.fromtimestamp(float(parts[1].strip()))
+    label = parts[2].strip()
+    condition = ",".join(parts[3::]).strip()
+
+    return start_time, end_time, label, condition
 
 
 def _parse_args() -> argparse.Namespace:
@@ -58,6 +79,13 @@ def _parse_args() -> argparse.Namespace:
     """
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+
+    parser.add_argument(
+        "--url",
+        type=str,
+        default="ws://10.42.6.111:4501/Phy",
+        help="WebSocket-URL des Servers (Default: ws://10.42.6.111:4501/Phy)",
     )
 
     logging_group_main = parser.add_argument_group(
@@ -150,16 +178,6 @@ def _parse_args() -> argparse.Namespace:
         help="Port of aggregation server",
     )
 
-    parser.add_argument(
-        "--input-file",
-        "-f",
-        type=str,
-        default="--input-file /mnt/h/daisy_datasets/Jamming/merged_data_preprocessed_only_one_lable.csv",
-        metavar="FILE",
-        required=True,
-        help="The input CSV file to read.",
-    )
-
     client_options = parser.add_argument_group("Client Options")
     client_options.add_argument(
         "--batchSize",
@@ -229,6 +247,28 @@ def check_args(args):
         )
 
 
+def create_data_source(args):
+    """Creates and returns the data handler"""
+
+    if args.url:
+        return JammerWebSocketDataSource(
+            name="jamming_data_collector:jamming_live_data_source",
+            url=args.url,
+            log_level=args.loglevel,
+        )
+    else:
+        stream_endpoint = StreamEndpoint(
+            name="data_collector:stream_endpoint",
+            addr=(args.local_ip, args.local_port),
+            remote_addr=(args.remote_ip, args.remote_port),
+            acceptor=True,
+            multithreading=args.io_multithreading,
+        )
+        return SimpleRemoteDataSource(
+            endpoint=stream_endpoint, name="data_collector:remote_data_source"
+        )
+
+
 def create_relay():
     """Creates and starts the federated client relay.
 
@@ -247,9 +287,7 @@ def create_relay():
         aggr_serv = (args.aggrServ, args.aggrServPort)
 
     # Datasource
-    data_source = CSVFileDataSource(
-        files=[args.input_file for _ in range(10)], name="JammerClient:DataSource"
-    )
+    data_source = create_data_source(args)
 
     features_to_keep = [
         "Jammer_On",
@@ -275,7 +313,6 @@ def create_relay():
     data_processor = (
         DataProcessor()
         .keep_dict_feature(features_to_keep)
-        .add_func(scale_data_point)
         .dict_to_array(nn_aggregator=pcap_nn_aggregator)
     )
     data_handler = DataHandler(
@@ -287,7 +324,7 @@ def create_relay():
     )
 
     # test
-    data_source.open()
+    # data_source.open()
 
     # for sample in data_source:
     #    print(sample)

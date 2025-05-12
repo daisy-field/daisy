@@ -15,16 +15,13 @@ Currently, the following script-demos are provided:
 
     * demo_202303_client - Basic F-IDS component demo using a simple client-server
     topology, along with the march23 dataset.
-    * TODO
 
 Author: Fabian Hofmann
 Modified: 10.04.24
 """
 
-__all__ = [
-    "v2x_2023_03_06_client",
-    "demo_jammer",
-]
+__all__ = ["v2x_2023_03_06_client", "demo_jammer", "demo_jammer_live_data"]
 
 from .v2x_2023_03_06_client import create_client as v2x_2023_03_06_client
 from .demo_jammer import create_relay as demo_jammer
+from .demo_jammer_live_data import create_relay as demo_jammer_live_data

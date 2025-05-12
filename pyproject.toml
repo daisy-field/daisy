@@ -112,7 +112,9 @@ dependencies = [
     "djangorestframework~=3.15.2",
     "pyparsing~=3.2.1",
     "typing-extensions~=4.12.2",
-    "natsort~=8.4.0"
+    "natsort~=8.4.0",
+    "pandas~=2.2.3",
+    "websocket-client~=1.8.0"
 ]
 
 # List additional groups of dependencies here (e.g. development

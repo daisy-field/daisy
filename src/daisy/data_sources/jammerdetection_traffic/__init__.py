@@ -12,7 +12,9 @@ Modified: 24.01.2024
 """
 
 __all__ = [
+    "JammerWebSocketDataSource",
     "scale_data_point",
 ]
 
+from .jammer_handler import JammerWebSocketDataSource
 from .jammer_detection_handler import scale_data_point
