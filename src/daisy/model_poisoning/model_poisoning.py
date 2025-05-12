@@ -54,6 +54,13 @@ class ModelPoisoning:
         name: str = "ModelPoisoning",
         log_level: int = None,
     ):
+        """Instantiates the model poisoning class, which poisons the given parameters
+        with the provided poisoning mode.
+
+        param poisoning_mode: The poisoning mode to use.
+        param name: The name of the poisoning mode. Used for logging
+        param log_level: The logging level to use.
+        """
         self._logger = logging.getLogger(name)
         if log_level:
             self._logger.setLevel(log_level)
@@ -61,8 +68,7 @@ class ModelPoisoning:
         self.poisoning_mode = poisoning_mode
 
     def get_poisoned_parameters(self, parameters: list):
-        """
-        Function to poison the parameters of a node according to the poisoning mode.
+        """Function to poison the parameters of a node according to the poisoning mode.
 
         :param parameters: list of real parameters calculated by the node
         :return: manipulated list according to the poisoning mode
@@ -81,8 +87,7 @@ class ModelPoisoning:
 
     @staticmethod
     def _zero_poisoning(parameters: list):
-        """
-        Zero poisoning replacing all weights with zero values.
+        """Zero poisoning replacing all weights with zero values.
 
         :param parameters: list of real parameters calculated by the node
         :return: list of zeros in the same shape as parameters
@@ -96,8 +101,7 @@ class ModelPoisoning:
 
     @staticmethod
     def _inverse_poisoning(parameters: list):
-        """
-        Inverse poisoning replacing all weights with inverse values.
+        """Inverse poisoning replacing all weights with inverse values.
 
         :param parameters: list of real parameters calculated by the node
         :return: inverted weights in the same shape as parameters
@@ -109,8 +113,7 @@ class ModelPoisoning:
 
     @staticmethod
     def _random_poisoning(parameters: list):
-        """
-        Random poisoning replacing all weights with random values.
+        """Random poisoning replacing all weights with random values.
 
         :param parameters: list of real parameters calculated by the node
         :return: list containing randomized values in the same shape as parameters
