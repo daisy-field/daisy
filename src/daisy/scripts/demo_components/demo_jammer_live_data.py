@@ -290,13 +290,13 @@ def create_relay():
     data_source = create_data_source(args)
 
     features_to_keep = [
-        "Jammer_On",
+        # "Jammer_On",
         "CQI_DLLA",
         "MCS_DLLA",
         "CQI_Change_DLLA",
         "Nack_DLLA",
         "Alloc_RBs_DLLA",
-        "UL-BLER-CRC_UELink",
+        # "UL-BLER-CRC_UELink",
         "C2I_UELink",
         #   "Connected_UELink",
         "Layers_DLLA",
@@ -307,7 +307,8 @@ def create_relay():
         "DLAL_4_DLLA",
         "DLAL_8_DLLA",
         "DLAL_16_DLLA",
-        "UL-MCS_UELink",
+        # "UL-MCS_UELink",
+        "UL_BLER_CRC_UELink",
     ]
 
     data_processor = (
@@ -333,7 +334,7 @@ def create_relay():
     optimizer = Adam(learning_rate=0.003)
 
     id_fn = TFFederatedModel.get_fvae(
-        input_size=17,
+        input_size=15,
         optimizer=optimizer,
         batch_size=args.batchSize,
         epochs=1,
@@ -350,7 +351,7 @@ def create_relay():
         data_handler=data_handler,
         batch_size=args.batchSize,  # z.B: 10*32
         model=model,
-        label_split=17,
+        label_split=15,
         metrics=metrics,
         m_aggr_server=m_aggr_serv,
         eval_server=eval_serv,

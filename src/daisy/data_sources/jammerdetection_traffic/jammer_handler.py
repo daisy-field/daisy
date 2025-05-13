@@ -100,7 +100,7 @@ class JammerWebSocketDataSource(DataSource):
             except queue.Empty:
                 continue
             try:
-                yield json.loads(raw)
+                yield json.loads(raw)["Message"]
             except json.JSONDecodeError:
                 self._logger.warning(
                     f'⚠️ Nachricht: "{raw}" war kein gültiges JSON, wird übersprungen.'
