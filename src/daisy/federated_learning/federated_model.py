@@ -432,6 +432,10 @@ class FederatedIFTM(FederatedModel):
         else:
             print("Vorhersage und Realität stimmen nicht überein")
 
+        # Überprüfen, ob y leer ist, und es ggf. mit Nullen auffüllen
+        if y_data.size == 0:
+            y_data = np.zeros(x_data.shape[0])
+
         self.evaluate(if_history, x_data, y_data)
 
     def evaluate(self, history, X_test, y_test):

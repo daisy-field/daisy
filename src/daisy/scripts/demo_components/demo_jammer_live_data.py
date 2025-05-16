@@ -88,7 +88,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--url",
         type=str,
-        default="ws://172.21.6.70:4501/Phy",  # "ws://10.42.6.111:4501/Phy",
+        default="ws://10.42.6.111:4501/Phy",  # "ws://10.42.6.111:4501/Phy",
         help="WebSocket-URL des Servers (Default: ws://10.42.6.111:4501/Phy)",
     )
 
