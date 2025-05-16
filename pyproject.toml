@@ -114,7 +114,9 @@ dependencies = [
     "typing-extensions~=4.12.2",
     "natsort~=8.4.0",
     "pandas~=2.2.3",
-    "websocket-client~=1.8.0"
+    "websocket-client~=1.8.0",
+    "matplotlib~=3.10.3",
+    "seaborn~=0.13.2",
 ]
 
 # List additional groups of dependencies here (e.g. development

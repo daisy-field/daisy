@@ -45,7 +45,11 @@ import tensorflow as tf
 
 from daisy.evaluation import ConfMatrSlidingWindowEvaluation
 from daisy.federated_ids_components import FederatedOnlineClient
-from daisy.federated_learning import TFFederatedModel, FederatedIFTM, EMAvgTM
+from daisy.federated_learning import (
+    TFFederatedModel,
+    FederatedIFTM,
+    EMAMADThresholdModel,
+)
 
 from keras.optimizers import Adam
 
@@ -84,7 +88,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--url",
         type=str,
-        default="ws://10.42.6.111:4501/Phy",
+        default="ws://172.21.6.70:4501/Phy",  # "ws://10.42.6.111:4501/Phy",
         help="WebSocket-URL des Servers (Default: ws://10.42.6.111:4501/Phy)",
     )
 
@@ -182,7 +186,7 @@ def _parse_args() -> argparse.Namespace:
     client_options.add_argument(
         "--batchSize",
         type=int,
-        default=32,
+        default=127,  # 32,
         metavar="",
         help="Batch size during processing of data "
         "(mini-batches are multiples of that argument)",
@@ -331,16 +335,18 @@ def create_relay():
     #    print(sample)
 
     # Model
-    optimizer = Adam(learning_rate=0.003)
+    optimizer = Adam(learning_rate=0.001)
 
     id_fn = TFFederatedModel.get_fvae(
         input_size=15,
+        latent_dim=8,
+        hidden_layers=[32, 16],
         optimizer=optimizer,
         batch_size=args.batchSize,
         epochs=1,
         metrics=["accuracy"],
     )
-    t_m = EMAvgTM(alpha=0.05)
+    t_m = EMAMADThresholdModel(alpha=0.2, mad_multiplier=2.5)  # EMAvgTM(alpha=0.05)
     err_fn = tf.keras.losses.MeanAbsoluteError(reduction=tf.keras.losses.Reduction.NONE)
     model = FederatedIFTM(identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn)
 

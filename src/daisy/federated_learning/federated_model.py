@@ -21,6 +21,11 @@ from tensorflow import Tensor
 
 from daisy.federated_learning.model_classes.vae import DetectorVAE
 
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+from sklearn.metrics import roc_auc_score, precision_recall_curve, auc, confusion_matrix
+
 
 class FederatedModel(ABC):
     """An abstract model wrapper that offers the same methods, no matter the type of
@@ -139,9 +144,15 @@ class TFFederatedModel(FederatedModel):
         :param x_data: Input data.
         :param y_data: Expected output.
         """
-        self._model.fit(
-            x=x_data, y=y_data, batch_size=self._batch_size, epochs=self._epochs
+        history = self._model.fit(
+            x=x_data,
+            y=y_data,
+            batch_size=self._batch_size,
+            epochs=self._epochs,
+            validation_split=0.1,
+            verbose=1,
         )
+        return history
 
     def predict(self, x_data) -> Tensor:
         """Makes a prediction on the given data and returns it by calling the wrapped
@@ -157,6 +168,10 @@ class TFFederatedModel(FederatedModel):
         ):  # was ist der unterschied dieser zwei aufrufe? müsste da nicht >= sein. Es war =
             return self._model.predict(x=x_data, batch_size=self._batch_size)
         return self._model(x_data, training=False).numpy()
+
+    def compute_errors(self, X):
+        recon = self._model.predict(X)
+        return np.mean(np.square(X - recon), axis=1)
 
     @classmethod
     def get_fae(
@@ -386,9 +401,11 @@ class FederatedIFTM(FederatedModel):
         # Train TM
         y_pred = self._if.predict(x_data)
         pred_errs = self._ef(y_true, y_pred)
+        mittelwert = np.mean(pred_errs)
+        print(f"<<<<<<<<<<Fehlermittelwert: {mittelwert}")
         self._tm.fit(pred_errs, y_data)
         # Train IF
-        self._if.fit(x_data, y_true)
+        if_history = self._if.fit(x_data, y_true)
 
         # for test
         tensor = self._tm.predict(pred_errs)
@@ -414,6 +431,76 @@ class FederatedIFTM(FederatedModel):
             print("Vorhersage und Realität stimmen überein")
         else:
             print("Vorhersage und Realität stimmen nicht überein")
+
+        self.evaluate(if_history, x_data, y_data)
+
+    def evaluate(self, history, X_test, y_test):
+        y_test = y_test.squeeze()
+
+        # Rekonstruktionsfehler berechnen
+        errors = self._if.compute_errors(X_test)
+
+        # Compute errors and determine threshold using final labels
+        self._tm.fit(errors, y_test)
+        thresh = self._tm.get_threshold()
+        print(f"Set threshold: {thresh:.4f}")
+        y_pred = self._tm.predict(errors)
+
+        # Metrics
+        cm = confusion_matrix(y_test, y_pred)
+        roc = roc_auc_score(y_test, errors)
+        prec, rec, _ = precision_recall_curve(y_test, errors)
+        pr = auc(rec, prec)
+
+        # Plots
+        plt.figure(figsize=(12, 5))
+        plt.subplot(1, 2, 1)
+
+        # Gesamten Wertebereich bestimmen (nur falls Fehler vorhanden sind)
+        all_errors = errors[np.isin(y_test, [0, 1])]
+        if all_errors.size > 0:
+            min_val = all_errors.min()
+            max_val = all_errors.max()
+        else:
+            min_val, max_val = 0, 1  # Fallback, falls keine Daten
+
+        # Anzahl der Bins definieren (z.B. 10)
+        num_bins = 10
+
+        # Bins anhand des gemeinsamen Bereichs erstellen
+        bins = np.linspace(min_val - 0.1, max_val + 0.1, num_bins + 1)
+
+        # Histogramm für Normaldaten
+        if errors[y_test == 0].size > 0:
+            sns.histplot(errors[y_test == 0], label="Normal", kde=True, bins=bins)
+
+        # Histogramm für Anomaliedaten
+        if errors[y_test == 1].size > 0:
+            sns.histplot(errors[y_test == 1], label="Anomaly", kde=True, bins=bins)
+
+        plt.axvline(thresh, color="r", linestyle="--", label=f"Threshold={thresh:.3f}")
+        plt.xlabel("Reconstruction Error")  # X-Achse: Fehlerwerte
+        plt.ylabel("Frequency")  # Y-Achse: Häufigkeit der Fehlerwerte
+        plt.legend(loc="upper right")
+        plt.title("Error Distribution")
+
+        plt.subplot(1, 2, 2)
+        sns.heatmap(
+            cm,
+            annot=True,
+            fmt="d",
+            cmap="Blues",
+            xticklabels=["Normal", "Anomaly"],
+            yticklabels=["Normal", "Anomaly"],
+        )
+        plt.xlabel("Predicted")
+        plt.ylabel("Actual")
+        plt.title("Confusion Matrix")
+        plt.tight_layout()
+        plt.show()
+
+        print(f"ROC AUC: {roc:.4f}, PR AUC: {pr:.4f}")
+        return {"confusion_matrix": cm, "roc_auc": roc, "pr_auc": pr}
 
     def predict(self, x_data) -> Optional[Tensor]:
         """Makes a prediction on the given data and returns it by calling the wrapped

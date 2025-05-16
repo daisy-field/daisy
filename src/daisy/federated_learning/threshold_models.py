@@ -19,6 +19,7 @@ from collections import deque
 from typing import Callable, cast
 
 import numpy as np
+from sklearn.metrics import precision_recall_curve, roc_curve
 import tensorflow as tf
 from tensorflow import Tensor
 
@@ -109,6 +110,9 @@ class FederatedTM(FederatedModel, ABC):
         """
         raise NotImplementedError
 
+    def get_threshold(self):
+        return self._threshold
+
 
 class AvgTM(FederatedTM, ABC):
     """Base class for average-based threshold models, all of which computing their
@@ -191,6 +195,7 @@ class AvgTM(FederatedTM, ABC):
                 d_2 = sample - self._mean
                 self._var += d_1 * d_2
         self._threshold = self._mean + self._var * self._var_weight
+        print(f"<<<<<<<<<<<<<< current self._threshold: {self._threshold}")
 
     @abstractmethod
     def update_mean(self, new_sample: float):
@@ -463,3 +468,210 @@ class MadTM(FederatedTM):
     def update_threshold(self, x_data=None):
         """As it is set upon the creation of the threshold, nothing is to be updated."""
         pass
+
+
+class ThresholdModelSimon(FederatedTM, ABC):
+    def __init__(self, strategy: str = "youden"):
+        """
+        Threshold model based on common metric-driven strategies.
+
+        :param strategy: Strategy to determine threshold ('youden' or 'f1').
+        """
+        self.strategy = strategy
+        self._errors = None  # Save errors for threshold computation
+        self._y_true = None
+        super().__init__(
+            threshold=0.0, reduce_fn=lambda o: o
+        )  # no reduction by default
+
+    def fit(self, x_data, y_data=None):
+        """
+        Fit the model using errors and true labels. Determines a threshold using the chosen strategy.
+
+        :param x_data: Errors (e.g., reconstruction error)
+        :param y_data: Ground truth labels
+        """
+        if y_data is None:
+            raise ValueError("y_data (ground truth labels) must be provided.")
+        errors = np.array(x_data)
+        y_true = np.array(y_data)
+
+        if self.strategy == "youden":
+            fpr, tpr, thr = roc_curve(y_true, errors)
+            idx = np.argmax(tpr - fpr)
+            self._threshold = thr[idx]
+        elif self.strategy == "f1":
+            prec, rec, thr_pr = precision_recall_curve(y_true, errors)
+            f1 = 2 * prec * rec / (prec + rec + 1e-8)
+            idx = np.argmax(f1)
+            self._threshold = thr_pr[idx]
+        else:
+            raise ValueError(f"Unknown strategy: {self.strategy}")
+
+    def predict(self, x_data) -> Tensor:
+        """
+        Predict anomalies based on the computed threshold.
+
+        :param x_data: Errors
+        :return: Tensor of binary predictions (0 = normal, 1 = anomaly)
+        """
+        return tf.convert_to_tensor(x_data >= self._threshold, dtype=tf.bool)
+
+    def update_threshold(self, x_data=None):
+        """
+        No-op for this model, as threshold is only set during `fit` with ground truth.
+        """
+        pass
+
+    def set_parameters(self, parameters: list[np.ndarray]):
+        """
+        Set internal threshold value.
+
+        :param parameters: List with one float element (threshold)
+        """
+        self._threshold = float(parameters[0][0])
+
+    def get_parameters(self) -> list[np.ndarray]:
+        """
+        Get internal threshold value.
+
+        :return: List with one float array (threshold)
+        """
+        return [np.array([self._threshold], dtype=np.float32)]
+
+
+class FixThreshold(FederatedTM, ABC):
+    """
+    A simple threshold model with a fixed threshold value.
+
+    This model always uses the same threshold for predictions and does not update it.
+    """
+
+    def __init__(
+        self,
+        threshold: float = 0.5,
+        reduce_fn: Callable[[Tensor], Tensor] = lambda o: o,
+    ):
+        """
+        Initialize with a fixed threshold.
+
+        :param threshold: The fixed threshold to use for classification.
+        :param reduce_fn: Optional reduction function.
+        """
+        super().__init__(threshold=threshold, reduce_fn=reduce_fn)
+
+    def update_threshold(self, x_data=None):
+        """
+        No-op. Threshold is fixed and not updated.
+        """
+        pass
+
+    def set_parameters(self, parameters: list[np.ndarray]):
+        """
+        Set the threshold manually.
+
+        :param parameters: List with one float array (threshold)
+        """
+        self._threshold = float(parameters[0][0])
+
+    def get_parameters(self) -> list[np.ndarray]:
+        """
+        Return the fixed threshold.
+
+        :return: List with one float array (threshold)
+        """
+        return [np.array([self._threshold], dtype=np.float32)]
+
+
+class EMAMADThresholdModel(FederatedTM, ABC):
+    def __init__(self, alpha=0.1, mad_multiplier=3.0, window_size=100):
+        self.alpha = alpha
+        self.mad_multiplier = mad_multiplier
+        self.window_size = window_size
+
+        self.ema = None
+        self.buffer = deque(maxlen=window_size)
+
+        # Initial thresholds
+        self._lower_threshold = -np.inf
+        self._upper_threshold = np.inf
+
+        super().__init__(threshold=0.0)  # Threshold wird dynamisch gesetzt
+
+        # Und dann Schwellenwert setzen
+        self.update_threshold()
+
+    def update_state(self, x: float):
+        """Aktualisiert EMA und Puffer mit neuem Wert."""
+        if self.ema is None:
+            self.ema = x
+        else:
+            self.ema = self.alpha * x + (1 - self.alpha) * self.ema
+
+        self.buffer.append(x)
+
+    def compute_thresholds(self):
+        """Berechnet untere/obere Schwellenwerte basierend auf EMA und MAD."""
+        if len(self.buffer) < 5:
+            return -np.inf, np.inf  # Anfangsphase: keine Schwelle
+
+        median = np.median(self.buffer)
+        mad = np.median(np.abs(np.array(self.buffer) - median))
+
+        lower = self.ema - self.mad_multiplier * mad
+        upper = self.ema + self.mad_multiplier * mad
+        self._threshold = upper
+        return lower, upper
+
+    def fit(self, x_data, y_data=None):
+        for x in x_data:
+            self.update_state(x)
+        self.update_threshold()
+
+    def update_threshold(self, x_data=None):
+        """Rechnet aktuelle Schwellenwerte aus."""
+        if x_data is not None:
+            if isinstance(x_data, (np.ndarray, list, tf.Tensor)):
+                x_data = tf.convert_to_tensor(x_data, dtype=tf.float32)
+                for x in x_data.numpy().flatten():
+                    self.update_state(x)
+        self._lower_threshold, self._upper_threshold = self.compute_thresholds()
+
+    def predict(self, x_data) -> tf.Tensor:
+        """Vergleicht Eingabe(n) mit dynamischen Schwellenwerten."""
+        x_tensor = tf.convert_to_tensor(x_data, dtype=tf.float32)
+
+        preds = []
+        for x in x_tensor.numpy().flatten():
+            self.update_state(x)
+            self._lower_threshold, self._upper_threshold = self.compute_thresholds()
+            preds.append(float(x < self._lower_threshold or x > self._upper_threshold))
+
+        return tf.convert_to_tensor([bool(p) for p in preds], dtype=tf.bool)
+
+    def score(self, x: float) -> float:
+        """Gibt Distanz zum nächsten Schwellenwert zurück (Abweichung)."""
+        self.update_state(x)
+        lower, upper = self.compute_thresholds()
+        if x < lower:
+            return lower - x
+        elif x > upper:
+            return x - upper
+        else:
+            return 0.0
+
+    def get_parameters(self) -> list[np.ndarray]:
+        """Liefert interne Parameter (EMA, Buffer-Inhalt)."""
+        buffer_array = np.array(self.buffer, dtype=np.float32)
+        ema_val = (
+            np.array([self.ema], dtype=np.float32)
+            if self.ema is not None
+            else np.array([0.0])
+        )
+        return [ema_val, buffer_array]
+
+    def set_parameters(self, parameters: list[np.ndarray]):
+        """Stellt den Zustand aus übermittelten Parametern wieder her."""
+        self.ema = parameters[0].item()
+        self.buffer = deque(parameters[1].tolist(), maxlen=self.window_size)
+        super().set_parameters(parameters)

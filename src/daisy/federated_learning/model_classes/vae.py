@@ -56,12 +56,16 @@ class DetectorVAE:
                 h = keras.layers.Dense(
                     units,
                     activation="relu",
-                    activity_regularizer=keras.regularizers.l1(10e-5),
+                    activity_regularizer=keras.regularizers.l1_l2(l1=0.0001, l2=0.0005),
                 )(h)
             else:
-                h = keras.layers.Dense(units, activation="relu")(h)
+                h = keras.layers.Dense(
+                    units,
+                    activation="relu",
+                    activity_regularizer=keras.regularizers.l2(1e-4),
+                )(h)
 
-            # h = keras.layers.Dropout(0.1)(h)
+            h = keras.layers.Dropout(0.2)(h)
 
             self.encoder_layers.append(h)
 
@@ -82,8 +86,13 @@ class DetectorVAE:
 
         # Dynamisch versteckte Schichten im Decoder hinzufügen
         for idx, units in enumerate(reversed(self.hidden_layers)):
-            h = keras.layers.Dense(units, activation="relu")(h)
-            # h = keras.layers.Dropout(0.1)(h)
+            h = keras.layers.Dense(
+                units,
+                activation="relu",
+                activity_regularizer=keras.regularizers.l2(1e-4),
+            )(h)
+
+            h = keras.layers.Dropout(0.2)(h)
 
             # Skip-Connection => only for unet
             if self.is_unet:

@@ -43,7 +43,11 @@ import tensorflow as tf
 from daisy.data_sources.jammerdetection_traffic import scale_data_point
 from daisy.evaluation import ConfMatrSlidingWindowEvaluation
 from daisy.federated_ids_components import FederatedOnlineClient
-from daisy.federated_learning import TFFederatedModel, FederatedIFTM, EMAvgTM
+from daisy.federated_learning import (
+    TFFederatedModel,
+    FederatedIFTM,
+    EMAMADThresholdModel,
+)
 
 from keras.optimizers import Adam
 
@@ -164,7 +168,7 @@ def _parse_args() -> argparse.Namespace:
     client_options.add_argument(
         "--batchSize",
         type=int,
-        default=32,
+        default=127,
         metavar="",
         help="Batch size during processing of data "
         "(mini-batches are multiples of that argument)",
@@ -248,28 +252,29 @@ def create_relay():
 
     # Datasource
     data_source = CSVFileDataSource(
-        files=[args.input_file for _ in range(10)], name="JammerClient:DataSource"
+        files=[args.input_file for _ in range(1)], name="JammerClient:DataSource"
     )
 
     features_to_keep = [
         "Jammer_On",
-        "CQI_DLLA",
-        "MCS_DLLA",
-        "CQI_Change_DLLA",
-        "Nack_DLLA",
-        "Alloc_RBs_DLLA",
-        "UL-BLER-CRC_UELink",
-        "C2I_UELink",
+        "CQI",
+        "MCS",
+        "CQI_Change",
+        "Nack",
+        "Alloc_RBs",
+        # "UL-BLER-CRC_UELink",
+        "C2I",
         #   "Connected_UELink",
-        "Layers_DLLA",
-        "RI_Change_DLLA",
-        "Margin_ChangeM_DLLA",
-        "DL_Aggregation_Level_1_DLLA",
-        "DLAL_2_DLLA",
-        "DLAL_4_DLLA",
-        "DLAL_8_DLLA",
-        "DLAL_16_DLLA",
-        "UL-MCS_UELink",
+        "Layers",
+        "RI_Change",
+        "Margin_ChangeM",
+        "DL_Aggregation_Level_1",
+        "DLAL_2",
+        "DLAL_4",
+        "DLAL_8",
+        "DLAL_16",
+        # "UL-MCS_UELink",
+        "UL-BLER-CRC",
     ]
 
     data_processor = (
@@ -293,16 +298,20 @@ def create_relay():
     #    print(sample)
 
     # Model
-    optimizer = Adam(learning_rate=0.003)
+    optimizer = Adam(learning_rate=0.001)
 
     id_fn = TFFederatedModel.get_fvae(
-        input_size=17,
+        input_size=15,
+        latent_dim=8,
+        hidden_layers=[32, 16],
         optimizer=optimizer,
         batch_size=args.batchSize,
         epochs=1,
         metrics=["accuracy"],
     )
-    t_m = EMAvgTM(alpha=0.05)
+    t_m = EMAMADThresholdModel(
+        alpha=0.2, mad_multiplier=2.5
+    )  # EMAvgTM(alpha=1)#ThresholdModelSimon()#FixThreshold(threshold=0.0601)#
     err_fn = tf.keras.losses.MeanAbsoluteError(reduction=tf.keras.losses.Reduction.NONE)
     model = FederatedIFTM(identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn)
 
@@ -313,7 +322,7 @@ def create_relay():
         data_handler=data_handler,
         batch_size=args.batchSize,  # z.B: 10*32
         model=model,
-        label_split=17,
+        label_split=15,
         metrics=metrics,
         m_aggr_server=m_aggr_serv,
         eval_server=eval_serv,
