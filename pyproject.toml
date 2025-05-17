@@ -60,7 +60,8 @@ authors = [
     { name = "Fabian Hofmann", email = "fabian.hofmann@dai-labor.de" },
     { name = "Jonathan Ackerschewski", email = "jonathan.ackerschewski@dai-labor.de" },
     { name = "Seraphin Zunzer", email = "SeraphinJasper.Zunzer@gt-arc.com" },
-    { name = "Lotta Hareja Fejzula", email = "Lotta.Fejzula@outlook.de" }
+    { name = "Lotta Hareja Fejzula", email = "Lotta.Fejzula@outlook.de" },
+    { name = "Simon Torka", email = "simon.torka@online.de" }
 ]
 
 # This should be your name or the names of the organization who currently
@@ -111,7 +112,12 @@ dependencies = [
     "djangorestframework~=3.15.2",
     "pyparsing~=3.2.1",
     "typing-extensions~=4.12.2",
-    "natsort~=8.4.0"
+    "natsort~=8.4.0",
+    "pandas~=2.2.3",
+    "websocket-client~=1.8.0",
+    "matplotlib~=3.10.3",
+    "seaborn~=0.13.2",
+    "scikit-learn~=1.6.1",
 ]
 
 # List additional groups of dependencies here (e.g. development
@@ -153,7 +159,7 @@ eval_aggr_server = "daisy.scripts.generic_fids_components:eval_aggr_server"
 pred_aggr_server = "daisy.scripts.generic_fids_components:pred_aggr_server"
 dashboard = "daisy.scripts.generic_fids_components:dashboard"
 demo_202303_client = "daisy.scripts.demo_components:v2x_2023_03_06_client"
-
+demo_jammer = "daisy.scripts.demo_components:demo_jammer"
 # This is configuration specific to the `setuptools` build backend.
 # If you are using a different build backend, you will need to change this.
 [tool.setuptools]

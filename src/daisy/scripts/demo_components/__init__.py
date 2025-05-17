@@ -20,6 +20,8 @@ Author: Fabian Hofmann
 Modified: 10.04.24
 """
 
-__all__ = ["v2x_2023_03_06_client"]
+__all__ = ["v2x_2023_03_06_client", "demo_jammer", "demo_jammer_live_data"]
 
 from .v2x_2023_03_06_client import create_client as v2x_2023_03_06_client
+from .demo_jammer import create_relay as demo_jammer
+from .demo_jammer_live_data import create_relay as demo_jammer_live_data
