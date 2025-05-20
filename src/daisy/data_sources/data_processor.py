@@ -297,6 +297,22 @@ class DataProcessor:
             point = func(point)
         return point
 
+    def shrink_payload(
+        self,
+    ) -> Self:
+        """ """
+
+        def shrink_payload_func(d_point: dict) -> dict:
+            if "udp.payload" in d_point and "tcp.payload" in d_point:
+                d_point["payload_length"] = len(d_point["udp.payload"]) + len(
+                    d_point["udp.payload"]
+                )
+            else:
+                raise KeyError("Feature udp.payload or tcp.payload does not exists")
+            return d_point
+
+        return self.add_func(lambda d_point: shrink_payload_func(d_point))
+
 
 @deprecated("Use DataProcessor.remove_features() instead")
 def remove_feature(d_point: dict, f_features: list) -> dict:

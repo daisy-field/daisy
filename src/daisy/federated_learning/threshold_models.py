@@ -463,3 +463,35 @@ class MadTM(FederatedTM):
     def update_threshold(self, x_data=None):
         """As it is set upon the creation of the threshold, nothing is to be updated."""
         pass
+
+
+class kinsingTM(FederatedTM):
+    """ """
+
+    def __init__(self):
+        """Creates a new kinsing threshold model."""
+        pass
+
+    def set_parameters(self, parameters: list[np.ndarray]):
+        """ """
+        pass
+
+    def get_parameters(self) -> list[np.ndarray]:
+        """ """
+        pass
+
+    def fit(self, x_data, y_data=None):
+        """ """
+        pass
+
+    def predict(self, x_data) -> Tensor:
+        """ """
+
+        if x_data[-1] > 20:
+            return 1  # return anomaly
+        else:
+            return 0
+
+    def update_threshold(self, x_data=None):
+        """ """
+        pass
