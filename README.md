@@ -9,6 +9,7 @@
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/release/python-3120/)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![Documentation](https://img.shields.io/badge/docs-available-blue)](https://daisy-field.github.io)
 
 DAISY aims to be an end-to-end framework to design, develop, and execute distributed
 intrusion detection systems (IDS) of varying topologies, in an edge-optimized fashion.
@@ -20,6 +21,13 @@ you want done following the defined interfaces, and you are set!*
 For the latter, there is a large toolbox of various (example) implementations for all
 these interfaces. Execution i.e. rollout is done through pure python or wrapped inside
 one or multiple docker containers.
+
+> [!CAUTION]
+> DAISY is currently in the pre-alpha stage, as lots of features are still under heavy 
+> testing. Many features more are also still located in their own feature 
+> branches or 
+> located in private mirrors. Use it at your own risk, [feedback](#contributing) 
+> is always welcome. Stay tuned for more cool stuff in the future!
 
 # Table of Contents
 
@@ -123,7 +131,7 @@ However, if you want to use DAISY in docker, some of the image's layers must be 
 
 ```shell
 docker build -t daisy .
-docker build -t daisygpu . --build-arg build_version=gpu  # gpu support (optional)
+docker build -t daisy_gpu . --build-arg build_version=gpu  # gpu support (optional)
 ```
 
 Afterward, the docker container can be run with in interactive shell mode to be used
@@ -141,7 +149,7 @@ an environment variable:
 
 ```shell
 # Arg Setup
-export DATASET_PATH=/path/to/datasets/v2x_2023-03-06
+export DATASET_PATH=/absolute/path/to/datasets/v2x_2023-03-06
 export BUILD_VERSION=gpu  # gpu support (optional)
 
 docker compose -f demos/v2x_2023-03-06.yml up
@@ -250,7 +258,7 @@ question 4 for this.
 ## Contributing
 
 If you'd like to contribute, please fork the repository and use a feature
-branch. Pull requests are warmly welcome.
+branch. Pull requests and bug reports are warmly welcome.
 
 Note that DAISY uses the [
 *Black*](https://black.readthedocs.io/en/stable/the_black_code_style/current_style.html)

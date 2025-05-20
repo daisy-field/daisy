@@ -35,6 +35,17 @@ class Alerts(models.Model):
     address = models.CharField(max_length=255)
     timestamp = models.DateTimeField(auto_now_add=True)
 
+    def save(self, *args, **kwargs):
+        total_records = Alerts.objects.count()
+        while total_records >= 2000:
+            print("Delete alert object", total_records)
+            pks = Alerts.objects.values_list("pk")[:1]
+            oldest_record = Alerts.objects.filter(pk__in=pks)[0]
+            oldest_record.delete()
+            total_records = Alerts.objects.count()
+        else:
+            super().save(*args, **kwargs)
+
 
 class Metrics(models.Model):
     address = models.CharField(max_length=255)
