@@ -22,7 +22,7 @@ from daisy.data_sources import (
 )
 from daisy.evaluation import ConfMatrSlidingWindowEvaluation
 from daisy.federated_ids_components import FederatedOnlineClient
-from daisy.federated_learning import TFFederatedModel, FederatedIFTM
+from daisy.federated_learning import TFFederatedModel
 
 from daisy.data_sources import CSVFileDataSource
 from daisy.federated_learning.threshold_models import kinsingTM
@@ -173,7 +173,6 @@ def create_client():
         "meta.number",
         "meta.protocols",
         "meta.time",
-        "meta.time_epoch",
         "sll.eth",
         "sll.etype",
         "sll.halen",
@@ -191,12 +190,12 @@ def create_client():
         "tcp.srcport",
         "udp.port",
         "udp.payload",
-        "typ.payload",
+        "tcp.payload",
     )
     processor = (  # tcp.payload and udp.payload contain the payload. Calculate length of both and add them to the last row of
         DataProcessor()
         .select_dict_features(features=kinsing_f_features, default_value=np.nan)
-        .cast_dict_features(["meta.time_epoch", "ip.addr"], [float, str])
+        .cast_dict_features(["ip.addr"], [str])
         .shrink_payload()
         .dict_to_array(nn_aggregator=pcap_nn_aggregator)
     )
@@ -214,7 +213,7 @@ def create_client():
     )
     t_m = kinsingTM()
     err_fn = keras.losses.MeanAbsoluteError(reduction=None)
-    model = FederatedIFTM(identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn)
+    model = TFFederatedModel(identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn)
 
     metrics = [ConfMatrSlidingWindowEvaluation(window_size=args.batchSize * 8)]
 

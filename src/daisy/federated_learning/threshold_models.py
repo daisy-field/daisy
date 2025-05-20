@@ -487,10 +487,7 @@ class kinsingTM(FederatedTM):
     def predict(self, x_data) -> Tensor:
         """ """
 
-        if x_data[-1] > 20:
-            return 1  # return anomaly
-        else:
-            return 0
+        return (x_data[:, -1] > 20).int()
 
     def update_threshold(self, x_data=None):
         """ """

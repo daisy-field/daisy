@@ -303,12 +303,18 @@ class DataProcessor:
         """ """
 
         def shrink_payload_func(d_point: dict) -> dict:
+            label = d_point["label"]
+            del d_point["label"]
             if "udp.payload" in d_point and "tcp.payload" in d_point:
                 d_point["payload_length"] = len(d_point["udp.payload"]) + len(
                     d_point["udp.payload"]
                 )
             else:
                 raise KeyError("Feature udp.payload or tcp.payload does not exists")
+            if label == "benign":
+                d_point["label"] = False
+            else:
+                d_point["label"] = True
             return d_point
 
         return self.add_func(lambda d_point: shrink_payload_func(d_point))
