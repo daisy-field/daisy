@@ -31,6 +31,7 @@ Modified: 04.11.24
 
 import argparse
 import logging
+import os
 
 from daisy.data_sources import (
     CSVFileDataSource,
@@ -300,14 +301,22 @@ def create_relay():
     # Model
     optimizer = Adam(learning_rate=0.001)
 
+    model_path = os.path.join(
+        "/home/simon/daisy/src/daisy/federated_learning/model_classes",
+        "pretrained_vae_model",
+    )
+
+    print(model_path)
+
     id_fn = TFFederatedModel.get_fvae(
         input_size=15,
         latent_dim=8,
-        hidden_layers=[32, 16],
+        hidden_layers=[128, 64, 32],
         optimizer=optimizer,
         batch_size=args.batchSize,
-        epochs=1,
+        epochs=50,
         metrics=["accuracy"],
+        load_pretrained_path=None,
     )
     t_m = EMAMADThresholdModel(
         alpha=0.2, mad_multiplier=2.5

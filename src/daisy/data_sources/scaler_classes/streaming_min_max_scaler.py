@@ -9,8 +9,9 @@ import numpy as np
 
 class StreamingMinMaxScaler:
     def __init__(self, feature_range: Tuple[float, float] = (0, 1)):
-        self.min_val = None
-        self.max_val = None
+        # preload with knowledge from HMF data
+        self.min_val = [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -2.8]
+        self.max_val = [15, 2, 28, 3192, 4291, 30340, 491, 57, 25160, 1803227, 22204, 4736, 0, 100, 39.6]
         self.feature_range = feature_range
         self.range_diff = abs(feature_range[1] - feature_range[0])
 
