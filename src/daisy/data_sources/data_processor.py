@@ -297,7 +297,7 @@ class DataProcessor:
             point = func(point)
         return point
 
-    def shrink_payload(
+    def shrink_payload_add_labels(
         self,
     ) -> Self:
         """ """
@@ -305,16 +305,27 @@ class DataProcessor:
         def shrink_payload_func(d_point: dict) -> dict:
             label = d_point["label"]
             del d_point["label"]
-            if "udp.payload" in d_point and "tcp.payload" in d_point:
-                d_point["payload_length"] = len(d_point["udp.payload"]) + len(
-                    d_point["udp.payload"]
-                )
+
+            if d_point["ip.dst"]=="141.23.65.122" or d_point["ip.src"]=="141.23.65.122":
+                d_point["malicious_ip"] = 1
             else:
-                raise KeyError("Feature udp.payload or tcp.payload does not exists")
-            if label == "benign":
-                d_point["label"] = False
-            else:
+                d_point["malicious_ip"] = 0
+            del d_point["ip.dst"]
+            del d_point["ip.src"]
+            # if "udp.payload" in d_point and "tcp.payload" in d_point:
+            #     d_point["payload_length"] = len(d_point["udp.payload"]) + len(
+            #         d_point["udp.payload"]
+            #     )
+            #     del d_point["udp.payload"]
+            #     del d_point["tcp.payload"]
+            # else:
+            #     raise KeyError("Feature udp.payload or tcp.payload does not exists")
+            if label == "attack-download":
                 d_point["label"] = True
+            else:
+                d_point["label"] = False
+
+            logging.warning(d_point)
             return d_point
 
         return self.add_func(lambda d_point: shrink_payload_func(d_point))

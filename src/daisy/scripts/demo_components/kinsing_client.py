@@ -22,12 +22,13 @@ from daisy.data_sources import (
 )
 from daisy.evaluation import ConfMatrSlidingWindowEvaluation
 from daisy.federated_ids_components import FederatedOnlineClient
-from daisy.federated_learning import TFFederatedModel
+from daisy.federated_learning import TFFederatedModel, FederatedIFTM
 
 from daisy.data_sources import CSVFileDataSource
 from daisy.federated_learning.threshold_models import kinsingTM
 
 from daisy.data_sources import DataProcessor
+
 
 
 def _parse_args() -> argparse.Namespace:
@@ -147,82 +148,37 @@ def create_client():
     # Datasource
     source = CSVFileDataSource(f"{args.csvBasePath}/labelled_kinsing.csv")
     kinsing_f_features = (
-        "data.len",
-        "eth.addr",
-        "eth.dst",
-        "eth.len",
-        "eth.src",
-        "ip.addr",
+        #"eth.addr",
+        #"ip.addr",
         "ip.dst",
-        "ip.flags.df",
-        "ip.flags.mf",
-        "ip.flags.rb",
         "ip.src",
-        "ipv6.addr",
-        "ipv6.dst",
-        "ipv6.src",
-        "ipv6.tclass",
-        "llc.control.ftype",
-        "llc.control.n_r",
-        "llc.control.n_s",
-        "llc.dsap.ig",
-        "llc.dsap.sap",
-        "llc.ssap.cr",
-        "llc.ssap.sap",
-        "meta.len",
-        "meta.number",
-        "meta.protocols",
-        "meta.time",
-        "sll.eth",
-        "sll.etype",
-        "sll.halen",
-        "sll.hatype",
-        "sll.ltype",
-        "sll.padding",
-        "sll.pkttype",
-        "sll.trailer",
-        "sll.unused",
-        "ssh.direction",
-        "ssh.protocol",
-        "tcp.dstport",
-        "tcp.port",
-        "tcp.segments.count",
-        "tcp.srcport",
-        "udp.port",
-        "udp.payload",
-        "tcp.payload",
+        #"ipv6.addr",
+        #"ipv6.dst",
+        #"ipv6.src",
+        #"udp.payload",
+        #"tcp.payload",
+        "label",
     )
     processor = (  # tcp.payload and udp.payload contain the payload. Calculate length of both and add them to the last row of
         DataProcessor()
         .select_dict_features(features=kinsing_f_features, default_value=np.nan)
-        .cast_dict_features(["ip.addr"], [str])
-        .shrink_payload()
+        #.cast_dict_features(["ip.addr"], [str])
+        .shrink_payload_add_labels()
         .dict_to_array(nn_aggregator=pcap_nn_aggregator)
     )
     data_handler = DataHandler(data_source=source, data_processor=processor)
 
-    # Model
-    optimizer = keras.optimizers.Adam(learning_rate=0.001)
-    loss = keras.losses.MeanAbsoluteError()
-    id_fn = TFFederatedModel.get_fae(
-        input_size=44,
-        optimizer=optimizer,
-        loss=loss,
-        batch_size=args.batchSize,
-        epochs=1,
-    )
     t_m = kinsingTM()
-    err_fn = keras.losses.MeanAbsoluteError(reduction=None)
-    model = TFFederatedModel(identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn)
 
     metrics = [ConfMatrSlidingWindowEvaluation(window_size=args.batchSize * 8)]
+
 
     # Client
     client = FederatedOnlineClient(
         data_handler=data_handler,
         batch_size=args.batchSize,
-        model=model,
-        label_split=44,
+        model=t_m,
+        label_split=1,
         metrics=metrics,
         m_aggr_server=m_aggr_serv,
         eval_server=eval_serv,

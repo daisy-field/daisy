@@ -12,7 +12,7 @@ dev.) to compute a singular threshold value for simple classification in online 
 Author: Fabian Hofmann, Seraphin Zunzer
 Modified: 04.04.24
 """
-
+import logging
 import typing
 from abc import ABC, abstractmethod
 from collections import deque
@@ -465,7 +465,7 @@ class MadTM(FederatedTM):
         pass
 
 
-class kinsingTM(FederatedTM):
+class kinsingTM(FederatedModel):
     """ """
 
     def __init__(self):
@@ -478,7 +478,7 @@ class kinsingTM(FederatedTM):
 
     def get_parameters(self) -> list[np.ndarray]:
         """ """
-        pass
+        return []
 
     def fit(self, x_data, y_data=None):
         """ """
@@ -487,7 +487,26 @@ class kinsingTM(FederatedTM):
     def predict(self, x_data) -> Tensor:
         """ """
 
-        return (x_data[:, -1] > 20).int()
+        predictions = []
+        logging.warning(x_data)
+
+        for i in x_data:
+            logging.warning(i)
+
+            if i[-1] == 1: #string equals ip 141.23.65.122
+                predictions.append(1) #return anomaly
+            else:
+                predictions.append(0)
+
+            #if i[-1] > 20: #payload longer than 20
+            #    predictions.append(1)  # return anomaly
+            #else:
+            #    predictions.append(0) #return normal
+
+        #predictions = (x_data[:, -1] > 20).int()
+        return tf.convert_to_tensor(predictions)# (x_data[:, -1] > 20).int()
+
+
 
     def update_threshold(self, x_data=None):
         """ """
