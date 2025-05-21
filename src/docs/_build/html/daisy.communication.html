@@ -1,0 +1,626 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Communication &mdash; DAISY 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+    <link rel="shortcut icon" href="_static/favicon2.ico"/>
+    <link rel="canonical" href="https://daisy-field.github.io/daisy.communication.html" />
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="daisy.communication.tests package" href="daisy.communication.tests.html" />
+    <link rel="prev" title="Dashboard" href="general.dashboard.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            DAISY
+              <img src="_static/favicon2.ico" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="general.overview.html">What is DAISY?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="general.background.html">Background</a></li>
+<li class="toctree-l1"><a class="reference internal" href="general.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="general.dashboard.html">Dashboard</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Documentation:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Communication</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#module-daisy.communication.message_stream">Message Stream</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.communication.message_stream.EndpointServer"><code class="docutils literal notranslate"><span class="pre">EndpointServer</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.communication.message_stream.EndpointServer.close_connections"><code class="docutils literal notranslate"><span class="pre">EndpointServer.close_connections()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.communication.message_stream.EndpointServer.get_connections"><code class="docutils literal notranslate"><span class="pre">EndpointServer.get_connections()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.communication.message_stream.EndpointServer.get_new_connections"><code class="docutils literal notranslate"><span class="pre">EndpointServer.get_new_connections()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.communication.message_stream.EndpointServer.poll_connections"><code class="docutils literal notranslate"><span class="pre">EndpointServer.poll_connections()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.communication.message_stream.EndpointServer.start"><code class="docutils literal notranslate"><span class="pre">EndpointServer.start()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.communication.message_stream.EndpointServer.stop"><code class="docutils literal notranslate"><span class="pre">EndpointServer.stop()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.communication.message_stream.EndpointSocket"><code class="docutils literal notranslate"><span class="pre">EndpointSocket</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.communication.message_stream.EndpointSocket.close"><code class="docutils literal notranslate"><span class="pre">EndpointSocket.close()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.communication.message_stream.EndpointSocket.open"><code class="docutils literal notranslate"><span class="pre">EndpointSocket.open()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.communication.message_stream.EndpointSocket.poll"><code class="docutils literal notranslate"><span class="pre">EndpointSocket.poll()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.communication.message_stream.EndpointSocket.recv"><code class="docutils literal notranslate"><span class="pre">EndpointSocket.recv()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.communication.message_stream.EndpointSocket.send"><code class="docutils literal notranslate"><span class="pre">EndpointSocket.send()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.communication.message_stream.StreamEndpoint"><code class="docutils literal notranslate"><span class="pre">StreamEndpoint</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.communication.message_stream.StreamEndpoint.create_quick_sender_ep"><code class="docutils literal notranslate"><span class="pre">StreamEndpoint.create_quick_sender_ep()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.communication.message_stream.StreamEndpoint.poll"><code class="docutils literal notranslate"><span class="pre">StreamEndpoint.poll()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.communication.message_stream.StreamEndpoint.receive"><code class="docutils literal notranslate"><span class="pre">StreamEndpoint.receive()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.communication.message_stream.StreamEndpoint.receive_latest_ep_objs"><code class="docutils literal notranslate"><span class="pre">StreamEndpoint.receive_latest_ep_objs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.communication.message_stream.StreamEndpoint.select_eps"><code class="docutils literal notranslate"><span class="pre">StreamEndpoint.select_eps()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.communication.message_stream.StreamEndpoint.send"><code class="docutils literal notranslate"><span class="pre">StreamEndpoint.send()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.communication.message_stream.StreamEndpoint.start"><code class="docutils literal notranslate"><span class="pre">StreamEndpoint.start()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.communication.message_stream.StreamEndpoint.stop"><code class="docutils literal notranslate"><span class="pre">StreamEndpoint.stop()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#tests">Tests</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="daisy.communication.tests.html">daisy.communication.tests package</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.data_sources.html">Datasources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.evaluation.html">Evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.federated_ids_components.html">Federated IDS Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.federated_learning.html">Federated Learning</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="daisy.scripts.data_collection.html">Data Collection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.scripts.demo_components.html">Demo Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.scripts.generic_fids_components.html">Demo Servers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">DAISY</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Communication</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/daisy.communication.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="communication">
+<h1>Communication<a class="headerlink" href="#communication" title="Link to this heading"></a></h1>
+<section id="module-daisy.communication.message_stream">
+<span id="message-stream"></span><h2>Message Stream<a class="headerlink" href="#module-daisy.communication.message_stream" title="Link to this heading"></a></h2>
+<p>An efficient, persistent, and stateless communications stream between two
+endpoints over BSD sockets. Supports SSL (soon) and LZ4 compression.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="daisy.communication.message_stream.EndpointServer">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">daisy.communication.message_stream.</span></span><span class="sig-name descname"><span class="pre">EndpointServer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">addr:</span> <span class="pre">tuple[str,</span> <span class="pre">int],</span> <span class="pre">name:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'EndpointServer',</span> <span class="pre">c_timeout:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">send_b_size:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">65536,</span> <span class="pre">recv_b_size:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">65536,</span> <span class="pre">compression:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">marshal_f:</span> <span class="pre">~typing.Callable[[object],</span> <span class="pre">bytes]</span> <span class="pre">=</span> <span class="pre">&lt;built-in</span> <span class="pre">function</span> <span class="pre">dumps&gt;,</span> <span class="pre">unmarshal_f:</span> <span class="pre">~typing.Callable[[bytes],</span> <span class="pre">object]</span> <span class="pre">=</span> <span class="pre">&lt;built-in</span> <span class="pre">function</span> <span class="pre">loads&gt;,</span> <span class="pre">multithreading:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">buffer_size:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">1024,</span> <span class="pre">keep_alive:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/communication/message_stream.html#EndpointServer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.communication.message_stream.EndpointServer" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Helper class to manage a group of (acceptor) connection endpoints listening to
+the same address. Supports all features of the existing endpoint class, besides
+also supporting thread-safe access, polling, and management of them as a group.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.communication.message_stream.EndpointServer.close_connections">
+<span class="sig-name descname"><span class="pre">close_connections</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">addrs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">blocking</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/communication/message_stream.html#EndpointServer.close_connections"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.communication.message_stream.EndpointServer.close_connections" title="Link to this definition"></a></dt>
+<dd><p>Checks a list of given client addresses whether there is an available
+connection endpoint for each of them and closes them, shutting them also down.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>addrs</strong> – Client addresses to check and close endpoints for.</p></li>
+<li><p><strong>timeout</strong> – Timeout for shutting down connection endpoints.</p></li>
+<li><p><strong>blocking</strong> – Whether to wait for endpoints to be closed before returning.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.communication.message_stream.EndpointServer.get_connections">
+<span class="sig-name descname"><span class="pre">get_connections</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">addrs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#daisy.communication.message_stream.StreamEndpoint" title="daisy.communication.message_stream.StreamEndpoint"><span class="pre">StreamEndpoint</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/daisy/communication/message_stream.html#EndpointServer.get_connections"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.communication.message_stream.EndpointServer.get_connections" title="Link to this definition"></a></dt>
+<dd><p>Checks a list of given client addresses whether there is an available
+connection endpoint for each of them and retrieves them.</p>
+<p>Note that while this method is thread-safe in itself, it is not guaranteed
+that any returned endpoint will be still connected (and available) at the
+point of using it, since the underlying cleanup thread (if enabled) might
+have closed any potential dead endpoint if general timeout set (see __init__()).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>addrs</strong> – Client addresses to check and retrieve endpoints for.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dictionary of addresses and endpoints (None if not existing).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.communication.message_stream.EndpointServer.get_new_connections">
+<span class="sig-name descname"><span class="pre">get_new_connections</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#daisy.communication.message_stream.StreamEndpoint" title="daisy.communication.message_stream.StreamEndpoint"><span class="pre">StreamEndpoint</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/daisy/communication/message_stream.html#EndpointServer.get_new_connections"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.communication.message_stream.EndpointServer.get_new_connections" title="Link to this definition"></a></dt>
+<dd><p>Checks and retrieves the first n new connections in the underlying queue
+filled by the connection handler.</p>
+<p>Note that while this method is thread-safe in itself, it is not guaranteed
+that any returned endpoint will be still connected (and available) at the
+point of using it, since the underlying cleanup thread (if enabled) might
+have closed any potential dead endpoint if general timeout set (see __init__()).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n</strong> – Maximum numbers of new connections to retrieve.</p></li>
+<li><p><strong>timeout</strong> – Maximum time when polling for new connections.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dictionary of new addresses and endpoints of new connections.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.communication.message_stream.EndpointServer.poll_connections">
+<span class="sig-name descname"><span class="pre">poll_connections</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#daisy.communication.message_stream.StreamEndpoint" title="daisy.communication.message_stream.StreamEndpoint"><span class="pre">StreamEndpoint</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#daisy.communication.message_stream.StreamEndpoint" title="daisy.communication.message_stream.StreamEndpoint"><span class="pre">StreamEndpoint</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/daisy/communication/message_stream.html#EndpointServer.poll_connections"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.communication.message_stream.EndpointServer.poll_connections" title="Link to this definition"></a></dt>
+<dd><p>Polls the state of all current available connection endpoints, filtering
+them for readability and writability.</p>
+<p>Note that while this method is thread-safe in itself, it is not guaranteed
+that any returned endpoint will be still connected (and available) at the
+point of using it, since the underlying cleanup thread (if enabled) might
+have closed any potential dead endpoint if general timeout set (see __init__()).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple of dictionary of addresses and endpoints from which can be</p>
+</dd>
+</dl>
+<p>read from / written to.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.communication.message_stream.EndpointServer.start">
+<span class="sig-name descname"><span class="pre">start</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/communication/message_stream.html#EndpointServer.start"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.communication.message_stream.EndpointServer.start" title="Link to this definition"></a></dt>
+<dd><p>Starts the endpoint server, launching the connection handlers in the
+background.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>RuntimeError</strong> – If endpoint server has already been started.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.communication.message_stream.EndpointServer.stop">
+<span class="sig-name descname"><span class="pre">stop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">blocking</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/communication/message_stream.html#EndpointServer.stop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.communication.message_stream.EndpointServer.stop" title="Link to this definition"></a></dt>
+<dd><p>Stops the endpoint server along all its connection endpoints, cleaning up
+underlying datastructures. This always shuts down all connection endpoints
+with a given timeout (see stop() of the Endpoint class for more information
+on this behavior).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>timeout</strong> – Allows each connection endpoint to process remaining messages</p>
+</dd>
+</dl>
+<p>until timeout. This is done for each endpoint and not in parallel if blocking.
+:param blocking: Whether to wait for endpoints to be closed before exiting.
+:raises RuntimeError: If endpoint server has not been started.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="daisy.communication.message_stream.EndpointSocket">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">daisy.communication.message_stream.</span></span><span class="sig-name descname"><span class="pre">EndpointSocket</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">addr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remote_addr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">acceptor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">send_b_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">65536</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">recv_b_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">65536</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_alive</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/communication/message_stream.html#EndpointSocket"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.communication.message_stream.EndpointSocket" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A bundle of up to two sockets, that is used to communicate with another
+endpoint over a persistent TCP connection in synchronous manner. Supports
+authentication and encryption over SSL, and stream compression using LZ4.
+Thread-safe for both access to the same endpoint socket and using multiple
+threads using endpoint sockets set to the same address (this is organized through
+an array of class variables, see below for more info).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Variables<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>_listen_socks</strong> – Active listen sockets, along with a respective lock to access</p>
+</dd>
+</dl>
+<p>each safely.
+:cvar _acc_r_socks: Pending registered connection cache for each listen socket.
+:cvar _acc_p_socks: Pending unregistered connection queue for each listen socket.
+:cvar _reg_r_addrs: Registered remote addresses.
+:cvar _addr_map: Mapping between registered remote addresses and their aliases.
+:cvar _act_l_counts: Active thread counter for each listen socket. Socket closes
+if counter reaches zero.
+:cvar _lock: General purpose lock to ensure safe access to class variables.
+:cvar _cls_logger: General purpose logger for class methods.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.communication.message_stream.EndpointSocket.close">
+<span class="sig-name descname"><span class="pre">close</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shutdown</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/communication/message_stream.html#EndpointSocket.close"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.communication.message_stream.EndpointSocket.close" title="Link to this definition"></a></dt>
+<dd><p>Closes the endpoint socket, cleaning up any underlying datastructures if
+acceptor. If already closed, allows the cleanup of just the datastructures
+incase a shutdown is requested.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.communication.message_stream.EndpointSocket.open">
+<span class="sig-name descname"><span class="pre">open</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/communication/message_stream.html#EndpointSocket.open"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.communication.message_stream.EndpointSocket.open" title="Link to this definition"></a></dt>
+<dd><p>Opens the endpoint socket along with its underlying socket(s) and its
+connection to a/the remote endpoint socket. Blocking until the connection is
+established.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.communication.message_stream.EndpointSocket.poll">
+<span class="sig-name descname"><span class="pre">poll</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lazy</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">bool</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/daisy/communication/message_stream.html#EndpointSocket.poll"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.communication.message_stream.EndpointSocket.poll" title="Link to this definition"></a></dt>
+<dd><dl>
+<dt>Polls the state of various state and addresses of the endpoint socket:</dt><dd><ul class="simple">
+<li><p>0,0: Existence of socket (true if connected).</p></li>
+<li><p>0,1: Whether there is something to read on the underlying socket.</p></li>
+<li><p>0,2: Whether one is able to write on the underlying socket.</p></li>
+</ul>
+<ul class="simple">
+<li><p>1,0: Address of endpoint socket, else None</p></li>
+<li><p>1,1: Address of remote endpoint socket, else None.</p></li>
+</ul>
+</dd>
+</dl>
+<p>Note this does not necessarily guarantee that the underlying socket is
+actually connected and available for reading/writing; e.g. the connection
+could have broken down since then and is currently being re-established.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>lazy</strong> – Whether to lazily skip the actual state of the underlying socket</p>
+</dd>
+</dl>
+<p>and just check for connectivity.
+:return: Tuple of boolean states (connectivity, readability, writability) and
+address-pair of endpoint socket.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.communication.message_stream.EndpointSocket.recv">
+<span class="sig-name descname"><span class="pre">recv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bytes</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="reference internal" href="_modules/daisy/communication/message_stream.html#EndpointSocket.recv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.communication.message_stream.EndpointSocket.recv" title="Link to this definition"></a></dt>
+<dd><p>Receives the bytes of a single object sent over the connection, performing
+simple marshalling (size is received first, then the bytes of the object).
+Fault-tolerant for breakdowns and resets in the connection. Blocking in
+default-mode if timeout not set.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>timeout</strong> – Timeout (seconds) to receive an object to return.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Received bytes or None of end point socket has been closed.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>TimeoutError</strong> – If timeout set and triggered.</p></li>
+<li><p><strong>RuntimeError</strong> – If connection has been terminated by remote endpoint</p></li>
+</ul>
+</dd>
+</dl>
+<p>and keep-alive is disabled.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.communication.message_stream.EndpointSocket.send">
+<span class="sig-name descname"><span class="pre">send</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bytes</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/communication/message_stream.html#EndpointSocket.send"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.communication.message_stream.EndpointSocket.send" title="Link to this definition"></a></dt>
+<dd><p>Sends the given bytes of a single object over the connection, performing
+simple marshalling (size is sent first, then the bytes of the object).
+Fault-tolerant for breakdowns and resets in the connection. Blocking.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>p_data</strong> – Bytes to send.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> – If connection has been terminated by remote endpoint</p>
+</dd>
+</dl>
+<p>and keep-alive is disabled.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="daisy.communication.message_stream.StreamEndpoint">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">daisy.communication.message_stream.</span></span><span class="sig-name descname"><span class="pre">StreamEndpoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">name:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'StreamEndpoint',</span> <span class="pre">addr:</span> <span class="pre">tuple[str,</span> <span class="pre">int]</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">remote_addr:</span> <span class="pre">tuple[str,</span> <span class="pre">int]</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">acceptor:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True,</span> <span class="pre">send_b_size:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">65536,</span> <span class="pre">recv_b_size:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">65536,</span> <span class="pre">compression:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">marshal_f:</span> <span class="pre">~typing.Callable[[object],</span> <span class="pre">bytes]</span> <span class="pre">=</span> <span class="pre">&lt;built-in</span> <span class="pre">function</span> <span class="pre">dumps&gt;,</span> <span class="pre">unmarshal_f:</span> <span class="pre">~typing.Callable[[bytes],</span> <span class="pre">object]</span> <span class="pre">=</span> <span class="pre">&lt;built-in</span> <span class="pre">function</span> <span class="pre">loads&gt;,</span> <span class="pre">multithreading:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">buffer_size:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">1024,</span> <span class="pre">keep_alive:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/communication/message_stream.html#StreamEndpoint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.communication.message_stream.StreamEndpoint" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>One of a pair of endpoints that is able to communicate with one another over a
+persistent stateless stream over BSD sockets. Allows the transmission of generic
+objects in both synchronous and asynchronous fashion. Supports SSL and LZ4
+compression for the stream. Thread-safe for both access to the same endpoint and
+using multiple threads using endpoints set to the same address.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.communication.message_stream.StreamEndpoint.create_quick_sender_ep">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_quick_sender_ep</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">objects:</span> <span class="pre">~typing.Iterable,</span> <span class="pre">remote_addr:</span> <span class="pre">tuple[str,</span> <span class="pre">int],</span> <span class="pre">name:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'QuickSenderEndpoint',</span> <span class="pre">addr:</span> <span class="pre">tuple[str,</span> <span class="pre">int]</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">send_b_size:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">65536,</span> <span class="pre">compression:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">marshal_f:</span> <span class="pre">~typing.Callable[[object],</span> <span class="pre">bytes]</span> <span class="pre">=</span> <span class="pre">&lt;built-in</span> <span class="pre">function</span> <span class="pre">dumps&gt;,</span> <span class="pre">blocking=True</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/communication/message_stream.html#StreamEndpoint.create_quick_sender_ep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.communication.message_stream.StreamEndpoint.create_quick_sender_ep" title="Link to this definition"></a></dt>
+<dd><p>Creates a (simplified) one-time endpoint to send a number of objects to a
+remote endpoint before shutting down. May be called non-blocking to handle
+endpoint in background entirely.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>objects</strong> – Iterable of objects to send to remote endpoint.</p></li>
+<li><p><strong>remote_addr</strong> – Address of remote endpoint to send messages to.</p></li>
+<li><p><strong>name</strong> – Name of endpoint for logging purposes.</p></li>
+<li><p><strong>addr</strong> – Address of endpoint.</p></li>
+<li><p><strong>send_b_size</strong> – Underlying send buffer size of socket.</p></li>
+<li><p><strong>compression</strong> – Enables lz4 stream compression for bandwidth optimization.</p></li>
+<li><p><strong>marshal_f</strong> – Marshal function to serialize objects to send into byte</p></li>
+<li><p><strong>blocking</strong> – Whether endpoint and message handling is to be done</p></li>
+</ul>
+</dd>
+</dl>
+<p>synchronously or asynchronously (using threads).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.communication.message_stream.StreamEndpoint.poll">
+<span class="sig-name descname"><span class="pre">poll</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">bool</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/daisy/communication/message_stream.html#StreamEndpoint.poll"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.communication.message_stream.StreamEndpoint.poll" title="Link to this definition"></a></dt>
+<dd><p>Polls the state of various stats of the endpoint (see below) and addresses
+of endpoint.</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>0,0: Existence of underlying socket (true if connected).</p></li>
+<li><dl class="simple">
+<dt>0,1: Whether there is something to read on the internal buffer (async)</dt><dd><p>or underlying socket (sync).</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>0,2: Whether one is able to write on the internal buffer (async)</dt><dd><p>or underlying socket (sync).</p>
+</dd>
+</dl>
+</li>
+</ul>
+<ul class="simple">
+<li><p>1,0: Address of endpoint, else None</p></li>
+<li><p>1,1: Address of remote endpoint, else None.</p></li>
+</ul>
+</div></blockquote>
+<p>Note this does not necessarily guarantee that the underlying endpoint socket
+is actually connected and available for reading/writing; not only could have
+the connection broken down since then and is being re-established,
+but in multithreading mode the content of the internal buffers might change
+over time and thus change the read/write state.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple of boolean states (connectivity, readability, writability) and</p>
+</dd>
+</dl>
+<p>address-pair of endpoint.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.communication.message_stream.StreamEndpoint.receive">
+<span class="sig-name descname"><span class="pre">receive</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">object</span></span></span><a class="reference internal" href="_modules/daisy/communication/message_stream.html#StreamEndpoint.receive"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.communication.message_stream.StreamEndpoint.receive" title="Link to this definition"></a></dt>
+<dd><p>Generic receive function that receives data as a pickle over the
+persistent datastream, unpickles it into the respective object and returns
+it. Blocking in default-mode if timeout not set. Also supports receiving
+objects past the closing of the endpoint, if multithreading is enabled and
+the objects have already been received nad stored in the receive buffer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>timeout</strong> – Timeout (seconds) to receive an object to return.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Received object.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>RuntimeError</strong> – If endpoint has not been started or has been terminated</p>
+</dd>
+</dl>
+<p>by the remote counterpart, and there is nothing to receive asynchronously
+(multithreading is not enabled).
+:raises TimeoutError: If timeout set and triggered.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.communication.message_stream.StreamEndpoint.receive_latest_ep_objs">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">receive_latest_ep_objs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">endpoints:</span> <span class="pre">~typing.Iterable[~typing.Self],</span> <span class="pre">obj_type:</span> <span class="pre">type</span> <span class="pre">=</span> <span class="pre">&lt;class</span> <span class="pre">'object'&gt;</span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">Self</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Optional</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/daisy/communication/message_stream.html#StreamEndpoint.receive_latest_ep_objs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.communication.message_stream.StreamEndpoint.receive_latest_ep_objs" title="Link to this definition"></a></dt>
+<dd><p>Endpoint helper function to receive the latest objects of a certain type
+from a number of endpoints. Note this flushes any other messages held by
+these endpoints as well, as non-blocking receives are called on them until
+their buffers are exhausted. Any messages of others types are discarded,
+as are endpoints who are not ready.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>endpoints</strong> – Iterable of endpoints to receive objects from.</p></li>
+<li><p><strong>obj_type</strong> – Type of objects to receive. If none given, receives the latest</p></li>
+</ul>
+</dd>
+</dl>
+<p>message of any type.
+:return: Dictionary of each endpoint and their respective latest received
+object, None if nothing received for endpoint.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.communication.message_stream.StreamEndpoint.select_eps">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">select_eps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">endpoints</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">Self</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">Self</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">Self</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/daisy/communication/message_stream.html#StreamEndpoint.select_eps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.communication.message_stream.StreamEndpoint.select_eps" title="Link to this definition"></a></dt>
+<dd><p>Endpoint select helper function to check a number of endpoints whether
+objects can be read from or written to them. For simplicity’s sake, does not
+mirror the actual UNIX select function (supporting separate lists).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>endpoints</strong> – Iterable of endpoints to check for readiness.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tuple of lists of endpoints that are read/write ready:</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.communication.message_stream.StreamEndpoint.send">
+<span class="sig-name descname"><span class="pre">send</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">object</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/communication/message_stream.html#StreamEndpoint.send"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.communication.message_stream.StreamEndpoint.send" title="Link to this definition"></a></dt>
+<dd><p>Generic send function that sends any object as a pickle over the
+persistent datastream. If multithreading is enabled, this function is
+non-blocking.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>obj</strong> – Object to send.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> – If endpoint has not been started or has been terminated</p>
+</dd>
+</dl>
+<p>by the remote counterpart.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.communication.message_stream.StreamEndpoint.start">
+<span class="sig-name descname"><span class="pre">start</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">blocking</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Event</span></span></span><a class="reference internal" href="_modules/daisy/communication/message_stream.html#StreamEndpoint.start"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.communication.message_stream.StreamEndpoint.start" title="Link to this definition"></a></dt>
+<dd><p>Starts the endpoint, either in threaded fashion or as part of the main
+thread. By doing so, the two endpoints are connected and the datastream is
+opened. This method is blocking until a connection is established by default
+if multithreading is not enabled or the respective flag is not set. If either
+is the case, the caller can check the readiness of the connection via the
+returned event object. Note that in multithreading mode, objects can already
+be sent/received, however they will only be stored in internal buffers until
+the establishing of connection (sets the semaphore accordingly to allow async
+sender and receiver to proceed).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>blocking</strong> – Whether to wait for a connection to be established in</p>
+</dd>
+</dl>
+<p>non-multithreading (sync) mode.
+:return: Event object to check endpoint’s readiness to send/receive. Always
+true if start() was called blocking.
+:raises RuntimeError: If endpoint has already been started or shut down.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.communication.message_stream.StreamEndpoint.stop">
+<span class="sig-name descname"><span class="pre">stop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shutdown</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">blocking</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/communication/message_stream.html#StreamEndpoint.stop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.communication.message_stream.StreamEndpoint.stop" title="Link to this definition"></a></dt>
+<dd><p>Stops the endpoint and closes the stream, cleaning up underlying
+datastructures. If multithreading is enabled, waits for both endpoint threads
+to stop before finishing. Note this does not guarantee the sending and
+receiving of all objects still pending — they may still be in internal
+buffers and will be processed if the endpoint is opened again,
+or get discarded by the underlying socket. This method is blocking until the
+endpoint is fully closed / shutdown if multithreading is not enabled or the
+respective flag is not set. If either is the case, the caller can check the
+progress via the returned event object.</p>
+<p>Also note if the endpoint has not been started or has already been closed,
+a set shutdown flag still results in the full cleanup of the underlying
+datastructures.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>shutdown</strong> – If set, also cleans up underlying datastructures of the</p>
+</dd>
+</dl>
+<p>socket communication.
+:param timeout: Allows the sender thread to process remaining messages until
+timeout.
+:param blocking: Whether to wait for the endpoint to be closed in
+non-multithreading (sync) mode.
+:return: Event object to check whether endpoint is closed. Always true if
+stop() was called blocking.
+:raises RuntimeError: If endpoint has not been started or already shut down.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="tests">
+<h2>Tests<a class="headerlink" href="#tests" title="Link to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="daisy.communication.tests.html">daisy.communication.tests package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="daisy.communication.tests.html#module-daisy.communication.tests.simple_acceptor">daisy.communication.tests.simple_acceptor module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="daisy.communication.tests.html#daisy.communication.tests.simple_acceptor.clashing_acceptor"><code class="docutils literal notranslate"><span class="pre">clashing_acceptor()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.communication.tests.html#daisy.communication.tests.simple_acceptor.multithreaded_acceptor"><code class="docutils literal notranslate"><span class="pre">multithreaded_acceptor()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.communication.tests.html#daisy.communication.tests.simple_acceptor.simple_acceptor"><code class="docutils literal notranslate"><span class="pre">simple_acceptor()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.communication.tests.html#daisy.communication.tests.simple_acceptor.single_message_acceptor"><code class="docutils literal notranslate"><span class="pre">single_message_acceptor()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.communication.tests.html#daisy.communication.tests.simple_acceptor.threaded_acceptor"><code class="docutils literal notranslate"><span class="pre">threaded_acceptor()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="daisy.communication.tests.html#module-daisy.communication.tests.simple_initiator">daisy.communication.tests.simple_initiator module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="daisy.communication.tests.html#daisy.communication.tests.simple_initiator.multithreaded_initiator"><code class="docutils literal notranslate"><span class="pre">multithreaded_initiator()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.communication.tests.html#daisy.communication.tests.simple_initiator.one_time_initiator"><code class="docutils literal notranslate"><span class="pre">one_time_initiator()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.communication.tests.html#daisy.communication.tests.simple_initiator.simple_initiator"><code class="docutils literal notranslate"><span class="pre">simple_initiator()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.communication.tests.html#daisy.communication.tests.simple_initiator.single_message_initiator"><code class="docutils literal notranslate"><span class="pre">single_message_initiator()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.communication.tests.html#daisy.communication.tests.simple_initiator.threaded_initiator"><code class="docutils literal notranslate"><span class="pre">threaded_initiator()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="daisy.communication.tests.html#module-daisy.communication.tests.simple_server">daisy.communication.tests.simple_server module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="daisy.communication.tests.html#daisy.communication.tests.simple_server.simple_server"><code class="docutils literal notranslate"><span class="pre">simple_server()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="daisy.communication.tests.html#module-daisy.communication.tests">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="general.dashboard.html" class="btn btn-neutral float-left" title="Dashboard" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="daisy.communication.tests.html" class="btn btn-neutral float-right" title="daisy.communication.tests package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Fabian Hofmann, Seraphin Zunzer, Jonathan Ackerschewski, Lotta Fejzula.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

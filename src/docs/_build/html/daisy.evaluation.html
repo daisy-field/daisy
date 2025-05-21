@@ -1,0 +1,279 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Evaluation &mdash; DAISY 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+    <link rel="shortcut icon" href="_static/favicon2.ico"/>
+    <link rel="canonical" href="https://daisy-field.github.io/daisy.evaluation.html" />
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Federated IDS Components" href="daisy.federated_ids_components.html" />
+    <link rel="prev" title="Datasources" href="daisy.data_sources.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            DAISY
+              <img src="_static/favicon2.ico" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="general.overview.html">What is DAISY?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="general.background.html">Background</a></li>
+<li class="toctree-l1"><a class="reference internal" href="general.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="general.dashboard.html">Dashboard</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Documentation:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="daisy.communication.html">Communication</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.data_sources.html">Datasources</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Evaluation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#daisy.evaluation.ConfMatrSlidingWindowEvaluation"><code class="docutils literal notranslate"><span class="pre">ConfMatrSlidingWindowEvaluation</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.evaluation.ConfMatrSlidingWindowEvaluation.result"><code class="docutils literal notranslate"><span class="pre">ConfMatrSlidingWindowEvaluation.result()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#daisy.evaluation.SlidingWindowEvaluation"><code class="docutils literal notranslate"><span class="pre">SlidingWindowEvaluation</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.evaluation.SlidingWindowEvaluation.merge_state"><code class="docutils literal notranslate"><span class="pre">SlidingWindowEvaluation.merge_state()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.evaluation.SlidingWindowEvaluation.pred_labels"><code class="docutils literal notranslate"><span class="pre">SlidingWindowEvaluation.pred_labels</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.evaluation.SlidingWindowEvaluation.reset_state"><code class="docutils literal notranslate"><span class="pre">SlidingWindowEvaluation.reset_state()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.evaluation.SlidingWindowEvaluation.result"><code class="docutils literal notranslate"><span class="pre">SlidingWindowEvaluation.result()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.evaluation.SlidingWindowEvaluation.true_labels"><code class="docutils literal notranslate"><span class="pre">SlidingWindowEvaluation.true_labels</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.evaluation.SlidingWindowEvaluation.update_state"><code class="docutils literal notranslate"><span class="pre">SlidingWindowEvaluation.update_state()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#daisy.evaluation.TFMetricSlidingWindowEvaluation"><code class="docutils literal notranslate"><span class="pre">TFMetricSlidingWindowEvaluation</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.evaluation.TFMetricSlidingWindowEvaluation.result"><code class="docutils literal notranslate"><span class="pre">TFMetricSlidingWindowEvaluation.result()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.federated_ids_components.html">Federated IDS Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.federated_learning.html">Federated Learning</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="daisy.scripts.data_collection.html">Data Collection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.scripts.demo_components.html">Demo Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.scripts.generic_fids_components.html">Demo Servers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">DAISY</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Evaluation</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/daisy.evaluation.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-daisy.evaluation">
+<span id="evaluation"></span><h1>Evaluation<a class="headerlink" href="#module-daisy.evaluation" title="Link to this heading"></a></h1>
+<p>Toolbox for evaluation for the performance of federated online learning approaches,
+namely for intrusion detection. Since they require various kinds of inputs,
+there is no singular interface to implement and call when using one of them,
+check the individual modules for more info.</p>
+<p>At the moment, the toolbox contains a set of classe for the online evaluation of
+anomaly detection approaches using customized extensions of the keras metric API:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>SlidingWindowEvaluation - Interface class. Implementations must compute</p></li>
+</ul>
+<p>incremental updates to the metric.
+* ConfMatrSlidingWindowEvaluation - Evaluator that computes the confusion matrix
+metrics over a sliding window.
+* TFMetricSlidingWindowEvaluation - Class wrapper for generic tensorflow metrics
+over a sliding window.</p>
+</div></blockquote>
+<dl class="py class">
+<dt class="sig sig-object py" id="daisy.evaluation.ConfMatrSlidingWindowEvaluation">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">daisy.evaluation.</span></span><span class="sig-name descname"><span class="pre">ConfMatrSlidingWindowEvaluation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'conf_matrix_online_evaluation'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">window_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/evaluation/anomaly_detection_online_evaluation.html#ConfMatrSlidingWindowEvaluation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.evaluation.ConfMatrSlidingWindowEvaluation" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#daisy.evaluation.SlidingWindowEvaluation" title="daisy.evaluation.anomaly_detection_online_evaluation.SlidingWindowEvaluation"><code class="xref py py-class docutils literal notranslate"><span class="pre">SlidingWindowEvaluation</span></code></a></p>
+<p>Sliding window evaluation metric that computes the entire confusion matrix
+along with most(*) its metrics over the k most recent predicted binary labels to
+evaluate the model’s recent performance on them in point-wise manner.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.evaluation.ConfMatrSlidingWindowEvaluation.result">
+<span class="sig-name descname"><span class="pre">result</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tensor</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/daisy/evaluation/anomaly_detection_online_evaluation.html#ConfMatrSlidingWindowEvaluation.result"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.evaluation.ConfMatrSlidingWindowEvaluation.result" title="Link to this definition"></a></dt>
+<dd><p>Based on the accumulated confusion matrix, computes its derived scalar
+metrics and returns them.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dictionary of all derived scalar (tensor) confusion matrix metrics.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="daisy.evaluation.SlidingWindowEvaluation">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">daisy.evaluation.</span></span><span class="sig-name descname"><span class="pre">SlidingWindowEvaluation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'ad_online_evaluation'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">window_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/evaluation/anomaly_detection_online_evaluation.html#SlidingWindowEvaluation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.evaluation.SlidingWindowEvaluation" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Metric</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></p>
+<p>Abstract evaluation metric class that extends the existing tensorflow metric
+base class, with a sliding window to collect the k most recent predicted labels
+to evaluate the model’s recent performance on them in point-wise manner.</p>
+<p>Note that depending on the metric, non-abstract methods must be extended with a
+new metric’s own functionality.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.evaluation.SlidingWindowEvaluation.merge_state">
+<span class="sig-name descname"><span class="pre">merge_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metrics</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Self</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/evaluation/anomaly_detection_online_evaluation.html#SlidingWindowEvaluation.merge_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.evaluation.SlidingWindowEvaluation.merge_state" title="Link to this definition"></a></dt>
+<dd><p>Merges the state from one or more metrics, by merging their sliding windows.</p>
+<p>Note this is only possible if the sliding window of the current instance is
+able to encompass all other windows.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>metrics</strong> – An iterable of sliding window metrics of the same type.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="daisy.evaluation.SlidingWindowEvaluation.pred_labels">
+<span class="sig-name descname"><span class="pre">pred_labels</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">deque</span></em><a class="headerlink" href="#daisy.evaluation.SlidingWindowEvaluation.pred_labels" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.evaluation.SlidingWindowEvaluation.reset_state">
+<span class="sig-name descname"><span class="pre">reset_state</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/evaluation/anomaly_detection_online_evaluation.html#SlidingWindowEvaluation.reset_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.evaluation.SlidingWindowEvaluation.reset_state" title="Link to this definition"></a></dt>
+<dd><p>Resets the sliding window and all the metric’s state variables.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.evaluation.SlidingWindowEvaluation.result">
+<em class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">result</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/evaluation/anomaly_detection_online_evaluation.html#SlidingWindowEvaluation.result"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.evaluation.SlidingWindowEvaluation.result" title="Link to this definition"></a></dt>
+<dd><p>Computes and returns the scalar value(s) of the metric. Idempotent operation
+based on the underlying state variables and the sliding window.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A scalar tensor, or a dictionary of scalar tensors.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="daisy.evaluation.SlidingWindowEvaluation.true_labels">
+<span class="sig-name descname"><span class="pre">true_labels</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">deque</span></em><a class="headerlink" href="#daisy.evaluation.SlidingWindowEvaluation.true_labels" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.evaluation.SlidingWindowEvaluation.update_state">
+<span class="sig-name descname"><span class="pre">update_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y_true</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_pred</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/evaluation/anomaly_detection_online_evaluation.html#SlidingWindowEvaluation.update_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.evaluation.SlidingWindowEvaluation.update_state" title="Link to this definition"></a></dt>
+<dd><p>Adds a mini-batch of inputs to the metric, removing old ones if the window
+is full, and adjusting statistics accordingly. Converts any tensors into
+numpy arrays as data points/pairs are processed in element-wise fashion
+anyway and this makes it easier for generic handling.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>y_true</strong> – Vector/Tensor containing true labels of inputs.</p></li>
+<li><p><strong>y_pred</strong> – Vector/Tensor containing predicted labels of inputs.</p></li>
+<li><p><strong>args</strong> – Not supported arguments.</p></li>
+<li><p><strong>kwargs</strong> – Not supported keywords arguments.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="daisy.evaluation.TFMetricSlidingWindowEvaluation">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">daisy.evaluation.</span></span><span class="sig-name descname"><span class="pre">TFMetricSlidingWindowEvaluation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tf_metric</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Metric</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">window_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/evaluation/anomaly_detection_online_evaluation.html#TFMetricSlidingWindowEvaluation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.evaluation.TFMetricSlidingWindowEvaluation" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#daisy.evaluation.SlidingWindowEvaluation" title="daisy.evaluation.anomaly_detection_online_evaluation.SlidingWindowEvaluation"><code class="xref py py-class docutils literal notranslate"><span class="pre">SlidingWindowEvaluation</span></code></a></p>
+<p>Wrapper class for all kinds of tensorflow evaluation metrics that operate on
+true-predicted label comparisons. Uses the provided sliding window to accumulate
+a subset of the overall data points and evaluates them using the tensorflow
+metric when called upon. Not very computational efficient since cumulative
+aggregation cannot be supported as not every metric can be computed in sliding
+window manner.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.evaluation.TFMetricSlidingWindowEvaluation.result">
+<span class="sig-name descname"><span class="pre">result</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/evaluation/anomaly_detection_online_evaluation.html#TFMetricSlidingWindowEvaluation.result"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.evaluation.TFMetricSlidingWindowEvaluation.result" title="Link to this definition"></a></dt>
+<dd><p>Based on the current window, computes and returns the scalar metric value
+tensor or a dict of scalars, after resetting the metric once more.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tensorflow metric result.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="daisy.data_sources.html" class="btn btn-neutral float-left" title="Datasources" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="daisy.federated_ids_components.html" class="btn btn-neutral float-right" title="Federated IDS Components" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Fabian Hofmann, Seraphin Zunzer, Jonathan Ackerschewski, Lotta Fejzula.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

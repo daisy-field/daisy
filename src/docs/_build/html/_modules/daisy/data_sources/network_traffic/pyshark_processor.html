@@ -1,0 +1,535 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>daisy.data_sources.network_traffic.pyshark_processor &mdash; DAISY 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/favicon2.ico"/>
+    <link rel="canonical" href="https://daisy-field.github.io/_modules/daisy/data_sources/network_traffic/pyshark_processor.html" />
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            DAISY
+              <img src="../../../../_static/favicon2.ico" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../general.overview.html">What is DAISY?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../general.background.html">Background</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../general.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../general.dashboard.html">Dashboard</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Documentation:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../daisy.communication.html">Communication</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../daisy.data_sources.html">Datasources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../daisy.evaluation.html">Evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../daisy.federated_ids_components.html">Federated IDS Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../daisy.federated_learning.html">Federated Learning</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../daisy.scripts.data_collection.html">Data Collection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../daisy.scripts.demo_components.html">Demo Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../daisy.scripts.generic_fids_components.html">Demo Servers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">DAISY</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">daisy.data_sources.network_traffic.pyshark_processor</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for daisy.data_sources.network_traffic.pyshark_processor</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright (C) 2024-2025 DAI-Labor and others</span>
+<span class="c1">#</span>
+<span class="c1"># This Source Code Form is subject to the terms of the Mozilla Public</span>
+<span class="c1"># License, v. 2.0. If a copy of the MPL was not distributed with this</span>
+<span class="c1"># file, You can obtain one at https://mozilla.org/MPL/2.0/.</span>
+<span class="sd">&quot;&quot;&quot;Implementation of the data processor for supporting processing steps used for pyshark</span>
+<span class="sd">packets, i.e. a pre-packaged extension of the data processor base class for ease of use.</span>
+
+<span class="sd">Author: Jonathan Ackerschewski, Fabian Hofmann</span>
+<span class="sd">Modified: 04.11.2024</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">ipaddress</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">defaultdict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ipaddress</span><span class="w"> </span><span class="kn">import</span> <span class="n">AddressValueError</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Self</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing_extensions</span><span class="w"> </span><span class="kn">import</span> <span class="n">deprecated</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyshark.packet.fields</span><span class="w"> </span><span class="kn">import</span> <span class="n">LayerField</span><span class="p">,</span> <span class="n">LayerFieldsContainer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyshark.packet.layers.json_layer</span><span class="w"> </span><span class="kn">import</span> <span class="n">JsonLayer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyshark.packet.layers.xml_layer</span><span class="w"> </span><span class="kn">import</span> <span class="n">XmlLayer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyshark.packet.packet</span><span class="w"> </span><span class="kn">import</span> <span class="n">Packet</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">..</span><span class="w"> </span><span class="kn">import</span> <span class="n">select_feature</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..data_processor</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataProcessor</span><span class="p">,</span> <span class="n">flatten_dict</span>
+
+<span class="c1"># Exemplary network feature filter, supporting cohda-box (V2x) messages, besides</span>
+<span class="c1"># TCP/IP and ETH.</span>
+<span class="n">pcap_f_features</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">&quot;meta.len&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;meta.time&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;meta.time_epoch&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;meta.protocols&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ip.addr&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;sll.halen&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;sll.pkttype&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;sll.eth&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;sll.hatype&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;sll.unused&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ipv6.tclass&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ipv6.flow&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ipv6.nxt&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ipv6.src_host&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ipv6.host&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ipv6.hlim&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;sll.ltype&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;cohda.Type&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;cohda.Ret&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;cohda.llc.MKxIFMsg.Ret&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ipv6.addr&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ipv6.dst&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ipv6.plen&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;tcp.stream&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;tcp.payload&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;tcp.urgent_pointer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;tcp.port&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;tcp.options.nop&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;tcp.options.timestamp&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;tcp.flags&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;tcp.window_size_scalefactor&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;tcp.dstport&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;tcp.len&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;tcp.checksum&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;tcp.window_size&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;tcp.srcport&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;tcp.checksum.status&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;tcp.nxtseq&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;tcp.status&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;tcp.analysis.bytes_in_flight&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;tcp.analysis.push_bytes_sent&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;tcp.ack&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;tcp.hdr_len&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;tcp.seq&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;tcp.window_size_value&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;data.data&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;data.len&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;tcp.analysis.acks_frame&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;tcp.analysis.ack_rtt&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;eth.src.addr&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;eth.src.eth.src_resolved&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;eth.src.ig&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;eth.src.src_resolved&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;eth.src.addr_resolved&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ip.proto&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ip.dst_host&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ip.flags&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ip.len&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ip.checksum&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ip.checksum.status&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ip.version&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ip.host&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ip.status&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ip.id&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ip.hdr_len&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ip.ttl&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="pcap_nn_aggregator">
+<a class="viewcode-back" href="../../../../daisy.data_sources.network_traffic.html#daisy.data_sources.network_traffic.pcap_nn_aggregator">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">pcap_nn_aggregator</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Simple, exemplary value aggregator. Takes a non-numerical (i.e. string) key-value</span>
+<span class="sd">    pair and attempts to converted it into an integer / float. This example does not</span>
+<span class="sd">    take the key into account, but only checks the types of the value to proceed. Note,</span>
+<span class="sd">    that ipv6 are lazily converted to 32 bit (collisions may occur).</span>
+
+<span class="sd">    :param key: Name of pair, which always a string.</span>
+<span class="sd">    :param value: Arbitrary non-numerical value to be converted.</span>
+<span class="sd">    :return: Converted numerical value.</span>
+<span class="sd">    :raises ValueError: If value cannot be converted.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="n">value</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+        <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">ipaddress</span><span class="o">.</span><span class="n">IPv4Address</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+        <span class="k">except</span> <span class="n">AddressValueError</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">ipaddress</span><span class="o">.</span><span class="n">IPv6Address</span><span class="p">(</span><span class="n">value</span><span class="p">))</span> <span class="o">%</span> <span class="n">sys</span><span class="o">.</span><span class="n">maxsize</span>
+        <span class="k">except</span> <span class="n">AddressValueError</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unable to aggregate non-numerical item: </span><span class="si">{</span><span class="n">key</span><span class="p">,</span><span class="w"> </span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="PysharkProcessor">
+<a class="viewcode-back" href="../../../../daisy.data_sources.network_traffic.html#daisy.data_sources.network_traffic.PysharkProcessor">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PysharkProcessor</span><span class="p">(</span><span class="n">DataProcessor</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Extension of the data processor base class with pre-built processing steps</span>
+<span class="sd">    specifically for pyshark packets.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="PysharkProcessor.packet_to_dict">
+<a class="viewcode-back" href="../../../../daisy.data_sources.network_traffic.html#daisy.data_sources.network_traffic.PysharkProcessor.packet_to_dict">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">packet_to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Adds a function to the processor that takes a data point which is a</span>
+<span class="sd">        pyshark packet and converts it into a dictionary.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># noinspection DuplicatedCode</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">packet_to_dict_func</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="n">Packet</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+            <span class="n">p_dict</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">meta_dict</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;number&quot;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">number</span><span class="p">,</span>
+                <span class="s2">&quot;len&quot;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">length</span><span class="p">,</span>
+                <span class="s2">&quot;protocols&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">layer_name</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">layers</span><span class="p">],</span>
+                <span class="s2">&quot;time_epoch&quot;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">sniff_timestamp</span><span class="p">,</span>
+                <span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">sniff_time</span><span class="p">),</span>
+            <span class="p">}</span>
+            <span class="n">p_dict</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;meta&quot;</span><span class="p">:</span> <span class="n">meta_dict</span><span class="p">})</span>
+
+            <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
+                <span class="n">p_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">_add_layer_to_dict</span><span class="p">(</span><span class="n">layer</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">p_dict</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_func</span><span class="p">(</span>
+            <span class="k">lambda</span> <span class="n">d_point</span><span class="p">:</span> <span class="n">packet_to_dict_func</span><span class="p">(</span><span class="n">d_point</span><span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">flatten_dict</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="PysharkProcessor.create_simple_processor">
+<a class="viewcode-back" href="../../../../daisy.data_sources.network_traffic.html#daisy.data_sources.network_traffic.PysharkProcessor.create_simple_processor">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_simple_processor</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="n">f_features</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">pcap_f_features</span><span class="p">,</span>
+        <span class="n">nn_aggregator</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">],</span> <span class="nb">object</span><span class="p">]</span> <span class="o">=</span> <span class="n">pcap_nn_aggregator</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates a simple pyshark processor selecting specific features from each</span>
+<span class="sd">        data point (nan if not existing) and transforms them into numpy vectors,</span>
+<span class="sd">        ready for to be further processed by detection models.</span>
+
+<span class="sd">        :param name: Name of processor for logging purposes.</span>
+<span class="sd">        :param f_features: Features to extract from the packets.</span>
+<span class="sd">        :param nn_aggregator: Aggregator, which should map non-numerical features to</span>
+<span class="sd">        integers / floats.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">PysharkProcessor</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">packet_to_dict</span><span class="p">()</span>
+            <span class="o">.</span><span class="n">select_dict_features</span><span class="p">(</span><span class="n">features</span><span class="o">=</span><span class="n">f_features</span><span class="p">,</span> <span class="n">default_value</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">dict_to_array</span><span class="p">(</span><span class="n">nn_aggregator</span><span class="o">=</span><span class="n">nn_aggregator</span><span class="p">)</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<span class="c1"># noinspection DuplicatedCode</span>
+<div class="viewcode-block" id="dict_to_numpy_array">
+<a class="viewcode-back" href="../../../../daisy.data_sources.network_traffic.html#daisy.data_sources.network_traffic.dict_to_numpy_array">[docs]</a>
+<span class="nd">@deprecated</span><span class="p">(</span><span class="s2">&quot;Use DataProcessor.dict_to_array() instead&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">dict_to_numpy_array</span><span class="p">(</span>
+    <span class="n">d_point</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+    <span class="n">nn_aggregator</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">],</span> <span class="nb">object</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Transform the pyshark data point directly into a numpy array without further</span>
+<span class="sd">    processing, aggregating any value that is list into a singular value.</span>
+
+<span class="sd">    :param d_point: Data point as dictionary.</span>
+<span class="sd">    :param nn_aggregator: Aggregator, which maps non-numerical features to integers</span>
+<span class="sd">    or floats.</span>
+<span class="sd">    :return: Data point as vector.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">l_point</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">d_point</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">float</span><span class="p">):</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">nn_aggregator</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">except</span> <span class="ne">TypeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid k/v pair: </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+        <span class="n">l_point</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">l_point</span><span class="p">)</span></div>
+
+
+
+<span class="c1"># noinspection DuplicatedCode</span>
+<div class="viewcode-block" id="packet_to_dict">
+<a class="viewcode-back" href="../../../../daisy.data_sources.network_traffic.html#daisy.data_sources.network_traffic.packet_to_dict">[docs]</a>
+<span class="nd">@deprecated</span><span class="p">(</span><span class="s2">&quot;Use PysharkProcessor.packet_to_dict() instead&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">packet_to_dict</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="n">Packet</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Takes a single pyshark packet and converts it into a dictionary.</span>
+
+<span class="sd">    :param p: Packet to convert.</span>
+<span class="sd">    :return: Dictionary generated from the packet.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p_dict</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="n">meta_dict</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;number&quot;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">number</span><span class="p">,</span>
+        <span class="s2">&quot;len&quot;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">length</span><span class="p">,</span>
+        <span class="s2">&quot;protocols&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">layer_name</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">layers</span><span class="p">],</span>
+        <span class="s2">&quot;time_epoch&quot;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">sniff_timestamp</span><span class="p">,</span>
+        <span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">sniff_time</span><span class="p">),</span>
+    <span class="p">}</span>
+    <span class="n">p_dict</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;meta&quot;</span><span class="p">:</span> <span class="n">meta_dict</span><span class="p">})</span>
+
+    <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
+        <span class="n">p_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">_add_layer_to_dict</span><span class="p">(</span><span class="n">layer</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">flatten_dict</span><span class="p">(</span><span class="n">p_dict</span><span class="p">)</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_add_layer_to_dict</span><span class="p">(</span><span class="n">layer</span><span class="p">:</span> <span class="p">(</span><span class="n">XmlLayer</span><span class="p">,</span> <span class="n">JsonLayer</span><span class="p">))</span> <span class="o">-&gt;</span> <span class="p">(</span><span class="nb">dict</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates a dictionary out of a packet captured by pyshark. This is the</span>
+<span class="sd">    entrypoint for a recursive process.</span>
+
+<span class="sd">    :param layer: The base layer of the packet.</span>
+<span class="sd">    :return: A dictionary containing dictionaries for the sub-layers.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="p">(</span><span class="n">XmlLayer</span><span class="p">,</span> <span class="n">JsonLayer</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="n">_add_xml_layer_to_dict</span><span class="p">(</span><span class="n">layer</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">LayerFieldsContainer</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">_add_layer_field_container_to_dict</span><span class="p">(</span><span class="n">layer</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">LayerField</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">layer</span><span class="o">.</span><span class="n">show</span><span class="p">}</span>
+
+    <span class="c1"># Backwards Compatibility for JSON-mode</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="n">d_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">sub_layer</span> <span class="ow">in</span> <span class="n">layer</span><span class="p">:</span>
+            <span class="n">d_list</span> <span class="o">+=</span> <span class="p">[</span><span class="n">_add_layer_to_dict</span><span class="p">(</span><span class="n">sub_layer</span><span class="p">)]</span>
+        <span class="k">return</span> <span class="n">d_list</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;No if case matched&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_add_xml_layer_to_dict</span><span class="p">(</span><span class="n">layer</span><span class="p">:</span> <span class="p">(</span><span class="n">XmlLayer</span><span class="p">,</span> <span class="n">JsonLayer</span><span class="p">))</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates a dictionary out of a xml layer or json layer and returns it.</span>
+
+<span class="sd">    This is part of a recursive function. For the entrypoint see _add_layer_to_dict.</span>
+
+<span class="sd">    :param layer: An XML or Json layer from a pyshark packet.</span>
+<span class="sd">    :return: A dictionary of the given layer.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dictionary</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">field_name</span> <span class="ow">in</span> <span class="n">layer</span><span class="o">.</span><span class="n">field_names</span><span class="p">:</span>
+        <span class="n">result_dictionary</span> <span class="o">=</span> <span class="n">_add_layer_to_dict</span><span class="p">(</span><span class="n">layer</span><span class="o">.</span><span class="n">get_field</span><span class="p">(</span><span class="n">field_name</span><span class="p">))</span>
+
+        <span class="c1"># Backwards Compatibility for JSON-mode</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result_dictionary</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">dictionary</span> <span class="o">=</span> <span class="n">_add_list_to_dict</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">field_name</span><span class="p">,</span> <span class="n">result_dictionary</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dictionary</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">result_dictionary</span><span class="p">)</span>
+
+    <span class="n">layer_dictionary</span> <span class="o">=</span> <span class="p">{</span><span class="n">layer</span><span class="o">.</span><span class="n">layer_name</span><span class="p">:</span> <span class="n">dictionary</span><span class="p">}</span>
+    <span class="k">return</span> <span class="n">layer_dictionary</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_add_list_to_dict</span><span class="p">(</span>
+    <span class="n">layer</span><span class="p">:</span> <span class="p">(</span><span class="n">XmlLayer</span><span class="p">,</span> <span class="n">JsonLayer</span><span class="p">),</span> <span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value_list</span><span class="p">:</span> <span class="nb">list</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates a dictionary out of the given parameters. This function is called by</span>
+<span class="sd">    _add_xml_layer_to_dict. Only necessary for JSON-mode.</span>
+
+<span class="sd">    This is part of a recursive function. For the entrypoint see _add_layer_to_dict.</span>
+
+<span class="sd">    :param layer: The XML or JSON layer the value_list is part of.</span>
+<span class="sd">    :param field_name: The current name of the field in the XML or JSON layer.</span>
+<span class="sd">    :param value_list: The list in the XML or JSON layer under the name of field_name.</span>
+<span class="sd">    :return: A dictionary for the field_name and value_list.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dictionary</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">layer</span><span class="o">.</span><span class="n">get_field</span><span class="p">(</span><span class="n">field_name</span><span class="p">),</span> <span class="s2">&quot;layer_name&quot;</span><span class="p">):</span>
+        <span class="n">dictionary</span><span class="p">[</span><span class="n">layer</span><span class="o">.</span><span class="n">get_field</span><span class="p">(</span><span class="n">field_name</span><span class="p">)</span><span class="o">.</span><span class="n">layer_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value_list</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">dictionary</span><span class="p">[</span><span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">value_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()))]</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">res</span><span class="p">[</span><span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">value_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()))]</span> <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">value_list</span>
+        <span class="p">]</span>
+    <span class="k">return</span> <span class="n">dictionary</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_add_layer_field_container_to_dict</span><span class="p">(</span>
+    <span class="n">layer_field_container</span><span class="p">:</span> <span class="n">LayerFieldsContainer</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates a dictionary out of a layerFieldContainer from a pyshark packet. A</span>
+<span class="sd">    file in JSON-mode always has a length of one, while XML can contain a list of</span>
+<span class="sd">    fields.</span>
+
+<span class="sd">    This is part of a recursive function. For the entrypoint see _add_layer_to_dict.</span>
+
+<span class="sd">    :param layer_field_container: The LayerFieldContainer encountered in the pyshark</span>
+<span class="sd">    packet.</span>
+<span class="sd">    :return: A dictionary for the LayerFieldContainer.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">layer_field_container</span><span class="o">.</span><span class="n">fields</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_add_layer_to_dict</span><span class="p">(</span><span class="n">layer_field_container</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="n">d_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">layer_field_container</span><span class="o">.</span><span class="n">fields</span><span class="p">:</span>
+        <span class="n">d_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_add_layer_to_dict</span><span class="p">(</span><span class="n">field</span><span class="p">))</span>
+
+    <span class="n">dictionary</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">d_list</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">dictionary</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">dictionary</span>
+
+
+<span class="c1"># noinspection DuplicatedCode</span>
+<div class="viewcode-block" id="create_pyshark_processor">
+<a class="viewcode-back" href="../../../../daisy.data_sources.network_traffic.html#daisy.data_sources.network_traffic.create_pyshark_processor">[docs]</a>
+<span class="nd">@deprecated</span><span class="p">(</span><span class="s2">&quot;Use PysharkProcessor.create_simple_processor() instead&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_pyshark_processor</span><span class="p">(</span>
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="n">f_features</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">pcap_f_features</span><span class="p">,</span>
+    <span class="n">nn_aggregator</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">],</span> <span class="nb">object</span><span class="p">]</span> <span class="o">=</span> <span class="n">pcap_nn_aggregator</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates a DataProcessor using functions specifically for pyshark packets,</span>
+<span class="sd">    selecting specific features from each data pont (nan if not existing) and</span>
+<span class="sd">    transforms them into numpy vectors, ready for to be further processed by</span>
+<span class="sd">    detection models.</span>
+
+<span class="sd">    :param name: The name for logging purposes</span>
+<span class="sd">    :param f_features: The features to extract from the packets</span>
+<span class="sd">    :param nn_aggregator: The aggregator, which should map features to integers</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">DataProcessor</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">add_func</span><span class="p">(</span><span class="k">lambda</span> <span class="n">o_point</span><span class="p">:</span> <span class="n">packet_to_dict</span><span class="p">(</span><span class="n">o_point</span><span class="p">))</span>
+        <span class="o">.</span><span class="n">add_func</span><span class="p">(</span>
+            <span class="k">lambda</span> <span class="n">o_point</span><span class="p">:</span> <span class="n">select_feature</span><span class="p">(</span>
+                <span class="n">d_point</span><span class="o">=</span><span class="n">o_point</span><span class="p">,</span> <span class="n">f_features</span><span class="o">=</span><span class="n">f_features</span><span class="p">,</span> <span class="n">default_value</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="o">.</span><span class="n">add_func</span><span class="p">(</span>
+            <span class="k">lambda</span> <span class="n">o_point</span><span class="p">:</span> <span class="n">dict_to_numpy_array</span><span class="p">(</span>
+                <span class="n">d_point</span><span class="o">=</span><span class="n">o_point</span><span class="p">,</span> <span class="n">nn_aggregator</span><span class="o">=</span><span class="n">nn_aggregator</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="dict_to_json">
+<a class="viewcode-back" href="../../../../daisy.data_sources.network_traffic.html#daisy.data_sources.network_traffic.dict_to_json">[docs]</a>
+<span class="nd">@deprecated</span><span class="p">(</span><span class="s2">&quot;Use DataProcessor.dict_to_json() instead&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">dict_to_json</span><span class="p">(</span><span class="n">dictionary</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Takes a dictionary and returns a json object in form of a string.</span>
+
+<span class="sd">    :param dictionary: The dictionary to convert to json string.</span>
+<span class="sd">    :return: A JSON string from the dictionary.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">dictionary</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Fabian Hofmann, Seraphin Zunzer, Jonathan Ackerschewski, Lotta Fejzula.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

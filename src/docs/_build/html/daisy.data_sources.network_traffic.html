@@ -1,0 +1,538 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>daisy.data_sources.network_traffic package &mdash; DAISY 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+    <link rel="shortcut icon" href="_static/favicon2.ico"/>
+    <link rel="canonical" href="https://daisy-field.github.io/daisy.data_sources.network_traffic.html" />
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            DAISY
+              <img src="_static/favicon2.ico" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="general.overview.html">What is DAISY?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="general.background.html">Background</a></li>
+<li class="toctree-l1"><a class="reference internal" href="general.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="general.dashboard.html">Dashboard</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Documentation:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="daisy.communication.html">Communication</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.data_sources.html">Datasources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.evaluation.html">Evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.federated_ids_components.html">Federated IDS Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.federated_learning.html">Federated Learning</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="daisy.scripts.data_collection.html">Data Collection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.scripts.demo_components.html">Demo Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.scripts.generic_fids_components.html">Demo Servers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">DAISY</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">daisy.data_sources.network_traffic package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/daisy.data_sources.network_traffic.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="daisy-data-sources-network-traffic-package">
+<h1>daisy.data_sources.network_traffic package<a class="headerlink" href="#daisy-data-sources-network-traffic-package" title="Link to this heading"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+</section>
+<section id="module-daisy.data_sources.network_traffic.demo_202303">
+<span id="daisy-data-sources-network-traffic-demo-202303-module"></span><h2>daisy.data_sources.network_traffic.demo_202303 module<a class="headerlink" href="#module-daisy.data_sources.network_traffic.demo_202303" title="Link to this heading"></a></h2>
+<p>Content used for the Dataset Demo from March 6th 2023.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.demo_202303.demo_202303_label_data_point">
+<span class="sig-prename descclassname"><span class="pre">daisy.data_sources.network_traffic.demo_202303.</span></span><span class="sig-name descname"><span class="pre">demo_202303_label_data_point</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">client_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d_point</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/demo_202303.html#demo_202303_label_data_point"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.demo_202303.demo_202303_label_data_point" title="Link to this definition"></a></dt>
+<dd><p>Labels the data points according to the events for the demo 202303.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>client_id</strong> – Client ID.</p></li>
+<li><p><strong>d_point</strong> – Data point as dictionary.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Labeled data point.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-daisy.data_sources.network_traffic.pyshark_handler">
+<span id="daisy-data-sources-network-traffic-pyshark-handler-module"></span><h2>daisy.data_sources.network_traffic.pyshark_handler module<a class="headerlink" href="#module-daisy.data_sources.network_traffic.pyshark_handler" title="Link to this heading"></a></h2>
+<p>Implementations of the data source interface that allows the processing and
+provisioning of pyshark packets, either via file inputs, live capture, or a remote
+source that generates packets in either fashion.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.pyshark_handler.LivePysharkDataSource">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">daisy.data_sources.network_traffic.pyshark_handler.</span></span><span class="sig-name descname"><span class="pre">LivePysharkDataSource</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interfaces</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'any'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bpf_filter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/pyshark_handler.html#LivePysharkDataSource"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.pyshark_handler.LivePysharkDataSource" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.data_source.DataSource" title="daisy.data_sources.data_source.DataSource"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataSource</span></code></a></p>
+<p>The wrapper implementation to support and handle pyshark live captures as data
+sources. Considered infinite in nature, as it allows the generation of pyshark
+packets, until the capture is stopped.
+Beware that you might have to use root privileges to obtain data from this data
+source. If privileges are missing pyshark might not return any data points or
+warnings.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.pyshark_handler.LivePysharkDataSource.close">
+<span class="sig-name descname"><span class="pre">close</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/pyshark_handler.html#LivePysharkDataSource.close"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.pyshark_handler.LivePysharkDataSource.close" title="Link to this definition"></a></dt>
+<dd><p>Stops the live caption, essentially disabling the generator. Note that the
+generator might block if one tries to retrieve an object from it after that
+point.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.pyshark_handler.LivePysharkDataSource.open">
+<span class="sig-name descname"><span class="pre">open</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/pyshark_handler.html#LivePysharkDataSource.open"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.pyshark_handler.LivePysharkDataSource.open" title="Link to this definition"></a></dt>
+<dd><p>Starts the pyshark live caption, initializing the wrapped generator.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.pyshark_handler.PcapDataSource">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">daisy.data_sources.network_traffic.pyshark_handler.</span></span><span class="sig-name descname"><span class="pre">PcapDataSource</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">file_names</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">try_counter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/pyshark_handler.html#PcapDataSource"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.pyshark_handler.PcapDataSource" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.data_source.DataSource" title="daisy.data_sources.data_source.DataSource"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataSource</span></code></a></p>
+<p>The wrapper implementation to support and handle any number of pcap files as
+data sources. Finite: finishes after all files have been processed. Warning: Not
+entirely compliant with the data source abstract class: Neither fully thread
+safe, nor does its __iter__() method shut down after close() has been called. Due
+to its finite nature acceptable however, as this data source is nearly always only
+closed once all data points have been retrieved.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.pyshark_handler.PcapDataSource.close">
+<span class="sig-name descname"><span class="pre">close</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/pyshark_handler.html#PcapDataSource.close"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.pyshark_handler.PcapDataSource.close" title="Link to this definition"></a></dt>
+<dd><p>Closes any file of the pcap file data source.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.pyshark_handler.PcapDataSource.open">
+<span class="sig-name descname"><span class="pre">open</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/pyshark_handler.html#PcapDataSource.open"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.pyshark_handler.PcapDataSource.open" title="Link to this definition"></a></dt>
+<dd><p>Opens and resets the pcap file data source to the very beginning of the file
+list.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-daisy.data_sources.network_traffic.pyshark_processor">
+<span id="daisy-data-sources-network-traffic-pyshark-processor-module"></span><h2>daisy.data_sources.network_traffic.pyshark_processor module<a class="headerlink" href="#module-daisy.data_sources.network_traffic.pyshark_processor" title="Link to this heading"></a></h2>
+<p>Implementation of the data processor for supporting processing steps used for pyshark
+packets, i.e. a pre-packaged extension of the data processor base class for ease of use.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.pyshark_processor.PysharkProcessor">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">daisy.data_sources.network_traffic.pyshark_processor.</span></span><span class="sig-name descname"><span class="pre">PysharkProcessor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/pyshark_processor.html#PysharkProcessor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.pyshark_processor.PysharkProcessor" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.data_processor.DataProcessor" title="daisy.data_sources.data_processor.DataProcessor"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataProcessor</span></code></a></p>
+<p>Extension of the data processor base class with pre-built processing steps
+specifically for pyshark packets.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.pyshark_processor.PysharkProcessor.create_simple_processor">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_simple_processor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">name:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'',</span> <span class="pre">f_features:</span> <span class="pre">list[str,</span> <span class="pre">...]</span> <span class="pre">=</span> <span class="pre">('meta.len',</span> <span class="pre">'meta.time',</span> <span class="pre">'meta.time_epoch',</span> <span class="pre">'meta.protocols',</span> <span class="pre">'ip.addr',</span> <span class="pre">'sll.halen',</span> <span class="pre">'sll.pkttype',</span> <span class="pre">'sll.eth',</span> <span class="pre">'sll.hatype',</span> <span class="pre">'sll.unused',</span> <span class="pre">'ipv6.tclass',</span> <span class="pre">'ipv6.flow',</span> <span class="pre">'ipv6.nxt',</span> <span class="pre">'ipv6.src_host',</span> <span class="pre">'ipv6.host',</span> <span class="pre">'ipv6.hlim',</span> <span class="pre">'sll.ltype',</span> <span class="pre">'cohda.Type',</span> <span class="pre">'cohda.Ret',</span> <span class="pre">'cohda.llc.MKxIFMsg.Ret',</span> <span class="pre">'ipv6.addr',</span> <span class="pre">'ipv6.dst',</span> <span class="pre">'ipv6.plen',</span> <span class="pre">'tcp.stream',</span> <span class="pre">'tcp.payload',</span> <span class="pre">'tcp.urgent_pointer',</span> <span class="pre">'tcp.port',</span> <span class="pre">'tcp.options.nop',</span> <span class="pre">'tcp.options.timestamp',</span> <span class="pre">'tcp.flags',</span> <span class="pre">'tcp.window_size_scalefactor',</span> <span class="pre">'tcp.dstport',</span> <span class="pre">'tcp.len',</span> <span class="pre">'tcp.checksum',</span> <span class="pre">'tcp.window_size',</span> <span class="pre">'tcp.srcport',</span> <span class="pre">'tcp.checksum.status',</span> <span class="pre">'tcp.nxtseq',</span> <span class="pre">'tcp.status',</span> <span class="pre">'tcp.analysis.bytes_in_flight',</span> <span class="pre">'tcp.analysis.push_bytes_sent',</span> <span class="pre">'tcp.ack',</span> <span class="pre">'tcp.hdr_len',</span> <span class="pre">'tcp.seq',</span> <span class="pre">'tcp.window_size_value',</span> <span class="pre">'data.data',</span> <span class="pre">'data.len',</span> <span class="pre">'tcp.analysis.acks_frame',</span> <span class="pre">'tcp.analysis.ack_rtt',</span> <span class="pre">'eth.src.addr',</span> <span class="pre">'eth.src.eth.src_resolved',</span> <span class="pre">'eth.src.ig',</span> <span class="pre">'eth.src.src_resolved',</span> <span class="pre">'eth.src.addr_resolved',</span> <span class="pre">'ip.proto',</span> <span class="pre">'ip.dst_host',</span> <span class="pre">'ip.flags',</span> <span class="pre">'ip.len',</span> <span class="pre">'ip.checksum',</span> <span class="pre">'ip.checksum.status',</span> <span class="pre">'ip.version',</span> <span class="pre">'ip.host',</span> <span class="pre">'ip.status',</span> <span class="pre">'ip.id',</span> <span class="pre">'ip.hdr_len',</span> <span class="pre">'ip.ttl'),</span> <span class="pre">nn_aggregator:</span> <span class="pre">~typing.Callable[[str,</span> <span class="pre">object],</span> <span class="pre">object]</span> <span class="pre">=</span> <span class="pre">&lt;function</span> <span class="pre">pcap_nn_aggregator&gt;</span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Self</span></span></span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/pyshark_processor.html#PysharkProcessor.create_simple_processor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.pyshark_processor.PysharkProcessor.create_simple_processor" title="Link to this definition"></a></dt>
+<dd><p>Creates a simple pyshark processor selecting specific features from each
+data point (nan if not existing) and transforms them into numpy vectors,
+ready for to be further processed by detection models.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – Name of processor for logging purposes.</p></li>
+<li><p><strong>f_features</strong> – Features to extract from the packets.</p></li>
+<li><p><strong>nn_aggregator</strong> – Aggregator, which should map non-numerical features to</p></li>
+</ul>
+</dd>
+</dl>
+<p>integers / floats.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.pyshark_processor.PysharkProcessor.packet_to_dict">
+<span class="sig-name descname"><span class="pre">packet_to_dict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Self</span></span></span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/pyshark_processor.html#PysharkProcessor.packet_to_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.pyshark_processor.PysharkProcessor.packet_to_dict" title="Link to this definition"></a></dt>
+<dd><p>Adds a function to the processor that takes a data point which is a
+pyshark packet and converts it into a dictionary.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.pyshark_processor.create_pyshark_processor">
+<span class="sig-prename descclassname"><span class="pre">daisy.data_sources.network_traffic.pyshark_processor.</span></span><span class="sig-name descname"><span class="pre">create_pyshark_processor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">name:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'',</span> <span class="pre">f_features:</span> <span class="pre">list[str,</span> <span class="pre">...]</span> <span class="pre">=</span> <span class="pre">('meta.len',</span> <span class="pre">'meta.time',</span> <span class="pre">'meta.time_epoch',</span> <span class="pre">'meta.protocols',</span> <span class="pre">'ip.addr',</span> <span class="pre">'sll.halen',</span> <span class="pre">'sll.pkttype',</span> <span class="pre">'sll.eth',</span> <span class="pre">'sll.hatype',</span> <span class="pre">'sll.unused',</span> <span class="pre">'ipv6.tclass',</span> <span class="pre">'ipv6.flow',</span> <span class="pre">'ipv6.nxt',</span> <span class="pre">'ipv6.src_host',</span> <span class="pre">'ipv6.host',</span> <span class="pre">'ipv6.hlim',</span> <span class="pre">'sll.ltype',</span> <span class="pre">'cohda.Type',</span> <span class="pre">'cohda.Ret',</span> <span class="pre">'cohda.llc.MKxIFMsg.Ret',</span> <span class="pre">'ipv6.addr',</span> <span class="pre">'ipv6.dst',</span> <span class="pre">'ipv6.plen',</span> <span class="pre">'tcp.stream',</span> <span class="pre">'tcp.payload',</span> <span class="pre">'tcp.urgent_pointer',</span> <span class="pre">'tcp.port',</span> <span class="pre">'tcp.options.nop',</span> <span class="pre">'tcp.options.timestamp',</span> <span class="pre">'tcp.flags',</span> <span class="pre">'tcp.window_size_scalefactor',</span> <span class="pre">'tcp.dstport',</span> <span class="pre">'tcp.len',</span> <span class="pre">'tcp.checksum',</span> <span class="pre">'tcp.window_size',</span> <span class="pre">'tcp.srcport',</span> <span class="pre">'tcp.checksum.status',</span> <span class="pre">'tcp.nxtseq',</span> <span class="pre">'tcp.status',</span> <span class="pre">'tcp.analysis.bytes_in_flight',</span> <span class="pre">'tcp.analysis.push_bytes_sent',</span> <span class="pre">'tcp.ack',</span> <span class="pre">'tcp.hdr_len',</span> <span class="pre">'tcp.seq',</span> <span class="pre">'tcp.window_size_value',</span> <span class="pre">'data.data',</span> <span class="pre">'data.len',</span> <span class="pre">'tcp.analysis.acks_frame',</span> <span class="pre">'tcp.analysis.ack_rtt',</span> <span class="pre">'eth.src.addr',</span> <span class="pre">'eth.src.eth.src_resolved',</span> <span class="pre">'eth.src.ig',</span> <span class="pre">'eth.src.src_resolved',</span> <span class="pre">'eth.src.addr_resolved',</span> <span class="pre">'ip.proto',</span> <span class="pre">'ip.dst_host',</span> <span class="pre">'ip.flags',</span> <span class="pre">'ip.len',</span> <span class="pre">'ip.checksum',</span> <span class="pre">'ip.checksum.status',</span> <span class="pre">'ip.version',</span> <span class="pre">'ip.host',</span> <span class="pre">'ip.status',</span> <span class="pre">'ip.id',</span> <span class="pre">'ip.hdr_len',</span> <span class="pre">'ip.ttl'),</span> <span class="pre">nn_aggregator:</span> <span class="pre">~typing.Callable[[str,</span> <span class="pre">object],</span> <span class="pre">object]</span> <span class="pre">=</span> <span class="pre">&lt;function</span> <span class="pre">pcap_nn_aggregator&gt;</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/pyshark_processor.html#create_pyshark_processor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.pyshark_processor.create_pyshark_processor" title="Link to this definition"></a></dt>
+<dd><p>Creates a DataProcessor using functions specifically for pyshark packets,
+selecting specific features from each data pont (nan if not existing) and
+transforms them into numpy vectors, ready for to be further processed by
+detection models.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – The name for logging purposes</p></li>
+<li><p><strong>f_features</strong> – The features to extract from the packets</p></li>
+<li><p><strong>nn_aggregator</strong> – The aggregator, which should map features to integers</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.pyshark_processor.dict_to_json">
+<span class="sig-prename descclassname"><span class="pre">daisy.data_sources.network_traffic.pyshark_processor.</span></span><span class="sig-name descname"><span class="pre">dict_to_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dictionary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/pyshark_processor.html#dict_to_json"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.pyshark_processor.dict_to_json" title="Link to this definition"></a></dt>
+<dd><p>Takes a dictionary and returns a json object in form of a string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>dictionary</strong> – The dictionary to convert to json string.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A JSON string from the dictionary.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.pyshark_processor.dict_to_numpy_array">
+<span class="sig-prename descclassname"><span class="pre">daisy.data_sources.network_traffic.pyshark_processor.</span></span><span class="sig-name descname"><span class="pre">dict_to_numpy_array</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">d_point</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nn_aggregator</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">object</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">object</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/pyshark_processor.html#dict_to_numpy_array"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.pyshark_processor.dict_to_numpy_array" title="Link to this definition"></a></dt>
+<dd><p>Transform the pyshark data point directly into a numpy array without further
+processing, aggregating any value that is list into a singular value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>d_point</strong> – Data point as dictionary.</p></li>
+<li><p><strong>nn_aggregator</strong> – Aggregator, which maps non-numerical features to integers</p></li>
+</ul>
+</dd>
+</dl>
+<p>or floats.
+:return: Data point as vector.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.pyshark_processor.packet_to_dict">
+<span class="sig-prename descclassname"><span class="pre">daisy.data_sources.network_traffic.pyshark_processor.</span></span><span class="sig-name descname"><span class="pre">packet_to_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Packet</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/pyshark_processor.html#packet_to_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.pyshark_processor.packet_to_dict" title="Link to this definition"></a></dt>
+<dd><p>Takes a single pyshark packet and converts it into a dictionary.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>p</strong> – Packet to convert.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dictionary generated from the packet.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.pyshark_processor.pcap_nn_aggregator">
+<span class="sig-prename descclassname"><span class="pre">daisy.data_sources.network_traffic.pyshark_processor.</span></span><span class="sig-name descname"><span class="pre">pcap_nn_aggregator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">object</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span></span></span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/pyshark_processor.html#pcap_nn_aggregator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.pyshark_processor.pcap_nn_aggregator" title="Link to this definition"></a></dt>
+<dd><p>Simple, exemplary value aggregator. Takes a non-numerical (i.e. string) key-value
+pair and attempts to converted it into an integer / float. This example does not
+take the key into account, but only checks the types of the value to proceed. Note,
+that ipv6 are lazily converted to 32 bit (collisions may occur).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>key</strong> – Name of pair, which always a string.</p></li>
+<li><p><strong>value</strong> – Arbitrary non-numerical value to be converted.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Converted numerical value.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – If value cannot be converted.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-daisy.data_sources.network_traffic">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-daisy.data_sources.network_traffic" title="Link to this heading"></a></h2>
+<p>Implementations of the data handler helper interface that allows the processing and
+provisioning of pyshark packets, either via file inputs, live capture, or a remote
+source that generates packets in either fashion.</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>LivePysharkDataSource - DataSource which simply yields captured packets from a</p></li>
+</ul>
+<p>list of interfaces.
+* PcapDataSource - DataSource which is able to load pcap files sequentially and
+yield their packets.
+* PysharkProcessor - Offers additional processing step options to process pyshark
+packet objects.</p>
+</div></blockquote>
+<p>There is also a module specialized for traffic of cohda boxes (V2X), that offers
+additional functionalities:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>demo_202303- Event tags for labeling purposes for the March23 dataset.</p></li>
+</ul>
+</div></blockquote>
+<dl class="py class">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.LivePysharkDataSource">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">daisy.data_sources.network_traffic.</span></span><span class="sig-name descname"><span class="pre">LivePysharkDataSource</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interfaces</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'any'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bpf_filter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/pyshark_handler.html#LivePysharkDataSource"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.LivePysharkDataSource" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.data_source.DataSource" title="daisy.data_sources.data_source.DataSource"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataSource</span></code></a></p>
+<p>The wrapper implementation to support and handle pyshark live captures as data
+sources. Considered infinite in nature, as it allows the generation of pyshark
+packets, until the capture is stopped.
+Beware that you might have to use root privileges to obtain data from this data
+source. If privileges are missing pyshark might not return any data points or
+warnings.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.LivePysharkDataSource.close">
+<span class="sig-name descname"><span class="pre">close</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/pyshark_handler.html#LivePysharkDataSource.close"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.LivePysharkDataSource.close" title="Link to this definition"></a></dt>
+<dd><p>Stops the live caption, essentially disabling the generator. Note that the
+generator might block if one tries to retrieve an object from it after that
+point.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.LivePysharkDataSource.open">
+<span class="sig-name descname"><span class="pre">open</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/pyshark_handler.html#LivePysharkDataSource.open"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.LivePysharkDataSource.open" title="Link to this definition"></a></dt>
+<dd><p>Starts the pyshark live caption, initializing the wrapped generator.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.PcapDataSource">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">daisy.data_sources.network_traffic.</span></span><span class="sig-name descname"><span class="pre">PcapDataSource</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">file_names</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">try_counter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/pyshark_handler.html#PcapDataSource"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.PcapDataSource" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.data_source.DataSource" title="daisy.data_sources.data_source.DataSource"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataSource</span></code></a></p>
+<p>The wrapper implementation to support and handle any number of pcap files as
+data sources. Finite: finishes after all files have been processed. Warning: Not
+entirely compliant with the data source abstract class: Neither fully thread
+safe, nor does its __iter__() method shut down after close() has been called. Due
+to its finite nature acceptable however, as this data source is nearly always only
+closed once all data points have been retrieved.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.PcapDataSource.close">
+<span class="sig-name descname"><span class="pre">close</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/pyshark_handler.html#PcapDataSource.close"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.PcapDataSource.close" title="Link to this definition"></a></dt>
+<dd><p>Closes any file of the pcap file data source.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.PcapDataSource.open">
+<span class="sig-name descname"><span class="pre">open</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/pyshark_handler.html#PcapDataSource.open"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.PcapDataSource.open" title="Link to this definition"></a></dt>
+<dd><p>Opens and resets the pcap file data source to the very beginning of the file
+list.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.PysharkProcessor">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">daisy.data_sources.network_traffic.</span></span><span class="sig-name descname"><span class="pre">PysharkProcessor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/pyshark_processor.html#PysharkProcessor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.PysharkProcessor" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.data_processor.DataProcessor" title="daisy.data_sources.data_processor.DataProcessor"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataProcessor</span></code></a></p>
+<p>Extension of the data processor base class with pre-built processing steps
+specifically for pyshark packets.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.PysharkProcessor.create_simple_processor">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_simple_processor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">name:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'',</span> <span class="pre">f_features:</span> <span class="pre">list[str,</span> <span class="pre">...]</span> <span class="pre">=</span> <span class="pre">('meta.len',</span> <span class="pre">'meta.time',</span> <span class="pre">'meta.time_epoch',</span> <span class="pre">'meta.protocols',</span> <span class="pre">'ip.addr',</span> <span class="pre">'sll.halen',</span> <span class="pre">'sll.pkttype',</span> <span class="pre">'sll.eth',</span> <span class="pre">'sll.hatype',</span> <span class="pre">'sll.unused',</span> <span class="pre">'ipv6.tclass',</span> <span class="pre">'ipv6.flow',</span> <span class="pre">'ipv6.nxt',</span> <span class="pre">'ipv6.src_host',</span> <span class="pre">'ipv6.host',</span> <span class="pre">'ipv6.hlim',</span> <span class="pre">'sll.ltype',</span> <span class="pre">'cohda.Type',</span> <span class="pre">'cohda.Ret',</span> <span class="pre">'cohda.llc.MKxIFMsg.Ret',</span> <span class="pre">'ipv6.addr',</span> <span class="pre">'ipv6.dst',</span> <span class="pre">'ipv6.plen',</span> <span class="pre">'tcp.stream',</span> <span class="pre">'tcp.payload',</span> <span class="pre">'tcp.urgent_pointer',</span> <span class="pre">'tcp.port',</span> <span class="pre">'tcp.options.nop',</span> <span class="pre">'tcp.options.timestamp',</span> <span class="pre">'tcp.flags',</span> <span class="pre">'tcp.window_size_scalefactor',</span> <span class="pre">'tcp.dstport',</span> <span class="pre">'tcp.len',</span> <span class="pre">'tcp.checksum',</span> <span class="pre">'tcp.window_size',</span> <span class="pre">'tcp.srcport',</span> <span class="pre">'tcp.checksum.status',</span> <span class="pre">'tcp.nxtseq',</span> <span class="pre">'tcp.status',</span> <span class="pre">'tcp.analysis.bytes_in_flight',</span> <span class="pre">'tcp.analysis.push_bytes_sent',</span> <span class="pre">'tcp.ack',</span> <span class="pre">'tcp.hdr_len',</span> <span class="pre">'tcp.seq',</span> <span class="pre">'tcp.window_size_value',</span> <span class="pre">'data.data',</span> <span class="pre">'data.len',</span> <span class="pre">'tcp.analysis.acks_frame',</span> <span class="pre">'tcp.analysis.ack_rtt',</span> <span class="pre">'eth.src.addr',</span> <span class="pre">'eth.src.eth.src_resolved',</span> <span class="pre">'eth.src.ig',</span> <span class="pre">'eth.src.src_resolved',</span> <span class="pre">'eth.src.addr_resolved',</span> <span class="pre">'ip.proto',</span> <span class="pre">'ip.dst_host',</span> <span class="pre">'ip.flags',</span> <span class="pre">'ip.len',</span> <span class="pre">'ip.checksum',</span> <span class="pre">'ip.checksum.status',</span> <span class="pre">'ip.version',</span> <span class="pre">'ip.host',</span> <span class="pre">'ip.status',</span> <span class="pre">'ip.id',</span> <span class="pre">'ip.hdr_len',</span> <span class="pre">'ip.ttl'),</span> <span class="pre">nn_aggregator:</span> <span class="pre">~typing.Callable[[str,</span> <span class="pre">object],</span> <span class="pre">object]</span> <span class="pre">=</span> <span class="pre">&lt;function</span> <span class="pre">pcap_nn_aggregator&gt;</span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Self</span></span></span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/pyshark_processor.html#PysharkProcessor.create_simple_processor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.PysharkProcessor.create_simple_processor" title="Link to this definition"></a></dt>
+<dd><p>Creates a simple pyshark processor selecting specific features from each
+data point (nan if not existing) and transforms them into numpy vectors,
+ready for to be further processed by detection models.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – Name of processor for logging purposes.</p></li>
+<li><p><strong>f_features</strong> – Features to extract from the packets.</p></li>
+<li><p><strong>nn_aggregator</strong> – Aggregator, which should map non-numerical features to</p></li>
+</ul>
+</dd>
+</dl>
+<p>integers / floats.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.PysharkProcessor.packet_to_dict">
+<span class="sig-name descname"><span class="pre">packet_to_dict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Self</span></span></span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/pyshark_processor.html#PysharkProcessor.packet_to_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.PysharkProcessor.packet_to_dict" title="Link to this definition"></a></dt>
+<dd><p>Adds a function to the processor that takes a data point which is a
+pyshark packet and converts it into a dictionary.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.create_pyshark_processor">
+<span class="sig-prename descclassname"><span class="pre">daisy.data_sources.network_traffic.</span></span><span class="sig-name descname"><span class="pre">create_pyshark_processor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">name:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'',</span> <span class="pre">f_features:</span> <span class="pre">list[str,</span> <span class="pre">...]</span> <span class="pre">=</span> <span class="pre">('meta.len',</span> <span class="pre">'meta.time',</span> <span class="pre">'meta.time_epoch',</span> <span class="pre">'meta.protocols',</span> <span class="pre">'ip.addr',</span> <span class="pre">'sll.halen',</span> <span class="pre">'sll.pkttype',</span> <span class="pre">'sll.eth',</span> <span class="pre">'sll.hatype',</span> <span class="pre">'sll.unused',</span> <span class="pre">'ipv6.tclass',</span> <span class="pre">'ipv6.flow',</span> <span class="pre">'ipv6.nxt',</span> <span class="pre">'ipv6.src_host',</span> <span class="pre">'ipv6.host',</span> <span class="pre">'ipv6.hlim',</span> <span class="pre">'sll.ltype',</span> <span class="pre">'cohda.Type',</span> <span class="pre">'cohda.Ret',</span> <span class="pre">'cohda.llc.MKxIFMsg.Ret',</span> <span class="pre">'ipv6.addr',</span> <span class="pre">'ipv6.dst',</span> <span class="pre">'ipv6.plen',</span> <span class="pre">'tcp.stream',</span> <span class="pre">'tcp.payload',</span> <span class="pre">'tcp.urgent_pointer',</span> <span class="pre">'tcp.port',</span> <span class="pre">'tcp.options.nop',</span> <span class="pre">'tcp.options.timestamp',</span> <span class="pre">'tcp.flags',</span> <span class="pre">'tcp.window_size_scalefactor',</span> <span class="pre">'tcp.dstport',</span> <span class="pre">'tcp.len',</span> <span class="pre">'tcp.checksum',</span> <span class="pre">'tcp.window_size',</span> <span class="pre">'tcp.srcport',</span> <span class="pre">'tcp.checksum.status',</span> <span class="pre">'tcp.nxtseq',</span> <span class="pre">'tcp.status',</span> <span class="pre">'tcp.analysis.bytes_in_flight',</span> <span class="pre">'tcp.analysis.push_bytes_sent',</span> <span class="pre">'tcp.ack',</span> <span class="pre">'tcp.hdr_len',</span> <span class="pre">'tcp.seq',</span> <span class="pre">'tcp.window_size_value',</span> <span class="pre">'data.data',</span> <span class="pre">'data.len',</span> <span class="pre">'tcp.analysis.acks_frame',</span> <span class="pre">'tcp.analysis.ack_rtt',</span> <span class="pre">'eth.src.addr',</span> <span class="pre">'eth.src.eth.src_resolved',</span> <span class="pre">'eth.src.ig',</span> <span class="pre">'eth.src.src_resolved',</span> <span class="pre">'eth.src.addr_resolved',</span> <span class="pre">'ip.proto',</span> <span class="pre">'ip.dst_host',</span> <span class="pre">'ip.flags',</span> <span class="pre">'ip.len',</span> <span class="pre">'ip.checksum',</span> <span class="pre">'ip.checksum.status',</span> <span class="pre">'ip.version',</span> <span class="pre">'ip.host',</span> <span class="pre">'ip.status',</span> <span class="pre">'ip.id',</span> <span class="pre">'ip.hdr_len',</span> <span class="pre">'ip.ttl'),</span> <span class="pre">nn_aggregator:</span> <span class="pre">~typing.Callable[[str,</span> <span class="pre">object],</span> <span class="pre">object]</span> <span class="pre">=</span> <span class="pre">&lt;function</span> <span class="pre">pcap_nn_aggregator&gt;</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/pyshark_processor.html#create_pyshark_processor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.create_pyshark_processor" title="Link to this definition"></a></dt>
+<dd><p>Creates a DataProcessor using functions specifically for pyshark packets,
+selecting specific features from each data pont (nan if not existing) and
+transforms them into numpy vectors, ready for to be further processed by
+detection models.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – The name for logging purposes</p></li>
+<li><p><strong>f_features</strong> – The features to extract from the packets</p></li>
+<li><p><strong>nn_aggregator</strong> – The aggregator, which should map features to integers</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.demo_202303_label_data_point">
+<span class="sig-prename descclassname"><span class="pre">daisy.data_sources.network_traffic.</span></span><span class="sig-name descname"><span class="pre">demo_202303_label_data_point</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">client_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d_point</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/demo_202303.html#demo_202303_label_data_point"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.demo_202303_label_data_point" title="Link to this definition"></a></dt>
+<dd><p>Labels the data points according to the events for the demo 202303.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>client_id</strong> – Client ID.</p></li>
+<li><p><strong>d_point</strong> – Data point as dictionary.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Labeled data point.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.dict_to_json">
+<span class="sig-prename descclassname"><span class="pre">daisy.data_sources.network_traffic.</span></span><span class="sig-name descname"><span class="pre">dict_to_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dictionary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/pyshark_processor.html#dict_to_json"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.dict_to_json" title="Link to this definition"></a></dt>
+<dd><p>Takes a dictionary and returns a json object in form of a string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>dictionary</strong> – The dictionary to convert to json string.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A JSON string from the dictionary.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.dict_to_numpy_array">
+<span class="sig-prename descclassname"><span class="pre">daisy.data_sources.network_traffic.</span></span><span class="sig-name descname"><span class="pre">dict_to_numpy_array</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">d_point</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nn_aggregator</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">object</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">object</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/pyshark_processor.html#dict_to_numpy_array"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.dict_to_numpy_array" title="Link to this definition"></a></dt>
+<dd><p>Transform the pyshark data point directly into a numpy array without further
+processing, aggregating any value that is list into a singular value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>d_point</strong> – Data point as dictionary.</p></li>
+<li><p><strong>nn_aggregator</strong> – Aggregator, which maps non-numerical features to integers</p></li>
+</ul>
+</dd>
+</dl>
+<p>or floats.
+:return: Data point as vector.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.packet_to_dict">
+<span class="sig-prename descclassname"><span class="pre">daisy.data_sources.network_traffic.</span></span><span class="sig-name descname"><span class="pre">packet_to_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Packet</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/pyshark_processor.html#packet_to_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.packet_to_dict" title="Link to this definition"></a></dt>
+<dd><p>Takes a single pyshark packet and converts it into a dictionary.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>p</strong> – Packet to convert.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dictionary generated from the packet.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.pcap_nn_aggregator">
+<span class="sig-prename descclassname"><span class="pre">daisy.data_sources.network_traffic.</span></span><span class="sig-name descname"><span class="pre">pcap_nn_aggregator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">object</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span></span></span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/pyshark_processor.html#pcap_nn_aggregator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.pcap_nn_aggregator" title="Link to this definition"></a></dt>
+<dd><p>Simple, exemplary value aggregator. Takes a non-numerical (i.e. string) key-value
+pair and attempts to converted it into an integer / float. This example does not
+take the key into account, but only checks the types of the value to proceed. Note,
+that ipv6 are lazily converted to 32 bit (collisions may occur).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>key</strong> – Name of pair, which always a string.</p></li>
+<li><p><strong>value</strong> – Arbitrary non-numerical value to be converted.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Converted numerical value.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – If value cannot be converted.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Fabian Hofmann, Seraphin Zunzer, Jonathan Ackerschewski, Lotta Fejzula.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

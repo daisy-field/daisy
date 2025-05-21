@@ -1,0 +1,586 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>daisy.data_sources.events &mdash; DAISY 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/favicon2.ico"/>
+    <link rel="canonical" href="https://daisy-field.github.io/_modules/daisy/data_sources/events.html" />
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            DAISY
+              <img src="../../../_static/favicon2.ico" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../general.overview.html">What is DAISY?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../general.background.html">Background</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../general.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../general.dashboard.html">Dashboard</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Documentation:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../daisy.communication.html">Communication</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../daisy.data_sources.html">Datasources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../daisy.evaluation.html">Evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../daisy.federated_ids_components.html">Federated IDS Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../daisy.federated_learning.html">Federated Learning</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../daisy.scripts.data_collection.html">Data Collection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../daisy.scripts.demo_components.html">Demo Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../daisy.scripts.generic_fids_components.html">Demo Servers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">DAISY</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">daisy.data_sources.events</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for daisy.data_sources.events</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright (C) 2024-2025 DAI-Labor and others</span>
+<span class="c1">#</span>
+<span class="c1"># This Source Code Form is subject to the terms of the Mozilla Public</span>
+<span class="c1"># License, v. 2.0. If a copy of the MPL was not distributed with this</span>
+<span class="c1"># file, You can obtain one at https://mozilla.org/MPL/2.0/.</span>
+<span class="sd">&quot;&quot;&quot;Events used to labeling data. The event handler can be used by the user to create</span>
+<span class="sd">events. Each event contains a string with conditions used to determine whether a data</span>
+<span class="sd">point should be labeled.</span>
+
+<span class="sd">Author: Jonathan Ackerschewski, Fabian Hofmann</span>
+<span class="sd">Modified: 04.11.24</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Self</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pyparsing</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pp</span>
+
+
+<div class="viewcode-block" id="Event">
+<a class="viewcode-back" href="../../../daisy.data_sources.html#daisy.data_sources.events.Event">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Event</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Specific event, with a start and an end timestamp, its label, and conditions</span>
+<span class="sd">    whether a data point should be labeled as such (function evaluating to true if</span>
+<span class="sd">    that is the case, false otherwise).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">start_time</span><span class="p">:</span> <span class="n">datetime</span>
+    <span class="n">end_time</span><span class="p">:</span> <span class="n">datetime</span>
+    <span class="n">label</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">_condition_fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]],</span> <span class="nb">bool</span><span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">start_time</span><span class="p">:</span> <span class="n">datetime</span><span class="p">,</span>
+        <span class="n">end_time</span><span class="p">:</span> <span class="n">datetime</span><span class="p">,</span>
+        <span class="n">label</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">condition_fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]],</span> <span class="nb">bool</span><span class="p">],</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates an event, which takes place between start_time and end_time. Data</span>
+<span class="sd">        points evaluated true by the condition function should be labeled with the</span>
+<span class="sd">        provided label.</span>
+
+<span class="sd">        :param start_time: Start time of event.</span>
+<span class="sd">        :param end_time: End time of event.</span>
+<span class="sd">        :param label: Label by which data points falling in the event should be labeled.</span>
+<span class="sd">        :param condition_fn: Condition function used to evaluate if a given data point</span>
+<span class="sd">        falls within the event.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start_time</span> <span class="o">=</span> <span class="n">start_time</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">end_time</span> <span class="o">=</span> <span class="n">end_time</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="n">label</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_condition_fn</span> <span class="o">=</span> <span class="n">condition_fn</span>
+
+<div class="viewcode-block" id="Event.evaluate">
+<a class="viewcode-back" href="../../../daisy.data_sources.html#daisy.data_sources.events.Event.evaluate">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">:</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Evaluates a single data point using the condition function provided in the</span>
+<span class="sd">        constructor. The timestamp is used to determine whether the data point falls</span>
+<span class="sd">        within the events time frame. Additional meta information can be provided by</span>
+<span class="sd">        passing multiple dictionaries in the data parameter. The dictionaries will be</span>
+<span class="sd">        searched in the provided order. The first value found will be used for</span>
+<span class="sd">        comparisons in the condition function.</span>
+
+<span class="sd">        :param timestamp: The timestamp of the data point.</span>
+<span class="sd">        :param data: A single data point and additional meta information. The data</span>
+<span class="sd">        is searched in the provided order. E.g. if two dictionaries contain the key</span>
+<span class="sd">        timestamp and the condition function uses this key, then the value of the first</span>
+<span class="sd">        dictionary will be used.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_time</span> <span class="o">&lt;=</span> <span class="n">timestamp</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">end_time</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_condition_fn</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="EventParser">
+<a class="viewcode-back" href="../../../daisy.data_sources.html#daisy.data_sources.events.EventParser">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">EventParser</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Parser for conditions of events. It takes an expression, parses it, and returns</span>
+<span class="sd">    a function, which evaluates if a given data point fulfils the condition.</span>
+
+<span class="sd">    The condition has to follow the following grammar:</span>
+<span class="sd">    exp := pars + (binary_op + pars)? |</span>
+<span class="sd">            unary_op + pars</span>
+<span class="sd">    pars := operand | &#39;(&#39; + exp + &#39;)&#39;</span>
+<span class="sd">    operand := word + comparator + word</span>
+<span class="sd">    word := [any character except [] !&quot;&#39;&lt;=&gt;\\()] |</span>
+<span class="sd">            &#39;[&#39; + [any character except []!&quot;&#39;&lt;=&gt;\\()] + &#39;]&#39;   Note that whitespaces are</span>
+<span class="sd">                                                              allowed with brackets</span>
+<span class="sd">    comparator := &#39;=&#39; | &#39;in&#39;</span>
+<span class="sd">    binary_op := &#39;and&#39; | &#39;or&#39;</span>
+<span class="sd">    unary_op := &#39;not&#39;</span>
+
+<span class="sd">    For comparators, the feature in the dictionary is always expected on the left side</span>
+<span class="sd">    of the comparator, except with the &#39;in&#39; operator, where it is expected on the right.</span>
+
+<span class="sd">    Some example expressions are:</span>
+<span class="sd">        ip.addr = 10.1.1.1      When the function is called with a dictionary, it will</span>
+<span class="sd">                                be searched for the key ip.addr. Its value will be</span>
+<span class="sd">                                compared to 10.1.1.1</span>
+<span class="sd">        tcp in protocols        The dictionary will be searched for the key protocols.</span>
+<span class="sd">                                The function &#39;tcp in &lt;value of protocols&gt;&#39; will be</span>
+<span class="sd">                                evaluated.</span>
+
+<span class="sd">        ip.addr = 10.1.1.1 and tcp in protocols</span>
+<span class="sd">        (ip.addr = 10.1.1.1 or ip.addr = 192.168.1.1) and tcp in protocols</span>
+<span class="sd">        not (ip.addr = 10.1.1.1 or ip.addr = 192.168.1.1) and tcp in protocols</span>
+
+<span class="sd">    The returned function can be called using a list of dictionaries. The dictionaries</span>
+<span class="sd">    will be searched in the provided order and the first occurrence of a feature in one</span>
+<span class="sd">    of the dictionaries will be used. This can be used to provide meta information about</span>
+<span class="sd">    a data point additionally to the data point itself.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># The comparators and operators used by the parser</span>
+    <span class="n">_comparators</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;=&quot;</span><span class="p">,</span> <span class="s2">&quot;in&quot;</span><span class="p">]</span>
+    <span class="n">_binary_operators</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;and&quot;</span><span class="p">,</span> <span class="s2">&quot;or&quot;</span><span class="p">]</span>
+    <span class="n">_unary_operators</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;not&quot;</span><span class="p">]</span>
+
+    <span class="c1"># Identifiers used inside the parser to mark specific tokens</span>
+    <span class="n">_var1</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;var1&quot;</span>
+    <span class="n">_var2</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;var2&quot;</span>
+    <span class="n">_op</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;op&quot;</span>
+
+    <span class="n">_parser</span><span class="p">:</span> <span class="n">pp</span><span class="o">.</span><span class="n">ParserElement</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates the grammar for the conditions. The specific grammar can be seen</span>
+<span class="sd">        in the description of this class.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pp</span><span class="o">.</span><span class="n">ParserElement</span><span class="o">.</span><span class="n">enablePackrat</span><span class="p">()</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">setrecursionlimit</span><span class="p">(</span><span class="mi">3000</span><span class="p">)</span>
+
+        <span class="n">base_word</span> <span class="o">=</span> <span class="n">pp</span><span class="o">.</span><span class="n">Word</span><span class="p">(</span><span class="n">pp</span><span class="o">.</span><span class="n">printables</span><span class="p">,</span> <span class="n">exclude_chars</span><span class="o">=</span><span class="s2">&quot;[] !</span><span class="se">\&quot;</span><span class="s2">&#39;&lt;=&gt;</span><span class="se">\\</span><span class="s2">()&quot;</span><span class="p">)</span>
+        <span class="n">bracket_word</span> <span class="o">=</span> <span class="n">pp</span><span class="o">.</span><span class="n">Word</span><span class="p">(</span><span class="n">pp</span><span class="o">.</span><span class="n">printables</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="n">exclude_chars</span><span class="o">=</span><span class="s2">&quot;[]!</span><span class="se">\&quot;</span><span class="s2">&#39;&lt;=&gt;</span><span class="se">\\</span><span class="s2">()&quot;</span><span class="p">)</span>
+
+        <span class="n">comparator</span> <span class="o">=</span> <span class="n">pp</span><span class="o">.</span><span class="n">oneOf</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_comparators</span><span class="p">)</span>
+        <span class="n">boperator</span> <span class="o">=</span> <span class="n">pp</span><span class="o">.</span><span class="n">oneOf</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_binary_operators</span><span class="p">)</span>
+        <span class="n">uoperator</span> <span class="o">=</span> <span class="n">pp</span><span class="o">.</span><span class="n">oneOf</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_unary_operators</span><span class="p">)</span>
+        <span class="n">lpar</span> <span class="o">=</span> <span class="n">pp</span><span class="o">.</span><span class="n">Suppress</span><span class="p">(</span><span class="s2">&quot;(&quot;</span><span class="p">)</span>
+        <span class="n">rpar</span> <span class="o">=</span> <span class="n">pp</span><span class="o">.</span><span class="n">Suppress</span><span class="p">(</span><span class="s2">&quot;)&quot;</span><span class="p">)</span>
+        <span class="n">lbr</span> <span class="o">=</span> <span class="n">pp</span><span class="o">.</span><span class="n">Suppress</span><span class="p">(</span><span class="s2">&quot;[&quot;</span><span class="p">)</span>
+        <span class="n">rbr</span> <span class="o">=</span> <span class="n">pp</span><span class="o">.</span><span class="n">Suppress</span><span class="p">(</span><span class="s2">&quot;]&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parser</span> <span class="o">=</span> <span class="n">pp</span><span class="o">.</span><span class="n">Forward</span><span class="p">()</span>
+        <span class="n">word</span> <span class="o">=</span> <span class="n">base_word</span> <span class="o">|</span> <span class="n">lbr</span> <span class="o">+</span> <span class="n">bracket_word</span> <span class="o">+</span> <span class="n">rbr</span>
+        <span class="n">operand</span> <span class="o">=</span> <span class="n">pp</span><span class="o">.</span><span class="n">Group</span><span class="p">(</span><span class="n">word</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_var1</span><span class="p">)</span> <span class="o">+</span> <span class="n">comparator</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_op</span><span class="p">)</span> <span class="o">+</span> <span class="n">word</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_var2</span><span class="p">))</span>
+        <span class="n">pars</span> <span class="o">=</span> <span class="n">operand</span> <span class="o">|</span> <span class="n">lpar</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parser</span> <span class="o">+</span> <span class="n">rpar</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parser</span> <span class="o">&lt;&lt;=</span> <span class="n">pp</span><span class="o">.</span><span class="n">Group</span><span class="p">(</span>
+            <span class="n">pars</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_var1</span><span class="p">)</span>
+            <span class="o">+</span> <span class="n">pp</span><span class="o">.</span><span class="n">Optional</span><span class="p">(</span><span class="n">boperator</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_op</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parser</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_var2</span><span class="p">))</span>
+        <span class="p">)</span> <span class="o">|</span> <span class="n">pp</span><span class="o">.</span><span class="n">Group</span><span class="p">(</span><span class="n">uoperator</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_op</span><span class="p">)</span> <span class="o">+</span> <span class="n">pars</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_var1</span><span class="p">))</span>
+
+<div class="viewcode-block" id="EventParser.parse">
+<a class="viewcode-back" href="../../../daisy.data_sources.html#daisy.data_sources.events.EventParser.parse">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">expression</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]],</span> <span class="nb">bool</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Parses the given expression and returns a function that evaluates data points</span>
+<span class="sd">        passed to it. This method can raise a parse error if the expression is invalid.</span>
+
+<span class="sd">        :param expression: Expression (condition) to parse.</span>
+<span class="sd">        :raises ParseError: Any condition/expression does not follow parser&#39;s grammar.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">tree</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parser</span><span class="o">.</span><span class="n">parseString</span><span class="p">(</span><span class="n">expression</span><span class="p">,</span> <span class="n">parseAll</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_process_child</span><span class="p">(</span><span class="n">tree</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_process_child</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">tree</span><span class="p">:</span> <span class="n">pp</span><span class="o">.</span><span class="n">ParseResults</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]],</span> <span class="nb">bool</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Recursively processes the provided parse tree and returns a function that</span>
+<span class="sd">        evaluates the data points passed to it.</span>
+
+<span class="sd">        :param tree: The parse tree to process</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tree</span><span class="p">,</span> <span class="n">pp</span><span class="o">.</span><span class="n">ParseResults</span><span class="p">):</span>
+            <span class="c1"># Evaluate all children first</span>
+            <span class="k">if</span> <span class="n">tree</span><span class="o">.</span><span class="n">haskeys</span><span class="p">():</span>
+                <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="n">tree</span><span class="o">.</span><span class="n">asDict</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+                    <span class="n">result</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_process_child</span><span class="p">(</span><span class="n">tree</span><span class="o">.</span><span class="n">pop</span><span class="p">())</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_process_child</span><span class="p">(</span><span class="n">tree</span><span class="o">.</span><span class="n">pop</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># On leaf node do nothing</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_fn</span><span class="p">(</span><span class="n">tree</span><span class="o">.</span><span class="n">asDict</span><span class="p">(),</span> <span class="n">result</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_fn</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">dictionary</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">result</span><span class="p">:</span> <span class="nb">dict</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]],</span> <span class="nb">bool</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates a function based on the provided input. The provided dictionary</span>
+<span class="sd">        should contain any of the keys _op, _var1, and _var2 from this class.</span>
+<span class="sd">        When the key _op is any of the binary operators, _var1 and _var2 have to be</span>
+<span class="sd">        present in the result dictionary and contain a function. If the operator is</span>
+<span class="sd">        any unary operator, only _var1 needs to be present in the result dictionary.</span>
+<span class="sd">        If the operator is any comparator, the result dictionary is ignored and the</span>
+<span class="sd">        dictionary needs to contain the _var1 and _var2 keys.</span>
+<span class="sd">        The returned function can raise key errors if the dictionaries passed to it</span>
+<span class="sd">        do not contain the keys required by the generated function.</span>
+
+<span class="sd">        :param dictionary: Dictionary used to evaluate the function to generate.</span>
+<span class="sd">        :param result: Dictionary containing results of previous runs of this function.</span>
+<span class="sd">        :raises NotImplementedError: Operators used are unsupported by this class.</span>
+<span class="sd">        Only happens when class has been modified/overridden.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_op</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">dictionary</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">operation</span> <span class="o">=</span> <span class="n">dictionary</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_op</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">operation</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_binary_operators</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_binary_fn</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">operation</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">operation</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unary_operators</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_unary_fn</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">operation</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">operation</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_comparators</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_comparator_fn</span><span class="p">(</span><span class="n">dictionary</span><span class="p">,</span> <span class="n">operation</span><span class="p">)</span>
+
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Operation </span><span class="si">{</span><span class="n">operation</span><span class="si">}</span><span class="s2"> not supported in EventParser.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_binary_fn</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">result</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">operation</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]],</span> <span class="nb">bool</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates the binary function part. The results of previous runs of the</span>
+<span class="sd">        create_fn method are used in this function to combine them using binary</span>
+<span class="sd">        functions (and, or operators).</span>
+
+<span class="sd">        :param result: Dictionary containing the results of previous runs.</span>
+<span class="sd">        :param operation: Operation to perform.</span>
+<span class="sd">        :raises NotImplementedError: Operators used are unsupported by this class.</span>
+<span class="sd">        Only happens when class has been modified/overridden.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">match</span> <span class="n">operation</span><span class="p">:</span>
+            <span class="k">case</span> <span class="s2">&quot;and&quot;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="k">lambda</span> <span class="n">data</span><span class="p">:</span> <span class="n">result</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_var1</span><span class="p">](</span><span class="n">data</span><span class="p">)</span> <span class="ow">and</span> <span class="n">result</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_var2</span><span class="p">](</span>
+                    <span class="n">data</span>
+                <span class="p">)</span>
+            <span class="k">case</span> <span class="s2">&quot;or&quot;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="k">lambda</span> <span class="n">data</span><span class="p">:</span> <span class="n">result</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_var1</span><span class="p">](</span><span class="n">data</span><span class="p">)</span> <span class="ow">or</span> <span class="n">result</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_var2</span><span class="p">](</span><span class="n">data</span><span class="p">)</span>
+            <span class="k">case</span><span class="w"> </span><span class="k">_</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Operation </span><span class="si">{</span><span class="n">operation</span><span class="si">}</span><span class="s2"> not supported in EventParser.&quot;</span>
+                <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_unary_fn</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">result</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">operation</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]],</span> <span class="nb">bool</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates the unary function part. The results of previous runs of the</span>
+<span class="sd">        create_fn method are used in this function to combine them using unary</span>
+<span class="sd">        functions (not operator).</span>
+
+<span class="sd">        :param result: Dictionary containing the results of previous runs</span>
+<span class="sd">        :param operation: Operation to perform.</span>
+<span class="sd">        :raises NotImplementedError: Operators used are unsupported by this class.</span>
+<span class="sd">        Only happens when class has been modified/overridden.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">match</span> <span class="n">operation</span><span class="p">:</span>
+            <span class="k">case</span> <span class="s2">&quot;not&quot;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="k">lambda</span> <span class="n">data</span><span class="p">:</span> <span class="ow">not</span> <span class="n">result</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_var1</span><span class="p">](</span><span class="n">data</span><span class="p">)</span>
+            <span class="k">case</span><span class="w"> </span><span class="k">_</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Operation </span><span class="si">{</span><span class="n">operation</span><span class="si">}</span><span class="s2"> not supported in EventParser.&quot;</span>
+                <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_comparator_fn</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">dictionary</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">operation</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]],</span> <span class="nb">bool</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates the comparisons of the function. The dictionary should contain</span>
+<span class="sd">        a feature, operation, and value. Based on the comparator, a function is</span>
+<span class="sd">        returned, which performs the desired comparison.</span>
+
+<span class="sd">        :param dictionary: Dictionary containing feature and value to use for the</span>
+<span class="sd">        generated function.</span>
+<span class="sd">        :param operation: Operation to perform.</span>
+<span class="sd">        :raises NotImplementedError: Operators used are unsupported by this class.</span>
+<span class="sd">        Only happens when class has been modified/overridden.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">match</span> <span class="n">operation</span><span class="p">:</span>
+            <span class="k">case</span> <span class="s2">&quot;=&quot;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">(</span>
+                    <span class="k">lambda</span> <span class="n">data</span><span class="p">:</span> <span class="n">_get_value</span><span class="p">(</span><span class="n">dictionary</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_var1</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">data</span><span class="p">)</span>
+                    <span class="o">==</span> <span class="n">dictionary</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_var2</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+                <span class="p">)</span>
+            <span class="k">case</span> <span class="s2">&quot;in&quot;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">(</span>
+                    <span class="k">lambda</span> <span class="n">data</span><span class="p">:</span> <span class="n">dictionary</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_var1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="ow">in</span> <span class="n">_get_value</span><span class="p">(</span><span class="n">dictionary</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_var2</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">data</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">_get_value</span><span class="p">(</span><span class="n">dictionary</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_var2</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">data</span><span class="p">)</span>
+                    <span class="k">else</span> <span class="kc">False</span>
+                <span class="p">)</span>
+            <span class="k">case</span><span class="w"> </span><span class="k">_</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Operation </span><span class="si">{</span><span class="n">operation</span><span class="si">}</span><span class="s2"> not supported in EventParser.&quot;</span>
+                <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="EventHandler">
+<a class="viewcode-back" href="../../../daisy.data_sources.html#daisy.data_sources.events.EventHandler">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">EventHandler</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Event handler used to create events and automatically label data points. Events</span>
+<span class="sd">    can be added to the class using the add_event() method. The events are matched to</span>
+<span class="sd">    data points in added order, i.e. first matching event will be used to label</span>
+<span class="sd">    a given data point.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_parser</span><span class="p">:</span> <span class="n">EventParser</span>
+    <span class="n">_events</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Event</span><span class="p">]</span>
+    <span class="n">_default_label</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">_label_feature</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">_error_label</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">_hide_errors</span><span class="p">:</span> <span class="nb">bool</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">default_label</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;benign&quot;</span><span class="p">,</span>
+        <span class="n">label_feature</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;label&quot;</span><span class="p">,</span>
+        <span class="n">error_label</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;error&quot;</span><span class="p">,</span>
+        <span class="n">hide_errors</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates an event handler used to label data points.</span>
+
+<span class="sd">        :param default_label: Label used when no event matches data point.</span>
+<span class="sd">        :param label_feature: Feature in data point for which label will be set.</span>
+<span class="sd">        :param error_label: Error label to use if an error is encountered during</span>
+<span class="sd">        processing.</span>
+<span class="sd">        :param hide_errors: Catches any key errors occurring in process() method when</span>
+<span class="sd">        encountering data points not containing features used by the conditions of</span>
+<span class="sd">        an event, only printing them out in the logs instead of exciting, labeling</span>
+<span class="sd">        the data point as erroneous.</span>
+<span class="sd">        :param name: Name of event handler for logging purposes.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parser</span> <span class="o">=</span> <span class="n">EventParser</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_events</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_default_label</span> <span class="o">=</span> <span class="n">default_label</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_label_feature</span> <span class="o">=</span> <span class="n">label_feature</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_error_label</span> <span class="o">=</span> <span class="n">error_label</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_hide_errors</span> <span class="o">=</span> <span class="n">hide_errors</span>
+
+<div class="viewcode-block" id="EventHandler.add_event">
+<a class="viewcode-back" href="../../../daisy.data_sources.html#daisy.data_sources.events.EventHandler.add_event">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_event</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">start_time</span><span class="p">:</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">end_time</span><span class="p">:</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">label</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">condition</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Adds an event to the event handler. The events will be evaluated in the</span>
+<span class="sd">        order they are provided. Each event has a start and end time, a label that will</span>
+<span class="sd">        be used to label data points that fall under that event, and an optional</span>
+<span class="sd">        condition. The condition is a string and has to follow a certain grammar:</span>
+
+<span class="sd">        exp := pars + (binary_op + pars)? |</span>
+<span class="sd">                unary_op + pars</span>
+<span class="sd">        pars := operand | &#39;(&#39; + exp + &#39;)&#39;</span>
+<span class="sd">        operand := word + comparator + word</span>
+<span class="sd">        word := [any character except [] !&quot;&#39;&lt;=&gt;\\()] |</span>
+<span class="sd">                &#39;[&#39; + [any character except []!&quot;&#39;&lt;=&gt;\\()] + &#39;]&#39;   Note that whitespaces</span>
+<span class="sd">                                                                  are allowed with</span>
+<span class="sd">                                                                  brackets</span>
+<span class="sd">        comparator := &#39;=&#39; | &#39;in&#39;</span>
+<span class="sd">        binary_op := &#39;and&#39; | &#39;or&#39;</span>
+<span class="sd">        unary_op := &#39;not&#39;</span>
+
+<span class="sd">        For comparators, the feature in the dictionary is always expected on the left</span>
+<span class="sd">        side of the comparator, except with the &#39;in&#39; operator, where it is expected</span>
+<span class="sd">        on the right.</span>
+
+<span class="sd">        Some example expressions are:</span>
+<span class="sd">        ip.addr = 10.1.1.1      When the function is called with a dictionary, it will</span>
+<span class="sd">                                be searched for the key ip.addr. Its value will be</span>
+<span class="sd">                                compared to 10.1.1.1</span>
+<span class="sd">        tcp in protocols        The dictionary will be searched for the key protocols.</span>
+<span class="sd">                                The function &#39;tcp in &lt;value of protocols&gt;&#39; will be</span>
+<span class="sd">                                evaluated.</span>
+
+<span class="sd">        Concatenation examples are:</span>
+<span class="sd">        ip.addr = 10.1.1.1 and tcp in protocols</span>
+<span class="sd">        (ip.addr = 10.1.1.1 or ip.addr = 192.168.1.1) and tcp in protocols</span>
+<span class="sd">        not (ip.addr = 10.1.1.1 or ip.addr = 192.168.1.1) and tcp in protocols</span>
+
+<span class="sd">        The returned function can be called using a list of dictionaries. The</span>
+<span class="sd">        dictionaries will be searched in the provided order and the first occurrence</span>
+<span class="sd">        of a feature in one of the dictionaries will be used. This can be used to</span>
+<span class="sd">        provide meta information about a data point additionally to the data point</span>
+<span class="sd">        itself.</span>
+
+<span class="sd">        :param start_time: Start time of event.</span>
+<span class="sd">        :param end_time: End time of event.</span>
+<span class="sd">        :param label: Label of event.</span>
+<span class="sd">        :param condition: Condition(s) data points have to fulfill for this event.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Adding new event with condition </span><span class="si">{</span><span class="n">condition</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">condition</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_events</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">Event</span><span class="p">(</span><span class="n">start_time</span><span class="p">,</span> <span class="n">end_time</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parser</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">condition</span><span class="p">))</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_events</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Event</span><span class="p">(</span><span class="n">start_time</span><span class="p">,</span> <span class="n">end_time</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">_</span><span class="p">:</span> <span class="kc">True</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="EventHandler.process">
+<a class="viewcode-back" href="../../../daisy.data_sources.html#daisy.data_sources.events.EventHandler.process">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">timestamp</span><span class="p">:</span> <span class="n">datetime</span><span class="p">,</span>
+        <span class="n">data_point</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+        <span class="n">meta_data</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Iterates through all events and checks for each event if it applies to</span>
+<span class="sd">        the provided data point. If it does, the data point will be labeled with the</span>
+<span class="sd">        label provided by the event. If no event matches the data point, it will be</span>
+<span class="sd">        labeled with the default label.</span>
+
+<span class="sd">        :param timestamp: Timestamp of data point.</span>
+<span class="sd">        :param data_point: Data point to label.</span>
+<span class="sd">        :param meta_data: Additional meta information to label data point. Has</span>
+<span class="sd">        preference over data point when checking conditions.</span>
+<span class="sd">        processing and errors are suppressed.</span>
+<span class="sd">        :return: Labelled data point.</span>
+<span class="sd">        :raises KeyError: Data points does not contain feature used by a conditions and</span>
+<span class="sd">        errors are not suppressed, i.e. redirected to log + data point is assigned</span>
+<span class="sd">        the error label.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">meta_data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">meta_data</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">meta_data</span> <span class="o">+</span> <span class="p">[</span><span class="n">data_point</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_events</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">timestamp</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+                    <span class="n">data_point</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_label_feature</span><span class="p">]</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">label</span>
+                    <span class="k">return</span> <span class="n">data_point</span>
+            <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hide_errors</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">e</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error while evaluating event: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">data_point</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_label_feature</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_error_label</span>
+                <span class="k">return</span> <span class="n">data_point</span>
+        <span class="n">data_point</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_label_feature</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_label</span>
+        <span class="k">return</span> <span class="n">data_point</span></div>
+</div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_value</span><span class="p">(</span><span class="n">feature</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">object</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Iterates through the provided dictionaries and returns the value of the first</span>
+<span class="sd">    occurrence of the provided feature.</span>
+
+<span class="sd">    :param feature: The feature to find.</span>
+<span class="sd">    :param data: List of dictionaries to search for the feature.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">dictionary</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">feature</span> <span class="ow">in</span> <span class="n">dictionary</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">dictionary</span><span class="p">[</span><span class="n">feature</span><span class="p">]</span>
+    <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Could not find </span><span class="si">{</span><span class="n">feature</span><span class="si">}</span><span class="s2"> in </span><span class="si">{</span><span class="n">data</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Fabian Hofmann, Seraphin Zunzer, Jonathan Ackerschewski, Lotta Fejzula.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

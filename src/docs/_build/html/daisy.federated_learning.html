@@ -1,0 +1,1019 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Federated Learning &mdash; DAISY 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+    <link rel="shortcut icon" href="_static/favicon2.ico"/>
+    <link rel="canonical" href="https://daisy-field.github.io/daisy.federated_learning.html" />
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Data Collection" href="daisy.scripts.data_collection.html" />
+    <link rel="prev" title="Federated IDS Components" href="daisy.federated_ids_components.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            DAISY
+              <img src="_static/favicon2.ico" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="general.overview.html">What is DAISY?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="general.background.html">Background</a></li>
+<li class="toctree-l1"><a class="reference internal" href="general.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="general.dashboard.html">Dashboard</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Documentation:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="daisy.communication.html">Communication</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.data_sources.html">Datasources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.evaluation.html">Evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.federated_ids_components.html">Federated IDS Components</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Federated Learning</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#module-daisy.federated_learning.federated_aggregator">Aggregator</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.federated_learning.federated_aggregator.Aggregator"><code class="docutils literal notranslate"><span class="pre">Aggregator</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.federated_learning.federated_aggregator.Aggregator.aggregate"><code class="docutils literal notranslate"><span class="pre">Aggregator.aggregate()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.federated_learning.federated_aggregator.CumAggregator"><code class="docutils literal notranslate"><span class="pre">CumAggregator</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.federated_learning.federated_aggregator.CumAggregator.aggregate"><code class="docutils literal notranslate"><span class="pre">CumAggregator.aggregate()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.federated_learning.federated_aggregator.EMAggregator"><code class="docutils literal notranslate"><span class="pre">EMAggregator</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.federated_learning.federated_aggregator.EMAggregator.aggregate"><code class="docutils literal notranslate"><span class="pre">EMAggregator.aggregate()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.federated_learning.federated_aggregator.FedAvgAggregator"><code class="docutils literal notranslate"><span class="pre">FedAvgAggregator</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.federated_learning.federated_aggregator.FedAvgAggregator.aggregate"><code class="docutils literal notranslate"><span class="pre">FedAvgAggregator.aggregate()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.federated_learning.federated_aggregator.ModelAggregator"><code class="docutils literal notranslate"><span class="pre">ModelAggregator</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.federated_learning.federated_aggregator.ModelAggregator.aggregate"><code class="docutils literal notranslate"><span class="pre">ModelAggregator.aggregate()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.federated_learning.federated_aggregator.SMAggregator"><code class="docutils literal notranslate"><span class="pre">SMAggregator</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.federated_learning.federated_aggregator.SMAggregator.aggregate"><code class="docutils literal notranslate"><span class="pre">SMAggregator.aggregate()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-daisy.federated_learning.federated_model">Federated Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.federated_learning.federated_model.FederatedIFTM"><code class="docutils literal notranslate"><span class="pre">FederatedIFTM</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.federated_learning.federated_model.FederatedIFTM.fit"><code class="docutils literal notranslate"><span class="pre">FederatedIFTM.fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.federated_learning.federated_model.FederatedIFTM.get_parameters"><code class="docutils literal notranslate"><span class="pre">FederatedIFTM.get_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.federated_learning.federated_model.FederatedIFTM.predict"><code class="docutils literal notranslate"><span class="pre">FederatedIFTM.predict()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.federated_learning.federated_model.FederatedIFTM.set_parameters"><code class="docutils literal notranslate"><span class="pre">FederatedIFTM.set_parameters()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.federated_learning.federated_model.FederatedModel"><code class="docutils literal notranslate"><span class="pre">FederatedModel</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.federated_learning.federated_model.FederatedModel.fit"><code class="docutils literal notranslate"><span class="pre">FederatedModel.fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.federated_learning.federated_model.FederatedModel.get_parameters"><code class="docutils literal notranslate"><span class="pre">FederatedModel.get_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.federated_learning.federated_model.FederatedModel.predict"><code class="docutils literal notranslate"><span class="pre">FederatedModel.predict()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.federated_learning.federated_model.FederatedModel.set_parameters"><code class="docutils literal notranslate"><span class="pre">FederatedModel.set_parameters()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.federated_learning.federated_model.TFFederatedModel"><code class="docutils literal notranslate"><span class="pre">TFFederatedModel</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.federated_learning.federated_model.TFFederatedModel.fit"><code class="docutils literal notranslate"><span class="pre">TFFederatedModel.fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.federated_learning.federated_model.TFFederatedModel.get_fae"><code class="docutils literal notranslate"><span class="pre">TFFederatedModel.get_fae()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.federated_learning.federated_model.TFFederatedModel.get_parameters"><code class="docutils literal notranslate"><span class="pre">TFFederatedModel.get_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.federated_learning.federated_model.TFFederatedModel.predict"><code class="docutils literal notranslate"><span class="pre">TFFederatedModel.predict()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.federated_learning.federated_model.TFFederatedModel.set_parameters"><code class="docutils literal notranslate"><span class="pre">TFFederatedModel.set_parameters()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-daisy.federated_learning.threshold_models">Threshold Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.federated_learning.threshold_models.AvgTM"><code class="docutils literal notranslate"><span class="pre">AvgTM</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.federated_learning.threshold_models.AvgTM.get_parameters"><code class="docutils literal notranslate"><span class="pre">AvgTM.get_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.federated_learning.threshold_models.AvgTM.set_parameters"><code class="docutils literal notranslate"><span class="pre">AvgTM.set_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.federated_learning.threshold_models.AvgTM.update_mean"><code class="docutils literal notranslate"><span class="pre">AvgTM.update_mean()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.federated_learning.threshold_models.AvgTM.update_threshold"><code class="docutils literal notranslate"><span class="pre">AvgTM.update_threshold()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.federated_learning.threshold_models.CumAvgTM"><code class="docutils literal notranslate"><span class="pre">CumAvgTM</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.federated_learning.threshold_models.CumAvgTM.get_parameters"><code class="docutils literal notranslate"><span class="pre">CumAvgTM.get_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.federated_learning.threshold_models.CumAvgTM.set_parameters"><code class="docutils literal notranslate"><span class="pre">CumAvgTM.set_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.federated_learning.threshold_models.CumAvgTM.update_mean"><code class="docutils literal notranslate"><span class="pre">CumAvgTM.update_mean()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.federated_learning.threshold_models.EMAvgTM"><code class="docutils literal notranslate"><span class="pre">EMAvgTM</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.federated_learning.threshold_models.EMAvgTM.update_mean"><code class="docutils literal notranslate"><span class="pre">EMAvgTM.update_mean()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.federated_learning.threshold_models.FederatedTM"><code class="docutils literal notranslate"><span class="pre">FederatedTM</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.federated_learning.threshold_models.FederatedTM.fit"><code class="docutils literal notranslate"><span class="pre">FederatedTM.fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.federated_learning.threshold_models.FederatedTM.get_parameters"><code class="docutils literal notranslate"><span class="pre">FederatedTM.get_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.federated_learning.threshold_models.FederatedTM.predict"><code class="docutils literal notranslate"><span class="pre">FederatedTM.predict()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.federated_learning.threshold_models.FederatedTM.set_parameters"><code class="docutils literal notranslate"><span class="pre">FederatedTM.set_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.federated_learning.threshold_models.FederatedTM.update_threshold"><code class="docutils literal notranslate"><span class="pre">FederatedTM.update_threshold()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.federated_learning.threshold_models.MadTM"><code class="docutils literal notranslate"><span class="pre">MadTM</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.federated_learning.threshold_models.MadTM.fit"><code class="docutils literal notranslate"><span class="pre">MadTM.fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.federated_learning.threshold_models.MadTM.get_parameters"><code class="docutils literal notranslate"><span class="pre">MadTM.get_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.federated_learning.threshold_models.MadTM.predict"><code class="docutils literal notranslate"><span class="pre">MadTM.predict()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.federated_learning.threshold_models.MadTM.set_parameters"><code class="docutils literal notranslate"><span class="pre">MadTM.set_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.federated_learning.threshold_models.MadTM.update_threshold"><code class="docutils literal notranslate"><span class="pre">MadTM.update_threshold()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.federated_learning.threshold_models.SMAvgTM"><code class="docutils literal notranslate"><span class="pre">SMAvgTM</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.federated_learning.threshold_models.SMAvgTM.get_parameters"><code class="docutils literal notranslate"><span class="pre">SMAvgTM.get_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.federated_learning.threshold_models.SMAvgTM.set_parameters"><code class="docutils literal notranslate"><span class="pre">SMAvgTM.set_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.federated_learning.threshold_models.SMAvgTM.update_mean"><code class="docutils literal notranslate"><span class="pre">SMAvgTM.update_mean()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="daisy.scripts.data_collection.html">Data Collection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.scripts.demo_components.html">Demo Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.scripts.generic_fids_components.html">Demo Servers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">DAISY</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Federated Learning</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/daisy.federated_learning.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="federated-learning">
+<h1>Federated Learning<a class="headerlink" href="#federated-learning" title="Link to this heading"></a></h1>
+<section id="module-daisy.federated_learning.federated_aggregator">
+<span id="aggregator"></span><h2>Aggregator<a class="headerlink" href="#module-daisy.federated_learning.federated_aggregator" title="Link to this heading"></a></h2>
+<p>To allow the compatibility between different kinds of strategies for the
+aggregation of models, gradients, losses, or other parameters/model types and
+topologies for the federated distributed system, any strategy has to follow the same
+simple interface. This module provides this abstract class and some sample
+aggregators to be used.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="daisy.federated_learning.federated_aggregator.Aggregator">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">daisy.federated_learning.federated_aggregator.</span></span><span class="sig-name descname"><span class="pre">Aggregator</span></span><a class="reference internal" href="_modules/daisy/federated_learning/federated_aggregator.html#Aggregator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.federated_aggregator.Aggregator" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></p>
+<p>Abstract aggregator class. Must always be implemented if a new aggregation
+strategy is used in the federated system.</p>
+<p>By implementing the aggregate function, allows simple aggregation of values using
+the object() call directly.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.federated_learning.federated_aggregator.Aggregator.aggregate">
+<em class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">aggregate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">object</span></span></span><a class="reference internal" href="_modules/daisy/federated_learning/federated_aggregator.html#Aggregator.aggregate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.federated_aggregator.Aggregator.aggregate" title="Link to this definition"></a></dt>
+<dd><p>Calculates the aggregated values from the underlying object attributes and
+potential given parameters and returns them.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>args</strong> – Arguments. Depends on the type of aggregator to be implemented.</p></li>
+<li><p><strong>kwargs</strong> – Keyword arguments. Depends on the type of aggregator to be</p></li>
+</ul>
+</dd>
+</dl>
+<p>implemented.
+:return: Aggregated values.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="daisy.federated_learning.federated_aggregator.CumAggregator">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">daisy.federated_learning.federated_aggregator.</span></span><span class="sig-name descname"><span class="pre">CumAggregator</span></span><a class="reference internal" href="_modules/daisy/federated_learning/federated_aggregator.html#CumAggregator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.federated_aggregator.CumAggregator" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#daisy.federated_learning.federated_aggregator.ModelAggregator" title="daisy.federated_learning.federated_aggregator.ModelAggregator"><code class="xref py py-class docutils literal notranslate"><span class="pre">ModelAggregator</span></code></a></p>
+<p>Cumulative Averaging (FedCum) is the base version of online averaging for
+models into a “global” version of the model. The cumulative average is computed
+by first computing the FedAvg over the batch of models provided to the aggregator
+in a single step, before using that average to update the average (i.e.,
+all models in a batch are treated equally).</p>
+<p>This aggregator is NOT stable for infinite learning aggregation steps (n).</p>
+<p>This kind of aggregation is also probably not compatible with the aggregation of
+gradients or losses, as these averages cannot be computed over various epochs
+overall.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.federated_learning.federated_aggregator.CumAggregator.aggregate">
+<span class="sig-name descname"><span class="pre">aggregate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">models_parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/daisy/federated_learning/federated_aggregator.html#CumAggregator.aggregate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.federated_aggregator.CumAggregator.aggregate" title="Link to this definition"></a></dt>
+<dd><p>Calculates the cumulative average for the given models’ parameters and the
+previous cumulative average and returns it.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>models_parameters</strong> – A list of models’ parameters the same type.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Aggregated model parameters.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="daisy.federated_learning.federated_aggregator.EMAggregator">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">daisy.federated_learning.federated_aggregator.</span></span><span class="sig-name descname"><span class="pre">EMAggregator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.05</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/federated_learning/federated_aggregator.html#EMAggregator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.federated_aggregator.EMAggregator" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#daisy.federated_learning.federated_aggregator.ModelAggregator" title="daisy.federated_learning.federated_aggregator.ModelAggregator"><code class="xref py py-class docutils literal notranslate"><span class="pre">ModelAggregator</span></code></a></p>
+<p>Exponential moving averaging (FedEMA) unlike FedSMA takes note of the entire
+model stream to compute the average, but over multiple time steps starts to
+forget past elements; this process is also called exponential smoothing,
+as the past is exponentially less relevant to the current time step the further
+one goes back. As with other online model averaging aggregators, the regular
+FedAvg is first computed over the batch of modes provided in a single step,
+before using that average to update the moving average (i.e., all models in a
+batch are treated equally).</p>
+<p>This kind of aggregation is also probably not compatible with the aggregation of
+gradients or losses, as these averages cannot be computed over various epochs
+overall.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.federated_learning.federated_aggregator.EMAggregator.aggregate">
+<span class="sig-name descname"><span class="pre">aggregate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">models_parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/daisy/federated_learning/federated_aggregator.html#EMAggregator.aggregate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.federated_aggregator.EMAggregator.aggregate" title="Link to this definition"></a></dt>
+<dd><p>Calculates the exponential moving average for the given models’ parameters
+and returns it</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>models_parameters</strong> – A list of models’ parameters the same type.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Aggregated model parameters.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="daisy.federated_learning.federated_aggregator.FedAvgAggregator">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">daisy.federated_learning.federated_aggregator.</span></span><span class="sig-name descname"><span class="pre">FedAvgAggregator</span></span><a class="reference internal" href="_modules/daisy/federated_learning/federated_aggregator.html#FedAvgAggregator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.federated_aggregator.FedAvgAggregator" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#daisy.federated_learning.federated_aggregator.ModelAggregator" title="daisy.federated_learning.federated_aggregator.ModelAggregator"><code class="xref py py-class docutils literal notranslate"><span class="pre">ModelAggregator</span></code></a></p>
+<p>Federated Averaging (FedAvg) is the simplest way to aggregate any number of
+models into a “global” model version, using only their weights (no internal state
+is kept); simply computing their average and using that as a result.</p>
+<p>Note this could also be done using gradients or losses or any other form of
+parameters from other types of models, however this was implemented with the
+federated_model.TFFederatedModel and its parameters in mind.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.federated_learning.federated_aggregator.FedAvgAggregator.aggregate">
+<span class="sig-name descname"><span class="pre">aggregate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">models_parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/daisy/federated_learning/federated_aggregator.html#FedAvgAggregator.aggregate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.federated_aggregator.FedAvgAggregator.aggregate" title="Link to this definition"></a></dt>
+<dd><p>Calculates the average for the given models’ parameters and returns it,
+using Welford’s algorithm. Note this could be further optimized using
+Kahan–Babuška summation for reduction of floating point errors.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>models_parameters</strong> – A list of models’ parameters the same type.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Aggregated model parameters.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="daisy.federated_learning.federated_aggregator.ModelAggregator">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">daisy.federated_learning.federated_aggregator.</span></span><span class="sig-name descname"><span class="pre">ModelAggregator</span></span><a class="reference internal" href="_modules/daisy/federated_learning/federated_aggregator.html#ModelAggregator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.federated_aggregator.ModelAggregator" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#daisy.federated_learning.federated_aggregator.Aggregator" title="daisy.federated_learning.federated_aggregator.Aggregator"><code class="xref py py-class docutils literal notranslate"><span class="pre">Aggregator</span></code></a></p>
+<p>Abstract model aggregator class, that uses the parameters of the given models
+and some internal states (of those parameters) to compute the aggregated state of
+the model. Must always be implemented if a new model aggregation strategy is used
+in the federated system.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.federated_learning.federated_aggregator.ModelAggregator.aggregate">
+<em class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">aggregate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">models_parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/daisy/federated_learning/federated_aggregator.html#ModelAggregator.aggregate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.federated_aggregator.ModelAggregator.aggregate" title="Link to this definition"></a></dt>
+<dd><p>Calculates the aggregated values from the underlying object attributes and
+given model parameters and returns them.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>models_parameters</strong> – A list of models’ parameters the same type.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Aggregated model parameters.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="daisy.federated_learning.federated_aggregator.SMAggregator">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">daisy.federated_learning.federated_aggregator.</span></span><span class="sig-name descname"><span class="pre">SMAggregator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">window_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">5</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/federated_learning/federated_aggregator.html#SMAggregator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.federated_aggregator.SMAggregator" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#daisy.federated_learning.federated_aggregator.ModelAggregator" title="daisy.federated_learning.federated_aggregator.ModelAggregator"><code class="xref py py-class docutils literal notranslate"><span class="pre">ModelAggregator</span></code></a></p>
+<p>Simple Moving Averaging, also called sliding window averaging (FedSMA) is the
+simplest version of online moving averaging for models, as it uses only the past
+k elements of the stream to compute the average. As with other online model
+averaging aggregators, the regular FedAvg is first computed over the batch of
+modes provided in a single step, before using that average to update the moving
+average (i.e., all models in a batch are treated equally).</p>
+<p>This kind of aggregation is also probably not compatible with the aggregation of
+gradients or losses, as these averages cannot be computed over various epochs
+overall.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.federated_learning.federated_aggregator.SMAggregator.aggregate">
+<span class="sig-name descname"><span class="pre">aggregate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">models_parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/daisy/federated_learning/federated_aggregator.html#SMAggregator.aggregate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.federated_aggregator.SMAggregator.aggregate" title="Link to this definition"></a></dt>
+<dd><p>Calculates the simple moving average for the given models’ parameters by
+averaging them first and then adding them to the window. Afterward, the delta
+between the new added values and the first (to be removed) value from the
+window is computed to aggregate the new moving average.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>models_parameters</strong> – A list of models’ parameters the same type.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Aggregated model parameters.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-daisy.federated_learning.federated_model">
+<span id="federated-models"></span><h2>Federated Models<a class="headerlink" href="#module-daisy.federated_learning.federated_model" title="Link to this heading"></a></h2>
+<p>A collection of various types of model wrappers, implementing the same interface
+for each federated model type, thus enabling their inter-compatibility for different
+aggregation strategies and federated system components.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="daisy.federated_learning.federated_model.FederatedIFTM">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">daisy.federated_learning.federated_model.</span></span><span class="sig-name descname"><span class="pre">FederatedIFTM</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">identify_fn</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#daisy.federated_learning.federated_model.FederatedModel" title="daisy.federated_learning.federated_model.FederatedModel"><span class="pre">FederatedModel</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold_m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#daisy.federated_learning.federated_model.FederatedModel" title="daisy.federated_learning.federated_model.FederatedModel"><span class="pre">FederatedModel</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">error_fn</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tensor</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tensor</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pf_mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/federated_learning/federated_model.html#FederatedIFTM"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.federated_model.FederatedIFTM" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#daisy.federated_learning.federated_model.FederatedModel" title="daisy.federated_learning.federated_model.FederatedModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">FederatedModel</span></code></a></p>
+<p>Double union of two federated models, following the IFTM hybrid  model
+approach — identify function threshold model principle by Schmidt et al.
+(<a class="reference external" href="https://ieeexplore.ieee.org/document/8456348">https://ieeexplore.ieee.org/document/8456348</a>): One for the computation of the
+identity of a given sample (alternatively prediction of the next sample),
+while the other maps the error/loss using a threshold(-model) to the binary class
+labels for anomaly detection. Both are generic federated models, so any approach
+can be used for them, as long as they abide by the required properties:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Identity Function: Computes the identities of given data points. Can be</p></li>
+</ul>
+<p>replaced with a prediction function.
+* Error Function: Computes the reconstruction/prediction error of one or
+multiple samples to a scalar (each).
+* Threshold Model: Maps the scalar to binary class labels.</p>
+</div></blockquote>
+<p>Note this kind of model <em>absolutely requires</em> a time series in most cases and
+therefore data passed to it, must be in order!</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.federated_learning.federated_model.FederatedIFTM.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/federated_learning/federated_model.html#FederatedIFTM.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.federated_model.FederatedIFTM.fit" title="Link to this definition"></a></dt>
+<dd><p>Trains the IFTM model with the given data by calling the wrapped models;
+first the IF to make a prediction, after which the error can be computed for
+the fitting of the TM. Afterward, the IF is fitted. Note that one can run
+IFTM in supervised mode by providing the true classes of each sample —
+however most TMs require only the input data.</p>
+<p>Note that in case of an underlying prediction function (instead of a regular
+IF), the window is shifted by one step into the past, i.e. the final sample
+is only used to compute a prediction error, but not make a prediction,
+and it is stored for the next fitting step.</p>
+<p>Note this kind of model <em>absolutely requires</em> a time series in most cases and
+therefore data passed to it, must be in order! Also for the first step in a
+time series, it is impossible to compute a prediction error, since there is
+no previous sample to compare it to.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x_data</strong> – Input data.</p></li>
+<li><p><strong>y_data</strong> – Expected output, optional since default IFTM is fully</p></li>
+</ul>
+</dd>
+</dl>
+<p>unsupervised.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.federated_learning.federated_model.FederatedIFTM.get_parameters">
+<span class="sig-name descname"><span class="pre">get_parameters</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/daisy/federated_learning/federated_model.html#FederatedIFTM.get_parameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.federated_model.FederatedIFTM.get_parameters" title="Link to this definition"></a></dt>
+<dd><p>Retrieves the weights of the underlying models.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Concatenated weight lists of the two models.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.federated_learning.federated_model.FederatedIFTM.predict">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_data</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="reference internal" href="_modules/daisy/federated_learning/federated_model.html#FederatedIFTM.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.federated_model.FederatedIFTM.predict" title="Link to this definition"></a></dt>
+<dd><p>Makes a prediction on the given data and returns it by calling the wrapped
+models; first the IF to make a prediction, after which the error can be
+computed for the final prediction step using the TM.</p>
+<p>Note that in case of an underlying prediction function (instead of a regular
+IF), the window is shifted by one step into the past, i.e. the final sample
+is only used to compute a prediction error, but not make a prediction,
+and it is stored for the next prediction step.</p>
+<p>Note this kind of model <em>absolutely requires</em> a time series in most cases and
+therefore data passed to it, must be in order! Also for the first step in a
+time series, there is no previous sample to compare it to, therefore the
+sample is automatically classified as the default class (0, i.e. normal)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x_data</strong> – Input data.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Predicted output tensor consisting of bools (0: normal, 1: abnormal).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.federated_learning.federated_model.FederatedIFTM.set_parameters">
+<span class="sig-name descname"><span class="pre">set_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/federated_learning/federated_model.html#FederatedIFTM.set_parameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.federated_model.FederatedIFTM.set_parameters" title="Link to this definition"></a></dt>
+<dd><p>Updates the internal parameters of the two underlying models by splitting
+the parameter lists as previously defined.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>parameters</strong> – Parameters to update the IFTM model with.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="daisy.federated_learning.federated_model.FederatedModel">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">daisy.federated_learning.federated_model.</span></span><span class="sig-name descname"><span class="pre">FederatedModel</span></span><a class="reference internal" href="_modules/daisy/federated_learning/federated_model.html#FederatedModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.federated_model.FederatedModel" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></p>
+<p>An abstract model wrapper that offers the same methods, no matter the type of
+underlying model. Must always be implemented if a new model type is to be used in
+the federated system.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.federated_learning.federated_model.FederatedModel.fit">
+<em class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/federated_learning/federated_model.html#FederatedModel.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.federated_model.FederatedModel.fit" title="Link to this definition"></a></dt>
+<dd><p>Trains the model with the given data, which must be compatible with the
+tensorflow API
+(see: <a class="reference external" href="https://www.tensorflow.org/api_docs/python/tf/keras/Model#fit">https://www.tensorflow.org/api_docs/python/tf/keras/Model#fit</a>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x_data</strong> – Input data.</p></li>
+<li><p><strong>y_data</strong> – Expected output.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.federated_learning.federated_model.FederatedModel.get_parameters">
+<em class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_parameters</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/daisy/federated_learning/federated_model.html#FederatedModel.get_parameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.federated_model.FederatedModel.get_parameters" title="Link to this definition"></a></dt>
+<dd><p>Retrieves the internal parameters of the model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Parameters of model.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.federated_learning.federated_model.FederatedModel.predict">
+<em class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_data</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/daisy/federated_learning/federated_model.html#FederatedModel.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.federated_model.FederatedModel.predict" title="Link to this definition"></a></dt>
+<dd><p>Makes a prediction on the given data and returns it, which must be
+compatible with the tensorflow API
+(see: <a class="reference external" href="https://www.tensorflow.org/api_docs/python/tf/keras/Model#predict">https://www.tensorflow.org/api_docs/python/tf/keras/Model#predict</a>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x_data</strong> – Input data.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Predicted output tensor.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.federated_learning.federated_model.FederatedModel.set_parameters">
+<em class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">set_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/federated_learning/federated_model.html#FederatedModel.set_parameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.federated_model.FederatedModel.set_parameters" title="Link to this definition"></a></dt>
+<dd><p>Updates the internal parameters of the model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>parameters</strong> – Parameters to update the model with.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="daisy.federated_learning.federated_model.TFFederatedModel">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">daisy.federated_learning.federated_model.</span></span><span class="sig-name descname"><span class="pre">TFFederatedModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Optimizer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Loss</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metrics</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Callable</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Metric</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">32</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/federated_learning/federated_model.html#TFFederatedModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.federated_model.TFFederatedModel" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#daisy.federated_learning.federated_model.FederatedModel" title="daisy.federated_learning.federated_model.FederatedModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">FederatedModel</span></code></a></p>
+<p>The standard federated model wrapper for tensorflow models. Can be used for
+both online and offline training/ prediction, by default online, however.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.federated_learning.federated_model.TFFederatedModel.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/federated_learning/federated_model.html#TFFederatedModel.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.federated_model.TFFederatedModel.fit" title="Link to this definition"></a></dt>
+<dd><p>Trains the model with the given data by calling the wrapped model,
+which must be compatible with the tensorflow API
+(see: <a class="reference external" href="https://www.tensorflow.org/api_docs/python/tf/keras/Model#fit">https://www.tensorflow.org/api_docs/python/tf/keras/Model#fit</a>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x_data</strong> – Input data.</p></li>
+<li><p><strong>y_data</strong> – Expected output.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.federated_learning.federated_model.TFFederatedModel.get_fae">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_fae</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Optimizer</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'Adam'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Loss</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'mse'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metrics</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Callable</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Metric</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">32</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Self</span></span></span><a class="reference internal" href="_modules/daisy/federated_learning/federated_model.html#TFFederatedModel.get_fae"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.federated_model.TFFederatedModel.get_fae" title="Link to this definition"></a></dt>
+<dd><p>Factory class method to create a simple federated autoencoder model of a
+fixed depth but with variable input size.</p>
+<p>Should only serve as a quick and basic setup for a model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_size</strong> – Dimensionality of input/output of autoencoder.</p></li>
+<li><p><strong>optimizer</strong> – Optimizer to use during training.</p></li>
+<li><p><strong>loss</strong> – Loss function to use during training.</p></li>
+<li><p><strong>metrics</strong> – Evaluation metrics to be displayed during training and testing.</p></li>
+<li><p><strong>batch_size</strong> – Batch size during training and prediction.</p></li>
+<li><p><strong>epochs</strong> – Number of epochs (rounds) during training.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Initialized federated autoencoder model.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.federated_learning.federated_model.TFFederatedModel.get_parameters">
+<span class="sig-name descname"><span class="pre">get_parameters</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/daisy/federated_learning/federated_model.html#TFFederatedModel.get_parameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.federated_model.TFFederatedModel.get_parameters" title="Link to this definition"></a></dt>
+<dd><p>Retrieves the weights of the underlying model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Weights of the model.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.federated_learning.federated_model.TFFederatedModel.predict">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_data</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/daisy/federated_learning/federated_model.html#TFFederatedModel.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.federated_model.TFFederatedModel.predict" title="Link to this definition"></a></dt>
+<dd><p>Makes a prediction on the given data and returns it by calling the wrapped
+model. Uses the call() tensorflow model interface for small numbers of data
+points, which must be compatible with the tensorflow API (see:
+<a class="reference external" href="https://www.tensorflow.org/api_docs/python/tf/keras/Model#predict">https://www.tensorflow.org/api_docs/python/tf/keras/Model#predict</a>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x_data</strong> – Input data.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Predicted output tensor.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.federated_learning.federated_model.TFFederatedModel.set_parameters">
+<span class="sig-name descname"><span class="pre">set_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/federated_learning/federated_model.html#TFFederatedModel.set_parameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.federated_model.TFFederatedModel.set_parameters" title="Link to this definition"></a></dt>
+<dd><p>Updates the weights of the underlying model with new ones.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>parameters</strong> – Weights to update the model with.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-daisy.federated_learning.threshold_models">
+<span id="threshold-models"></span><h2>Threshold Models<a class="headerlink" href="#module-daisy.federated_learning.threshold_models" title="Link to this heading"></a></h2>
+<p>A collection of extensions to the FederatedModel class to support a wide array of
+threshold models, which are used for anomaly detection, mostly for the mapping from
+numerical scalar values to binary class labels. For this the most common models
+currently are the statistical ones, of which most use the mean (combined with std.
+dev.) to compute a singular threshold value for simple classification in online manner.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="daisy.federated_learning.threshold_models.AvgTM">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">daisy.federated_learning.threshold_models.</span></span><span class="sig-name descname"><span class="pre">AvgTM</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">mean:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">0,</span> <span class="pre">var:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">0,</span> <span class="pre">var_weight:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">1.0,</span> <span class="pre">reduce_fn:</span> <span class="pre">~typing.Callable[[~tensorflow.python.framework.tensor.Tensor],</span> <span class="pre">~tensorflow.python.framework.tensor.Tensor]</span> <span class="pre">=</span> <span class="pre">&lt;function</span> <span class="pre">AvgTM.&lt;lambda&gt;&gt;</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/federated_learning/threshold_models.html#AvgTM"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.threshold_models.AvgTM" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#daisy.federated_learning.threshold_models.FederatedTM" title="daisy.federated_learning.threshold_models.FederatedTM"><code class="xref py py-class docutils literal notranslate"><span class="pre">FederatedTM</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></p>
+<p>Base class for average-based threshold models, all of which computing their
+internal threshold values by first computing the mean and standard deviation for
+the data stream and then adding them together for the (absolute) threshold of the
+model. This method is very similar to the one employed by Schmidt et al. for the
+original version of IFTM as well (<a class="reference external" href="https://ieeexplore.ieee.org/document/8456348">https://ieeexplore.ieee.org/document/8456348</a>),
+and was therefore implemented here, however this approach stands not alone for
+error-based anomaly detection approaches, since it follows simple statistical
+assumptions for normal distributions (i.e., a sample is considered anomalous if
+it is further than x-times the std. dev. from the mean of the total population),
+being similar to average absolute deviation methods (AAD), however using a dynamic
+threshold value.</p>
+<p>Any implementation of this class must provide a way to update the mean using new
+incoming samples, anything else is already taken care of by this base class.</p>
+<p>Note that many of the implementations are very similar to the ModelAggregator
+implementations, as both treat the aggregated values as a timeseries.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.federated_learning.threshold_models.AvgTM.get_parameters">
+<span class="sig-name descname"><span class="pre">get_parameters</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/daisy/federated_learning/threshold_models.html#AvgTM.get_parameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.threshold_models.AvgTM.get_parameters" title="Link to this definition"></a></dt>
+<dd><p>Retrieves the mean and variance of the threshold model, actual threshold
+excluded.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Mean and variance of threshold model.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.federated_learning.threshold_models.AvgTM.set_parameters">
+<span class="sig-name descname"><span class="pre">set_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/federated_learning/threshold_models.html#AvgTM.set_parameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.threshold_models.AvgTM.set_parameters" title="Link to this definition"></a></dt>
+<dd><p>Updates the mean and variance of the threshold model, then updates the
+model (adjusting threshold).</p>
+<p>Note the nested method arguments — for the base class the first position of
+the list is allocated for the statistical values, while extending classes use
+the list’s positions that come after.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>parameters</strong> – Mean and variance to update threshold model with.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.federated_learning.threshold_models.AvgTM.update_mean">
+<em class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">update_mean</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">new_sample</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/federated_learning/threshold_models.html#AvgTM.update_mean"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.threshold_models.AvgTM.update_mean" title="Link to this definition"></a></dt>
+<dd><p>Updates the internal mean value with new sample.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>new_sample</strong> – New sample of time series.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.federated_learning.threshold_models.AvgTM.update_threshold">
+<span class="sig-name descname"><span class="pre">update_threshold</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/federated_learning/threshold_models.html#AvgTM.update_threshold"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.threshold_models.AvgTM.update_threshold" title="Link to this definition"></a></dt>
+<dd><p>Updates the mean and variance of the threshold model using a batch of new
+samples to compute the new threshold value. If none provided, simply
+re-compute the threshold based on the current values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x_data</strong> – Batch of input data. Optional.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="daisy.federated_learning.threshold_models.CumAvgTM">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">daisy.federated_learning.threshold_models.</span></span><span class="sig-name descname"><span class="pre">CumAvgTM</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">mean:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">0,</span> <span class="pre">var:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">0,</span> <span class="pre">var_weight:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">1.0,</span> <span class="pre">reduce_fn:</span> <span class="pre">~typing.Callable[[~tensorflow.python.framework.tensor.Tensor],</span> <span class="pre">~tensorflow.python.framework.tensor.Tensor]</span> <span class="pre">=</span> <span class="pre">&lt;function</span> <span class="pre">CumAvgTM.&lt;lambda&gt;&gt;</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/federated_learning/threshold_models.html#CumAvgTM"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.threshold_models.CumAvgTM" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#daisy.federated_learning.threshold_models.AvgTM" title="daisy.federated_learning.threshold_models.AvgTM"><code class="xref py py-class docutils literal notranslate"><span class="pre">AvgTM</span></code></a></p>
+<p>Cumulative Averaging is the base version of online averaging, which is equal
+to the offline average after seeing every instance of the population.</p>
+<p>Consequently, this aggregator is NOT stable for infinite learning aggregation
+steps (n).</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.federated_learning.threshold_models.CumAvgTM.get_parameters">
+<span class="sig-name descname"><span class="pre">get_parameters</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/daisy/federated_learning/threshold_models.html#CumAvgTM.get_parameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.threshold_models.CumAvgTM.get_parameters" title="Link to this definition"></a></dt>
+<dd><p>Retrieves the parameters of the cumulative averaging threshold model,
+actual threshold excluded.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Mean and variance (1st) and size of population (2nd) of threshold</p>
+</dd>
+</dl>
+<p>model.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.federated_learning.threshold_models.CumAvgTM.set_parameters">
+<span class="sig-name descname"><span class="pre">set_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/federated_learning/threshold_models.html#CumAvgTM.set_parameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.threshold_models.CumAvgTM.set_parameters" title="Link to this definition"></a></dt>
+<dd><p>Updates the parameters of the cumulative averaging threshold model,
+which includes the size of the current population. The rest of the updating
+is done as described in the superclass’ method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>parameters</strong> – Parameters to update threshold model with, with the</p>
+</dd>
+</dl>
+<p>population number in second place.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.federated_learning.threshold_models.CumAvgTM.update_mean">
+<span class="sig-name descname"><span class="pre">update_mean</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">new_sample</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/federated_learning/threshold_models.html#CumAvgTM.update_mean"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.threshold_models.CumAvgTM.update_mean" title="Link to this definition"></a></dt>
+<dd><p>Updates the cumulative mean value with new sample.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>new_sample</strong> – New sample of time series.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="daisy.federated_learning.threshold_models.EMAvgTM">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">daisy.federated_learning.threshold_models.</span></span><span class="sig-name descname"><span class="pre">EMAvgTM</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">alpha:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">0.05,</span> <span class="pre">mean:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">0,</span> <span class="pre">var:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">0,</span> <span class="pre">var_weight:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">1.0,</span> <span class="pre">reduce_fn:</span> <span class="pre">~typing.Callable[[~tensorflow.python.framework.tensor.Tensor],</span> <span class="pre">~tensorflow.python.framework.tensor.Tensor]</span> <span class="pre">=</span> <span class="pre">&lt;function</span> <span class="pre">EMAvgTM.&lt;lambda&gt;&gt;</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/federated_learning/threshold_models.html#EMAvgTM"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.threshold_models.EMAvgTM" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#daisy.federated_learning.threshold_models.AvgTM" title="daisy.federated_learning.threshold_models.AvgTM"><code class="xref py py-class docutils literal notranslate"><span class="pre">AvgTM</span></code></a></p>
+<p>Exponential moving averaging takes note of the entire model stream to compute
+the average, but weights them exponentially less the greater their distance to
+the present is; this process is also called exponential smoothing.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.federated_learning.threshold_models.EMAvgTM.update_mean">
+<span class="sig-name descname"><span class="pre">update_mean</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">new_sample</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/federated_learning/threshold_models.html#EMAvgTM.update_mean"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.threshold_models.EMAvgTM.update_mean" title="Link to this definition"></a></dt>
+<dd><p>Updates the exponential moving average value with new sample, weighting
+past and present as defined.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>new_sample</strong> – New sample of time series.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="daisy.federated_learning.threshold_models.FederatedTM">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">daisy.federated_learning.threshold_models.</span></span><span class="sig-name descname"><span class="pre">FederatedTM</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">threshold:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">0,</span> <span class="pre">reduce_fn:</span> <span class="pre">~typing.Callable[[~tensorflow.python.framework.tensor.Tensor],</span> <span class="pre">~tensorflow.python.framework.tensor.Tensor]</span> <span class="pre">=</span> <span class="pre">&lt;function</span> <span class="pre">FederatedTM.&lt;lambda&gt;&gt;</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/federated_learning/threshold_models.html#FederatedTM"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.threshold_models.FederatedTM" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#daisy.federated_learning.federated_model.FederatedModel" title="daisy.federated_learning.federated_model.FederatedModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">FederatedModel</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></p>
+<p>Abstract base class for federated threshold models, all of which, to perform
+predictions, simply compare the current samples (that are in order) to a dynamic
+threshold that is updated using internal parameters, varying between
+approaches/implementations.</p>
+<p>Note this kind of model <em>absolutely requires</em> a time series in most cases and
+therefore data passed to it, must be in order!</p>
+<p>Note that for the initial value, the threshold is always zero (any point is
+considered an anomaly during detection).</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.federated_learning.threshold_models.FederatedTM.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/federated_learning/threshold_models.html#FederatedTM.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.threshold_models.FederatedTM.fit" title="Link to this definition"></a></dt>
+<dd><p>Trains the threshold model with the given data, which must be compatible
+with the tensorflow API (see:
+<a class="reference external" href="https://www.tensorflow.org/api_docs/python/tf/keras/Model#fit">https://www.tensorflow.org/api_docs/python/tf/keras/Model#fit</a>). If the input
+data contains more than one sample, it is reduced to a singular scalar using
+a set function, if defined (see: __init__). This is akin to an additional
+layer of window-based smoothing/averaging, also speeding up the update process.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x_data</strong> – Input data.</p></li>
+<li><p><strong>y_data</strong> – Expected output, optional since most (simple) threshold models</p></li>
+</ul>
+</dd>
+</dl>
+<p>are unsupervised.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.federated_learning.threshold_models.FederatedTM.get_parameters">
+<em class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_parameters</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/daisy/federated_learning/threshold_models.html#FederatedTM.get_parameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.threshold_models.FederatedTM.get_parameters" title="Link to this definition"></a></dt>
+<dd><p>Retrieves the internal parameters of the threshold model, actual threshold
+excluded.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Parameters of threshold model.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.federated_learning.threshold_models.FederatedTM.predict">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_data</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/daisy/federated_learning/threshold_models.html#FederatedTM.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.threshold_models.FederatedTM.predict" title="Link to this definition"></a></dt>
+<dd><p>Makes a prediction on the given data and returns it, which must be
+compatible with the tensorflow API (see:
+<a class="reference external" href="https://www.tensorflow.org/api_docs/python/tf/keras/Model#predict">https://www.tensorflow.org/api_docs/python/tf/keras/Model#predict</a> ).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x_data</strong> – Input data.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Predicted output tensor consisting of bools (0: normal, 1: abnormal).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.federated_learning.threshold_models.FederatedTM.set_parameters">
+<span class="sig-name descname"><span class="pre">set_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/federated_learning/threshold_models.html#FederatedTM.set_parameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.threshold_models.FederatedTM.set_parameters" title="Link to this definition"></a></dt>
+<dd><p>Updates the internal parameters of the threshold model, before
+re-computing the actual threshold value based on the internal parameters.</p>
+<p>Important Note: Must be overridden (and called afterward) when class is
+implemented (see implementation examples below).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>parameters</strong> – Parameters to update the threshold model with.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.federated_learning.threshold_models.FederatedTM.update_threshold">
+<em class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">update_threshold</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/federated_learning/threshold_models.html#FederatedTM.update_threshold"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.threshold_models.FederatedTM.update_threshold" title="Link to this definition"></a></dt>
+<dd><p>Updates the internal parameters of the threshold model using a batch of
+new samples to compute the new threshold value. If none provided,
+simply re-compute the threshold.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x_data</strong> – Batch of input data. Optional.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="daisy.federated_learning.threshold_models.MadTM">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">daisy.federated_learning.threshold_models.</span></span><span class="sig-name descname"><span class="pre">MadTM</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">window_size:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">5,</span> <span class="pre">threshold:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">3.5,</span> <span class="pre">reduce_fn:</span> <span class="pre">~typing.Callable[[~tensorflow.python.framework.tensor.Tensor],</span> <span class="pre">~tensorflow.python.framework.tensor.Tensor]</span> <span class="pre">=</span> <span class="pre">&lt;function</span> <span class="pre">MadTM.&lt;lambda&gt;&gt;</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/federated_learning/threshold_models.html#MadTM"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.threshold_models.MadTM" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#daisy.federated_learning.threshold_models.FederatedTM" title="daisy.federated_learning.threshold_models.FederatedTM"><code class="xref py py-class docutils literal notranslate"><span class="pre">FederatedTM</span></code></a></p>
+<p>Median absolute deviation (MAD)-based threshold models, similar to AAD-based
+models, assume a symmetric distribution of the time serie’s samples, of which
+a certain percentage are considered anomalous. However, unlike average-based
+approaches, the median can only computed using a subset of the population
+when computed online (it cannot be computed online in fact, as this is a property
+of the median). Furthermore, as with all absolute deviation based models,
+the actual threshold value is NOT dynamic — it has to be set manually. Instead,
+the input is transformed into its modified z-scores, which are then compared to
+the threshold for binary classification.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.federated_learning.threshold_models.MadTM.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/federated_learning/threshold_models.html#MadTM.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.threshold_models.MadTM.fit" title="Link to this definition"></a></dt>
+<dd><p>As it is set upon the creation of the threshold, nothing is to be fitted.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.federated_learning.threshold_models.MadTM.get_parameters">
+<span class="sig-name descname"><span class="pre">get_parameters</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/daisy/federated_learning/threshold_models.html#MadTM.get_parameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.threshold_models.MadTM.get_parameters" title="Link to this definition"></a></dt>
+<dd><p>Retrieves the entire sample window of the MAD threshold model, actual
+threshold excluded.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Current sample window of time stream.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.federated_learning.threshold_models.MadTM.predict">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_data</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/daisy/federated_learning/threshold_models.html#MadTM.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.threshold_models.MadTM.predict" title="Link to this definition"></a></dt>
+<dd><p>Adds the input data to the current sample window of the time stream, removing
+older samples accordingly, before computing the modified z-scores over all them.
+Note that only the z-scores of the input is compared to the threshold and
+returned accordingly.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x_data</strong> – Input data.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Predicted output tensor consisting of bools (0: normal, 1: abnormal).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.federated_learning.threshold_models.MadTM.set_parameters">
+<span class="sig-name descname"><span class="pre">set_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/federated_learning/threshold_models.html#MadTM.set_parameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.threshold_models.MadTM.set_parameters" title="Link to this definition"></a></dt>
+<dd><p>Updates the parameters of the MAD threshold model, which includes the
+current content of the sliding window, before updating the actual model
+(adjusting threshold).</p>
+<p>Note: Should only be used with threshold models that support the same window
+size, otherwise random things might happen.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>parameters</strong> – New sample window of time stream.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.federated_learning.threshold_models.MadTM.update_threshold">
+<span class="sig-name descname"><span class="pre">update_threshold</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/federated_learning/threshold_models.html#MadTM.update_threshold"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.threshold_models.MadTM.update_threshold" title="Link to this definition"></a></dt>
+<dd><p>As it is set upon the creation of the threshold, nothing is to be updated.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="daisy.federated_learning.threshold_models.SMAvgTM">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">daisy.federated_learning.threshold_models.</span></span><span class="sig-name descname"><span class="pre">SMAvgTM</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">window_size:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">5,</span> <span class="pre">mean:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">0,</span> <span class="pre">var:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">0,</span> <span class="pre">var_weight:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">1.0,</span> <span class="pre">reduce_fn:</span> <span class="pre">~typing.Callable[[~tensorflow.python.framework.tensor.Tensor],</span> <span class="pre">~tensorflow.python.framework.tensor.Tensor]</span> <span class="pre">=</span> <span class="pre">&lt;function</span> <span class="pre">SMAvgTM.&lt;lambda&gt;&gt;</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/federated_learning/threshold_models.html#SMAvgTM"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.threshold_models.SMAvgTM" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#daisy.federated_learning.threshold_models.AvgTM" title="daisy.federated_learning.threshold_models.AvgTM"><code class="xref py py-class docutils literal notranslate"><span class="pre">AvgTM</span></code></a></p>
+<p>Simple Moving Averaging, also called sliding window averaging, is the simplest
+version of online moving averaging, as it uses only the past k elements of the
+population to compute the average. Note that this really needs a proper
+datastream/timeseries, as the order of samples influences the average at every step.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.federated_learning.threshold_models.SMAvgTM.get_parameters">
+<span class="sig-name descname"><span class="pre">get_parameters</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/daisy/federated_learning/threshold_models.html#SMAvgTM.get_parameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.threshold_models.SMAvgTM.get_parameters" title="Link to this definition"></a></dt>
+<dd><p>Retrieves the parameters of the cumulative averaging threshold model,
+actual threshold excluded.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Mean and variance (1st) and sliding window (2nd) of threshold model.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.federated_learning.threshold_models.SMAvgTM.set_parameters">
+<span class="sig-name descname"><span class="pre">set_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/federated_learning/threshold_models.html#SMAvgTM.set_parameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.threshold_models.SMAvgTM.set_parameters" title="Link to this definition"></a></dt>
+<dd><p>Updates the parameters of the cumulative averaging threshold model,
+which includes the current content of the sliding window. The rest of the
+updating is done as described in the superclass’ method.</p>
+<p>Note: Should only be used with threshold models that support the same window
+size, otherwise random things might happen.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>parameters</strong> – Parameters to update threshold model with sliding window’s</p>
+</dd>
+</dl>
+<p>samples in second place.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.federated_learning.threshold_models.SMAvgTM.update_mean">
+<span class="sig-name descname"><span class="pre">update_mean</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">new_sample</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/federated_learning/threshold_models.html#SMAvgTM.update_mean"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.federated_learning.threshold_models.SMAvgTM.update_mean" title="Link to this definition"></a></dt>
+<dd><p>Updates the simple moving average value with new sample, removing the last
+sample from the sliding window and storing the new one in it, adjusting the
+mean accordingly.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>new_sample</strong> – New sample of time series.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="daisy.federated_ids_components.html" class="btn btn-neutral float-left" title="Federated IDS Components" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="daisy.scripts.data_collection.html" class="btn btn-neutral float-right" title="Data Collection" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Fabian Hofmann, Seraphin Zunzer, Jonathan Ackerschewski, Lotta Fejzula.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

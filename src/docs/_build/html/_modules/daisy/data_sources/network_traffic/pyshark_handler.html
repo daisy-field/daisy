@@ -1,0 +1,326 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>daisy.data_sources.network_traffic.pyshark_handler &mdash; DAISY 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/favicon2.ico"/>
+    <link rel="canonical" href="https://daisy-field.github.io/_modules/daisy/data_sources/network_traffic/pyshark_handler.html" />
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            DAISY
+              <img src="../../../../_static/favicon2.ico" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../general.overview.html">What is DAISY?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../general.background.html">Background</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../general.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../general.dashboard.html">Dashboard</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Documentation:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../daisy.communication.html">Communication</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../daisy.data_sources.html">Datasources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../daisy.evaluation.html">Evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../daisy.federated_ids_components.html">Federated IDS Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../daisy.federated_learning.html">Federated Learning</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../daisy.scripts.data_collection.html">Data Collection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../daisy.scripts.demo_components.html">Demo Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../daisy.scripts.generic_fids_components.html">Demo Servers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">DAISY</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">daisy.data_sources.network_traffic.pyshark_handler</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for daisy.data_sources.network_traffic.pyshark_handler</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright (C) 2024-2025 DAI-Labor and others</span>
+<span class="c1">#</span>
+<span class="c1"># This Source Code Form is subject to the terms of the Mozilla Public</span>
+<span class="c1"># License, v. 2.0. If a copy of the MPL was not distributed with this</span>
+<span class="c1"># file, You can obtain one at https://mozilla.org/MPL/2.0/.</span>
+<span class="sd">&quot;&quot;&quot;Implementations of the data source interface that allows the processing and</span>
+<span class="sd">provisioning of pyshark packets, either via file inputs, live capture, or a remote</span>
+<span class="sd">source that generates packets in either fashion.</span>
+
+<span class="sd">Author: Jonathan Ackerschewski, Fabian Hofmann</span>
+<span class="sd">Modified: 04.11.24</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">natsort</span><span class="w"> </span><span class="kn">import</span> <span class="n">natsorted</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Optional</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">pyshark</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyshark.capture.capture</span><span class="w"> </span><span class="kn">import</span> <span class="n">TSharkCrashException</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyshark.capture.file_capture</span><span class="w"> </span><span class="kn">import</span> <span class="n">FileCapture</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyshark.capture.live_capture</span><span class="w"> </span><span class="kn">import</span> <span class="n">LiveCapture</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyshark.packet.packet</span><span class="w"> </span><span class="kn">import</span> <span class="n">Packet</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">...data_sources.data_source</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataSource</span>
+
+
+<div class="viewcode-block" id="LivePysharkDataSource">
+<a class="viewcode-back" href="../../../../daisy.data_sources.network_traffic.html#daisy.data_sources.network_traffic.LivePysharkDataSource">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">LivePysharkDataSource</span><span class="p">(</span><span class="n">DataSource</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The wrapper implementation to support and handle pyshark live captures as data</span>
+<span class="sd">    sources. Considered infinite in nature, as it allows the generation of pyshark</span>
+<span class="sd">    packets, until the capture is stopped.</span>
+<span class="sd">    Beware that you might have to use root privileges to obtain data from this data</span>
+<span class="sd">    source. If privileges are missing pyshark might not return any data points or</span>
+<span class="sd">    warnings.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_capture</span><span class="p">:</span> <span class="n">LiveCapture</span>
+    <span class="n">_generator</span><span class="p">:</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Packet</span><span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">interfaces</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="s2">&quot;any&quot;</span><span class="p">,</span> <span class="n">bpf_filter</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates a new basic pyshark live capture handler on the given interfaces.</span>
+
+<span class="sd">        :param name: Name of data source for logging purposes.</span>
+<span class="sd">        :param interfaces: Network interfaces to capture. If not given, runs on all</span>
+<span class="sd">        interfaces.</span>
+<span class="sd">        :param bpf_filter: Pcap conform filter to filter or ignore certain traffic.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Initializing live pyshark data source...&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_capture</span> <span class="o">=</span> <span class="n">pyshark</span><span class="o">.</span><span class="n">LiveCapture</span><span class="p">(</span><span class="n">interface</span><span class="o">=</span><span class="n">interfaces</span><span class="p">,</span> <span class="n">bpf_filter</span><span class="o">=</span><span class="n">bpf_filter</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Live pyshark data source initialized.&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="LivePysharkDataSource.open">
+<a class="viewcode-back" href="../../../../daisy.data_sources.network_traffic.html#daisy.data_sources.network_traffic.LivePysharkDataSource.open">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">open</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Starts the pyshark live caption, initializing the wrapped generator.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Beginning live pyshark capture...&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_generator</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_capture</span><span class="o">.</span><span class="n">sniff_continuously</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="LivePysharkDataSource.close">
+<a class="viewcode-back" href="../../../../daisy.data_sources.network_traffic.html#daisy.data_sources.network_traffic.LivePysharkDataSource.close">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Stops the live caption, essentially disabling the generator. Note that the</span>
+<span class="sd">        generator might block if one tries to retrieve an object from it after that</span>
+<span class="sd">        point.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_capture</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Live pyshark capture stopped.&quot;</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Packet</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the wrapped generator. Note this does not catch problems after a</span>
+<span class="sd">        close() on the handler is called --- one must not retrieve objects after as</span>
+<span class="sd">        it will result in a deadlock!</span>
+
+<span class="sd">        :return: Pyshark generator object for data points as pyshark packets.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generator</span></div>
+
+
+
+<div class="viewcode-block" id="PcapDataSource">
+<a class="viewcode-back" href="../../../../daisy.data_sources.network_traffic.html#daisy.data_sources.network_traffic.PcapDataSource">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PcapDataSource</span><span class="p">(</span><span class="n">DataSource</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The wrapper implementation to support and handle any number of pcap files as</span>
+<span class="sd">    data sources. Finite: finishes after all files have been processed. Warning: Not</span>
+<span class="sd">    entirely compliant with the data source abstract class: Neither fully thread</span>
+<span class="sd">    safe, nor does its __iter__() method shut down after close() has been called. Due</span>
+<span class="sd">    to its finite nature acceptable however, as this data source is nearly always only</span>
+<span class="sd">    closed once all data points have been retrieved.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_pcap_files</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+
+    <span class="n">_cur_file_counter</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">_cur_file_handle</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">FileCapture</span><span class="p">]</span>
+    <span class="n">_try_counter</span><span class="p">:</span> <span class="nb">int</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">file_names</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">try_counter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates a new pcap file data source.</span>
+
+<span class="sd">        :param file_names: List of paths of single files or directories containing</span>
+<span class="sd">        .pcap files. Each string should be a name of a file or directory. In case a</span>
+<span class="sd">        directory is passed, all files ending in .pcap are used. In case a single</span>
+<span class="sd">        file is passed, it is used regardless of file ending.</span>
+<span class="sd">        :param try_counter: Number of attempts to open a specific pcap file until</span>
+<span class="sd">        throwing an exception.</span>
+<span class="sd">        :param name: Name of data source for logging purposes.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Initializing pcap file data source...&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pcap_files</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">file_names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+                <span class="c1"># Variables in following line are:</span>
+                <span class="c1"># file_tuple[0] = &lt;sub&gt;-directories; file_tuple[2] = files in directory</span>
+                <span class="n">dirs</span> <span class="o">=</span> <span class="p">[(</span><span class="n">file_tuple</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">file_tuple</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="k">for</span> <span class="n">file_tuple</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">path</span><span class="p">)]</span>
+                <span class="n">files</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">file_tuple</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">file_name</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">file_tuple</span> <span class="ow">in</span> <span class="n">dirs</span>
+                    <span class="k">for</span> <span class="n">file_name</span> <span class="ow">in</span> <span class="n">file_tuple</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">file_name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.pcap&quot;</span><span class="p">)</span>
+                <span class="p">]</span>
+                <span class="k">if</span> <span class="n">files</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Directory &#39;</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&#39; does not contain any .pcap files!&quot;</span>
+                    <span class="p">)</span>
+                <span class="n">files</span> <span class="o">=</span> <span class="n">natsorted</span><span class="p">(</span><span class="n">files</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_pcap_files</span> <span class="o">+=</span> <span class="n">files</span>
+            <span class="k">elif</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="ow">and</span> <span class="n">path</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.pcap&quot;</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_pcap_files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pcap_files</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No .pcap files in &#39;</span><span class="si">{</span><span class="n">file_names</span><span class="si">}</span><span class="s2">&#39; could be found.&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cur_file_counter</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cur_file_handle</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_try_counter</span> <span class="o">=</span> <span class="n">try_counter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Pcap file data source initialized.&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="PcapDataSource.open">
+<a class="viewcode-back" href="../../../../daisy.data_sources.network_traffic.html#daisy.data_sources.network_traffic.PcapDataSource.open">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">open</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Opens and resets the pcap file data source to the very beginning of the file</span>
+<span class="sd">        list.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Opening pcap file source...&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cur_file_counter</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cur_file_handle</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Pcap file source opened.&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PcapDataSource.close">
+<a class="viewcode-back" href="../../../../daisy.data_sources.network_traffic.html#daisy.data_sources.network_traffic.PcapDataSource.close">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Closes any file of the pcap file data source.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Closing pcap file source...&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cur_file_handle</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cur_file_handle</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cur_file_handle</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Pcap file source closed.&quot;</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_open</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Opens the next file of the pcap file list, trying to open it several times</span>
+<span class="sd">        until succeeding (known bug from the pyshark library).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Opening next pcap file...&quot;</span><span class="p">)</span>
+        <span class="n">try_counter</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">while</span> <span class="n">try_counter</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_try_counter</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_cur_file_handle</span> <span class="o">=</span> <span class="n">pyshark</span><span class="o">.</span><span class="n">FileCapture</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_pcap_files</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cur_file_counter</span><span class="p">]</span>
+                <span class="p">)</span>
+                <span class="k">break</span>
+            <span class="k">except</span> <span class="n">TSharkCrashException</span><span class="p">:</span>
+                <span class="n">try_counter</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">continue</span>
+        <span class="k">if</span> <span class="n">try_counter</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_try_counter</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Could not open File &#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_pcap_files</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cur_file_counter</span><span class="p">]</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cur_file_counter</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Next pcap file opened.&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Packet</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a generator that yields pyshark packets from each file after</span>
+<span class="sd">        another, opening and closing them when being actively read.</span>
+
+<span class="sd">        :return: Generator object for data points as pyshark packets.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pcap_files</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_open</span><span class="p">()</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">packet</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cur_file_handle</span><span class="p">:</span>
+                    <span class="k">yield</span> <span class="n">packet</span>
+            <span class="k">except</span> <span class="n">TSharkCrashException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">(</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">) while reading packets. Closing...&quot;</span>
+                <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cur_file_handle</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Fabian Hofmann, Seraphin Zunzer, Jonathan Ackerschewski, Lotta Fejzula.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

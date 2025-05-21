@@ -1,0 +1,277 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>What is DAISY? &mdash; DAISY 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+    <link rel="shortcut icon" href="_static/favicon2.ico"/>
+    <link rel="canonical" href="https://daisy-field.github.io/general.overview.html" />
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Background" href="general.background.html" />
+    <link rel="prev" title="DAISY" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            DAISY
+              <img src="_static/favicon2.ico" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">What is DAISY?</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#daisy-installation-usage">DAISY Installation &amp; Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#developing">Developing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#building">Building</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#minimum-working-example">Minimum Working Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#frequently-asked-questions">Frequently Asked Questions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="general.background.html">Background</a></li>
+<li class="toctree-l1"><a class="reference internal" href="general.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="general.dashboard.html">Dashboard</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Documentation:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="daisy.communication.html">Communication</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.data_sources.html">Datasources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.evaluation.html">Evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.federated_ids_components.html">Federated IDS Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.federated_learning.html">Federated Learning</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="daisy.scripts.data_collection.html">Data Collection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.scripts.demo_components.html">Demo Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.scripts.generic_fids_components.html">Demo Servers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">DAISY</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">What is DAISY?</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/general.overview.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="what-is-daisy">
+<h1>What is DAISY?<a class="headerlink" href="#what-is-daisy" title="Link to this heading"></a></h1>
+<p>A Framework for Fully <strong>Distributed, Anomaly-Based Intrusion Detection in Security-Oriented Edge Computing Environments</strong>.</p>
+<img alt="License" src="https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg" />
+<img alt="Python" src="https://img.shields.io/badge/python-3.12-blue.svg" />
+<img alt="Pre-Commit" src="https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit" />
+<img alt="Ruff" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json" />
+<p>DAISY aims to be an end-to-end framework to design, develop, and execute distributed
+intrusion detection systems (IDS) of varying topologies, in an edge-optimized fashion.
+All of which is done in python and done generically.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Basically: You provide the model along some data sources, plus any other customizations
+you want done following the defined interfaces, and you are set!</p>
+</div>
+<p>For the latter, there is a large toolbox of various (example) implementations for all
+these interfaces. Execution i.e. rollout is done through pure python or wrapped inside
+one or multiple docker containers.</p>
+<img alt="Daisy" src="_images/daisy_chart.png" />
+<section id="daisy-installation-usage">
+<h2>DAISY Installation &amp; Usage<a class="headerlink" href="#daisy-installation-usage" title="Link to this heading"></a></h2>
+<p>DAISY supports installation via <cite>pip</cite> under
+<a class="reference external" href="https://www.python.org/downloads/release/python-3120/">Python 3.12</a>. It can be
+installed using the steps below. DAISY is also available via Docker and can be used
+out of the box after <span class="xref std std-ref">building</span>.</p>
+<p>It is generally recommended to use a
+<a class="reference external" href="https://docs.python.org/3.12/library/venv.html">virtual environment</a> for Python
+projects.</p>
+<p>For CUDA-enabled GPU cards (primarily on Ubuntu and other Linux distributions),
+GPU support is available via the <code class="docutils literal notranslate"><span class="pre">[cuda]</span></code> install option. This requires
+NVIDIA® GPU drivers and is supported via
+<a class="reference external" href="https://github.com/tensorflow/tensorflow/blob/master/README.md">Tensorflow</a>.</p>
+<p>For live traffic capture and PCAP file reading,
+<a class="reference external" href="https://tshark.dev/setup/install/">Tshark</a> is required.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/daisy-field/daisy.git
+
+<span class="c1"># python 3.12 setup</span>
+sudo<span class="w"> </span>add-apt-repository<span class="w"> </span>ppa:deadsnakes/ppa
+sudo<span class="w"> </span>apt-get<span class="w"> </span>update
+sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>python3.12
+
+<span class="c1"># venv setup (recommended)</span>
+sudo<span class="w"> </span>apt<span class="w"> </span>install<span class="w"> </span>python3.12-venv
+python3.12<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>venv
+<span class="nb">source</span><span class="w"> </span>venv/bin/activate
+
+pip<span class="w"> </span>install<span class="w"> </span>/path/to/daisy
+pip<span class="w"> </span>install<span class="w"> </span>/path/to/daisy<span class="o">[</span>cuda<span class="o">]</span><span class="w">  </span><span class="c1"># gpu support (optional)</span>
+</pre></div>
+</div>
+<p>After installation, demo scripts will be added to your shell path and can be executed like:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>demo_202303_client<span class="w"> </span>-h
+model_aggr_server<span class="w"> </span>-h
+</pre></div>
+</div>
+<p>Refer to the instructions to perform the initial demo. A <span class="xref std std-ref">minimum working example</span>
+is available, including all necessary components for setting up two federated detection nodes, aggregation servers,
+and a dashboard. Some demos may require external data sources, available in our
+<a class="reference external" href="https://github.com/daisy-field/datasets">data set repository</a>.</p>
+</section>
+<section id="developing">
+<h2>Developing<a class="headerlink" href="#developing" title="Link to this heading"></a></h2>
+<p>DAISY can be installed in editable mode (<code class="docutils literal notranslate"><span class="pre">-e</span></code> flag) for development purposes. A virtual environment is strongly recommended.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/daisy-field/daisy.git
+<span class="nb">cd</span><span class="w"> </span>daisy
+
+<span class="c1"># python 3.12 setup</span>
+sudo<span class="w"> </span>add-apt-repository<span class="w"> </span>ppa:deadsnakes/ppa
+sudo<span class="w"> </span>apt-get<span class="w"> </span>update
+sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>python3.12
+
+<span class="c1"># venv setup</span>
+sudo<span class="w"> </span>apt<span class="w"> </span>install<span class="w"> </span>python3.12-venv
+python3.12<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>venv
+<span class="nb">source</span><span class="w"> </span>venv/bin/activate
+
+pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.<span class="o">[</span>dev<span class="o">]</span>
+</pre></div>
+</div>
+<p>This installs all dependencies and development tools (e.g., linters, test frameworks).</p>
+<p>To enable automatic commit checks via Git hooks:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>pre-commit<span class="w"> </span>install
+</pre></div>
+</div>
+<p>These checks will also run on the upstream repository, so it’s highly recommended to enable them.</p>
+</section>
+<section id="building">
+<h2>Building<a class="headerlink" href="#building" title="Link to this heading"></a></h2>
+<p>Because DAISY is installed via <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">-e</span></code>, code changes take effect immediately. For Docker usage, however, you may need to rebuild image layers:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>build<span class="w"> </span>-t<span class="w"> </span>daisy<span class="w"> </span>.
+docker<span class="w"> </span>build<span class="w"> </span>-t<span class="w"> </span>daisygpu<span class="w"> </span>.<span class="w"> </span>--build-arg<span class="w"> </span><span class="nv">build_version</span><span class="o">=</span>gpu<span class="w">  </span><span class="c1"># gpu support (optional)</span>
+</pre></div>
+</div>
+<p>To run the Docker container interactively:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>run<span class="w"> </span>-it<span class="w"> </span>--network<span class="w"> </span>host<span class="w"> </span>--name<span class="w"> </span>daisy<span class="w"> </span>daisy<span class="w"> </span>bash
+</pre></div>
+</div>
+<p>You can also deploy a demo setup, including the <span class="xref std std-ref">minimum working example</span>, using Docker Compose:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="c1"># Arg Setup</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">DATASET_PATH</span><span class="o">=</span>/path/to/datasets/v2x_2023-03-06
+<span class="nb">export</span><span class="w"> </span><span class="nv">BUILD_VERSION</span><span class="o">=</span>gpu<span class="w">  </span><span class="c1"># gpu support (optional)</span>
+
+docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>demos/v2x_2023-03-06.yml<span class="w"> </span>up
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Once deployed and running, the dashboard will be reachable at <a class="reference external" href="http://localhost:8000/">http://localhost:8000/</a>.</p>
+</div>
+</section>
+<section id="minimum-working-example">
+<h2>Minimum Working Example<a class="headerlink" href="#minimum-working-example" title="Link to this heading"></a></h2>
+<p>Example usage of the various components:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>dashboard
+
+pred_aggr_server
+
+model_aggr_server
+
+eval_aggr_server
+
+demo_202303_client<span class="w"> </span>--clientId<span class="w"> </span><span class="m">5</span><span class="w"> </span>--pcapBasePath<span class="w"> </span>/path/to/datasets/v2x_2023-03-06<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--modelAggrServ<span class="w"> </span>localhost<span class="w"> </span>--updateInterval<span class="w"> </span><span class="m">5</span><span class="w"> </span>--evalServ<span class="w"> </span>localhost<span class="w"> </span>--aggrServ<span class="w"> </span>localhost
+
+demo_202303_client<span class="w"> </span>--clientId<span class="w"> </span><span class="m">2</span><span class="w"> </span>--pcapBasePath<span class="w"> </span>/path/to/datasets/v2x_2023-03-06<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--modelAggrServ<span class="w"> </span>localhost<span class="w"> </span>--updateInterval<span class="w"> </span><span class="m">5</span><span class="w"> </span>--evalServ<span class="w"> </span>localhost<span class="w"> </span>--aggrServ<span class="w"> </span>localhost
+</pre></div>
+</div>
+</section>
+<section id="frequently-asked-questions">
+<h2>Frequently Asked Questions<a class="headerlink" href="#frequently-asked-questions" title="Link to this heading"></a></h2>
+<p><strong>1. Dashboard not starting (e.g. crossref error)</strong></p>
+<p>Try using <code class="docutils literal notranslate"><span class="pre">127.0.0.1</span></code> instead of <code class="docutils literal notranslate"><span class="pre">localhost</span></code> in the address. Restart the dashboard and try a different browser (Chromium-based browsers are recommended). Disable ad blockers and ensure JavaScript is enabled.</p>
+<p><strong>2. Module ‘ml_dtypes’ has no attribute ‘bfloat16’ when starting dashboard</strong></p>
+<p>Check the installation of TensorFlow (version and virtual environment).</p>
+<p><strong>3. Socket Trying to (re-)establish connection</strong></p>
+<p>This may be a Windows-related issue. WSL is recommended. Also check protected folder settings, and restart components or the computer.</p>
+<p><strong>4. PCAP files aren’t read</strong></p>
+<p>DAISY uses PyShark (which relies on Tshark) for PCAP input. Ensure Tshark is installed and that the code runs with sufficient permissions (e.g., root/admin). On Windows, WSL or Linux may be required. Alternatively, use CSV input, which works independently of PyShark.</p>
+<p><strong>5. Live Network traffic isn’t captured</strong></p>
+<p>Same as Question 4 — relies on PyShark, so check installation and permissions.</p>
+<p><strong>6. Script X isn’t producing any data</strong></p>
+<p>Check whether it uses PCAP or live traffic. If so, see Question 4. CSV-based workflows are generally more robust across platforms.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="DAISY" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="general.background.html" class="btn btn-neutral float-right" title="Background" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Fabian Hofmann, Seraphin Zunzer, Jonathan Ackerschewski, Lotta Fejzula.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

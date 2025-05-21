@@ -1,0 +1,1095 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Datasources &mdash; DAISY 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+    <link rel="shortcut icon" href="_static/favicon2.ico"/>
+    <link rel="canonical" href="https://daisy-field.github.io/daisy.data_sources.html" />
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Evaluation" href="daisy.evaluation.html" />
+    <link rel="prev" title="daisy.communication.tests package" href="daisy.communication.tests.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            DAISY
+              <img src="_static/favicon2.ico" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="general.overview.html">What is DAISY?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="general.background.html">Background</a></li>
+<li class="toctree-l1"><a class="reference internal" href="general.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="general.dashboard.html">Dashboard</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Documentation:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="daisy.communication.html">Communication</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Datasources</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#module-daisy.data_sources.data_handler">Data Handler</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.data_sources.data_handler.DataHandler"><code class="docutils literal notranslate"><span class="pre">DataHandler</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.data_sources.data_handler.DataHandler.close"><code class="docutils literal notranslate"><span class="pre">DataHandler.close()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.data_sources.data_handler.DataHandler.open"><code class="docutils literal notranslate"><span class="pre">DataHandler.open()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-daisy.data_sources.data_processor">Data Processor</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.data_sources.data_processor.DataProcessor"><code class="docutils literal notranslate"><span class="pre">DataProcessor</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.data_sources.data_processor.DataProcessor.add_func"><code class="docutils literal notranslate"><span class="pre">DataProcessor.add_func()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.data_sources.data_processor.DataProcessor.dict_to_array"><code class="docutils literal notranslate"><span class="pre">DataProcessor.dict_to_array()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.data_sources.data_processor.DataProcessor.dict_to_json"><code class="docutils literal notranslate"><span class="pre">DataProcessor.dict_to_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.data_sources.data_processor.DataProcessor.flatten_dict"><code class="docutils literal notranslate"><span class="pre">DataProcessor.flatten_dict()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.data_sources.data_processor.DataProcessor.keep_dict_feature"><code class="docutils literal notranslate"><span class="pre">DataProcessor.keep_dict_feature()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.data_sources.data_processor.DataProcessor.process"><code class="docutils literal notranslate"><span class="pre">DataProcessor.process()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.data_sources.data_processor.DataProcessor.remove_dict_features"><code class="docutils literal notranslate"><span class="pre">DataProcessor.remove_dict_features()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.data_sources.data_processor.DataProcessor.select_dict_features"><code class="docutils literal notranslate"><span class="pre">DataProcessor.select_dict_features()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.data_sources.data_processor.flatten_dict"><code class="docutils literal notranslate"><span class="pre">flatten_dict()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.data_sources.data_processor.keep_feature"><code class="docutils literal notranslate"><span class="pre">keep_feature()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.data_sources.data_processor.remove_feature"><code class="docutils literal notranslate"><span class="pre">remove_feature()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.data_sources.data_processor.select_feature"><code class="docutils literal notranslate"><span class="pre">select_feature()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-daisy.data_sources.data_relay">Data Relay</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.data_sources.data_relay.CSVFileRelay"><code class="docutils literal notranslate"><span class="pre">CSVFileRelay</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.data_sources.data_relay.CSVFileRelay.start"><code class="docutils literal notranslate"><span class="pre">CSVFileRelay.start()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.data_sources.data_relay.CSVFileRelay.stop"><code class="docutils literal notranslate"><span class="pre">CSVFileRelay.stop()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.data_sources.data_relay.DataHandlerRelay"><code class="docutils literal notranslate"><span class="pre">DataHandlerRelay</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.data_sources.data_relay.DataHandlerRelay.start"><code class="docutils literal notranslate"><span class="pre">DataHandlerRelay.start()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.data_sources.data_relay.DataHandlerRelay.stop"><code class="docutils literal notranslate"><span class="pre">DataHandlerRelay.stop()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-daisy.data_sources.data_source">Data Source</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.data_sources.data_source.CSVFileDataSource"><code class="docutils literal notranslate"><span class="pre">CSVFileDataSource</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.data_sources.data_source.CSVFileDataSource.close"><code class="docutils literal notranslate"><span class="pre">CSVFileDataSource.close()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.data_sources.data_source.CSVFileDataSource.open"><code class="docutils literal notranslate"><span class="pre">CSVFileDataSource.open()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.data_sources.data_source.DataSource"><code class="docutils literal notranslate"><span class="pre">DataSource</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.data_sources.data_source.DataSource.close"><code class="docutils literal notranslate"><span class="pre">DataSource.close()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.data_sources.data_source.DataSource.open"><code class="docutils literal notranslate"><span class="pre">DataSource.open()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.data_sources.data_source.SimpleDataSource"><code class="docutils literal notranslate"><span class="pre">SimpleDataSource</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.data_sources.data_source.SimpleDataSource.close"><code class="docutils literal notranslate"><span class="pre">SimpleDataSource.close()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.data_sources.data_source.SimpleDataSource.open"><code class="docutils literal notranslate"><span class="pre">SimpleDataSource.open()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.data_sources.data_source.SimpleRemoteDataSource"><code class="docutils literal notranslate"><span class="pre">SimpleRemoteDataSource</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.data_sources.data_source.SimpleRemoteDataSource.close"><code class="docutils literal notranslate"><span class="pre">SimpleRemoteDataSource.close()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.data_sources.data_source.SimpleRemoteDataSource.open"><code class="docutils literal notranslate"><span class="pre">SimpleRemoteDataSource.open()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-daisy.data_sources.events">Events</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.data_sources.events.Event"><code class="docutils literal notranslate"><span class="pre">Event</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.data_sources.events.Event.end_time"><code class="docutils literal notranslate"><span class="pre">Event.end_time</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.data_sources.events.Event.evaluate"><code class="docutils literal notranslate"><span class="pre">Event.evaluate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.data_sources.events.Event.label"><code class="docutils literal notranslate"><span class="pre">Event.label</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.data_sources.events.Event.start_time"><code class="docutils literal notranslate"><span class="pre">Event.start_time</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.data_sources.events.EventHandler"><code class="docutils literal notranslate"><span class="pre">EventHandler</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.data_sources.events.EventHandler.add_event"><code class="docutils literal notranslate"><span class="pre">EventHandler.add_event()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.data_sources.events.EventHandler.process"><code class="docutils literal notranslate"><span class="pre">EventHandler.process()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.data_sources.events.EventParser"><code class="docutils literal notranslate"><span class="pre">EventParser</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.data_sources.events.EventParser.parse"><code class="docutils literal notranslate"><span class="pre">EventParser.parse()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-daisy.data_sources.network_traffic">Network Traffic</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.data_sources.network_traffic.LivePysharkDataSource"><code class="docutils literal notranslate"><span class="pre">LivePysharkDataSource</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.data_sources.network_traffic.LivePysharkDataSource.close"><code class="docutils literal notranslate"><span class="pre">LivePysharkDataSource.close()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.data_sources.network_traffic.LivePysharkDataSource.open"><code class="docutils literal notranslate"><span class="pre">LivePysharkDataSource.open()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.data_sources.network_traffic.PcapDataSource"><code class="docutils literal notranslate"><span class="pre">PcapDataSource</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.data_sources.network_traffic.PcapDataSource.close"><code class="docutils literal notranslate"><span class="pre">PcapDataSource.close()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.data_sources.network_traffic.PcapDataSource.open"><code class="docutils literal notranslate"><span class="pre">PcapDataSource.open()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.data_sources.network_traffic.PysharkProcessor"><code class="docutils literal notranslate"><span class="pre">PysharkProcessor</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.data_sources.network_traffic.PysharkProcessor.create_simple_processor"><code class="docutils literal notranslate"><span class="pre">PysharkProcessor.create_simple_processor()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#daisy.data_sources.network_traffic.PysharkProcessor.packet_to_dict"><code class="docutils literal notranslate"><span class="pre">PysharkProcessor.packet_to_dict()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.data_sources.network_traffic.create_pyshark_processor"><code class="docutils literal notranslate"><span class="pre">create_pyshark_processor()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.data_sources.network_traffic.demo_202303_label_data_point"><code class="docutils literal notranslate"><span class="pre">demo_202303_label_data_point()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.data_sources.network_traffic.dict_to_json"><code class="docutils literal notranslate"><span class="pre">dict_to_json()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.data_sources.network_traffic.dict_to_numpy_array"><code class="docutils literal notranslate"><span class="pre">dict_to_numpy_array()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.data_sources.network_traffic.packet_to_dict"><code class="docutils literal notranslate"><span class="pre">packet_to_dict()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#daisy.data_sources.network_traffic.pcap_nn_aggregator"><code class="docutils literal notranslate"><span class="pre">pcap_nn_aggregator()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.evaluation.html">Evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.federated_ids_components.html">Federated IDS Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.federated_learning.html">Federated Learning</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="daisy.scripts.data_collection.html">Data Collection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.scripts.demo_components.html">Demo Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.scripts.generic_fids_components.html">Demo Servers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">DAISY</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Datasources</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/daisy.data_sources.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="datasources">
+<h1>Datasources<a class="headerlink" href="#datasources" title="Link to this heading"></a></h1>
+<section id="module-daisy.data_sources.data_handler">
+<span id="data-handler"></span><h2>Data Handler<a class="headerlink" href="#module-daisy.data_sources.data_handler" title="Link to this heading"></a></h2>
+<p>Core class wrapper component for stream processing both finite and infinite data
+handler into sample-wise data points, each being passed to further (ML) tasks once
+and in order. For this a data source is required (see the docstring of the data
+source module), that provides the origin of any data points being processed for
+further (ML) tasks, and a data processor that prepares the data samples by applying
+processing steps to them (see the docstring of the data source module).</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="daisy.data_sources.data_handler.DataHandler">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">daisy.data_sources.data_handler.</span></span><span class="sig-name descname"><span class="pre">DataHandler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#daisy.data_sources.data_source.DataSource" title="daisy.data_sources.data_source.DataSource"><span class="pre">DataSource</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_processor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#daisy.data_sources.data_processor.DataProcessor" title="daisy.data_sources.data_processor.DataProcessor"><span class="pre">DataProcessor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">multithreading</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">buffer_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1024</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/data_handler.html#DataHandler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.data_handler.DataHandler" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A wrapper around a customizable data source that yields data points as
+objects as they come, before stream processing using another, customizable
+data processor. Data points, which can be from arbitrary sources, are thus
+processed and converted into numpy vectors/arrays for ML tasks. Note that there
+is also the option to keep the object/dict format in case stream processing.</p>
+<p>Supports the processing of data points in both synchronous and asynchronous
+fashion by default.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.data_handler.DataHandler.close">
+<span class="sig-name descname"><span class="pre">close</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/data_handler.html#DataHandler.close"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.data_handler.DataHandler.close" title="Link to this definition"></a></dt>
+<dd><p>Shuts down any thread running in the background to load data into the data
+handler iff in multithreading mode. Can be reopened (and closed) and arbitrary
+amount of times.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.data_handler.DataHandler.open">
+<span class="sig-name descname"><span class="pre">open</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/data_handler.html#DataHandler.open"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.data_handler.DataHandler.open" title="Link to this definition"></a></dt>
+<dd><p>Opens the data handler for data point retrieval. Must be called before data
+can be retrieved; in multithreading mode also starts the loader thread as
+daemon.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Event object to check whether data handler has completed processing</p>
+</dd>
+</dl>
+<p>every data point and may be closed. Only useful when iterating through a source
+manually since __iter__() automatically stops yielding objects when completed.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-daisy.data_sources.data_processor">
+<span id="data-processor"></span><h2>Data Processor<a class="headerlink" href="#module-daisy.data_sources.data_processor" title="Link to this heading"></a></h2>
+<p>Base class data processor and its relevant pre-built processing function steps for
+generic data in the form of objects and dictionaries. The data processor processes
+individual data points using any number of user-defined functions. These functions can
+either be defined from scratch or chosen from a list of pre-built ones.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="daisy.data_sources.data_processor.DataProcessor">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">daisy.data_sources.data_processor.</span></span><span class="sig-name descname"><span class="pre">DataProcessor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/data_processor.html#DataProcessor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.data_processor.DataProcessor" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Base class for generic data stream processing, in pipelined fashion. The
+processing steps are implemented as functions independent of each other, carried
+out in one specific order for each data point in the stream. For these functions,
+there is also a list of pre-built processing steps as methods for ease of use,
+but any customized function can also be added using add_func().</p>
+<p>Extension of this base class merely manipulate _functions through the use of
+add_func() to provide additional pre-built processing steps.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.data_processor.DataProcessor.add_func">
+<span class="sig-name descname"><span class="pre">add_func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">object</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">object</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Self</span></span></span><a class="reference internal" href="_modules/daisy/data_sources/data_processor.html#DataProcessor.add_func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.data_processor.DataProcessor.add_func" title="Link to this definition"></a></dt>
+<dd><p>Adds a function to the processor to the end of its function list.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>func</strong> – The function to add to the processor.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.data_processor.DataProcessor.dict_to_array">
+<span class="sig-name descname"><span class="pre">dict_to_array</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nn_aggregator</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">object</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">object</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Self</span></span></span><a class="reference internal" href="_modules/daisy/data_sources/data_processor.html#DataProcessor.dict_to_array"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.data_processor.DataProcessor.dict_to_array" title="Link to this definition"></a></dt>
+<dd><p>Adds a function to the processor that takes a data point which is a
+dictionary and lazily transforms it into a numpy array without further
+processing, aggregating any value that is list into a singular value based on a
+pre-defined function that operates only on each singular feature.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>nn_aggregator</strong> – Aggregator, which maps non-numerical features to integers</p>
+</dd>
+</dl>
+<p>or floats on a value-by-value basis.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.data_processor.DataProcessor.dict_to_json">
+<span class="sig-name descname"><span class="pre">dict_to_json</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/data_processor.html#DataProcessor.dict_to_json"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.data_processor.DataProcessor.dict_to_json" title="Link to this definition"></a></dt>
+<dd><p>Adds a function to the processor that takes a data point which is a
+dictionary and converts it to a JSON string.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.data_processor.DataProcessor.flatten_dict">
+<span class="sig-name descname"><span class="pre">flatten_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">separator</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'.'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Self</span></span></span><a class="reference internal" href="_modules/daisy/data_sources/data_processor.html#DataProcessor.flatten_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.data_processor.DataProcessor.flatten_dict" title="Link to this definition"></a></dt>
+<dd><p>Adds a function to the processor that creates a flat dictionary
+(a dictionary without sub-dictionaries) from the given dictionary. The keys
+of sub-dictionaries are merged into the parent dictionary by combining the
+keys and adding a separator:
+{a: {b: c, d: e}, f: g} becomes {a.b: c, a.d: e, f: g} assuming the separator
+as ‘.’. However, redundant parent keys are greedily eliminated from the
+dictionary and further collisions cause an error.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>separator</strong> – Separator to use.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.data_processor.DataProcessor.keep_dict_feature">
+<span class="sig-name descname"><span class="pre">keep_dict_feature</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">features</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Self</span></span></span><a class="reference internal" href="_modules/daisy/data_sources/data_processor.html#DataProcessor.keep_dict_feature"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.data_processor.DataProcessor.keep_dict_feature" title="Link to this definition"></a></dt>
+<dd><p>Adds a function to the processor that takes a data point as a dictionary and
+keeps all given features.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>features</strong> – List of features to keep.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dictionary of data point with features kept.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.data_processor.DataProcessor.process">
+<span class="sig-name descname"><span class="pre">process</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">o_point</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">object</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">object</span></span></span><a class="reference internal" href="_modules/daisy/data_sources/data_processor.html#DataProcessor.process"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.data_processor.DataProcessor.process" title="Link to this definition"></a></dt>
+<dd><p>Processes the given data point using the provided functions. The functions
+are carried out in the order they were added. If no functions were provided,
+the data point is returned unchanged (noop).</p>
+<p>Note process() is usually called by the data handler during data processing and
+should not be called directly.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.data_processor.DataProcessor.remove_dict_features">
+<span class="sig-name descname"><span class="pre">remove_dict_features</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">features</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Self</span></span></span><a class="reference internal" href="_modules/daisy/data_sources/data_processor.html#DataProcessor.remove_dict_features"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.data_processor.DataProcessor.remove_dict_features" title="Link to this definition"></a></dt>
+<dd><p>Adds a function to the processor that takes a data point as a dictionary and
+removes all given features from it.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>features</strong> – List of features to remove.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.data_processor.DataProcessor.select_dict_features">
+<span class="sig-name descname"><span class="pre">select_dict_features</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">features</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Self</span></span></span><a class="reference internal" href="_modules/daisy/data_sources/data_processor.html#DataProcessor.select_dict_features"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.data_processor.DataProcessor.select_dict_features" title="Link to this definition"></a></dt>
+<dd><p>Adds a function to the processor that takes a data point which is a
+dictionary and selects features to keep. If a feature should be kept but isn’t
+present in the data point, it will be added with the default value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>features</strong> – List of features to select.</p></li>
+<li><p><strong>default_value</strong> – Default value if feature is not in data point.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="daisy.data_sources.data_processor.flatten_dict">
+<span class="sig-prename descclassname"><span class="pre">daisy.data_sources.data_processor.</span></span><span class="sig-name descname"><span class="pre">flatten_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dictionary:</span> <span class="pre">(&lt;class</span> <span class="pre">'dict'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">&lt;class</span> <span class="pre">'list'&gt;)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">separator:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'.'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">par_key:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">''</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="_modules/daisy/data_sources/data_processor.html#flatten_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.data_processor.flatten_dict" title="Link to this definition"></a></dt>
+<dd><p>Creates a flat dictionary (a dictionary without sub-dictionaries) from the
+given dictionary. The keys of sub-dictionaries are merged into the parent
+dictionary by combining the keys and adding a separator: {a: {b: c, d: e}, f: g}
+becomes {a.b: c, a.d: e, f: g} assuming the separator as ‘.’. However,
+redundant parent keys are greedily eliminated from the dictionary.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dictionary</strong> – Dictionary to flatten.</p></li>
+<li><p><strong>separator</strong> – Separator to use.</p></li>
+<li><p><strong>par_key</strong> – Key of the parent dictionary.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Flat dictionary with keys merged and seperated using the separator.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – If there are key-collisions by greedily flattening the</p>
+</dd>
+</dl>
+<p>dictionary.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="daisy.data_sources.data_processor.keep_feature">
+<span class="sig-prename descclassname"><span class="pre">daisy.data_sources.data_processor.</span></span><span class="sig-name descname"><span class="pre">keep_feature</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">d_point</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">f_features</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="_modules/daisy/data_sources/data_processor.html#keep_feature"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.data_processor.keep_feature" title="Link to this definition"></a></dt>
+<dd><p>Takes a data point as a dictionary and removes all features not in the given
+list.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>d_point</strong> – Dictionary of data point.</p></li>
+<li><p><strong>f_features</strong> – List of features to keep.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dictionary of data point with features kept.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="daisy.data_sources.data_processor.remove_feature">
+<span class="sig-prename descclassname"><span class="pre">daisy.data_sources.data_processor.</span></span><span class="sig-name descname"><span class="pre">remove_feature</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">d_point</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">f_features</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="_modules/daisy/data_sources/data_processor.html#remove_feature"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.data_processor.remove_feature" title="Link to this definition"></a></dt>
+<dd><p>Takes a data point as a dictionary and removes all given features from it.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>d_point</strong> – Dictionary of data point.</p></li>
+<li><p><strong>f_features</strong> – List of features to remove.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dictionary of data point with features removed.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="daisy.data_sources.data_processor.select_feature">
+<span class="sig-prename descclassname"><span class="pre">daisy.data_sources.data_processor.</span></span><span class="sig-name descname"><span class="pre">select_feature</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">d_point</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">f_features</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="_modules/daisy/data_sources/data_processor.html#select_feature"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.data_processor.select_feature" title="Link to this definition"></a></dt>
+<dd><p>Takes a data point as a dictionary and selects features to keep. If a feature
+should be kept but isn’t present in the data point, it will be added with the
+default value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>d_point</strong> – Dictionary of data point.</p></li>
+<li><p><strong>f_features</strong> – List of features to select.</p></li>
+<li><p><strong>default_value</strong> – Default value if feature is not in original data point.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dictionary of data point with selected features.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-daisy.data_sources.data_relay">
+<span id="data-relay"></span><h2>Data Relay<a class="headerlink" href="#module-daisy.data_sources.data_relay" title="Link to this heading"></a></h2>
+<p>A number of useful tools that build on top of the data handler module, to provide
+relays of data points, either over a network over communication endpoints or directly
+to local file(s) on disk. Both wrap around DataHandler and thus process the data
+stream as it yields data points. Can be used for arbitrarily large arbitrary data
+streams.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="daisy.data_sources.data_relay.CSVFileRelay">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">daisy.data_sources.data_relay.</span></span><span class="sig-name descname"><span class="pre">CSVFileRelay</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_handler</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#daisy.data_sources.data_handler.DataHandler" title="daisy.data_sources.data_handler.DataHandler"><span class="pre">DataHandler</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">header_buffer_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">headers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overwrite_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">separator</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">','</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_missing_value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">object</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/data_relay.html#CSVFileRelay"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.data_relay.CSVFileRelay" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A union of a data handler and a (csv) file handler to retrieve data points from
+the former and storing them in the file. This allows the pre-processing of data
+points from a stream and re-using them at a later time by replaying the file.</p>
+<p>Note that such a relay requires an intact dictionary containing values for all
+fields of the data point header’s parameters.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.data_relay.CSVFileRelay.start">
+<span class="sig-name descname"><span class="pre">start</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">blocking</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/data_relay.html#CSVFileRelay.start"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.data_relay.CSVFileRelay.start" title="Link to this definition"></a></dt>
+<dd><p>Starts the csv file relay along the data source itself. Non-blocking,
+as the relay is started in the background to allow the stopping of it afterward.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>blocking</strong> – Whether the relay should block until all data points have</p>
+</dd>
+</dl>
+<p>been processed.
+:return: Event object to check whether file relay has completed processing
+every data point and may be closed. Only useful when calling start()
+non-blocking, otherwise it is implicitly used to wait for completion.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.data_relay.CSVFileRelay.stop">
+<span class="sig-name descname"><span class="pre">stop</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/data_relay.html#CSVFileRelay.stop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.data_relay.CSVFileRelay.stop" title="Link to this definition"></a></dt>
+<dd><p>Closes and stops the data handler and joins the relay thread into the
+current thread. Can be restarted (and stopped) and arbitrary amount of times.</p>
+<p>Note that stopping the relay will not reset the csv file, only recreating it
+will do that.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="daisy.data_sources.data_relay.DataHandlerRelay">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">daisy.data_sources.data_relay.</span></span><span class="sig-name descname"><span class="pre">DataHandlerRelay</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_handler</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#daisy.data_sources.data_handler.DataHandler" title="daisy.data_sources.data_handler.DataHandler"><span class="pre">DataHandler</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">endpoint</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="daisy.communication.html#daisy.communication.message_stream.StreamEndpoint" title="daisy.communication.message_stream.StreamEndpoint"><span class="pre">StreamEndpoint</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/data_relay.html#DataHandlerRelay"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.data_relay.DataHandlerRelay" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A union of a data handler and a stream endpoint to retrieve data points from
+the former and relay them over the latter. This allows the disaggregation of the
+actual data handler from the other processing steps. For example, the relay could
+be deployed with our without an actual processor on another host and the data is
+forwarded over the network to another host running a data handler with a
+SimpleRemoteDataSource to receive and further process the data. This chain
+could also be continued beyond a single host pair.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.data_relay.DataHandlerRelay.start">
+<span class="sig-name descname"><span class="pre">start</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">blocking</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/data_relay.html#DataHandlerRelay.start"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.data_relay.DataHandlerRelay.start" title="Link to this definition"></a></dt>
+<dd><p>Starts the data handler relay along any other objects in this union (data
+handler, endpoint). Non-blocking, as the relay is started in the background to
+allow the stopping of it afterward.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>blocking</strong> – Whether the relay should block until all data points have</p>
+</dd>
+</dl>
+<p>been processed.
+:return: Event object to check whether relay has completed processing
+every data point and may be closed. Only useful when calling start()
+non-blocking, otherwise it is implicitly used to wait for completion.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.data_relay.DataHandlerRelay.stop">
+<span class="sig-name descname"><span class="pre">stop</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/data_relay.html#DataHandlerRelay.stop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.data_relay.DataHandlerRelay.stop" title="Link to this definition"></a></dt>
+<dd><p>Closes and stops the data handler and the endpoint and joins the relay
+thread into the current thread. Can be restarted (and stopped) and arbitrary
+amount of times.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-daisy.data_sources.data_source">
+<span id="data-source"></span><h2>Data Source<a class="headerlink" href="#module-daisy.data_sources.data_source" title="Link to this heading"></a></h2>
+<p>A collection of the core interface and base classes for the first component of any
+data handler (see the docstring of the data handler class), that provides the origin of
+any data points being processed for further (ML) tasks. Supports generic generators,
+but also remote communication endpoints that hand over generic data points in
+streaming-manner, and any other implementations of the DataSource class. Note each
+different kind of data may need its own implementation of the DataSource.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="daisy.data_sources.data_source.CSVFileDataSource">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">daisy.data_sources.data_source.</span></span><span class="sig-name descname"><span class="pre">CSVFileDataSource</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/data_source.html#CSVFileDataSource"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.data_source.CSVFileDataSource" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#daisy.data_sources.data_source.DataSource" title="daisy.data_sources.data_source.DataSource"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataSource</span></code></a></p>
+<p>This implementation of the DataSource reads one or multiple CSV files and
+yields their content. The output of this class are dictionaries containing
+the headers (first row) of the CSV files as the keys and the line as the values.
+Each CSV is, therefore, expected to have a header line as the first row.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.data_source.CSVFileDataSource.close">
+<span class="sig-name descname"><span class="pre">close</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/data_source.html#CSVFileDataSource.close"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.data_source.CSVFileDataSource.close" title="Link to this definition"></a></dt>
+<dd><p>Closes the CSV file data source.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.data_source.CSVFileDataSource.open">
+<span class="sig-name descname"><span class="pre">open</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/data_source.html#CSVFileDataSource.open"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.data_source.CSVFileDataSource.open" title="Link to this definition"></a></dt>
+<dd><p>Starts the CSV file data source by setting required parameters.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="daisy.data_sources.data_source.DataSource">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">daisy.data_sources.data_source.</span></span><span class="sig-name descname"><span class="pre">DataSource</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/data_source.html#DataSource"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.data_source.DataSource" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></p>
+<p>An abstract wrapper around a generator-like structure that has to yield data
+points as objects as they come for processing. That generator may be infinite or
+finite, as long as it is bounded on both sides by the following two methods that
+must be implemented:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>open(): Enables the “generator” to provision data points.</p></li>
+<li><p>close(): Closes the “generator”.</p></li>
+</ul>
+</div></blockquote>
+<p>Note that as DataHandler wraps itself around given data sources to retrieve
+objects, open() and close() do not need to be implemented to be idempotent and
+arbitrarily permutable. Same can be assumed for __iter__() as it will only be
+called when the data source has been opened already. At the same time,
+__iter__() must be exhausted after close() has been called.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.data_source.DataSource.close">
+<em class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">close</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/data_source.html#DataSource.close"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.data_source.DataSource.close" title="Link to this definition"></a></dt>
+<dd><p>Closes the data source after which data point generation is no longer
+available until opened again.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.data_source.DataSource.open">
+<em class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">open</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/data_source.html#DataSource.open"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.data_source.DataSource.open" title="Link to this definition"></a></dt>
+<dd><p>Prepares the data source to be used for data point generation, setting up
+necessary environment variables, starting up background processes to
+read/generate data, etc.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="daisy.data_sources.data_source.SimpleDataSource">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">daisy.data_sources.data_source.</span></span><span class="sig-name descname"><span class="pre">SimpleDataSource</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">generator</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterator</span><span class="p"><span class="pre">[</span></span><span class="pre">object</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/data_source.html#SimpleDataSource"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.data_source.SimpleDataSource" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#daisy.data_sources.data_source.DataSource" title="daisy.data_sources.data_source.DataSource"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataSource</span></code></a></p>
+<p>The simplest productive data source — an actual wrapper around a
+generator that is always open and cannot be closed, yielding data points as
+objects as they are yielded. Can be infinite or finite; no matter, no control
+over the generator is natively supported.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.data_source.SimpleDataSource.close">
+<span class="sig-name descname"><span class="pre">close</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/data_source.html#SimpleDataSource.close"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.data_source.SimpleDataSource.close" title="Link to this definition"></a></dt>
+<dd><p>Closes the data source after which data point generation is no longer
+available until opened again.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.data_source.SimpleDataSource.open">
+<span class="sig-name descname"><span class="pre">open</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/data_source.html#SimpleDataSource.open"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.data_source.SimpleDataSource.open" title="Link to this definition"></a></dt>
+<dd><p>Prepares the data source to be used for data point generation, setting up
+necessary environment variables, starting up background processes to
+read/generate data, etc.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="daisy.data_sources.data_source.SimpleRemoteDataSource">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">daisy.data_sources.data_source.</span></span><span class="sig-name descname"><span class="pre">SimpleRemoteDataSource</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">endpoint</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="daisy.communication.html#daisy.communication.message_stream.StreamEndpoint" title="daisy.communication.message_stream.StreamEndpoint"><span class="pre">StreamEndpoint</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/data_source.html#SimpleRemoteDataSource"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.data_source.SimpleRemoteDataSource" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#daisy.data_sources.data_source.DataSource" title="daisy.data_sources.data_source.DataSource"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataSource</span></code></a></p>
+<p>The simple wrapper implementation to support and handle remote streaming
+endpoints of the Endpoint module as data sources. Considered infinite in nature,
+as it allows the generation of data point objects from a connected endpoint,
+until the client closes the data source.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.data_source.SimpleRemoteDataSource.close">
+<span class="sig-name descname"><span class="pre">close</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/data_source.html#SimpleRemoteDataSource.close"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.data_source.SimpleRemoteDataSource.close" title="Link to this definition"></a></dt>
+<dd><p>Stops and closes the endpoint of the data source.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.data_source.SimpleRemoteDataSource.open">
+<span class="sig-name descname"><span class="pre">open</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/data_source.html#SimpleRemoteDataSource.open"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.data_source.SimpleRemoteDataSource.open" title="Link to this definition"></a></dt>
+<dd><p>Starts and opens/connects the endpoint of the data source.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-daisy.data_sources.events">
+<span id="events"></span><h2>Events<a class="headerlink" href="#module-daisy.data_sources.events" title="Link to this heading"></a></h2>
+<p>Events used to labeling data. The event handler can be used by the user to create
+events. Each event contains a string with conditions used to determine whether a data
+point should be labeled.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="daisy.data_sources.events.Event">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">daisy.data_sources.events.</span></span><span class="sig-name descname"><span class="pre">Event</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start_time</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">datetime</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_time</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">datetime</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">condition_fn</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">bool</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/events.html#Event"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.events.Event" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Specific event, with a start and an end timestamp, its label, and conditions
+whether a data point should be labeled as such (function evaluating to true if
+that is the case, false otherwise).</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="daisy.data_sources.events.Event.end_time">
+<span class="sig-name descname"><span class="pre">end_time</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">datetime</span></em><a class="headerlink" href="#daisy.data_sources.events.Event.end_time" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.events.Event.evaluate">
+<span class="sig-name descname"><span class="pre">evaluate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timestamp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">datetime</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/daisy/data_sources/events.html#Event.evaluate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.events.Event.evaluate" title="Link to this definition"></a></dt>
+<dd><p>Evaluates a single data point using the condition function provided in the
+constructor. The timestamp is used to determine whether the data point falls
+within the events time frame. Additional meta information can be provided by
+passing multiple dictionaries in the data parameter. The dictionaries will be
+searched in the provided order. The first value found will be used for
+comparisons in the condition function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>timestamp</strong> – The timestamp of the data point.</p></li>
+<li><p><strong>data</strong> – A single data point and additional meta information. The data</p></li>
+</ul>
+</dd>
+</dl>
+<p>is searched in the provided order. E.g. if two dictionaries contain the key
+timestamp and the condition function uses this key, then the value of the first
+dictionary will be used.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="daisy.data_sources.events.Event.label">
+<span class="sig-name descname"><span class="pre">label</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#daisy.data_sources.events.Event.label" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="daisy.data_sources.events.Event.start_time">
+<span class="sig-name descname"><span class="pre">start_time</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">datetime</span></em><a class="headerlink" href="#daisy.data_sources.events.Event.start_time" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="daisy.data_sources.events.EventHandler">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">daisy.data_sources.events.</span></span><span class="sig-name descname"><span class="pre">EventHandler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">default_label</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'benign'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_feature</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'label'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error_label</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'error'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hide_errors</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/events.html#EventHandler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.events.EventHandler" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Event handler used to create events and automatically label data points. Events
+can be added to the class using the add_event() method. The events are matched to
+data points in added order, i.e. first matching event will be used to label
+a given data point.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.events.EventHandler.add_event">
+<span class="sig-name descname"><span class="pre">add_event</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start_time</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">datetime</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_time</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">datetime</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">condition</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Self</span></span></span><a class="reference internal" href="_modules/daisy/data_sources/events.html#EventHandler.add_event"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.events.EventHandler.add_event" title="Link to this definition"></a></dt>
+<dd><p>Adds an event to the event handler. The events will be evaluated in the
+order they are provided. Each event has a start and end time, a label that will
+be used to label data points that fall under that event, and an optional
+condition. The condition is a string and has to follow a certain grammar:</p>
+<dl class="simple">
+<dt>exp := pars + (binary_op + pars)? |</dt><dd><p>unary_op + pars</p>
+</dd>
+</dl>
+<p>pars := operand | ‘(’ + exp + ‘)’
+operand := word + comparator + word
+word := [any character except [] !”’&lt;=&gt;()] |</p>
+<blockquote>
+<div><dl class="simple">
+<dt>‘[’ + [any character except []!”’&lt;=&gt;()] + ‘]’   Note that whitespaces</dt><dd><p>are allowed with
+brackets</p>
+</dd>
+</dl>
+</div></blockquote>
+<p>comparator := ‘=’ | ‘in’
+binary_op := ‘and’ | ‘or’
+unary_op := ‘not’</p>
+<p>For comparators, the feature in the dictionary is always expected on the left
+side of the comparator, except with the ‘in’ operator, where it is expected
+on the right.</p>
+<p>Some example expressions are:
+ip.addr = 10.1.1.1      When the function is called with a dictionary, it will</p>
+<blockquote>
+<div><p>be searched for the key ip.addr. Its value will be
+compared to 10.1.1.1</p>
+</div></blockquote>
+<dl class="simple">
+<dt>tcp in protocols        The dictionary will be searched for the key protocols.</dt><dd><p>The function ‘tcp in &lt;value of protocols&gt;’ will be
+evaluated.</p>
+</dd>
+</dl>
+<p>Concatenation examples are:
+ip.addr = 10.1.1.1 and tcp in protocols
+(ip.addr = 10.1.1.1 or ip.addr = 192.168.1.1) and tcp in protocols
+not (ip.addr = 10.1.1.1 or ip.addr = 192.168.1.1) and tcp in protocols</p>
+<p>The returned function can be called using a list of dictionaries. The
+dictionaries will be searched in the provided order and the first occurrence
+of a feature in one of the dictionaries will be used. This can be used to
+provide meta information about a data point additionally to the data point
+itself.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>start_time</strong> – Start time of event.</p></li>
+<li><p><strong>end_time</strong> – End time of event.</p></li>
+<li><p><strong>label</strong> – Label of event.</p></li>
+<li><p><strong>condition</strong> – Condition(s) data points have to fulfill for this event.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.events.EventHandler.process">
+<span class="sig-name descname"><span class="pre">process</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timestamp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">datetime</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_point</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">meta_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="_modules/daisy/data_sources/events.html#EventHandler.process"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.events.EventHandler.process" title="Link to this definition"></a></dt>
+<dd><p>Iterates through all events and checks for each event if it applies to
+the provided data point. If it does, the data point will be labeled with the
+label provided by the event. If no event matches the data point, it will be
+labeled with the default label.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>timestamp</strong> – Timestamp of data point.</p></li>
+<li><p><strong>data_point</strong> – Data point to label.</p></li>
+<li><p><strong>meta_data</strong> – Additional meta information to label data point. Has</p></li>
+</ul>
+</dd>
+</dl>
+<p>preference over data point when checking conditions.
+processing and errors are suppressed.
+:return: Labelled data point.
+:raises KeyError: Data points does not contain feature used by a conditions and
+errors are not suppressed, i.e. redirected to log + data point is assigned
+the error label.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="daisy.data_sources.events.EventParser">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">daisy.data_sources.events.</span></span><span class="sig-name descname"><span class="pre">EventParser</span></span><a class="reference internal" href="_modules/daisy/data_sources/events.html#EventParser"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.events.EventParser" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Parser for conditions of events. It takes an expression, parses it, and returns
+a function, which evaluates if a given data point fulfils the condition.</p>
+<p>The condition has to follow the following grammar:
+exp := pars + (binary_op + pars)? |</p>
+<blockquote>
+<div><p>unary_op + pars</p>
+</div></blockquote>
+<p>pars := operand | ‘(’ + exp + ‘)’
+operand := word + comparator + word
+word := [any character except [] !”’&lt;=&gt;()] |</p>
+<blockquote>
+<div><dl class="simple">
+<dt>‘[’ + [any character except []!”’&lt;=&gt;()] + ‘]’   Note that whitespaces are</dt><dd><p>allowed with brackets</p>
+</dd>
+</dl>
+</div></blockquote>
+<p>comparator := ‘=’ | ‘in’
+binary_op := ‘and’ | ‘or’
+unary_op := ‘not’</p>
+<p>For comparators, the feature in the dictionary is always expected on the left side
+of the comparator, except with the ‘in’ operator, where it is expected on the right.</p>
+<dl>
+<dt>Some example expressions are:</dt><dd><dl class="simple">
+<dt>ip.addr = 10.1.1.1      When the function is called with a dictionary, it will</dt><dd><p>be searched for the key ip.addr. Its value will be
+compared to 10.1.1.1</p>
+</dd>
+<dt>tcp in protocols        The dictionary will be searched for the key protocols.</dt><dd><p>The function ‘tcp in &lt;value of protocols&gt;’ will be
+evaluated.</p>
+</dd>
+</dl>
+<p>ip.addr = 10.1.1.1 and tcp in protocols
+(ip.addr = 10.1.1.1 or ip.addr = 192.168.1.1) and tcp in protocols
+not (ip.addr = 10.1.1.1 or ip.addr = 192.168.1.1) and tcp in protocols</p>
+</dd>
+</dl>
+<p>The returned function can be called using a list of dictionaries. The dictionaries
+will be searched in the provided order and the first occurrence of a feature in one
+of the dictionaries will be used. This can be used to provide meta information about
+a data point additionally to the data point itself.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.events.EventParser.parse">
+<span class="sig-name descname"><span class="pre">parse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">expression</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">bool</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/daisy/data_sources/events.html#EventParser.parse"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.events.EventParser.parse" title="Link to this definition"></a></dt>
+<dd><p>Parses the given expression and returns a function that evaluates data points
+passed to it. This method can raise a parse error if the expression is invalid.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>expression</strong> – Expression (condition) to parse.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ParseError</strong> – Any condition/expression does not follow parser’s grammar.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-daisy.data_sources.network_traffic">
+<span id="network-traffic"></span><h2>Network Traffic<a class="headerlink" href="#module-daisy.data_sources.network_traffic" title="Link to this heading"></a></h2>
+<p>Implementations of the data handler helper interface that allows the processing and
+provisioning of pyshark packets, either via file inputs, live capture, or a remote
+source that generates packets in either fashion.</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>LivePysharkDataSource - DataSource which simply yields captured packets from a</p></li>
+</ul>
+<p>list of interfaces.
+* PcapDataSource - DataSource which is able to load pcap files sequentially and
+yield their packets.
+* PysharkProcessor - Offers additional processing step options to process pyshark
+packet objects.</p>
+</div></blockquote>
+<p>There is also a module specialized for traffic of cohda boxes (V2X), that offers
+additional functionalities:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>demo_202303- Event tags for labeling purposes for the March23 dataset.</p></li>
+</ul>
+</div></blockquote>
+<dl class="py class">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.LivePysharkDataSource">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">daisy.data_sources.network_traffic.</span></span><span class="sig-name descname"><span class="pre">LivePysharkDataSource</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interfaces</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'any'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bpf_filter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/pyshark_handler.html#LivePysharkDataSource"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.LivePysharkDataSource" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#daisy.data_sources.data_source.DataSource" title="daisy.data_sources.data_source.DataSource"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataSource</span></code></a></p>
+<p>The wrapper implementation to support and handle pyshark live captures as data
+sources. Considered infinite in nature, as it allows the generation of pyshark
+packets, until the capture is stopped.
+Beware that you might have to use root privileges to obtain data from this data
+source. If privileges are missing pyshark might not return any data points or
+warnings.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.LivePysharkDataSource.close">
+<span class="sig-name descname"><span class="pre">close</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/pyshark_handler.html#LivePysharkDataSource.close"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.LivePysharkDataSource.close" title="Link to this definition"></a></dt>
+<dd><p>Stops the live caption, essentially disabling the generator. Note that the
+generator might block if one tries to retrieve an object from it after that
+point.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.LivePysharkDataSource.open">
+<span class="sig-name descname"><span class="pre">open</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/pyshark_handler.html#LivePysharkDataSource.open"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.LivePysharkDataSource.open" title="Link to this definition"></a></dt>
+<dd><p>Starts the pyshark live caption, initializing the wrapped generator.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.PcapDataSource">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">daisy.data_sources.network_traffic.</span></span><span class="sig-name descname"><span class="pre">PcapDataSource</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">file_names</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">try_counter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/pyshark_handler.html#PcapDataSource"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.PcapDataSource" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#daisy.data_sources.data_source.DataSource" title="daisy.data_sources.data_source.DataSource"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataSource</span></code></a></p>
+<p>The wrapper implementation to support and handle any number of pcap files as
+data sources. Finite: finishes after all files have been processed. Warning: Not
+entirely compliant with the data source abstract class: Neither fully thread
+safe, nor does its __iter__() method shut down after close() has been called. Due
+to its finite nature acceptable however, as this data source is nearly always only
+closed once all data points have been retrieved.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.PcapDataSource.close">
+<span class="sig-name descname"><span class="pre">close</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/pyshark_handler.html#PcapDataSource.close"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.PcapDataSource.close" title="Link to this definition"></a></dt>
+<dd><p>Closes any file of the pcap file data source.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.PcapDataSource.open">
+<span class="sig-name descname"><span class="pre">open</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/pyshark_handler.html#PcapDataSource.open"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.PcapDataSource.open" title="Link to this definition"></a></dt>
+<dd><p>Opens and resets the pcap file data source to the very beginning of the file
+list.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.PysharkProcessor">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">daisy.data_sources.network_traffic.</span></span><span class="sig-name descname"><span class="pre">PysharkProcessor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/pyshark_processor.html#PysharkProcessor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.PysharkProcessor" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#daisy.data_sources.data_processor.DataProcessor" title="daisy.data_sources.data_processor.DataProcessor"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataProcessor</span></code></a></p>
+<p>Extension of the data processor base class with pre-built processing steps
+specifically for pyshark packets.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.PysharkProcessor.create_simple_processor">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_simple_processor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">name:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'',</span> <span class="pre">f_features:</span> <span class="pre">list[str,</span> <span class="pre">...]</span> <span class="pre">=</span> <span class="pre">('meta.len',</span> <span class="pre">'meta.time',</span> <span class="pre">'meta.time_epoch',</span> <span class="pre">'meta.protocols',</span> <span class="pre">'ip.addr',</span> <span class="pre">'sll.halen',</span> <span class="pre">'sll.pkttype',</span> <span class="pre">'sll.eth',</span> <span class="pre">'sll.hatype',</span> <span class="pre">'sll.unused',</span> <span class="pre">'ipv6.tclass',</span> <span class="pre">'ipv6.flow',</span> <span class="pre">'ipv6.nxt',</span> <span class="pre">'ipv6.src_host',</span> <span class="pre">'ipv6.host',</span> <span class="pre">'ipv6.hlim',</span> <span class="pre">'sll.ltype',</span> <span class="pre">'cohda.Type',</span> <span class="pre">'cohda.Ret',</span> <span class="pre">'cohda.llc.MKxIFMsg.Ret',</span> <span class="pre">'ipv6.addr',</span> <span class="pre">'ipv6.dst',</span> <span class="pre">'ipv6.plen',</span> <span class="pre">'tcp.stream',</span> <span class="pre">'tcp.payload',</span> <span class="pre">'tcp.urgent_pointer',</span> <span class="pre">'tcp.port',</span> <span class="pre">'tcp.options.nop',</span> <span class="pre">'tcp.options.timestamp',</span> <span class="pre">'tcp.flags',</span> <span class="pre">'tcp.window_size_scalefactor',</span> <span class="pre">'tcp.dstport',</span> <span class="pre">'tcp.len',</span> <span class="pre">'tcp.checksum',</span> <span class="pre">'tcp.window_size',</span> <span class="pre">'tcp.srcport',</span> <span class="pre">'tcp.checksum.status',</span> <span class="pre">'tcp.nxtseq',</span> <span class="pre">'tcp.status',</span> <span class="pre">'tcp.analysis.bytes_in_flight',</span> <span class="pre">'tcp.analysis.push_bytes_sent',</span> <span class="pre">'tcp.ack',</span> <span class="pre">'tcp.hdr_len',</span> <span class="pre">'tcp.seq',</span> <span class="pre">'tcp.window_size_value',</span> <span class="pre">'data.data',</span> <span class="pre">'data.len',</span> <span class="pre">'tcp.analysis.acks_frame',</span> <span class="pre">'tcp.analysis.ack_rtt',</span> <span class="pre">'eth.src.addr',</span> <span class="pre">'eth.src.eth.src_resolved',</span> <span class="pre">'eth.src.ig',</span> <span class="pre">'eth.src.src_resolved',</span> <span class="pre">'eth.src.addr_resolved',</span> <span class="pre">'ip.proto',</span> <span class="pre">'ip.dst_host',</span> <span class="pre">'ip.flags',</span> <span class="pre">'ip.len',</span> <span class="pre">'ip.checksum',</span> <span class="pre">'ip.checksum.status',</span> <span class="pre">'ip.version',</span> <span class="pre">'ip.host',</span> <span class="pre">'ip.status',</span> <span class="pre">'ip.id',</span> <span class="pre">'ip.hdr_len',</span> <span class="pre">'ip.ttl'),</span> <span class="pre">nn_aggregator:</span> <span class="pre">~typing.Callable[[str,</span> <span class="pre">object],</span> <span class="pre">object]</span> <span class="pre">=</span> <span class="pre">&lt;function</span> <span class="pre">pcap_nn_aggregator&gt;</span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Self</span></span></span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/pyshark_processor.html#PysharkProcessor.create_simple_processor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.PysharkProcessor.create_simple_processor" title="Link to this definition"></a></dt>
+<dd><p>Creates a simple pyshark processor selecting specific features from each
+data point (nan if not existing) and transforms them into numpy vectors,
+ready for to be further processed by detection models.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – Name of processor for logging purposes.</p></li>
+<li><p><strong>f_features</strong> – Features to extract from the packets.</p></li>
+<li><p><strong>nn_aggregator</strong> – Aggregator, which should map non-numerical features to</p></li>
+</ul>
+</dd>
+</dl>
+<p>integers / floats.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.PysharkProcessor.packet_to_dict">
+<span class="sig-name descname"><span class="pre">packet_to_dict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Self</span></span></span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/pyshark_processor.html#PysharkProcessor.packet_to_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.PysharkProcessor.packet_to_dict" title="Link to this definition"></a></dt>
+<dd><p>Adds a function to the processor that takes a data point which is a
+pyshark packet and converts it into a dictionary.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.create_pyshark_processor">
+<span class="sig-prename descclassname"><span class="pre">daisy.data_sources.network_traffic.</span></span><span class="sig-name descname"><span class="pre">create_pyshark_processor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">name:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'',</span> <span class="pre">f_features:</span> <span class="pre">list[str,</span> <span class="pre">...]</span> <span class="pre">=</span> <span class="pre">('meta.len',</span> <span class="pre">'meta.time',</span> <span class="pre">'meta.time_epoch',</span> <span class="pre">'meta.protocols',</span> <span class="pre">'ip.addr',</span> <span class="pre">'sll.halen',</span> <span class="pre">'sll.pkttype',</span> <span class="pre">'sll.eth',</span> <span class="pre">'sll.hatype',</span> <span class="pre">'sll.unused',</span> <span class="pre">'ipv6.tclass',</span> <span class="pre">'ipv6.flow',</span> <span class="pre">'ipv6.nxt',</span> <span class="pre">'ipv6.src_host',</span> <span class="pre">'ipv6.host',</span> <span class="pre">'ipv6.hlim',</span> <span class="pre">'sll.ltype',</span> <span class="pre">'cohda.Type',</span> <span class="pre">'cohda.Ret',</span> <span class="pre">'cohda.llc.MKxIFMsg.Ret',</span> <span class="pre">'ipv6.addr',</span> <span class="pre">'ipv6.dst',</span> <span class="pre">'ipv6.plen',</span> <span class="pre">'tcp.stream',</span> <span class="pre">'tcp.payload',</span> <span class="pre">'tcp.urgent_pointer',</span> <span class="pre">'tcp.port',</span> <span class="pre">'tcp.options.nop',</span> <span class="pre">'tcp.options.timestamp',</span> <span class="pre">'tcp.flags',</span> <span class="pre">'tcp.window_size_scalefactor',</span> <span class="pre">'tcp.dstport',</span> <span class="pre">'tcp.len',</span> <span class="pre">'tcp.checksum',</span> <span class="pre">'tcp.window_size',</span> <span class="pre">'tcp.srcport',</span> <span class="pre">'tcp.checksum.status',</span> <span class="pre">'tcp.nxtseq',</span> <span class="pre">'tcp.status',</span> <span class="pre">'tcp.analysis.bytes_in_flight',</span> <span class="pre">'tcp.analysis.push_bytes_sent',</span> <span class="pre">'tcp.ack',</span> <span class="pre">'tcp.hdr_len',</span> <span class="pre">'tcp.seq',</span> <span class="pre">'tcp.window_size_value',</span> <span class="pre">'data.data',</span> <span class="pre">'data.len',</span> <span class="pre">'tcp.analysis.acks_frame',</span> <span class="pre">'tcp.analysis.ack_rtt',</span> <span class="pre">'eth.src.addr',</span> <span class="pre">'eth.src.eth.src_resolved',</span> <span class="pre">'eth.src.ig',</span> <span class="pre">'eth.src.src_resolved',</span> <span class="pre">'eth.src.addr_resolved',</span> <span class="pre">'ip.proto',</span> <span class="pre">'ip.dst_host',</span> <span class="pre">'ip.flags',</span> <span class="pre">'ip.len',</span> <span class="pre">'ip.checksum',</span> <span class="pre">'ip.checksum.status',</span> <span class="pre">'ip.version',</span> <span class="pre">'ip.host',</span> <span class="pre">'ip.status',</span> <span class="pre">'ip.id',</span> <span class="pre">'ip.hdr_len',</span> <span class="pre">'ip.ttl'),</span> <span class="pre">nn_aggregator:</span> <span class="pre">~typing.Callable[[str,</span> <span class="pre">object],</span> <span class="pre">object]</span> <span class="pre">=</span> <span class="pre">&lt;function</span> <span class="pre">pcap_nn_aggregator&gt;</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/pyshark_processor.html#create_pyshark_processor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.create_pyshark_processor" title="Link to this definition"></a></dt>
+<dd><p>Creates a DataProcessor using functions specifically for pyshark packets,
+selecting specific features from each data pont (nan if not existing) and
+transforms them into numpy vectors, ready for to be further processed by
+detection models.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – The name for logging purposes</p></li>
+<li><p><strong>f_features</strong> – The features to extract from the packets</p></li>
+<li><p><strong>nn_aggregator</strong> – The aggregator, which should map features to integers</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.demo_202303_label_data_point">
+<span class="sig-prename descclassname"><span class="pre">daisy.data_sources.network_traffic.</span></span><span class="sig-name descname"><span class="pre">demo_202303_label_data_point</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">client_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d_point</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/demo_202303.html#demo_202303_label_data_point"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.demo_202303_label_data_point" title="Link to this definition"></a></dt>
+<dd><p>Labels the data points according to the events for the demo 202303.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>client_id</strong> – Client ID.</p></li>
+<li><p><strong>d_point</strong> – Data point as dictionary.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Labeled data point.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.dict_to_json">
+<span class="sig-prename descclassname"><span class="pre">daisy.data_sources.network_traffic.</span></span><span class="sig-name descname"><span class="pre">dict_to_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dictionary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/pyshark_processor.html#dict_to_json"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.dict_to_json" title="Link to this definition"></a></dt>
+<dd><p>Takes a dictionary and returns a json object in form of a string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>dictionary</strong> – The dictionary to convert to json string.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A JSON string from the dictionary.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.dict_to_numpy_array">
+<span class="sig-prename descclassname"><span class="pre">daisy.data_sources.network_traffic.</span></span><span class="sig-name descname"><span class="pre">dict_to_numpy_array</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">d_point</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nn_aggregator</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">object</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">object</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/pyshark_processor.html#dict_to_numpy_array"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.dict_to_numpy_array" title="Link to this definition"></a></dt>
+<dd><p>Transform the pyshark data point directly into a numpy array without further
+processing, aggregating any value that is list into a singular value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>d_point</strong> – Data point as dictionary.</p></li>
+<li><p><strong>nn_aggregator</strong> – Aggregator, which maps non-numerical features to integers</p></li>
+</ul>
+</dd>
+</dl>
+<p>or floats.
+:return: Data point as vector.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.packet_to_dict">
+<span class="sig-prename descclassname"><span class="pre">daisy.data_sources.network_traffic.</span></span><span class="sig-name descname"><span class="pre">packet_to_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Packet</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/pyshark_processor.html#packet_to_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.packet_to_dict" title="Link to this definition"></a></dt>
+<dd><p>Takes a single pyshark packet and converts it into a dictionary.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>p</strong> – Packet to convert.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dictionary generated from the packet.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="daisy.data_sources.network_traffic.pcap_nn_aggregator">
+<span class="sig-prename descclassname"><span class="pre">daisy.data_sources.network_traffic.</span></span><span class="sig-name descname"><span class="pre">pcap_nn_aggregator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">object</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span></span></span><a class="reference internal" href="_modules/daisy/data_sources/network_traffic/pyshark_processor.html#pcap_nn_aggregator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.data_sources.network_traffic.pcap_nn_aggregator" title="Link to this definition"></a></dt>
+<dd><p>Simple, exemplary value aggregator. Takes a non-numerical (i.e. string) key-value
+pair and attempts to converted it into an integer / float. This example does not
+take the key into account, but only checks the types of the value to proceed. Note,
+that ipv6 are lazily converted to 32 bit (collisions may occur).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>key</strong> – Name of pair, which always a string.</p></li>
+<li><p><strong>value</strong> – Arbitrary non-numerical value to be converted.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Converted numerical value.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – If value cannot be converted.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="daisy.communication.tests.html" class="btn btn-neutral float-left" title="daisy.communication.tests package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="daisy.evaluation.html" class="btn btn-neutral float-right" title="Evaluation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Fabian Hofmann, Seraphin Zunzer, Jonathan Ackerschewski, Lotta Fejzula.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

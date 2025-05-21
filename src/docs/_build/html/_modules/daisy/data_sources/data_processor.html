@@ -1,0 +1,429 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>daisy.data_sources.data_processor &mdash; DAISY 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/favicon2.ico"/>
+    <link rel="canonical" href="https://daisy-field.github.io/_modules/daisy/data_sources/data_processor.html" />
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            DAISY
+              <img src="../../../_static/favicon2.ico" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../general.overview.html">What is DAISY?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../general.background.html">Background</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../general.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../general.dashboard.html">Dashboard</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Documentation:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../daisy.communication.html">Communication</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../daisy.data_sources.html">Datasources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../daisy.evaluation.html">Evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../daisy.federated_ids_components.html">Federated IDS Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../daisy.federated_learning.html">Federated Learning</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../daisy.scripts.data_collection.html">Data Collection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../daisy.scripts.demo_components.html">Demo Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../daisy.scripts.generic_fids_components.html">Demo Servers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">DAISY</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">daisy.data_sources.data_processor</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for daisy.data_sources.data_processor</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright (C) 2024-2025 DAI-Labor and others</span>
+<span class="c1">#</span>
+<span class="c1"># This Source Code Form is subject to the terms of the Mozilla Public</span>
+<span class="c1"># License, v. 2.0. If a copy of the MPL was not distributed with this</span>
+<span class="c1"># file, You can obtain one at https://mozilla.org/MPL/2.0/.</span>
+<span class="sd">&quot;&quot;&quot;Base class data processor and its relevant pre-built processing function steps for</span>
+<span class="sd">generic data in the form of objects and dictionaries. The data processor processes</span>
+<span class="sd">individual data points using any number of user-defined functions. These functions can</span>
+<span class="sd">either be defined from scratch or chosen from a list of pre-built ones.</span>
+
+<span class="sd">Author: Fabian Hofmann, Jonathan Ackerschewski</span>
+<span class="sd">Modified: 04.11.2024</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">MutableMapping</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Self</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing_extensions</span><span class="w"> </span><span class="kn">import</span> <span class="n">deprecated</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+
+<div class="viewcode-block" id="DataProcessor">
+<a class="viewcode-back" href="../../../daisy.data_sources.html#daisy.data_sources.data_processor.DataProcessor">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DataProcessor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Base class for generic data stream processing, in pipelined fashion. The</span>
+<span class="sd">    processing steps are implemented as functions independent of each other, carried</span>
+<span class="sd">    out in one specific order for each data point in the stream. For these functions,</span>
+<span class="sd">    there is also a list of pre-built processing steps as methods for ease of use,</span>
+<span class="sd">    but any customized function can also be added using add_func().</span>
+
+<span class="sd">    Extension of this base class merely manipulate _functions through the use of</span>
+<span class="sd">    add_func() to provide additional pre-built processing steps.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_logger</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span>
+    <span class="n">_functions</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates a data processor.</span>
+
+<span class="sd">        :param name: Name of processor for logging purposes.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_functions</span> <span class="o">=</span> <span class="p">[]</span>
+
+<div class="viewcode-block" id="DataProcessor.add_func">
+<a class="viewcode-back" href="../../../daisy.data_sources.html#daisy.data_sources.data_processor.DataProcessor.add_func">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_func</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">object</span><span class="p">],</span> <span class="nb">object</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Adds a function to the processor to the end of its function list.</span>
+
+<span class="sd">        :param func: The function to add to the processor.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_functions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="DataProcessor.remove_dict_features">
+<a class="viewcode-back" href="../../../daisy.data_sources.html#daisy.data_sources.data_processor.DataProcessor.remove_dict_features">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">remove_dict_features</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Adds a function to the processor that takes a data point as a dictionary and</span>
+<span class="sd">        removes all given features from it.</span>
+
+<span class="sd">        :param features: List of features to remove.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">remove_features_func</span><span class="p">(</span><span class="n">d_point</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">feature</span> <span class="ow">in</span> <span class="n">features</span><span class="p">:</span>
+                <span class="n">d_point</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">feature</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">d_point</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_func</span><span class="p">(</span><span class="k">lambda</span> <span class="n">d_point</span><span class="p">:</span> <span class="n">remove_features_func</span><span class="p">(</span><span class="n">d_point</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="DataProcessor.keep_dict_feature">
+<a class="viewcode-back" href="../../../daisy.data_sources.html#daisy.data_sources.data_processor.DataProcessor.keep_dict_feature">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">keep_dict_feature</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Adds a function to the processor that takes a data point as a dictionary and</span>
+<span class="sd">        keeps all given features.</span>
+
+<span class="sd">        :param features: List of features to keep.</span>
+<span class="sd">        :return: Dictionary of data point with features kept.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_func</span><span class="p">(</span>
+            <span class="k">lambda</span> <span class="n">d_point</span><span class="p">:</span> <span class="p">{</span>
+                <span class="n">key</span><span class="p">:</span> <span class="n">value</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">d_point</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">features</span>
+            <span class="p">}</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DataProcessor.select_dict_features">
+<a class="viewcode-back" href="../../../daisy.data_sources.html#daisy.data_sources.data_processor.DataProcessor.select_dict_features">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">select_dict_features</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">default_value</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Adds a function to the processor that takes a data point which is a</span>
+<span class="sd">        dictionary and selects features to keep. If a feature should be kept but isn&#39;t</span>
+<span class="sd">        present in the data point, it will be added with the default value.</span>
+
+<span class="sd">        :param features: List of features to select.</span>
+<span class="sd">        :param default_value: Default value if feature is not in data point.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_func</span><span class="p">(</span>
+            <span class="k">lambda</span> <span class="n">d_point</span><span class="p">:</span> <span class="p">{</span>
+                <span class="n">feature</span><span class="p">:</span> <span class="n">d_point</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">feature</span><span class="p">,</span> <span class="n">default_value</span><span class="p">)</span> <span class="k">for</span> <span class="n">feature</span> <span class="ow">in</span> <span class="n">features</span>
+            <span class="p">}</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DataProcessor.flatten_dict">
+<a class="viewcode-back" href="../../../daisy.data_sources.html#daisy.data_sources.data_processor.DataProcessor.flatten_dict">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">flatten_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">separator</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Adds a function to the processor that creates a flat dictionary</span>
+<span class="sd">        (a dictionary without sub-dictionaries) from the given dictionary. The keys</span>
+<span class="sd">        of sub-dictionaries are merged into the parent dictionary by combining the</span>
+<span class="sd">        keys and adding a separator:</span>
+<span class="sd">        {a: {b: c, d: e}, f: g} becomes {a.b: c, a.d: e, f: g} assuming the separator</span>
+<span class="sd">        as &#39;.&#39;. However, redundant parent keys are greedily eliminated from the</span>
+<span class="sd">        dictionary and further collisions cause an error.</span>
+
+<span class="sd">        :param separator: Separator to use.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">flatten_dict_func</span><span class="p">(</span>
+            <span class="n">dictionary</span><span class="p">:</span> <span class="p">(</span><span class="nb">dict</span><span class="p">,</span> <span class="nb">list</span><span class="p">),</span>
+            <span class="n">par_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;See the parent function for more information on its behavior.</span>
+
+<span class="sd">            :param dictionary: Dictionary to flatten.</span>
+<span class="sd">            :param par_key: Key of the parent dictionary.</span>
+<span class="sd">            :raises ValueError: If there are key-collisions by greedily flattening the</span>
+<span class="sd">            dictionary.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">items</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">dictionary</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">cur_key</span> <span class="o">=</span> <span class="n">par_key</span> <span class="o">+</span> <span class="n">separator</span> <span class="o">+</span> <span class="n">key</span> <span class="k">if</span> <span class="n">par_key</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span> <span class="k">else</span> <span class="n">key</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">MutableMapping</span><span class="p">):</span>
+                    <span class="n">sub_items</span> <span class="o">=</span> <span class="n">flatten_dict_func</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">par_key</span><span class="o">=</span><span class="n">cur_key</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">subkey</span> <span class="ow">in</span> <span class="n">sub_items</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                        <span class="k">if</span> <span class="n">subkey</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+                            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                                <span class="sa">f</span><span class="s2">&quot;Key collision in dictionary &quot;</span>
+                                <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="n">subkey</span><span class="p">,</span><span class="w"> </span><span class="n">sub_items</span><span class="p">[</span><span class="n">subkey</span><span class="p">]</span><span class="si">}</span><span class="s2"> &quot;</span>
+                                <span class="sa">f</span><span class="s2">&quot;vs </span><span class="si">{</span><span class="n">subkey</span><span class="p">,</span><span class="w"> </span><span class="n">items</span><span class="p">[</span><span class="n">subkey</span><span class="p">]</span><span class="si">}</span><span class="s2">)!&quot;</span>
+                            <span class="p">)</span>
+                    <span class="n">items</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">sub_items</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">cur_key</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;Key collision in dictionary (</span><span class="si">{</span><span class="n">cur_key</span><span class="p">,</span><span class="w"> </span><span class="n">val</span><span class="si">}</span><span class="s2"> &quot;</span>
+                            <span class="sa">f</span><span class="s2">&quot;vs </span><span class="si">{</span><span class="n">cur_key</span><span class="p">,</span><span class="w"> </span><span class="n">items</span><span class="p">[</span><span class="n">cur_key</span><span class="p">]</span><span class="si">}</span><span class="s2">)!&quot;</span>
+                        <span class="p">)</span>
+                    <span class="n">items</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">cur_key</span><span class="p">:</span> <span class="n">val</span><span class="p">})</span>
+            <span class="k">return</span> <span class="n">items</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_func</span><span class="p">(</span><span class="k">lambda</span> <span class="n">d_point</span><span class="p">:</span> <span class="n">flatten_dict_func</span><span class="p">(</span><span class="n">d_point</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="DataProcessor.dict_to_array">
+<a class="viewcode-back" href="../../../daisy.data_sources.html#daisy.data_sources.data_processor.DataProcessor.dict_to_array">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dict_to_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nn_aggregator</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">],</span> <span class="nb">object</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Adds a function to the processor that takes a data point which is a</span>
+<span class="sd">        dictionary and lazily transforms it into a numpy array without further</span>
+<span class="sd">        processing, aggregating any value that is list into a singular value based on a</span>
+<span class="sd">        pre-defined function that operates only on each singular feature.</span>
+
+<span class="sd">        :param nn_aggregator: Aggregator, which maps non-numerical features to integers</span>
+<span class="sd">        or floats on a value-by-value basis.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># noinspection DuplicatedCode</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">dict_to_array_func</span><span class="p">(</span><span class="n">d_point</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+            <span class="n">l_point</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">d_point</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">float</span><span class="p">):</span>
+                    <span class="n">value</span> <span class="o">=</span> <span class="n">nn_aggregator</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+                        <span class="n">value</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">except</span> <span class="ne">TypeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid k/v pair: </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+                <span class="n">l_point</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">l_point</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_func</span><span class="p">(</span><span class="k">lambda</span> <span class="n">d_point</span><span class="p">:</span> <span class="n">dict_to_array_func</span><span class="p">(</span><span class="n">d_point</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="DataProcessor.dict_to_json">
+<a class="viewcode-back" href="../../../daisy.data_sources.html#daisy.data_sources.data_processor.DataProcessor.dict_to_json">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dict_to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Adds a function to the processor that takes a data point which is a</span>
+<span class="sd">        dictionary and converts it to a JSON string.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_func</span><span class="p">(</span><span class="k">lambda</span> <span class="n">d_point</span><span class="p">:</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">d_point</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="DataProcessor.process">
+<a class="viewcode-back" href="../../../daisy.data_sources.html#daisy.data_sources.data_processor.DataProcessor.process">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">o_point</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">object</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Processes the given data point using the provided functions. The functions</span>
+<span class="sd">        are carried out in the order they were added. If no functions were provided,</span>
+<span class="sd">        the data point is returned unchanged (noop).</span>
+
+<span class="sd">        Note process() is usually called by the data handler during data processing and</span>
+<span class="sd">        should not be called directly.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">point</span> <span class="o">=</span> <span class="n">o_point</span>
+        <span class="k">for</span> <span class="n">func</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_functions</span><span class="p">:</span>
+            <span class="n">point</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="n">point</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">point</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="remove_feature">
+<a class="viewcode-back" href="../../../daisy.data_sources.html#daisy.data_sources.data_processor.remove_feature">[docs]</a>
+<span class="nd">@deprecated</span><span class="p">(</span><span class="s2">&quot;Use DataProcessor.remove_features() instead&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">remove_feature</span><span class="p">(</span><span class="n">d_point</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">f_features</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Takes a data point as a dictionary and removes all given features from it.</span>
+
+<span class="sd">    :param d_point: Dictionary of data point.</span>
+<span class="sd">    :param f_features: List of features to remove.</span>
+<span class="sd">    :return: Dictionary of data point with features removed.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">feature</span> <span class="ow">in</span> <span class="n">f_features</span><span class="p">:</span>
+        <span class="n">d_point</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">feature</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">d_point</span></div>
+
+
+
+<div class="viewcode-block" id="keep_feature">
+<a class="viewcode-back" href="../../../daisy.data_sources.html#daisy.data_sources.data_processor.keep_feature">[docs]</a>
+<span class="nd">@deprecated</span><span class="p">(</span><span class="s2">&quot;Use DataProcessor.keep_features() instead&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">keep_feature</span><span class="p">(</span><span class="n">d_point</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">f_features</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Takes a data point as a dictionary and removes all features not in the given</span>
+<span class="sd">    list.</span>
+
+<span class="sd">    :param d_point: Dictionary of data point.</span>
+<span class="sd">    :param f_features: List of features to keep.</span>
+<span class="sd">    :return: Dictionary of data point with features kept.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">value</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">d_point</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">f_features</span><span class="p">}</span></div>
+
+
+
+<div class="viewcode-block" id="select_feature">
+<a class="viewcode-back" href="../../../daisy.data_sources.html#daisy.data_sources.data_processor.select_feature">[docs]</a>
+<span class="nd">@deprecated</span><span class="p">(</span><span class="s2">&quot;Use DataProcessor.select_features() instead&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">select_feature</span><span class="p">(</span><span class="n">d_point</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">f_features</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">default_value</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Takes a data point as a dictionary and selects features to keep. If a feature</span>
+<span class="sd">    should be kept but isn&#39;t present in the data point, it will be added with the</span>
+<span class="sd">    default value.</span>
+
+<span class="sd">    :param d_point: Dictionary of data point.</span>
+<span class="sd">    :param f_features: List of features to select.</span>
+<span class="sd">    :param default_value: Default value if feature is not in original data point.</span>
+<span class="sd">    :return: Dictionary of data point with selected features.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">{</span><span class="n">feature</span><span class="p">:</span> <span class="n">d_point</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">feature</span><span class="p">,</span> <span class="n">default_value</span><span class="p">)</span> <span class="k">for</span> <span class="n">feature</span> <span class="ow">in</span> <span class="n">f_features</span><span class="p">}</span></div>
+
+
+
+<div class="viewcode-block" id="flatten_dict">
+<a class="viewcode-back" href="../../../daisy.data_sources.html#daisy.data_sources.data_processor.flatten_dict">[docs]</a>
+<span class="nd">@deprecated</span><span class="p">(</span><span class="s2">&quot;Use DataProcessor.flatten() instead&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">flatten_dict</span><span class="p">(</span>
+    <span class="n">dictionary</span><span class="p">:</span> <span class="p">(</span><span class="nb">dict</span><span class="p">,</span> <span class="nb">list</span><span class="p">),</span>
+    <span class="n">separator</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span><span class="p">,</span>
+    <span class="n">par_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates a flat dictionary (a dictionary without sub-dictionaries) from the</span>
+<span class="sd">    given dictionary. The keys of sub-dictionaries are merged into the parent</span>
+<span class="sd">    dictionary by combining the keys and adding a separator: {a: {b: c, d: e}, f: g}</span>
+<span class="sd">    becomes {a.b: c, a.d: e, f: g} assuming the separator as &#39;.&#39;. However,</span>
+<span class="sd">    redundant parent keys are greedily eliminated from the dictionary.</span>
+
+<span class="sd">    :param dictionary: Dictionary to flatten.</span>
+<span class="sd">    :param separator: Separator to use.</span>
+<span class="sd">    :param par_key: Key of the parent dictionary.</span>
+<span class="sd">    :return: Flat dictionary with keys merged and seperated using the separator.</span>
+<span class="sd">    :raises ValueError: If there are key-collisions by greedily flattening the</span>
+<span class="sd">    dictionary.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">items</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">dictionary</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">cur_key</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">par_key</span> <span class="o">+</span> <span class="n">separator</span> <span class="o">+</span> <span class="n">key</span>
+            <span class="k">if</span> <span class="n">par_key</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">par_key</span> <span class="o">+</span> <span class="n">separator</span><span class="p">)</span>
+            <span class="k">else</span> <span class="n">key</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">MutableMapping</span><span class="p">):</span>
+            <span class="c1"># noinspection PyDeprecation</span>
+            <span class="n">sub_items</span> <span class="o">=</span> <span class="n">flatten_dict</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">par_key</span><span class="o">=</span><span class="n">cur_key</span><span class="p">,</span> <span class="n">separator</span><span class="o">=</span><span class="n">separator</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">subkey</span> <span class="ow">in</span> <span class="n">sub_items</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">subkey</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Key collision in dictionary &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="n">subkey</span><span class="p">,</span><span class="w"> </span><span class="n">sub_items</span><span class="p">[</span><span class="n">subkey</span><span class="p">]</span><span class="si">}</span><span class="s2"> vs </span><span class="si">{</span><span class="n">subkey</span><span class="p">,</span><span class="w"> </span><span class="n">items</span><span class="p">[</span><span class="n">subkey</span><span class="p">]</span><span class="si">}</span><span class="s2">)!&quot;</span>
+                    <span class="p">)</span>
+            <span class="n">items</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">sub_items</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">cur_key</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Key collision in dictionary (</span><span class="si">{</span><span class="n">cur_key</span><span class="p">,</span><span class="w"> </span><span class="n">val</span><span class="si">}</span><span class="s2"> &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;vs </span><span class="si">{</span><span class="n">cur_key</span><span class="p">,</span><span class="w"> </span><span class="n">items</span><span class="p">[</span><span class="n">cur_key</span><span class="p">]</span><span class="si">}</span><span class="s2">)!&quot;</span>
+                <span class="p">)</span>
+            <span class="n">items</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">cur_key</span><span class="p">:</span> <span class="n">val</span><span class="p">})</span>
+    <span class="k">return</span> <span class="n">items</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Fabian Hofmann, Seraphin Zunzer, Jonathan Ackerschewski, Lotta Fejzula.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

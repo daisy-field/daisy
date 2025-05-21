@@ -1,0 +1,283 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>daisy.communication.tests package &mdash; DAISY 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+    <link rel="shortcut icon" href="_static/favicon2.ico"/>
+    <link rel="canonical" href="https://daisy-field.github.io/daisy.communication.tests.html" />
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Datasources" href="daisy.data_sources.html" />
+    <link rel="prev" title="Communication" href="daisy.communication.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            DAISY
+              <img src="_static/favicon2.ico" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="general.overview.html">What is DAISY?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="general.background.html">Background</a></li>
+<li class="toctree-l1"><a class="reference internal" href="general.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="general.dashboard.html">Dashboard</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Documentation:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="daisy.communication.html">Communication</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="daisy.communication.html#module-daisy.communication.message_stream">Message Stream</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="daisy.communication.html#tests">Tests</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">daisy.communication.tests package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#module-daisy.communication.tests.simple_acceptor">daisy.communication.tests.simple_acceptor module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-daisy.communication.tests.simple_initiator">daisy.communication.tests.simple_initiator module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-daisy.communication.tests.simple_server">daisy.communication.tests.simple_server module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-daisy.communication.tests">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.data_sources.html">Datasources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.evaluation.html">Evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.federated_ids_components.html">Federated IDS Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.federated_learning.html">Federated Learning</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="daisy.scripts.data_collection.html">Data Collection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.scripts.demo_components.html">Demo Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.scripts.generic_fids_components.html">Demo Servers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">DAISY</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="daisy.communication.html">Communication</a></li>
+      <li class="breadcrumb-item active">daisy.communication.tests package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/daisy.communication.tests.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="daisy-communication-tests-package">
+<h1>daisy.communication.tests package<a class="headerlink" href="#daisy-communication-tests-package" title="Link to this heading"></a></h1>
+<section id="module-daisy.communication.tests.simple_acceptor">
+<span id="daisy-communication-tests-simple-acceptor-module"></span><h2>daisy.communication.tests.simple_acceptor module<a class="headerlink" href="#module-daisy.communication.tests.simple_acceptor" title="Link to this heading"></a></h2>
+<p>Collection of various functions to test the acceptor-side (server) of the endpoint
+class. These test-functions can be called directly, with the main on the bottom
+adjusted for each test case.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="daisy.communication.tests.simple_acceptor.clashing_acceptor">
+<span class="sig-prename descclassname"><span class="pre">daisy.communication.tests.simple_acceptor.</span></span><span class="sig-name descname"><span class="pre">clashing_acceptor</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/communication/tests/simple_acceptor.html#clashing_acceptor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.communication.tests.simple_acceptor.clashing_acceptor" title="Link to this definition"></a></dt>
+<dd><p>Creates multiple acceptor endpoints that have the same address (which is
+supported by the underlying endpoint sockets) but also the same remote (initiator)
+address which should result in a double registration causing an error.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="daisy.communication.tests.simple_acceptor.multithreaded_acceptor">
+<span class="sig-prename descclassname"><span class="pre">daisy.communication.tests.simple_acceptor.</span></span><span class="sig-name descname"><span class="pre">multithreaded_acceptor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_threads</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/communication/tests/simple_acceptor.html#multithreaded_acceptor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.communication.tests.simple_acceptor.multithreaded_acceptor" title="Link to this definition"></a></dt>
+<dd><p>Starts n acceptor endpoints as separate threads, to test if endpoints can work
+in tandem using the shared underlying class attributes of the endpoint socket.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>num_threads</strong> – Number of acceptor threads to start.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="daisy.communication.tests.simple_acceptor.simple_acceptor">
+<span class="sig-prename descclassname"><span class="pre">daisy.communication.tests.simple_acceptor.</span></span><span class="sig-name descname"><span class="pre">simple_acceptor</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/communication/tests/simple_acceptor.html#simple_acceptor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.communication.tests.simple_acceptor.simple_acceptor" title="Link to this definition"></a></dt>
+<dd><p>Creates and starts an acceptor to perform an endless ping-pong tests with the
+opposing initiator, sending out “pong” and receiving “ping” messages.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="daisy.communication.tests.simple_acceptor.single_message_acceptor">
+<span class="sig-prename descclassname"><span class="pre">daisy.communication.tests.simple_acceptor.</span></span><span class="sig-name descname"><span class="pre">single_message_acceptor</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/communication/tests/simple_acceptor.html#single_message_acceptor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.communication.tests.simple_acceptor.single_message_acceptor" title="Link to this definition"></a></dt>
+<dd><p>Creates and starts an acceptor to perform a single receive before stopping the
+endpoint, to test if endpoints can be stopped while they are receiving multiple
+messages.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="daisy.communication.tests.simple_acceptor.threaded_acceptor">
+<span class="sig-prename descclassname"><span class="pre">daisy.communication.tests.simple_acceptor.</span></span><span class="sig-name descname"><span class="pre">threaded_acceptor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/communication/tests/simple_acceptor.html#threaded_acceptor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.communication.tests.simple_acceptor.threaded_acceptor" title="Link to this definition"></a></dt>
+<dd><p>Creates and starts an acceptor with a specific ID to perform an endless ping-pong
+tests with the opposing initiator, sending out “pong” and receiving “ping” messages.
+In addition, at random intervals, stops or even shutdowns the endpoint to start or
+create it anew to test the resilience of the two endpoints.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>t_id</strong> – ID of thread.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-daisy.communication.tests.simple_initiator">
+<span id="daisy-communication-tests-simple-initiator-module"></span><h2>daisy.communication.tests.simple_initiator module<a class="headerlink" href="#module-daisy.communication.tests.simple_initiator" title="Link to this heading"></a></h2>
+<p>Collection of various functions to test the initiator-side (client) of the endpoint
+class. These test-functions can be called directly, with the main on the bottom
+adjusted for each test case.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="daisy.communication.tests.simple_initiator.multithreaded_initiator">
+<span class="sig-prename descclassname"><span class="pre">daisy.communication.tests.simple_initiator.</span></span><span class="sig-name descname"><span class="pre">multithreaded_initiator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_threads</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/communication/tests/simple_initiator.html#multithreaded_initiator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.communication.tests.simple_initiator.multithreaded_initiator" title="Link to this definition"></a></dt>
+<dd><p>Starts n initiator endpoints as separate threads, to test if endpoints can work
+in tandem using the shared underlying class attributes of the endpoint socket.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>num_threads</strong> – Number of acceptor threads to start.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="daisy.communication.tests.simple_initiator.one_time_initiator">
+<span class="sig-prename descclassname"><span class="pre">daisy.communication.tests.simple_initiator.</span></span><span class="sig-name descname"><span class="pre">one_time_initiator</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/communication/tests/simple_initiator.html#one_time_initiator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.communication.tests.simple_initiator.one_time_initiator" title="Link to this definition"></a></dt>
+<dd><p>Creates and starts an initiator to perform one multiple “ping” sends before
+stopping the endpoint, all of which done through the helper class method of the
+endpoint class.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="daisy.communication.tests.simple_initiator.simple_initiator">
+<span class="sig-prename descclassname"><span class="pre">daisy.communication.tests.simple_initiator.</span></span><span class="sig-name descname"><span class="pre">simple_initiator</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/communication/tests/simple_initiator.html#simple_initiator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.communication.tests.simple_initiator.simple_initiator" title="Link to this definition"></a></dt>
+<dd><p>Creates and starts an initiator to perform an endless ping-pong tests with the
+opposing initiator, sending out “ping” and receiving “pong” messages.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="daisy.communication.tests.simple_initiator.single_message_initiator">
+<span class="sig-prename descclassname"><span class="pre">daisy.communication.tests.simple_initiator.</span></span><span class="sig-name descname"><span class="pre">single_message_initiator</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/communication/tests/simple_initiator.html#single_message_initiator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.communication.tests.simple_initiator.single_message_initiator" title="Link to this definition"></a></dt>
+<dd><p>Creates and starts an initiator to perform a single send before stopping the
+endpoint, to test if endpoints can be stopped while they are about to send a
+message. This test is not deterministic due to scheduling.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="daisy.communication.tests.simple_initiator.threaded_initiator">
+<span class="sig-prename descclassname"><span class="pre">daisy.communication.tests.simple_initiator.</span></span><span class="sig-name descname"><span class="pre">threaded_initiator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/communication/tests/simple_initiator.html#threaded_initiator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.communication.tests.simple_initiator.threaded_initiator" title="Link to this definition"></a></dt>
+<dd><p>Creates and starts an initiator with a specific ID to perform an endless
+ping-pong tests with the opposing acceptor, sending out “ping” and receiving
+“pong” messages. In addition, at random intervals, stops or even shutdowns the
+endpoint to start or create it anew to test the resilience of the two endpoints.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>t_id</strong> – ID of thread.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-daisy.communication.tests.simple_server">
+<span id="daisy-communication-tests-simple-server-module"></span><h2>daisy.communication.tests.simple_server module<a class="headerlink" href="#module-daisy.communication.tests.simple_server" title="Link to this heading"></a></h2>
+<p>Simple addition to the Acceptor/Initiator ping-pong tests, that creates a server
+to regularly polls its (acceptor) endpoint connections to receive “pings” and respond
+with “pongs”, to test the behavior of handling concurrent connections.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="daisy.communication.tests.simple_server.simple_server">
+<span class="sig-prename descclassname"><span class="pre">daisy.communication.tests.simple_server.</span></span><span class="sig-name descname"><span class="pre">simple_server</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/daisy/communication/tests/simple_server.html#simple_server"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#daisy.communication.tests.simple_server.simple_server" title="Link to this definition"></a></dt>
+<dd><p>Setup and start of ping-pong server (see module docstring).</p>
+</dd></dl>
+
+</section>
+<section id="module-daisy.communication.tests">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-daisy.communication.tests" title="Link to this heading"></a></h2>
+<p>Collection of various tests of the message stream module for endpoints and
+endpoint server. These tests are merely for development purposes only and are not
+unit-test compliant. Due to the nature of multi-threading, these tests may or may not
+be deterministic as well.</p>
+<p>Currently, the following test-modules are provided:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>simple_acceptor - Acceptor endpoint (server) side test functions.</p></li>
+<li><p>simple_initiator - Initiator endpoint (client) side test functions.</p></li>
+<li><p>simple_server - Dedicated endpoint server function to create test servers.</p></li>
+</ul>
+</div></blockquote>
+<p>To start any tests, initiator(s) must always be launched in tandem with either
+acceptors(s) or a server from their respective modules. Some acceptor tests can also
+be launched in standalone manner. See their modules’ and their respective functions’
+docstrings for more information.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="daisy.communication.html" class="btn btn-neutral float-left" title="Communication" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="daisy.data_sources.html" class="btn btn-neutral float-right" title="Datasources" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Fabian Hofmann, Seraphin Zunzer, Jonathan Ackerschewski, Lotta Fejzula.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

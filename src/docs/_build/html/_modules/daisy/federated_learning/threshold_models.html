@@ -1,0 +1,666 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>daisy.federated_learning.threshold_models &mdash; DAISY 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/favicon2.ico"/>
+    <link rel="canonical" href="https://daisy-field.github.io/_modules/daisy/federated_learning/threshold_models.html" />
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            DAISY
+              <img src="../../../_static/favicon2.ico" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../general.overview.html">What is DAISY?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../general.background.html">Background</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../general.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../general.dashboard.html">Dashboard</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Documentation:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../daisy.communication.html">Communication</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../daisy.data_sources.html">Datasources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../daisy.evaluation.html">Evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../daisy.federated_ids_components.html">Federated IDS Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../daisy.federated_learning.html">Federated Learning</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../daisy.scripts.data_collection.html">Data Collection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../daisy.scripts.demo_components.html">Demo Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../daisy.scripts.generic_fids_components.html">Demo Servers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">DAISY</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">daisy.federated_learning.threshold_models</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for daisy.federated_learning.threshold_models</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright (C) 2024-2025 DAI-Labor and others</span>
+<span class="c1">#</span>
+<span class="c1"># This Source Code Form is subject to the terms of the Mozilla Public</span>
+<span class="c1"># License, v. 2.0. If a copy of the MPL was not distributed with this</span>
+<span class="c1"># file, You can obtain one at https://mozilla.org/MPL/2.0/.</span>
+<span class="sd">&quot;&quot;&quot;A collection of extensions to the FederatedModel class to support a wide array of</span>
+<span class="sd">threshold models, which are used for anomaly detection, mostly for the mapping from</span>
+<span class="sd">numerical scalar values to binary class labels. For this the most common models</span>
+<span class="sd">currently are the statistical ones, of which most use the mean (combined with std.</span>
+<span class="sd">dev.) to compute a singular threshold value for simple classification in online manner.</span>
+
+<span class="sd">Author: Fabian Hofmann, Seraphin Zunzer</span>
+<span class="sd">Modified: 04.04.24</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">typing</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">deque</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">cast</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">tensorflow</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">tf</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tensorflow</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">daisy.federated_learning.federated_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">FederatedModel</span>
+
+
+<div class="viewcode-block" id="FederatedTM">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.threshold_models.FederatedTM">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">FederatedTM</span><span class="p">(</span><span class="n">FederatedModel</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Abstract base class for federated threshold models, all of which, to perform</span>
+<span class="sd">    predictions, simply compare the current samples (that are in order) to a dynamic</span>
+<span class="sd">    threshold that is updated using internal parameters, varying between</span>
+<span class="sd">    approaches/implementations.</span>
+
+<span class="sd">    Note this kind of model *absolutely requires* a time series in most cases and</span>
+<span class="sd">    therefore data passed to it, must be in order!</span>
+
+<span class="sd">    Note that for the initial value, the threshold is always zero (any point is</span>
+<span class="sd">    considered an anomaly during detection).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">Tensor</span>
+    <span class="n">_reduce_fn</span><span class="p">:</span> <span class="n">Callable</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">reduce_fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">o</span><span class="p">:</span> <span class="n">o</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates a new threshold model.</span>
+
+<span class="sd">        :param threshold: Init for actual threshold value.</span>
+<span class="sd">        :param reduce_fn: Function to reduce a batch of samples into a scalar for</span>
+<span class="sd">        training. Defaults to NOP.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_threshold</span> <span class="o">=</span> <span class="n">threshold</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_reduce_fn</span> <span class="o">=</span> <span class="n">reduce_fn</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_threshold</span><span class="p">()</span>
+
+<div class="viewcode-block" id="FederatedTM.set_parameters">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.threshold_models.FederatedTM.set_parameters">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Updates the internal parameters of the threshold model, before</span>
+<span class="sd">        re-computing the actual threshold value based on the internal parameters.</span>
+
+<span class="sd">        Important Note: Must be overridden (and called afterward) when class is</span>
+<span class="sd">        implemented (see implementation examples below).</span>
+
+<span class="sd">        :param parameters: Parameters to update the threshold model with.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_threshold</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="FederatedTM.get_parameters">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.threshold_models.FederatedTM.get_parameters">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Retrieves the internal parameters of the threshold model, actual threshold</span>
+<span class="sd">        excluded.</span>
+
+<span class="sd">        :return: Parameters of threshold model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+
+<div class="viewcode-block" id="FederatedTM.fit">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.threshold_models.FederatedTM.fit">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_data</span><span class="p">,</span> <span class="n">y_data</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Trains the threshold model with the given data, which must be compatible</span>
+<span class="sd">        with the tensorflow API (see:</span>
+<span class="sd">        https://www.tensorflow.org/api_docs/python/tf/keras/Model#fit). If the input</span>
+<span class="sd">        data contains more than one sample, it is reduced to a singular scalar using</span>
+<span class="sd">        a set function, if defined (see: __init__). This is akin to an additional</span>
+<span class="sd">        layer of window-based smoothing/averaging, also speeding up the update process.</span>
+
+<span class="sd">        :param x_data: Input data.</span>
+<span class="sd">        :param y_data: Expected output, optional since most (simple) threshold models</span>
+<span class="sd">        are unsupervised.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">reduced_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reduce_fn</span><span class="p">(</span><span class="n">x_data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_threshold</span><span class="p">(</span><span class="n">reduced_data</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FederatedTM.predict">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.threshold_models.FederatedTM.predict">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_data</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Makes a prediction on the given data and returns it, which must be</span>
+<span class="sd">        compatible with the tensorflow API (see:</span>
+<span class="sd">        https://www.tensorflow.org/api_docs/python/tf/keras/Model#predict ).</span>
+
+<span class="sd">        :param x_data: Input data.</span>
+<span class="sd">        :return: Predicted output tensor consisting of bools (0: normal, 1: abnormal).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">greater</span><span class="p">(</span><span class="n">x_data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_threshold</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FederatedTM.update_threshold">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.threshold_models.FederatedTM.update_threshold">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_threshold</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_data</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Updates the internal parameters of the threshold model using a batch of</span>
+<span class="sd">        new samples to compute the new threshold value. If none provided,</span>
+<span class="sd">        simply re-compute the threshold.</span>
+
+<span class="sd">        :param x_data: Batch of input data. Optional.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="AvgTM">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.threshold_models.AvgTM">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">AvgTM</span><span class="p">(</span><span class="n">FederatedTM</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Base class for average-based threshold models, all of which computing their</span>
+<span class="sd">    internal threshold values by first computing the mean and standard deviation for</span>
+<span class="sd">    the data stream and then adding them together for the (absolute) threshold of the</span>
+<span class="sd">    model. This method is very similar to the one employed by Schmidt et al. for the</span>
+<span class="sd">    original version of IFTM as well (https://ieeexplore.ieee.org/document/8456348),</span>
+<span class="sd">    and was therefore implemented here, however this approach stands not alone for</span>
+<span class="sd">    error-based anomaly detection approaches, since it follows simple statistical</span>
+<span class="sd">    assumptions for normal distributions (i.e., a sample is considered anomalous if</span>
+<span class="sd">    it is further than x-times the std. dev. from the mean of the total population),</span>
+<span class="sd">    being similar to average absolute deviation methods (AAD), however using a dynamic</span>
+<span class="sd">    threshold value.</span>
+
+<span class="sd">    Any implementation of this class must provide a way to update the mean using new</span>
+<span class="sd">    incoming samples, anything else is already taken care of by this base class.</span>
+
+<span class="sd">    Note that many of the implementations are very similar to the ModelAggregator</span>
+<span class="sd">    implementations, as both treat the aggregated values as a timeseries.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_mean</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">Tensor</span>
+    <span class="n">_var</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">Tensor</span>
+    <span class="n">_var_weight</span><span class="p">:</span> <span class="nb">float</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">mean</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">var</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">var_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">reduce_fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">o</span><span class="p">:</span> <span class="n">o</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates a new average-based threshold model.</span>
+
+<span class="sd">        :param mean: Init mean value.</span>
+<span class="sd">        :param var: Init variance value.</span>
+<span class="sd">        :param var_weight: Weight of the variance compared to the mean value for the</span>
+<span class="sd">        threshold value.</span>
+<span class="sd">        :param reduce_fn: Function to reduce a batch of samples into a scalar for</span>
+<span class="sd">        training. Defaults to NOP.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mean</span> <span class="o">=</span> <span class="n">mean</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_var</span> <span class="o">=</span> <span class="n">var</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_var_weight</span> <span class="o">=</span> <span class="n">var_weight</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">threshold</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">reduce_fn</span><span class="o">=</span><span class="n">reduce_fn</span><span class="p">)</span>
+
+<div class="viewcode-block" id="AvgTM.set_parameters">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.threshold_models.AvgTM.set_parameters">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Updates the mean and variance of the threshold model, then updates the</span>
+<span class="sd">        model (adjusting threshold).</span>
+
+<span class="sd">        Note the nested method arguments --- for the base class the first position of</span>
+<span class="sd">        the list is allocated for the statistical values, while extending classes use</span>
+<span class="sd">        the list&#39;s positions that come after.</span>
+
+<span class="sd">        :param parameters: Mean and variance to update threshold model with.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mean</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">parameters</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_var</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">parameters</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">set_parameters</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AvgTM.get_parameters">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.threshold_models.AvgTM.get_parameters">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Retrieves the mean and variance of the threshold model, actual threshold</span>
+<span class="sd">        excluded.</span>
+
+<span class="sd">        :return: Mean and variance of threshold model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_mean</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)]</span></div>
+
+
+<div class="viewcode-block" id="AvgTM.update_threshold">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.threshold_models.AvgTM.update_threshold">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_threshold</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_data</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Updates the mean and variance of the threshold model using a batch of new</span>
+<span class="sd">        samples to compute the new threshold value. If none provided, simply</span>
+<span class="sd">        re-compute the threshold based on the current values.</span>
+
+<span class="sd">        :param x_data: Batch of input data. Optional.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">x_data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="n">x_data</span><span class="p">:</span>
+                <span class="n">d_1</span> <span class="o">=</span> <span class="n">sample</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mean</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_mean</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
+                <span class="n">d_2</span> <span class="o">=</span> <span class="n">sample</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mean</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_var</span> <span class="o">+=</span> <span class="n">d_1</span> <span class="o">*</span> <span class="n">d_2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_threshold</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mean</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_weight</span></div>
+
+
+<div class="viewcode-block" id="AvgTM.update_mean">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.threshold_models.AvgTM.update_mean">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_mean</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_sample</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Updates the internal mean value with new sample.</span>
+
+<span class="sd">        :param new_sample: New sample of time series.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="CumAvgTM">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.threshold_models.CumAvgTM">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">CumAvgTM</span><span class="p">(</span><span class="n">AvgTM</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Cumulative Averaging is the base version of online averaging, which is equal</span>
+<span class="sd">    to the offline average after seeing every instance of the population.</span>
+
+<span class="sd">    Consequently, this aggregator is NOT stable for infinite learning aggregation</span>
+<span class="sd">    steps (n).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_n</span><span class="p">:</span> <span class="nb">int</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">mean</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">var</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">var_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">reduce_fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">o</span><span class="p">:</span> <span class="n">o</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates a new cumulative averaging threshold model.</span>
+
+<span class="sd">        :param mean: Init mean value.</span>
+<span class="sd">        :param var: Init variance value.</span>
+<span class="sd">        :param var_weight: Weight of the variance compared to the mean value for the</span>
+<span class="sd">        threshold value.</span>
+<span class="sd">        :param reduce_fn: Function to reduce a batch of samples into a scalar for</span>
+<span class="sd">        training. Defaults to NOP.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_n</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">mean</span><span class="o">=</span><span class="n">mean</span><span class="p">,</span> <span class="n">var</span><span class="o">=</span><span class="n">var</span><span class="p">,</span> <span class="n">var_weight</span><span class="o">=</span><span class="n">var_weight</span><span class="p">,</span> <span class="n">reduce_fn</span><span class="o">=</span><span class="n">reduce_fn</span><span class="p">)</span>
+
+<div class="viewcode-block" id="CumAvgTM.set_parameters">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.threshold_models.CumAvgTM.set_parameters">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Updates the parameters of the cumulative averaging threshold model,</span>
+<span class="sd">        which includes the size of the current population. The rest of the updating</span>
+<span class="sd">        is done as described in the superclass&#39; method.</span>
+
+<span class="sd">        :param parameters: Parameters to update threshold model with, with the</span>
+<span class="sd">        population number in second place.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_n</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">parameters</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">set_parameters</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="CumAvgTM.get_parameters">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.threshold_models.CumAvgTM.get_parameters">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Retrieves the parameters of the cumulative averaging threshold model,</span>
+<span class="sd">        actual threshold excluded.</span>
+
+<span class="sd">        :return: Mean and variance (1st) and size of population (2nd) of threshold</span>
+<span class="sd">        model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_parameters</span><span class="p">()</span> <span class="o">+</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_n</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)]</span></div>
+
+
+<div class="viewcode-block" id="CumAvgTM.update_mean">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.threshold_models.CumAvgTM.update_mean">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_mean</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_sample</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Updates the cumulative mean value with new sample.</span>
+
+<span class="sd">        :param new_sample: New sample of time series.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_n</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_mean</span> <span class="o">=</span> <span class="n">new_sample</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">delta</span> <span class="o">=</span> <span class="n">new_sample</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mean</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_mean</span> <span class="o">+=</span> <span class="n">delta</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="SMAvgTM">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.threshold_models.SMAvgTM">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">SMAvgTM</span><span class="p">(</span><span class="n">AvgTM</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Simple Moving Averaging, also called sliding window averaging, is the simplest</span>
+<span class="sd">    version of online moving averaging, as it uses only the past k elements of the</span>
+<span class="sd">    population to compute the average. Note that this really needs a proper</span>
+<span class="sd">    datastream/timeseries, as the order of samples influences the average at every step.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_window</span><span class="p">:</span> <span class="n">deque</span>
+    <span class="n">_window_size</span><span class="p">:</span> <span class="nb">int</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">window_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+        <span class="n">mean</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">var</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">var_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">reduce_fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">o</span><span class="p">:</span> <span class="n">o</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates a new simple moving averaging threshold model.</span>
+
+<span class="sd">        :param window_size: Size of sliding window.</span>
+<span class="sd">        :param mean: Init mean value.</span>
+<span class="sd">        :param var: Init variance value.</span>
+<span class="sd">        :param var_weight: Weight of the variance compared to the mean value for the</span>
+<span class="sd">        threshold value.</span>
+<span class="sd">        :param reduce_fn: Function to reduce a batch of samples into a scalar for</span>
+<span class="sd">        training. Defaults to NOP.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_window</span> <span class="o">=</span> <span class="n">deque</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_window_size</span> <span class="o">=</span> <span class="n">window_size</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">mean</span><span class="o">=</span><span class="n">mean</span><span class="p">,</span> <span class="n">var</span><span class="o">=</span><span class="n">var</span><span class="p">,</span> <span class="n">var_weight</span><span class="o">=</span><span class="n">var_weight</span><span class="p">,</span> <span class="n">reduce_fn</span><span class="o">=</span><span class="n">reduce_fn</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SMAvgTM.set_parameters">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.threshold_models.SMAvgTM.set_parameters">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Updates the parameters of the cumulative averaging threshold model,</span>
+<span class="sd">        which includes the current content of the sliding window. The rest of the</span>
+<span class="sd">        updating is done as described in the superclass&#39; method.</span>
+
+<span class="sd">        Note: Should only be used with threshold models that support the same window</span>
+<span class="sd">        size, otherwise random things might happen.</span>
+
+<span class="sd">        :param parameters: Parameters to update threshold model with sliding window&#39;s</span>
+<span class="sd">        samples in second place.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_window</span> <span class="o">=</span> <span class="n">deque</span><span class="p">()</span>
+        <span class="n">new_window</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="n">new_window</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_window</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">set_parameters</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SMAvgTM.get_parameters">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.threshold_models.SMAvgTM.get_parameters">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Retrieves the parameters of the cumulative averaging threshold model,</span>
+<span class="sd">        actual threshold excluded.</span>
+
+<span class="sd">        :return: Mean and variance (1st) and sliding window (2nd) of threshold model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_parameters</span><span class="p">()</span> <span class="o">+</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_window</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)]</span></div>
+
+
+<div class="viewcode-block" id="SMAvgTM.update_mean">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.threshold_models.SMAvgTM.update_mean">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_mean</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_sample</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Updates the simple moving average value with new sample, removing the last</span>
+<span class="sd">        sample from the sliding window and storing the new one in it, adjusting the</span>
+<span class="sd">        mean accordingly.</span>
+
+<span class="sd">        :param new_sample: New sample of time series.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_window</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_mean</span> <span class="o">=</span> <span class="n">new_sample</span>
+            <span class="k">return</span>
+
+        <span class="n">rm_sample</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_window</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_window_size</span><span class="p">:</span>
+            <span class="n">rm_sample</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_window</span><span class="o">.</span><span class="n">popleft</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_window</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_sample</span><span class="p">)</span>
+
+        <span class="n">delta</span> <span class="o">=</span> <span class="n">new_sample</span> <span class="o">-</span> <span class="n">rm_sample</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mean</span> <span class="o">+=</span> <span class="n">delta</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_window</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="EMAvgTM">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.threshold_models.EMAvgTM">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">EMAvgTM</span><span class="p">(</span><span class="n">AvgTM</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Exponential moving averaging takes note of the entire model stream to compute</span>
+<span class="sd">    the average, but weights them exponentially less the greater their distance to</span>
+<span class="sd">    the present is; this process is also called exponential smoothing.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_alpha</span> <span class="o">=</span> <span class="nb">float</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">,</span>
+        <span class="n">mean</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">var</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">var_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">reduce_fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">o</span><span class="p">:</span> <span class="n">o</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates a new exponential moving averaging threshold model.</span>
+
+<span class="sd">        :param alpha: Smoothing/weight factor for new incoming values.</span>
+<span class="sd">        :param mean: Init mean value.</span>
+<span class="sd">        :param var: Init variance value.</span>
+<span class="sd">        :param var_weight: Weight of the variance compared to the mean value for the</span>
+<span class="sd">        threshold value.</span>
+<span class="sd">        :param reduce_fn: Function to reduce a batch of samples into a scalar for</span>
+<span class="sd">        training. Defaults to NOP.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_alpha</span> <span class="o">=</span> <span class="n">alpha</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">mean</span><span class="o">=</span><span class="n">mean</span><span class="p">,</span> <span class="n">var</span><span class="o">=</span><span class="n">var</span><span class="p">,</span> <span class="n">var_weight</span><span class="o">=</span><span class="n">var_weight</span><span class="p">,</span> <span class="n">reduce_fn</span><span class="o">=</span><span class="n">reduce_fn</span><span class="p">)</span>
+
+<div class="viewcode-block" id="EMAvgTM.update_mean">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.threshold_models.EMAvgTM.update_mean">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_mean</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_sample</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Updates the exponential moving average value with new sample, weighting</span>
+<span class="sd">        past and present as defined.</span>
+
+<span class="sd">        :param new_sample: New sample of time series.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mean</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_mean</span> <span class="o">=</span> <span class="n">new_sample</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mean</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_alpha</span> <span class="o">*</span> <span class="n">new_sample</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_alpha</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mean</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="MadTM">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.threshold_models.MadTM">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">MadTM</span><span class="p">(</span><span class="n">FederatedTM</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Median absolute deviation (MAD)-based threshold models, similar to AAD-based</span>
+<span class="sd">    models, assume a symmetric distribution of the time serie&#39;s samples, of which</span>
+<span class="sd">    a certain percentage are considered anomalous. However, unlike average-based</span>
+<span class="sd">    approaches, the median can only computed using a subset of the population</span>
+<span class="sd">    when computed online (it cannot be computed online in fact, as this is a property</span>
+<span class="sd">    of the median). Furthermore, as with all absolute deviation based models,</span>
+<span class="sd">    the actual threshold value is NOT dynamic --- it has to be set manually. Instead,</span>
+<span class="sd">    the input is transformed into its modified z-scores, which are then compared to</span>
+<span class="sd">    the threshold for binary classification.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_window</span><span class="p">:</span> <span class="n">deque</span>
+    <span class="n">_window_size</span><span class="p">:</span> <span class="nb">int</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">window_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+        <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">3.5</span><span class="p">,</span>
+        <span class="n">reduce_fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">o</span><span class="p">:</span> <span class="n">o</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates a new MAD threshold model.</span>
+
+<span class="sd">        :param window_size: Size of sliding window.</span>
+<span class="sd">        :param threshold: Threshold value, for which +-3.5 is often used (Boris Iglewicz</span>
+<span class="sd">        and David Hoaglin (1993) in &quot;Volume 16: How to Detect and Handle Outliers&quot;)</span>
+<span class="sd">        :param reduce_fn: Function to reduce a batch of samples into a scalar for</span>
+<span class="sd">        training. Defaults to NOP.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_window</span> <span class="o">=</span> <span class="n">deque</span><span class="p">(</span><span class="n">maxlen</span><span class="o">=</span><span class="n">window_size</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span> <span class="n">reduce_fn</span><span class="o">=</span><span class="n">reduce_fn</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MadTM.set_parameters">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.threshold_models.MadTM.set_parameters">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Updates the parameters of the MAD threshold model, which includes the</span>
+<span class="sd">        current content of the sliding window, before updating the actual model</span>
+<span class="sd">        (adjusting threshold).</span>
+
+<span class="sd">        Note: Should only be used with threshold models that support the same window</span>
+<span class="sd">        size, otherwise random things might happen.</span>
+
+<span class="sd">        :param parameters: New sample window of time stream.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_threshold</span> <span class="o">=</span> <span class="n">typing</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">parameters</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="nb">float</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_window</span> <span class="o">=</span> <span class="n">deque</span><span class="p">()</span>
+        <span class="n">new_window</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="n">new_window</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_window</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">set_parameters</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="MadTM.get_parameters">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.threshold_models.MadTM.get_parameters">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Retrieves the entire sample window of the MAD threshold model, actual</span>
+<span class="sd">        threshold excluded.</span>
+
+<span class="sd">        :return: Current sample window of time stream.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_threshold</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_window</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)]</span></div>
+
+
+<div class="viewcode-block" id="MadTM.fit">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.threshold_models.MadTM.fit">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_data</span><span class="p">,</span> <span class="n">y_data</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;As it is set upon the creation of the threshold, nothing is to be fitted.&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="MadTM.predict">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.threshold_models.MadTM.predict">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_data</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Adds the input data to the current sample window of the time stream, removing</span>
+<span class="sd">        older samples accordingly, before computing the modified z-scores over all them.</span>
+<span class="sd">        Note that only the z-scores of the input is compared to the threshold and</span>
+<span class="sd">        returned accordingly.</span>
+
+<span class="sd">        :param x_data: Input data.</span>
+<span class="sd">        :return: Predicted output tensor consisting of bools (0: normal, 1: abnormal).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="n">x_data</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_window</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
+        <span class="n">samples</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_window</span><span class="p">)</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">samples</span><span class="p">)</span>
+        <span class="n">ad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">samples</span> <span class="o">-</span> <span class="n">m</span><span class="p">)</span>
+        <span class="n">mad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">ad</span><span class="p">)</span>
+        <span class="n">z_scores</span> <span class="o">=</span> <span class="mf">0.6745</span> <span class="o">*</span> <span class="n">ad</span> <span class="o">/</span> <span class="n">mad</span>
+        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">greater</span><span class="p">(</span><span class="n">z_scores</span><span class="p">[</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">x_data</span><span class="p">)</span> <span class="p">:],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_threshold</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="MadTM.update_threshold">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.threshold_models.MadTM.update_threshold">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_threshold</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_data</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;As it is set upon the creation of the threshold, nothing is to be updated.&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Fabian Hofmann, Seraphin Zunzer, Jonathan Ackerschewski, Lotta Fejzula.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

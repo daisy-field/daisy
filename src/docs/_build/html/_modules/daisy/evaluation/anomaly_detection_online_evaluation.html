@@ -1,0 +1,400 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>daisy.evaluation.anomaly_detection_online_evaluation &mdash; DAISY 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/favicon2.ico"/>
+    <link rel="canonical" href="https://daisy-field.github.io/_modules/daisy/evaluation/anomaly_detection_online_evaluation.html" />
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            DAISY
+              <img src="../../../_static/favicon2.ico" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../general.overview.html">What is DAISY?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../general.background.html">Background</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../general.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../general.dashboard.html">Dashboard</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Documentation:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../daisy.communication.html">Communication</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../daisy.data_sources.html">Datasources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../daisy.evaluation.html">Evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../daisy.federated_ids_components.html">Federated IDS Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../daisy.federated_learning.html">Federated Learning</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../daisy.scripts.data_collection.html">Data Collection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../daisy.scripts.demo_components.html">Demo Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../daisy.scripts.generic_fids_components.html">Demo Servers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">DAISY</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">daisy.evaluation.anomaly_detection_online_evaluation</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for daisy.evaluation.anomaly_detection_online_evaluation</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright (C) 2024-2025 DAI-Labor and others</span>
+<span class="c1">#</span>
+<span class="c1"># This Source Code Form is subject to the terms of the Mozilla Public</span>
+<span class="c1"># License, v. 2.0. If a copy of the MPL was not distributed with this</span>
+<span class="c1"># file, You can obtain one at https://mozilla.org/MPL/2.0/.</span>
+<span class="sd">&quot;&quot;&quot;Extensions to the tensorflow metric set, to measure the quality of online anomaly</span>
+<span class="sd">detection approaches. For now, only a sliding-window-based solution is realized,</span>
+<span class="sd">as this works for any kind of metric (not every metric can be computed online).</span>
+
+<span class="sd">Author: Fabian Hofmann</span>
+<span class="sd">Modified: 17.08.23</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">deque</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Self</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">tensorflow</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">tf</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tensorflow</span><span class="w"> </span><span class="kn">import</span> <span class="n">keras</span><span class="p">,</span> <span class="n">Tensor</span>
+
+
+<div class="viewcode-block" id="SlidingWindowEvaluation">
+<a class="viewcode-back" href="../../../daisy.evaluation.html#daisy.evaluation.SlidingWindowEvaluation">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">SlidingWindowEvaluation</span><span class="p">(</span><span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">Metric</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Abstract evaluation metric class that extends the existing tensorflow metric</span>
+<span class="sd">    base class, with a sliding window to collect the k most recent predicted labels</span>
+<span class="sd">    to evaluate the model&#39;s recent performance on them in point-wise manner.</span>
+
+<span class="sd">    Note that depending on the metric, non-abstract methods must be extended with a</span>
+<span class="sd">    new metric&#39;s own functionality.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">true_labels</span><span class="p">:</span> <span class="n">deque</span>
+    <span class="n">pred_labels</span><span class="p">:</span> <span class="n">deque</span>
+    <span class="n">_window_size</span><span class="p">:</span> <span class="nb">int</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;ad_online_evaluation&quot;</span><span class="p">,</span> <span class="n">window_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates a new sliding window evaluation metric.</span>
+
+<span class="sd">        :param name: Name of metric.</span>
+<span class="sd">        :param window_size: Size of sliding window. If not provided, assume infinite</span>
+<span class="sd">        window size.</span>
+<span class="sd">        :param kwargs: Additional metric/layer keywords arguments.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">true_labels</span> <span class="o">=</span> <span class="n">deque</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pred_labels</span> <span class="o">=</span> <span class="n">deque</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_window_size</span> <span class="o">=</span> <span class="n">window_size</span>
+
+<div class="viewcode-block" id="SlidingWindowEvaluation.update_state">
+<a class="viewcode-back" href="../../../daisy.evaluation.html#daisy.evaluation.SlidingWindowEvaluation.update_state">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Adds a mini-batch of inputs to the metric, removing old ones if the window</span>
+<span class="sd">        is full, and adjusting statistics accordingly. Converts any tensors into</span>
+<span class="sd">        numpy arrays as data points/pairs are processed in element-wise fashion</span>
+<span class="sd">        anyway and this makes it easier for generic handling.</span>
+
+<span class="sd">        :param y_true: Vector/Tensor containing true labels of inputs.</span>
+<span class="sd">        :param y_pred: Vector/Tensor containing predicted labels of inputs.</span>
+<span class="sd">        :param args: Not supported arguments.</span>
+<span class="sd">        :param kwargs: Not supported keywords arguments.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">tf</span><span class="o">.</span><span class="n">is_tensor</span><span class="p">(</span><span class="n">y_true</span><span class="p">)</span> <span class="ow">and</span> <span class="n">tf</span><span class="o">.</span><span class="n">is_tensor</span><span class="p">(</span><span class="n">y_pred</span><span class="p">):</span>
+            <span class="n">y_true</span> <span class="o">=</span> <span class="n">y_true</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+            <span class="n">y_pred</span> <span class="o">=</span> <span class="n">y_pred</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">t_label</span><span class="p">,</span> <span class="n">p_label</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">true_labels</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_window_size</span><span class="p">:</span>
+                <span class="n">old_t_label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">true_labels</span><span class="o">.</span><span class="n">popleft</span><span class="p">()</span>
+                <span class="n">old_p_label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pred_labels</span><span class="o">.</span><span class="n">popleft</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_update</span><span class="p">(</span><span class="n">old_t_label</span><span class="p">,</span> <span class="n">old_p_label</span><span class="p">,</span> <span class="n">remove</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">true_labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">t_label</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pred_labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p_label</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_update</span><span class="p">(</span><span class="n">t_label</span><span class="p">,</span> <span class="n">p_label</span><span class="p">)</span></div>
+
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_label</span><span class="p">,</span> <span class="n">p_label</span><span class="p">,</span> <span class="n">remove</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update function that must be implemented for each metric individually,</span>
+<span class="sd">        called during update_state(), able to update the state variables for a</span>
+<span class="sd">        singular data point/pair, for both its addition and its removal from the window.</span>
+
+<span class="sd">        :param t_label: True label of single input.</span>
+<span class="sd">        :param p_label: Predicted label of single input.</span>
+<span class="sd">        :param remove: Whether the input pair is to be removed from the sliding window</span>
+<span class="sd">        or added.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+<div class="viewcode-block" id="SlidingWindowEvaluation.merge_state">
+<a class="viewcode-back" href="../../../daisy.evaluation.html#daisy.evaluation.SlidingWindowEvaluation.merge_state">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">merge_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">metrics</span><span class="p">:</span> <span class="n">Self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Merges the state from one or more metrics, by merging their sliding windows.</span>
+
+<span class="sd">        Note this is only possible if the sliding window of the current instance is</span>
+<span class="sd">        able to encompass all other windows.</span>
+
+<span class="sd">        :param metrics: An iterable of sliding window metrics of the same type.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">metrics</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update_state</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">true_labels</span><span class="p">,</span> <span class="n">m</span><span class="o">.</span><span class="n">pred_labels</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SlidingWindowEvaluation.reset_state">
+<a class="viewcode-back" href="../../../daisy.evaluation.html#daisy.evaluation.SlidingWindowEvaluation.reset_state">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reset_state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Resets the sliding window and all the metric&#39;s state variables.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">true_labels</span> <span class="o">=</span> <span class="n">deque</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pred_labels</span> <span class="o">=</span> <span class="n">deque</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_reset</span><span class="p">()</span></div>
+
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset function that must be implemented for each metric individually,</span>
+<span class="sd">        called during reset_state(), resets all underlying statistics to their</span>
+<span class="sd">        original state.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+<div class="viewcode-block" id="SlidingWindowEvaluation.result">
+<a class="viewcode-back" href="../../../daisy.evaluation.html#daisy.evaluation.SlidingWindowEvaluation.result">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">result</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Computes and returns the scalar value(s) of the metric. Idempotent operation</span>
+<span class="sd">        based on the underlying state variables and the sliding window.</span>
+
+<span class="sd">        :return: A scalar tensor, or a dictionary of scalar tensors.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="ConfMatrSlidingWindowEvaluation">
+<a class="viewcode-back" href="../../../daisy.evaluation.html#daisy.evaluation.ConfMatrSlidingWindowEvaluation">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ConfMatrSlidingWindowEvaluation</span><span class="p">(</span><span class="n">SlidingWindowEvaluation</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Sliding window evaluation metric that computes the entire confusion matrix</span>
+<span class="sd">    along with most(*) its metrics over the k most recent predicted binary labels to</span>
+<span class="sd">    evaluate the model&#39;s recent performance on them in point-wise manner.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_fp</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">_tp</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">_fn</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">_tn</span><span class="p">:</span> <span class="nb">int</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;conf_matrix_online_evaluation&quot;</span><span class="p">,</span> <span class="n">window_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates a new confusion matrix sliding window evaluation metric.</span>
+
+<span class="sd">        :param name: Name of metric.</span>
+<span class="sd">        :param window_size: Size of sliding window. If not provided, assume infinite</span>
+<span class="sd">        window size.</span>
+<span class="sd">        :param kwargs: Additional metric/layer keywords arguments.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">window_size</span><span class="o">=</span><span class="n">window_size</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fp</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tp</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fn</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tn</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_label</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">p_label</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">remove</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Updates the confusion matrix based on a single data point/pair, for both</span>
+<span class="sd">        its addition and its removal from the window.</span>
+
+<span class="sd">        :param t_label: True label of single input.</span>
+<span class="sd">        :param p_label: Predicted label of single input.</span>
+<span class="sd">        :param remove: Whether the input pair is to be removed from the sliding</span>
+<span class="sd">        window confusion matrix or added.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">mod</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">remove</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">if</span> <span class="n">t_label</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">p_label</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_tp</span> <span class="o">+=</span> <span class="n">mod</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_fn</span> <span class="o">+=</span> <span class="n">mod</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">p_label</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_tn</span> <span class="o">+=</span> <span class="n">mod</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_fp</span> <span class="o">+=</span> <span class="n">mod</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Zeroes the confusion matrix.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fp</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tp</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fn</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tn</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="c1"># noinspection DuplicatedCode</span>
+<div class="viewcode-block" id="ConfMatrSlidingWindowEvaluation.result">
+<a class="viewcode-back" href="../../../daisy.evaluation.html#daisy.evaluation.ConfMatrSlidingWindowEvaluation.result">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">result</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Based on the accumulated confusion matrix, computes its derived scalar</span>
+<span class="sd">        metrics and returns them.</span>
+
+<span class="sd">        :return: Dictionary of all derived scalar (tensor) confusion matrix metrics.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">accuracy</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tp</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tn</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">true_labels</span><span class="p">)</span>
+        <span class="n">recall</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">divide_no_nan</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tp</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tp</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fn</span><span class="p">))</span>
+        <span class="n">tnr</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">divide_no_nan</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tn</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tn</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fp</span><span class="p">))</span>
+        <span class="n">precision</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">divide_no_nan</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tp</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tp</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fp</span><span class="p">))</span>
+        <span class="n">npv</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">divide_no_nan</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tn</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tn</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fn</span><span class="p">))</span>
+        <span class="n">fnr</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">divide_no_nan</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_fn</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_fn</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tp</span><span class="p">))</span>
+        <span class="n">fpr</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">divide_no_nan</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_fp</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_fp</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tn</span><span class="p">))</span>
+        <span class="n">f1</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">divide_no_nan</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tp</span><span class="p">,</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tp</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fp</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fn</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;accuracy&quot;</span><span class="p">:</span> <span class="n">accuracy</span><span class="p">,</span>
+            <span class="s2">&quot;recall&quot;</span><span class="p">:</span> <span class="n">recall</span><span class="p">,</span>
+            <span class="s2">&quot;true negative rate&quot;</span><span class="p">:</span> <span class="n">tnr</span><span class="p">,</span>
+            <span class="s2">&quot;precision&quot;</span><span class="p">:</span> <span class="n">precision</span><span class="p">,</span>
+            <span class="s2">&quot;negative predictive value&quot;</span><span class="p">:</span> <span class="n">npv</span><span class="p">,</span>
+            <span class="s2">&quot;false negative rate&quot;</span><span class="p">:</span> <span class="n">fnr</span><span class="p">,</span>
+            <span class="s2">&quot;false positive rate&quot;</span><span class="p">:</span> <span class="n">fpr</span><span class="p">,</span>
+            <span class="s2">&quot;f1&quot;</span><span class="p">:</span> <span class="n">f1</span><span class="p">,</span>
+        <span class="p">}</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="TFMetricSlidingWindowEvaluation">
+<a class="viewcode-back" href="../../../daisy.evaluation.html#daisy.evaluation.TFMetricSlidingWindowEvaluation">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">TFMetricSlidingWindowEvaluation</span><span class="p">(</span><span class="n">SlidingWindowEvaluation</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Wrapper class for all kinds of tensorflow evaluation metrics that operate on</span>
+<span class="sd">    true-predicted label comparisons. Uses the provided sliding window to accumulate</span>
+<span class="sd">    a subset of the overall data points and evaluates them using the tensorflow</span>
+<span class="sd">    metric when called upon. Not very computational efficient since cumulative</span>
+<span class="sd">    aggregation cannot be supported as not every metric can be computed in sliding</span>
+<span class="sd">    window manner.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_tf_metric</span><span class="p">:</span> <span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">Metric</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">tf_metric</span><span class="p">:</span> <span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">Metric</span><span class="p">,</span> <span class="n">window_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a new wrapped tf sliding window evaluation metric.</span>
+
+
+<span class="sd">        :param tf_metric: Tensorflow metric to be wrapped.</span>
+<span class="sd">        :param window_size: Size of sliding window. If not provided, assume infinite</span>
+<span class="sd">        window size.</span>
+<span class="sd">        :param kwargs: Additional metric/layer keywords arguments.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="n">tf_metric</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;_online_evaluation&quot;</span><span class="p">,</span>
+            <span class="n">window_size</span><span class="o">=</span><span class="n">window_size</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tf_metric</span> <span class="o">=</span> <span class="n">tf_metric</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_label</span><span class="p">,</span> <span class="n">p_label</span><span class="p">,</span> <span class="n">remove</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Method is skipped as the entire metric is computed during every result()</span>
+<span class="sd">        call.&quot;&quot;&quot;</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;As the metrics are reset every result() call, there is no reason to reset</span>
+<span class="sd">        more.&quot;&quot;&quot;</span>
+        <span class="k">pass</span>
+
+<div class="viewcode-block" id="TFMetricSlidingWindowEvaluation.result">
+<a class="viewcode-back" href="../../../daisy.evaluation.html#daisy.evaluation.TFMetricSlidingWindowEvaluation.result">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">result</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Based on the current window, computes and returns the scalar metric value</span>
+<span class="sd">        tensor or a dict of scalars, after resetting the metric once more.</span>
+
+<span class="sd">        :return: Tensorflow metric result.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tf_metric</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">true_labels</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pred_labels</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tf_metric</span><span class="o">.</span><span class="n">reset_state</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Fabian Hofmann, Seraphin Zunzer, Jonathan Ackerschewski, Lotta Fejzula.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

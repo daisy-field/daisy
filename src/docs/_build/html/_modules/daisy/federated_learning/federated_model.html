@@ -1,0 +1,522 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>daisy.federated_learning.federated_model &mdash; DAISY 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/favicon2.ico"/>
+    <link rel="canonical" href="https://daisy-field.github.io/_modules/daisy/federated_learning/federated_model.html" />
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            DAISY
+              <img src="../../../_static/favicon2.ico" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../general.overview.html">What is DAISY?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../general.background.html">Background</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../general.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../general.dashboard.html">Dashboard</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Documentation:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../daisy.communication.html">Communication</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../daisy.data_sources.html">Datasources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../daisy.evaluation.html">Evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../daisy.federated_ids_components.html">Federated IDS Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../daisy.federated_learning.html">Federated Learning</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../daisy.scripts.data_collection.html">Data Collection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../daisy.scripts.demo_components.html">Demo Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../daisy.scripts.generic_fids_components.html">Demo Servers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">DAISY</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">daisy.federated_learning.federated_model</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for daisy.federated_learning.federated_model</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright (C) 2024-2025 DAI-Labor and others</span>
+<span class="c1">#</span>
+<span class="c1"># This Source Code Form is subject to the terms of the Mozilla Public</span>
+<span class="c1"># License, v. 2.0. If a copy of the MPL was not distributed with this</span>
+<span class="c1"># file, You can obtain one at https://mozilla.org/MPL/2.0/.</span>
+<span class="sd">&quot;&quot;&quot;A collection of various types of model wrappers, implementing the same interface</span>
+<span class="sd">for each federated model type, thus enabling their inter-compatibility for different</span>
+<span class="sd">aggregation strategies and federated system components.</span>
+
+<span class="sd">Author: Fabian Hofmann</span>
+<span class="sd">Modified: 04.04.24</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Self</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">tensorflow</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">tf</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tensorflow</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tensorflow</span><span class="w"> </span><span class="kn">import</span> <span class="n">keras</span>
+
+
+<div class="viewcode-block" id="FederatedModel">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.federated_model.FederatedModel">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">FederatedModel</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;An abstract model wrapper that offers the same methods, no matter the type of</span>
+<span class="sd">    underlying model. Must always be implemented if a new model type is to be used in</span>
+<span class="sd">    the federated system.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="FederatedModel.set_parameters">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.federated_model.FederatedModel.set_parameters">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Updates the internal parameters of the model.</span>
+
+<span class="sd">        :param parameters: Parameters to update the model with.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+
+<div class="viewcode-block" id="FederatedModel.get_parameters">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.federated_model.FederatedModel.get_parameters">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Retrieves the internal parameters of the model.</span>
+
+<span class="sd">        :return: Parameters of model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+
+<div class="viewcode-block" id="FederatedModel.fit">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.federated_model.FederatedModel.fit">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_data</span><span class="p">,</span> <span class="n">y_data</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Trains the model with the given data, which must be compatible with the</span>
+<span class="sd">        tensorflow API</span>
+<span class="sd">        (see: https://www.tensorflow.org/api_docs/python/tf/keras/Model#fit).</span>
+
+<span class="sd">        :param x_data: Input data.</span>
+<span class="sd">        :param y_data: Expected output.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+
+<div class="viewcode-block" id="FederatedModel.predict">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.federated_model.FederatedModel.predict">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_data</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Makes a prediction on the given data and returns it, which must be</span>
+<span class="sd">        compatible with the tensorflow API</span>
+<span class="sd">        (see: https://www.tensorflow.org/api_docs/python/tf/keras/Model#predict).</span>
+
+<span class="sd">        :param x_data: Input data.</span>
+<span class="sd">        :return: Predicted output tensor.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="TFFederatedModel">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.federated_model.TFFederatedModel">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">TFFederatedModel</span><span class="p">(</span><span class="n">FederatedModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The standard federated model wrapper for tensorflow models. Can be used for</span>
+<span class="sd">    both online and offline training/ prediction, by default online, however.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_model</span><span class="p">:</span> <span class="n">keras</span><span class="o">.</span><span class="n">Model</span>
+    <span class="n">_batch_size</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">_epochs</span><span class="p">:</span> <span class="nb">int</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">:</span> <span class="n">keras</span><span class="o">.</span><span class="n">Model</span><span class="p">,</span>
+        <span class="n">optimizer</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">,</span>
+        <span class="n">loss</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">keras</span><span class="o">.</span><span class="n">losses</span><span class="o">.</span><span class="n">Loss</span><span class="p">,</span>
+        <span class="n">metrics</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="n">Callable</span> <span class="o">|</span> <span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">Metric</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">32</span><span class="p">,</span>
+        <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates a new tensorflow federated model from a given model. This also</span>
+<span class="sd">        compiles the given model, requiring a set of additional arguments</span>
+<span class="sd">        (see: https://www.tensorflow.org/api_docs/python/tf/keras/Model#compile).</span>
+
+<span class="sd">        :param model: Underlying model to be wrapped around.</span>
+<span class="sd">        :param optimizer: Optimizer to use during training.</span>
+<span class="sd">        :param loss: Loss function to use during training.</span>
+<span class="sd">        :param metrics: Evaluation metrics to be displayed during training and testing.</span>
+<span class="sd">        :param batch_size: Batch size during training and prediction.</span>
+<span class="sd">        :param epochs: Number of epochs (rounds) during training.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">loss</span><span class="o">=</span><span class="n">loss</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="n">metrics</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_batch_size</span> <span class="o">=</span> <span class="n">batch_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_epochs</span> <span class="o">=</span> <span class="n">epochs</span>
+
+<div class="viewcode-block" id="TFFederatedModel.set_parameters">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.federated_model.TFFederatedModel.set_parameters">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Updates the weights of the underlying model with new ones.</span>
+
+<span class="sd">        :param parameters: Weights to update the model with.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">set_weights</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="TFFederatedModel.get_parameters">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.federated_model.TFFederatedModel.get_parameters">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Retrieves the weights of the underlying model.</span>
+
+<span class="sd">        :return: Weights of the model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">get_weights</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="TFFederatedModel.fit">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.federated_model.TFFederatedModel.fit">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_data</span><span class="p">,</span> <span class="n">y_data</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Trains the model with the given data by calling the wrapped model,</span>
+<span class="sd">        which must be compatible with the tensorflow API</span>
+<span class="sd">        (see: https://www.tensorflow.org/api_docs/python/tf/keras/Model#fit).</span>
+
+<span class="sd">        :param x_data: Input data.</span>
+<span class="sd">        :param y_data: Expected output.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
+            <span class="n">x</span><span class="o">=</span><span class="n">x_data</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y_data</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_batch_size</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_epochs</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="TFFederatedModel.predict">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.federated_model.TFFederatedModel.predict">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_data</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Makes a prediction on the given data and returns it by calling the wrapped</span>
+<span class="sd">        model. Uses the call() tensorflow model interface for small numbers of data</span>
+<span class="sd">        points, which must be compatible with the tensorflow API (see:</span>
+<span class="sd">        https://www.tensorflow.org/api_docs/python/tf/keras/Model#predict).</span>
+
+<span class="sd">        :param x_data: Input data.</span>
+<span class="sd">        :return: Predicted output tensor.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">x_data</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batch_size</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x_data</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_batch_size</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">(</span><span class="n">x_data</span><span class="p">,</span> <span class="n">training</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="TFFederatedModel.get_fae">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.federated_model.TFFederatedModel.get_fae">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_fae</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">input_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">optimizer</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">Optimizer</span> <span class="o">=</span> <span class="s2">&quot;Adam&quot;</span><span class="p">,</span>
+        <span class="n">loss</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">keras</span><span class="o">.</span><span class="n">losses</span><span class="o">.</span><span class="n">Loss</span> <span class="o">=</span> <span class="s2">&quot;mse&quot;</span><span class="p">,</span>
+        <span class="n">metrics</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="n">Callable</span> <span class="o">|</span> <span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">Metric</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">32</span><span class="p">,</span>
+        <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Factory class method to create a simple federated autoencoder model of a</span>
+<span class="sd">        fixed depth but with variable input size.</span>
+
+<span class="sd">        Should only serve as a quick and basic setup for a model.</span>
+
+<span class="sd">        :param input_size: Dimensionality of input/output of autoencoder.</span>
+<span class="sd">        :param optimizer: Optimizer to use during training.</span>
+<span class="sd">        :param loss: Loss function to use during training.</span>
+<span class="sd">        :param metrics: Evaluation metrics to be displayed during training and testing.</span>
+<span class="sd">        :param batch_size: Batch size during training and prediction.</span>
+<span class="sd">        :param epochs: Number of epochs (rounds) during training.</span>
+<span class="sd">        :return: Initialized federated autoencoder model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">enc_inputs</span> <span class="o">=</span> <span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Input</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">input_size</span><span class="p">,))</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Dense</span><span class="p">(</span><span class="n">input_size</span><span class="p">)(</span><span class="n">enc_inputs</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Dense</span><span class="p">(</span><span class="mi">35</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">enc_outputs</span> <span class="o">=</span> <span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Dense</span><span class="p">(</span><span class="mi">18</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">encoder</span> <span class="o">=</span> <span class="n">keras</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">enc_inputs</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="n">enc_outputs</span><span class="p">)</span>
+
+        <span class="n">dec_inputs</span> <span class="o">=</span> <span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Input</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">18</span><span class="p">,))</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Dense</span><span class="p">(</span><span class="mi">35</span><span class="p">)(</span><span class="n">dec_inputs</span><span class="p">)</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Dense</span><span class="p">(</span><span class="n">input_size</span><span class="p">)(</span><span class="n">y</span><span class="p">)</span>
+        <span class="n">dec_outputs</span> <span class="o">=</span> <span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Activation</span><span class="p">(</span><span class="s2">&quot;sigmoid&quot;</span><span class="p">)(</span><span class="n">y</span><span class="p">)</span>
+        <span class="n">decoder</span> <span class="o">=</span> <span class="n">keras</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">dec_inputs</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="n">dec_outputs</span><span class="p">)</span>
+
+        <span class="n">fae_inputs</span> <span class="o">=</span> <span class="n">keras</span><span class="o">.</span><span class="n">Input</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">input_size</span><span class="p">,))</span>
+        <span class="n">encoded</span> <span class="o">=</span> <span class="n">encoder</span><span class="p">(</span><span class="n">fae_inputs</span><span class="p">)</span>
+        <span class="n">fae_outputs</span> <span class="o">=</span> <span class="n">decoder</span><span class="p">(</span><span class="n">encoded</span><span class="p">)</span>
+        <span class="n">fae</span> <span class="o">=</span> <span class="n">keras</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">fae_inputs</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="n">fae_outputs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">TFFederatedModel</span><span class="p">(</span><span class="n">fae</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">loss</span><span class="p">,</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">epochs</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="FederatedIFTM">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.federated_model.FederatedIFTM">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">FederatedIFTM</span><span class="p">(</span><span class="n">FederatedModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Double union of two federated models, following the IFTM hybrid  model</span>
+<span class="sd">    approach --- identify function threshold model principle by Schmidt et al.</span>
+<span class="sd">    (https://ieeexplore.ieee.org/document/8456348): One for the computation of the</span>
+<span class="sd">    identity of a given sample (alternatively prediction of the next sample),</span>
+<span class="sd">    while the other maps the error/loss using a threshold(-model) to the binary class</span>
+<span class="sd">    labels for anomaly detection. Both are generic federated models, so any approach</span>
+<span class="sd">    can be used for them, as long as they abide by the required properties:</span>
+
+<span class="sd">        * Identity Function: Computes the identities of given data points. Can be</span>
+<span class="sd">        replaced with a prediction function.</span>
+<span class="sd">        * Error Function: Computes the reconstruction/prediction error of one or</span>
+<span class="sd">        multiple samples to a scalar (each).</span>
+<span class="sd">        * Threshold Model: Maps the scalar to binary class labels.</span>
+
+<span class="sd">    Note this kind of model *absolutely requires* a time series in most cases and</span>
+<span class="sd">    therefore data passed to it, must be in order!</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_if</span><span class="p">:</span> <span class="n">FederatedModel</span>
+    <span class="n">_tm</span><span class="p">:</span> <span class="n">FederatedModel</span>
+    <span class="n">_ef</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">],</span> <span class="n">Tensor</span><span class="p">]</span>
+
+    <span class="n">_param_split</span><span class="p">:</span> <span class="nb">int</span>
+
+    <span class="n">_pf_mode</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">_prev_fit_sample</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span>
+    <span class="n">_prev_pred_sample</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">identify_fn</span><span class="p">:</span> <span class="n">FederatedModel</span><span class="p">,</span>
+        <span class="n">threshold_m</span><span class="p">:</span> <span class="n">FederatedModel</span><span class="p">,</span>
+        <span class="n">error_fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">],</span> <span class="n">Tensor</span><span class="p">],</span>
+        <span class="n">pf_mode</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates a new federated IFTM anomaly detection model.</span>
+
+<span class="sd">        :param identify_fn: Federated identity function model.</span>
+<span class="sd">        :param threshold_m: Federated threshold model.</span>
+<span class="sd">        :param error_fn: Reconstruction/Prediction error function that must compute</span>
+<span class="sd">        the error in sample-wise manner (for example, if using a loss function,</span>
+<span class="sd">        the reduction should be set to NONE).</span>
+<span class="sd">        :param pf_mode: Whether IFTM uses an identity function or a prediction function.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_if</span> <span class="o">=</span> <span class="n">identify_fn</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tm</span> <span class="o">=</span> <span class="n">threshold_m</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ef</span> <span class="o">=</span> <span class="n">error_fn</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_param_split</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">identify_fn</span><span class="o">.</span><span class="n">get_parameters</span><span class="p">())</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pf_mode</span> <span class="o">=</span> <span class="n">pf_mode</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_prev_fit_sample</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_prev_pred_sample</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="FederatedIFTM.set_parameters">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.federated_model.FederatedIFTM.set_parameters">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Updates the internal parameters of the two underlying models by splitting</span>
+<span class="sd">        the parameter lists as previously defined.</span>
+
+<span class="sd">        :param parameters: Parameters to update the IFTM model with.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_if</span><span class="o">.</span><span class="n">set_parameters</span><span class="p">(</span><span class="n">parameters</span><span class="p">[:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_param_split</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tm</span><span class="o">.</span><span class="n">set_parameters</span><span class="p">(</span><span class="n">parameters</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_param_split</span> <span class="p">:])</span></div>
+
+
+<div class="viewcode-block" id="FederatedIFTM.get_parameters">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.federated_model.FederatedIFTM.get_parameters">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Retrieves the weights of the underlying models.</span>
+
+<span class="sd">        :return: Concatenated weight lists of the two models.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_if</span><span class="o">.</span><span class="n">get_parameters</span><span class="p">()</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tm</span><span class="o">.</span><span class="n">get_parameters</span><span class="p">())</span>
+        <span class="k">return</span> <span class="n">params</span></div>
+
+
+<div class="viewcode-block" id="FederatedIFTM.fit">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.federated_model.FederatedIFTM.fit">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_data</span><span class="p">,</span> <span class="n">y_data</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Trains the IFTM model with the given data by calling the wrapped models;</span>
+<span class="sd">        first the IF to make a prediction, after which the error can be computed for</span>
+<span class="sd">        the fitting of the TM. Afterward, the IF is fitted. Note that one can run</span>
+<span class="sd">        IFTM in supervised mode by providing the true classes of each sample ---</span>
+<span class="sd">        however most TMs require only the input data.</span>
+
+<span class="sd">        Note that in case of an underlying prediction function (instead of a regular</span>
+<span class="sd">        IF), the window is shifted by one step into the past, i.e. the final sample</span>
+<span class="sd">        is only used to compute a prediction error, but not make a prediction,</span>
+<span class="sd">        and it is stored for the next fitting step.</span>
+
+<span class="sd">        Note this kind of model *absolutely requires* a time series in most cases and</span>
+<span class="sd">        therefore data passed to it, must be in order! Also for the first step in a</span>
+<span class="sd">        time series, it is impossible to compute a prediction error, since there is</span>
+<span class="sd">        no previous sample to compare it to.</span>
+
+<span class="sd">        :param x_data: Input data.</span>
+<span class="sd">        :param y_data: Expected output, optional since default IFTM is fully</span>
+<span class="sd">        unsupervised.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Adjust input data depending on mode</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pf_mode</span><span class="p">:</span>
+            <span class="n">x_data</span><span class="p">,</span> <span class="n">y_true</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_shift_batch_window</span><span class="p">(</span><span class="n">x_data</span><span class="p">,</span> <span class="n">fit</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">x_data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">y_true</span> <span class="o">=</span> <span class="n">x_data</span>
+        <span class="c1"># Train TM</span>
+        <span class="n">y_pred</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_if</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">x_data</span><span class="p">)</span>
+        <span class="n">pred_errs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ef</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tm</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">pred_errs</span><span class="p">,</span> <span class="n">y_data</span><span class="p">)</span>
+        <span class="c1"># Train IF</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_if</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">x_data</span><span class="p">,</span> <span class="n">y_true</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FederatedIFTM.predict">
+<a class="viewcode-back" href="../../../daisy.federated_learning.html#daisy.federated_learning.federated_model.FederatedIFTM.predict">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_data</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Makes a prediction on the given data and returns it by calling the wrapped</span>
+<span class="sd">        models; first the IF to make a prediction, after which the error can be</span>
+<span class="sd">        computed for the final prediction step using the TM.</span>
+
+<span class="sd">        Note that in case of an underlying prediction function (instead of a regular</span>
+<span class="sd">        IF), the window is shifted by one step into the past, i.e. the final sample</span>
+<span class="sd">        is only used to compute a prediction error, but not make a prediction,</span>
+<span class="sd">        and it is stored for the next prediction step.</span>
+
+<span class="sd">        Note this kind of model *absolutely requires* a time series in most cases and</span>
+<span class="sd">        therefore data passed to it, must be in order! Also for the first step in a</span>
+<span class="sd">        time series, there is no previous sample to compare it to, therefore the</span>
+<span class="sd">        sample is automatically classified as the default class (0, i.e. normal)</span>
+
+<span class="sd">        :param x_data: Input data.</span>
+<span class="sd">        :return: Predicted output tensor consisting of bools (0: normal, 1: abnormal).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Adjust input data depending on mode</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pf_mode</span><span class="p">:</span>
+            <span class="n">x_data</span><span class="p">,</span> <span class="n">y_true</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_shift_batch_window</span><span class="p">(</span><span class="n">x_data</span><span class="p">,</span> <span class="n">fit</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">x_data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">y_true</span> <span class="o">=</span> <span class="n">x_data</span>
+        <span class="c1"># Make predictions</span>
+        <span class="n">y_pred</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_if</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">x_data</span><span class="p">)</span>
+        <span class="n">pred_errs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ef</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tm</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">pred_errs</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_shift_batch_window</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">x_data</span><span class="p">,</span> <span class="n">fit</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Shifts a given input batch one step in the past, discarding the last</span>
+<span class="sd">        sample from the batch and storing it for later user, but adding the last</span>
+<span class="sd">        sample from the previous batch to the beginning of the batch. This is</span>
+<span class="sd">        necessary for fitting and prediction of prediction-based IFs (see fit and</span>
+<span class="sd">        predict function).</span>
+
+<span class="sd">        :param x_data: Input data.</span>
+<span class="sd">        :param fit: Whether the window is shifted for fitting or prediction purposes.</span>
+<span class="sd">        :return: Shifted input data and adjusted test data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">fit</span><span class="p">:</span>
+            <span class="n">prev_sample</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prev_fit_sample</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_prev_fit_sample</span> <span class="o">=</span> <span class="n">x_data</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">prev_sample</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prev_pred_sample</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_prev_pred_sample</span> <span class="o">=</span> <span class="n">x_data</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">prev_sample</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># first step of time series</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">x_data</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="c1"># sample will be used later</span>
+                <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># decrease window to allow computation of errors</span>
+                <span class="n">y_true</span> <span class="o">=</span> <span class="n">x_data</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+                <span class="n">x_data</span> <span class="o">=</span> <span class="n">x_data</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">y_true</span> <span class="o">=</span> <span class="n">x_data</span>
+            <span class="n">x_data</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">prev_sample</span><span class="p">,</span> <span class="n">x_data</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">x_data</span><span class="p">,</span> <span class="n">y_true</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Fabian Hofmann, Seraphin Zunzer, Jonathan Ackerschewski, Lotta Fejzula.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

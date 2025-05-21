@@ -1,0 +1,434 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>daisy package &mdash; DAISY 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+    <link rel="shortcut icon" href="_static/favicon2.ico"/>
+    <link rel="canonical" href="https://daisy-field.github.io/daisy.html" />
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            DAISY
+              <img src="_static/favicon2.ico" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="general.overview.html">What is DAISY?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="general.background.html">Background</a></li>
+<li class="toctree-l1"><a class="reference internal" href="general.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="general.dashboard.html">Dashboard</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Documentation:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="daisy.communication.html">Communication</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.data_sources.html">Datasources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.evaluation.html">Evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.federated_ids_components.html">Federated IDS Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.federated_learning.html">Federated Learning</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="daisy.scripts.data_collection.html">Data Collection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.scripts.demo_components.html">Demo Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.scripts.generic_fids_components.html">Demo Servers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">DAISY</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">daisy package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/daisy.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="daisy-package">
+<h1>daisy package<a class="headerlink" href="#daisy-package" title="Link to this heading"></a></h1>
+<section id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Link to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="daisy.communication.html">Communication</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="daisy.communication.html#module-daisy.communication.message_stream">Message Stream</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="daisy.communication.html#daisy.communication.message_stream.EndpointServer"><code class="docutils literal notranslate"><span class="pre">EndpointServer</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="daisy.communication.html#daisy.communication.message_stream.EndpointServer.close_connections"><code class="docutils literal notranslate"><span class="pre">EndpointServer.close_connections()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.communication.html#daisy.communication.message_stream.EndpointServer.get_connections"><code class="docutils literal notranslate"><span class="pre">EndpointServer.get_connections()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.communication.html#daisy.communication.message_stream.EndpointServer.get_new_connections"><code class="docutils literal notranslate"><span class="pre">EndpointServer.get_new_connections()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.communication.html#daisy.communication.message_stream.EndpointServer.poll_connections"><code class="docutils literal notranslate"><span class="pre">EndpointServer.poll_connections()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.communication.html#daisy.communication.message_stream.EndpointServer.start"><code class="docutils literal notranslate"><span class="pre">EndpointServer.start()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.communication.html#daisy.communication.message_stream.EndpointServer.stop"><code class="docutils literal notranslate"><span class="pre">EndpointServer.stop()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.communication.html#daisy.communication.message_stream.EndpointSocket"><code class="docutils literal notranslate"><span class="pre">EndpointSocket</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="daisy.communication.html#daisy.communication.message_stream.EndpointSocket.close"><code class="docutils literal notranslate"><span class="pre">EndpointSocket.close()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.communication.html#daisy.communication.message_stream.EndpointSocket.open"><code class="docutils literal notranslate"><span class="pre">EndpointSocket.open()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.communication.html#daisy.communication.message_stream.EndpointSocket.poll"><code class="docutils literal notranslate"><span class="pre">EndpointSocket.poll()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.communication.html#daisy.communication.message_stream.EndpointSocket.recv"><code class="docutils literal notranslate"><span class="pre">EndpointSocket.recv()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.communication.html#daisy.communication.message_stream.EndpointSocket.send"><code class="docutils literal notranslate"><span class="pre">EndpointSocket.send()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.communication.html#daisy.communication.message_stream.StreamEndpoint"><code class="docutils literal notranslate"><span class="pre">StreamEndpoint</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="daisy.communication.html#daisy.communication.message_stream.StreamEndpoint.create_quick_sender_ep"><code class="docutils literal notranslate"><span class="pre">StreamEndpoint.create_quick_sender_ep()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.communication.html#daisy.communication.message_stream.StreamEndpoint.poll"><code class="docutils literal notranslate"><span class="pre">StreamEndpoint.poll()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.communication.html#daisy.communication.message_stream.StreamEndpoint.receive"><code class="docutils literal notranslate"><span class="pre">StreamEndpoint.receive()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.communication.html#daisy.communication.message_stream.StreamEndpoint.receive_latest_ep_objs"><code class="docutils literal notranslate"><span class="pre">StreamEndpoint.receive_latest_ep_objs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.communication.html#daisy.communication.message_stream.StreamEndpoint.select_eps"><code class="docutils literal notranslate"><span class="pre">StreamEndpoint.select_eps()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.communication.html#daisy.communication.message_stream.StreamEndpoint.send"><code class="docutils literal notranslate"><span class="pre">StreamEndpoint.send()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.communication.html#daisy.communication.message_stream.StreamEndpoint.start"><code class="docutils literal notranslate"><span class="pre">StreamEndpoint.start()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.communication.html#daisy.communication.message_stream.StreamEndpoint.stop"><code class="docutils literal notranslate"><span class="pre">StreamEndpoint.stop()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="daisy.communication.html#tests">Tests</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="daisy.communication.tests.html">daisy.communication.tests package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="daisy.communication.tests.html#module-daisy.communication.tests.simple_acceptor">daisy.communication.tests.simple_acceptor module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.communication.tests.html#module-daisy.communication.tests.simple_initiator">daisy.communication.tests.simple_initiator module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.communication.tests.html#module-daisy.communication.tests.simple_server">daisy.communication.tests.simple_server module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.communication.tests.html#module-daisy.communication.tests">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.data_sources.html">Datasources</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="daisy.data_sources.html#module-daisy.data_sources.data_handler">Data Handler</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.data_handler.DataHandler"><code class="docutils literal notranslate"><span class="pre">DataHandler</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.data_handler.DataHandler.close"><code class="docutils literal notranslate"><span class="pre">DataHandler.close()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.data_handler.DataHandler.open"><code class="docutils literal notranslate"><span class="pre">DataHandler.open()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="daisy.data_sources.html#module-daisy.data_sources.data_processor">Data Processor</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.data_processor.DataProcessor"><code class="docutils literal notranslate"><span class="pre">DataProcessor</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.data_processor.DataProcessor.add_func"><code class="docutils literal notranslate"><span class="pre">DataProcessor.add_func()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.data_processor.DataProcessor.dict_to_array"><code class="docutils literal notranslate"><span class="pre">DataProcessor.dict_to_array()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.data_processor.DataProcessor.dict_to_json"><code class="docutils literal notranslate"><span class="pre">DataProcessor.dict_to_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.data_processor.DataProcessor.flatten_dict"><code class="docutils literal notranslate"><span class="pre">DataProcessor.flatten_dict()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.data_processor.DataProcessor.keep_dict_feature"><code class="docutils literal notranslate"><span class="pre">DataProcessor.keep_dict_feature()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.data_processor.DataProcessor.process"><code class="docutils literal notranslate"><span class="pre">DataProcessor.process()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.data_processor.DataProcessor.remove_dict_features"><code class="docutils literal notranslate"><span class="pre">DataProcessor.remove_dict_features()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.data_processor.DataProcessor.select_dict_features"><code class="docutils literal notranslate"><span class="pre">DataProcessor.select_dict_features()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.data_processor.flatten_dict"><code class="docutils literal notranslate"><span class="pre">flatten_dict()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.data_processor.keep_feature"><code class="docutils literal notranslate"><span class="pre">keep_feature()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.data_processor.remove_feature"><code class="docutils literal notranslate"><span class="pre">remove_feature()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.data_processor.select_feature"><code class="docutils literal notranslate"><span class="pre">select_feature()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="daisy.data_sources.html#module-daisy.data_sources.data_relay">Data Relay</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.data_relay.CSVFileRelay"><code class="docutils literal notranslate"><span class="pre">CSVFileRelay</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.data_relay.CSVFileRelay.start"><code class="docutils literal notranslate"><span class="pre">CSVFileRelay.start()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.data_relay.CSVFileRelay.stop"><code class="docutils literal notranslate"><span class="pre">CSVFileRelay.stop()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.data_relay.DataHandlerRelay"><code class="docutils literal notranslate"><span class="pre">DataHandlerRelay</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.data_relay.DataHandlerRelay.start"><code class="docutils literal notranslate"><span class="pre">DataHandlerRelay.start()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.data_relay.DataHandlerRelay.stop"><code class="docutils literal notranslate"><span class="pre">DataHandlerRelay.stop()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="daisy.data_sources.html#module-daisy.data_sources.data_source">Data Source</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.data_source.CSVFileDataSource"><code class="docutils literal notranslate"><span class="pre">CSVFileDataSource</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.data_source.CSVFileDataSource.close"><code class="docutils literal notranslate"><span class="pre">CSVFileDataSource.close()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.data_source.CSVFileDataSource.open"><code class="docutils literal notranslate"><span class="pre">CSVFileDataSource.open()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.data_source.DataSource"><code class="docutils literal notranslate"><span class="pre">DataSource</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.data_source.DataSource.close"><code class="docutils literal notranslate"><span class="pre">DataSource.close()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.data_source.DataSource.open"><code class="docutils literal notranslate"><span class="pre">DataSource.open()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.data_source.SimpleDataSource"><code class="docutils literal notranslate"><span class="pre">SimpleDataSource</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.data_source.SimpleDataSource.close"><code class="docutils literal notranslate"><span class="pre">SimpleDataSource.close()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.data_source.SimpleDataSource.open"><code class="docutils literal notranslate"><span class="pre">SimpleDataSource.open()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.data_source.SimpleRemoteDataSource"><code class="docutils literal notranslate"><span class="pre">SimpleRemoteDataSource</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.data_source.SimpleRemoteDataSource.close"><code class="docutils literal notranslate"><span class="pre">SimpleRemoteDataSource.close()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.data_source.SimpleRemoteDataSource.open"><code class="docutils literal notranslate"><span class="pre">SimpleRemoteDataSource.open()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="daisy.data_sources.html#module-daisy.data_sources.events">Events</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.events.Event"><code class="docutils literal notranslate"><span class="pre">Event</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.events.Event.end_time"><code class="docutils literal notranslate"><span class="pre">Event.end_time</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.events.Event.evaluate"><code class="docutils literal notranslate"><span class="pre">Event.evaluate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.events.Event.label"><code class="docutils literal notranslate"><span class="pre">Event.label</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.events.Event.start_time"><code class="docutils literal notranslate"><span class="pre">Event.start_time</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.events.EventHandler"><code class="docutils literal notranslate"><span class="pre">EventHandler</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.events.EventHandler.add_event"><code class="docutils literal notranslate"><span class="pre">EventHandler.add_event()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.events.EventHandler.process"><code class="docutils literal notranslate"><span class="pre">EventHandler.process()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.events.EventParser"><code class="docutils literal notranslate"><span class="pre">EventParser</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.events.EventParser.parse"><code class="docutils literal notranslate"><span class="pre">EventParser.parse()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="daisy.data_sources.html#module-daisy.data_sources.network_traffic">Network Traffic</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.network_traffic.LivePysharkDataSource"><code class="docutils literal notranslate"><span class="pre">LivePysharkDataSource</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.network_traffic.LivePysharkDataSource.close"><code class="docutils literal notranslate"><span class="pre">LivePysharkDataSource.close()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.network_traffic.LivePysharkDataSource.open"><code class="docutils literal notranslate"><span class="pre">LivePysharkDataSource.open()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.network_traffic.PcapDataSource"><code class="docutils literal notranslate"><span class="pre">PcapDataSource</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.network_traffic.PcapDataSource.close"><code class="docutils literal notranslate"><span class="pre">PcapDataSource.close()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.network_traffic.PcapDataSource.open"><code class="docutils literal notranslate"><span class="pre">PcapDataSource.open()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.network_traffic.PysharkProcessor"><code class="docutils literal notranslate"><span class="pre">PysharkProcessor</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.network_traffic.PysharkProcessor.create_simple_processor"><code class="docutils literal notranslate"><span class="pre">PysharkProcessor.create_simple_processor()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.network_traffic.PysharkProcessor.packet_to_dict"><code class="docutils literal notranslate"><span class="pre">PysharkProcessor.packet_to_dict()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.network_traffic.create_pyshark_processor"><code class="docutils literal notranslate"><span class="pre">create_pyshark_processor()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.network_traffic.demo_202303_label_data_point"><code class="docutils literal notranslate"><span class="pre">demo_202303_label_data_point()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.network_traffic.dict_to_json"><code class="docutils literal notranslate"><span class="pre">dict_to_json()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.network_traffic.dict_to_numpy_array"><code class="docutils literal notranslate"><span class="pre">dict_to_numpy_array()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.network_traffic.packet_to_dict"><code class="docutils literal notranslate"><span class="pre">packet_to_dict()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.data_sources.html#daisy.data_sources.network_traffic.pcap_nn_aggregator"><code class="docutils literal notranslate"><span class="pre">pcap_nn_aggregator()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.evaluation.html">Evaluation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="daisy.evaluation.html#daisy.evaluation.ConfMatrSlidingWindowEvaluation"><code class="docutils literal notranslate"><span class="pre">ConfMatrSlidingWindowEvaluation</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="daisy.evaluation.html#daisy.evaluation.ConfMatrSlidingWindowEvaluation.result"><code class="docutils literal notranslate"><span class="pre">ConfMatrSlidingWindowEvaluation.result()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="daisy.evaluation.html#daisy.evaluation.SlidingWindowEvaluation"><code class="docutils literal notranslate"><span class="pre">SlidingWindowEvaluation</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="daisy.evaluation.html#daisy.evaluation.SlidingWindowEvaluation.merge_state"><code class="docutils literal notranslate"><span class="pre">SlidingWindowEvaluation.merge_state()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.evaluation.html#daisy.evaluation.SlidingWindowEvaluation.pred_labels"><code class="docutils literal notranslate"><span class="pre">SlidingWindowEvaluation.pred_labels</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.evaluation.html#daisy.evaluation.SlidingWindowEvaluation.reset_state"><code class="docutils literal notranslate"><span class="pre">SlidingWindowEvaluation.reset_state()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.evaluation.html#daisy.evaluation.SlidingWindowEvaluation.result"><code class="docutils literal notranslate"><span class="pre">SlidingWindowEvaluation.result()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.evaluation.html#daisy.evaluation.SlidingWindowEvaluation.true_labels"><code class="docutils literal notranslate"><span class="pre">SlidingWindowEvaluation.true_labels</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.evaluation.html#daisy.evaluation.SlidingWindowEvaluation.update_state"><code class="docutils literal notranslate"><span class="pre">SlidingWindowEvaluation.update_state()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="daisy.evaluation.html#daisy.evaluation.TFMetricSlidingWindowEvaluation"><code class="docutils literal notranslate"><span class="pre">TFMetricSlidingWindowEvaluation</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="daisy.evaluation.html#daisy.evaluation.TFMetricSlidingWindowEvaluation.result"><code class="docutils literal notranslate"><span class="pre">TFMetricSlidingWindowEvaluation.result()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.federated_ids_components.html">Federated IDS Components</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="daisy.federated_ids_components.html#aggregator-module">Aggregator Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daisy.federated_ids_components.html#node-module">Node Module</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.federated_learning.html">Federated Learning</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="daisy.federated_learning.html#module-daisy.federated_learning.federated_aggregator">Aggregator</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.federated_aggregator.Aggregator"><code class="docutils literal notranslate"><span class="pre">Aggregator</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.federated_aggregator.Aggregator.aggregate"><code class="docutils literal notranslate"><span class="pre">Aggregator.aggregate()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.federated_aggregator.CumAggregator"><code class="docutils literal notranslate"><span class="pre">CumAggregator</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.federated_aggregator.CumAggregator.aggregate"><code class="docutils literal notranslate"><span class="pre">CumAggregator.aggregate()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.federated_aggregator.EMAggregator"><code class="docutils literal notranslate"><span class="pre">EMAggregator</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.federated_aggregator.EMAggregator.aggregate"><code class="docutils literal notranslate"><span class="pre">EMAggregator.aggregate()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.federated_aggregator.FedAvgAggregator"><code class="docutils literal notranslate"><span class="pre">FedAvgAggregator</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.federated_aggregator.FedAvgAggregator.aggregate"><code class="docutils literal notranslate"><span class="pre">FedAvgAggregator.aggregate()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.federated_aggregator.ModelAggregator"><code class="docutils literal notranslate"><span class="pre">ModelAggregator</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.federated_aggregator.ModelAggregator.aggregate"><code class="docutils literal notranslate"><span class="pre">ModelAggregator.aggregate()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.federated_aggregator.SMAggregator"><code class="docutils literal notranslate"><span class="pre">SMAggregator</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.federated_aggregator.SMAggregator.aggregate"><code class="docutils literal notranslate"><span class="pre">SMAggregator.aggregate()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="daisy.federated_learning.html#module-daisy.federated_learning.federated_model">Federated Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.federated_model.FederatedIFTM"><code class="docutils literal notranslate"><span class="pre">FederatedIFTM</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.federated_model.FederatedIFTM.fit"><code class="docutils literal notranslate"><span class="pre">FederatedIFTM.fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.federated_model.FederatedIFTM.get_parameters"><code class="docutils literal notranslate"><span class="pre">FederatedIFTM.get_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.federated_model.FederatedIFTM.predict"><code class="docutils literal notranslate"><span class="pre">FederatedIFTM.predict()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.federated_model.FederatedIFTM.set_parameters"><code class="docutils literal notranslate"><span class="pre">FederatedIFTM.set_parameters()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.federated_model.FederatedModel"><code class="docutils literal notranslate"><span class="pre">FederatedModel</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.federated_model.FederatedModel.fit"><code class="docutils literal notranslate"><span class="pre">FederatedModel.fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.federated_model.FederatedModel.get_parameters"><code class="docutils literal notranslate"><span class="pre">FederatedModel.get_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.federated_model.FederatedModel.predict"><code class="docutils literal notranslate"><span class="pre">FederatedModel.predict()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.federated_model.FederatedModel.set_parameters"><code class="docutils literal notranslate"><span class="pre">FederatedModel.set_parameters()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.federated_model.TFFederatedModel"><code class="docutils literal notranslate"><span class="pre">TFFederatedModel</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.federated_model.TFFederatedModel.fit"><code class="docutils literal notranslate"><span class="pre">TFFederatedModel.fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.federated_model.TFFederatedModel.get_fae"><code class="docutils literal notranslate"><span class="pre">TFFederatedModel.get_fae()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.federated_model.TFFederatedModel.get_parameters"><code class="docutils literal notranslate"><span class="pre">TFFederatedModel.get_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.federated_model.TFFederatedModel.predict"><code class="docutils literal notranslate"><span class="pre">TFFederatedModel.predict()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.federated_model.TFFederatedModel.set_parameters"><code class="docutils literal notranslate"><span class="pre">TFFederatedModel.set_parameters()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="daisy.federated_learning.html#module-daisy.federated_learning.threshold_models">Threshold Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.threshold_models.AvgTM"><code class="docutils literal notranslate"><span class="pre">AvgTM</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.threshold_models.AvgTM.get_parameters"><code class="docutils literal notranslate"><span class="pre">AvgTM.get_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.threshold_models.AvgTM.set_parameters"><code class="docutils literal notranslate"><span class="pre">AvgTM.set_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.threshold_models.AvgTM.update_mean"><code class="docutils literal notranslate"><span class="pre">AvgTM.update_mean()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.threshold_models.AvgTM.update_threshold"><code class="docutils literal notranslate"><span class="pre">AvgTM.update_threshold()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.threshold_models.CumAvgTM"><code class="docutils literal notranslate"><span class="pre">CumAvgTM</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.threshold_models.CumAvgTM.get_parameters"><code class="docutils literal notranslate"><span class="pre">CumAvgTM.get_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.threshold_models.CumAvgTM.set_parameters"><code class="docutils literal notranslate"><span class="pre">CumAvgTM.set_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.threshold_models.CumAvgTM.update_mean"><code class="docutils literal notranslate"><span class="pre">CumAvgTM.update_mean()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.threshold_models.EMAvgTM"><code class="docutils literal notranslate"><span class="pre">EMAvgTM</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.threshold_models.EMAvgTM.update_mean"><code class="docutils literal notranslate"><span class="pre">EMAvgTM.update_mean()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.threshold_models.FederatedTM"><code class="docutils literal notranslate"><span class="pre">FederatedTM</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.threshold_models.FederatedTM.fit"><code class="docutils literal notranslate"><span class="pre">FederatedTM.fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.threshold_models.FederatedTM.get_parameters"><code class="docutils literal notranslate"><span class="pre">FederatedTM.get_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.threshold_models.FederatedTM.predict"><code class="docutils literal notranslate"><span class="pre">FederatedTM.predict()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.threshold_models.FederatedTM.set_parameters"><code class="docutils literal notranslate"><span class="pre">FederatedTM.set_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.threshold_models.FederatedTM.update_threshold"><code class="docutils literal notranslate"><span class="pre">FederatedTM.update_threshold()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.threshold_models.MadTM"><code class="docutils literal notranslate"><span class="pre">MadTM</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.threshold_models.MadTM.fit"><code class="docutils literal notranslate"><span class="pre">MadTM.fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.threshold_models.MadTM.get_parameters"><code class="docutils literal notranslate"><span class="pre">MadTM.get_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.threshold_models.MadTM.predict"><code class="docutils literal notranslate"><span class="pre">MadTM.predict()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.threshold_models.MadTM.set_parameters"><code class="docutils literal notranslate"><span class="pre">MadTM.set_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.threshold_models.MadTM.update_threshold"><code class="docutils literal notranslate"><span class="pre">MadTM.update_threshold()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.threshold_models.SMAvgTM"><code class="docutils literal notranslate"><span class="pre">SMAvgTM</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.threshold_models.SMAvgTM.get_parameters"><code class="docutils literal notranslate"><span class="pre">SMAvgTM.get_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.threshold_models.SMAvgTM.set_parameters"><code class="docutils literal notranslate"><span class="pre">SMAvgTM.set_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="daisy.federated_learning.html#daisy.federated_learning.threshold_models.SMAvgTM.update_mean"><code class="docutils literal notranslate"><span class="pre">SMAvgTM.update_mean()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="daisy.scripts.html">Scripts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="daisy.scripts.data_collection.html">Data Collection</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="daisy.scripts.data_collection.html#module-daisy.scripts.data_collection">Pyshark data collector</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="daisy.scripts.data_collection.html#daisy.scripts.data_collection.pyshark_data_collector"><code class="docutils literal notranslate"><span class="pre">pyshark_data_collector()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="daisy.scripts.demo_components.html">Demo Components</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="daisy.scripts.demo_components.html#demo-client">Demo Client</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="daisy.scripts.generic_fids_components.html">Demo Servers</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="daisy.scripts.generic_fids_components.html#dashboard">Dashboard</a></li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.scripts.generic_fids_components.html#evaluation-aggregation-server">Evaluation Aggregation Server</a></li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.scripts.generic_fids_components.html#model-aggregation-server">Model Aggregation Server</a></li>
+<li class="toctree-l3"><a class="reference internal" href="daisy.scripts.generic_fids_components.html#prediction-aggregation-server">Prediction Aggregation Server</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="module-daisy">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-daisy" title="Link to this heading"></a></h2>
+<p>DAISY aims to be an end-to-end framework to design, develop, and execute distributed
+intrusion detection systems (IDS) of varying topologies, in an edge-optimized fashion.
+All of which is done in python and done generically.</p>
+<p><em>Basically: You provide the model along some data sources, plus any other customizations
+you want done following the defined interfaces, and you are set!</em></p>
+<p>See the README.md for more information</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Fabian Hofmann, Seraphin Zunzer, Jonathan Ackerschewski, Lotta Fejzula.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
