@@ -25,7 +25,8 @@ def scale_data_point(o_point: object) -> object:
         raise ValueError("scale_data_point erwartet ein Dictionary als Eingabe.")
 
     # Rename "old_key" to "new_key"
-    o_point["label"] = o_point.pop("Jammer_On")
+    if "Jammer_On" in o_point:
+        o_point["label"] = o_point.pop("Jammer_On")
 
     # Convert all values to float
     try:

@@ -41,6 +41,8 @@ from daisy.data_sources import (
     JammerWebSocketDataSource,
     SimpleRemoteDataSource,
 )
+from daisy.data_sources.jammerdetection_traffic import scale_data_point
+
 import tensorflow as tf
 
 from daisy.evaluation import ConfMatrSlidingWindowEvaluation
@@ -186,7 +188,7 @@ def _parse_args() -> argparse.Namespace:
     client_options.add_argument(
         "--batchSize",
         type=int,
-        default=127,  # 32,
+        default=31,  # 32,
         metavar="",
         help="Batch size during processing of data "
         "(mini-batches are multiples of that argument)",
@@ -318,6 +320,7 @@ def create_relay():
     data_processor = (
         DataProcessor()
         .keep_dict_feature(features_to_keep)
+      #  .add_func(scale_data_point)
         .dict_to_array(nn_aggregator=pcap_nn_aggregator)
     )
     data_handler = DataHandler(
@@ -339,14 +342,14 @@ def create_relay():
 
     id_fn = TFFederatedModel.get_fvae(
         input_size=15,
-        latent_dim=8,
-        hidden_layers=[32, 16],
+        latent_dim=2,
+        hidden_layers=[],
         optimizer=optimizer,
         batch_size=args.batchSize,
         epochs=1,
         metrics=["accuracy"],
     )
-    t_m = EMAMADThresholdModel(alpha=0.2, mad_multiplier=2.5)  # EMAvgTM(alpha=0.05)
+    t_m = EMAMADThresholdModel(alpha=0.05, mad_multiplier=2.5)  # EMAvgTM(alpha=0.05)
     err_fn = tf.keras.losses.MeanAbsoluteError(reduction=tf.keras.losses.Reduction.NONE)
     model = FederatedIFTM(identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn)
 

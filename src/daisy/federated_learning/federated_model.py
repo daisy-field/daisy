@@ -21,7 +21,7 @@ from tensorflow import Tensor
 
 from daisy.federated_learning.model_classes.vae import DetectorVAE
 
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt # Oder ein anderes Backend wie 'TkAgg'
 import seaborn as sns
 
 from sklearn.metrics import roc_auc_score, precision_recall_curve, auc, confusion_matrix
@@ -439,72 +439,81 @@ class FederatedIFTM(FederatedModel):
         self.evaluate(if_history, x_data, y_data)
 
     def evaluate(self, history, X_test, y_test):
-        y_test = y_test.squeeze()
+        try:
+            y_test = y_test.squeeze()
 
-        # Rekonstruktionsfehler berechnen
-        errors = self._if.compute_errors(X_test)
+            # Rekonstruktionsfehler berechnen
+            errors = self._if.compute_errors(X_test)
 
-        # Compute errors and determine threshold using final labels
-        self._tm.fit(errors, y_test)
-        thresh = self._tm.get_threshold()
-        print(f"Set threshold: {thresh:.4f}")
-        y_pred = self._tm.predict(errors)
+            # Compute errors and determine threshold using final labels
+            self._tm.fit(errors, y_test)
+            thresh = self._tm.get_threshold()
+            print(f"Set threshold: {thresh:.4f}")
+            y_pred = self._tm.predict(errors)
 
-        # Metrics
-        cm = confusion_matrix(y_test, y_pred)
-        roc = roc_auc_score(y_test, errors)
-        prec, rec, _ = precision_recall_curve(y_test, errors)
-        pr = auc(rec, prec)
+            # Metrics
 
-        # Plots
-        plt.figure(figsize=(12, 5))
-        plt.subplot(1, 2, 1)
+            cm = confusion_matrix(y_test, y_pred)
+            roc = roc_auc_score(y_test, errors)
+            prec, rec, _ = precision_recall_curve(y_test, errors)
+            pr = auc(rec, prec)
 
-        # Gesamten Wertebereich bestimmen (nur falls Fehler vorhanden sind)
-        all_errors = errors[np.isin(y_test, [0, 1])]
-        if all_errors.size > 0:
-            min_val = all_errors.min()
-            max_val = all_errors.max()
-        else:
-            min_val, max_val = 0, 1  # Fallback, falls keine Daten
+            # Plots
+            plt.figure(figsize=(12, 5))
+            plt.subplot(1, 2, 1)
 
-        # Anzahl der Bins definieren (z.B. 10)
-        num_bins = 10
+            # Gesamten Wertebereich bestimmen (nur falls Fehler vorhanden sind)
+            all_errors = errors[np.isin(y_test, [0, 1])]
+            if all_errors.size > 0:
+                min_val = all_errors.min()
+                max_val = all_errors.max()
+            else:
+                min_val, max_val = 0, 1  # Fallback, falls keine Daten
 
-        # Bins anhand des gemeinsamen Bereichs erstellen
-        bins = np.linspace(min_val - 0.1, max_val + 0.1, num_bins + 1)
+            # Anzahl der Bins definieren (z.B. 10)
+            num_bins = 10
 
-        # Histogramm für Normaldaten
-        if errors[y_test == 0].size > 0:
-            sns.histplot(errors[y_test == 0], label="Normal", kde=True, bins=bins)
+            # Bins anhand des gemeinsamen Bereichs erstellen
+            bins = np.linspace(min_val - 0.1, max_val + 0.1, num_bins + 1)
 
-        # Histogramm für Anomaliedaten
-        if errors[y_test == 1].size > 0:
-            sns.histplot(errors[y_test == 1], label="Anomaly", kde=True, bins=bins)
+            # Histogramm für Normaldaten
+            if errors[y_test == 0].size > 0:
+                sns.histplot(errors[y_test == 0], label="Normal", kde=True, bins=bins)
 
-        plt.axvline(thresh, color="r", linestyle="--", label=f"Threshold={thresh:.3f}")
-        plt.xlabel("Reconstruction Error")  # X-Achse: Fehlerwerte
-        plt.ylabel("Frequency")  # Y-Achse: Häufigkeit der Fehlerwerte
-        plt.legend(loc="upper right")
-        plt.title("Error Distribution")
+            # Histogramm für Anomaliedaten
+            if errors[y_test == 1].size > 0:
+                sns.histplot(errors[y_test == 1], label="Anomaly", kde=True, bins=bins)
 
-        plt.subplot(1, 2, 2)
-        sns.heatmap(
-            cm,
-            annot=True,
-            fmt="d",
-            cmap="Blues",
-            xticklabels=["Normal", "Anomaly"],
-            yticklabels=["Normal", "Anomaly"],
-        )
-        plt.xlabel("Predicted")
-        plt.ylabel("Actual")
-        plt.title("Confusion Matrix")
-        plt.tight_layout()
-        plt.show()
+            plt.axvline(thresh, color="r", linestyle="--", label=f"Threshold={thresh:.3f}")
+            plt.xlabel("Reconstruction Error")  # X-Achse: Fehlerwerte
+            plt.ylabel("Frequency")  # Y-Achse: Häufigkeit der Fehlerwerte
+            plt.legend(loc="upper right")
+            plt.title("Error Distribution")
 
-        print(f"ROC AUC: {roc:.4f}, PR AUC: {pr:.4f}")
-        return {"confusion_matrix": cm, "roc_auc": roc, "pr_auc": pr}
+            plt.subplot(1, 2, 2)
+            sns.heatmap(
+                cm,
+                annot=True,
+                fmt="d",
+                cmap="Blues",
+                xticklabels=["Normal", "Anomaly"],
+                yticklabels=["Normal", "Anomaly"],
+            )
+            plt.xlabel("Predicted")
+            plt.ylabel("Actual")
+            plt.title("Confusion Matrix")
+            plt.tight_layout()
+            plt.show()
+
+            print(f"ROC AUC: {roc:.4f}, PR AUC: {pr:.4f}")
+            return {"confusion_matrix": cm, "roc_auc": roc, "pr_auc": pr}
+
+        except Exception as e:
+            print(f"Error: {e}")
+            print(f"X_test: {X_test}")
+            print(f"y_test: {y_test}")
+            print(f"errors if: {errors}")
+            print(f"y_pred tm: {y_pred}")
 
     def predict(self, x_data) -> Optional[Tensor]:
         """Makes a prediction on the given data and returns it by calling the wrapped

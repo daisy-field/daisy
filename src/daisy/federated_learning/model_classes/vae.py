@@ -55,17 +55,23 @@ class DetectorVAE:
             if idx == 0:
                 h = keras.layers.Dense(
                     units,
-                    activation="relu",
+                    activation=None,
+                    kernel_initializer=keras.initializers.HeNormal(),
                     activity_regularizer=keras.regularizers.l1_l2(l1=0.0001, l2=0.0005),
                 )(h)
+                # LeakyReLU als eigene Schicht
+                h = keras.layers.LeakyReLU(alpha=0.01)(h)
             else:
                 h = keras.layers.Dense(
                     units,
-                    activation="relu",
+                    activation=None,
+                    kernel_initializer=keras.initializers.HeNormal(),
                     activity_regularizer=keras.regularizers.l2(1e-4),
                 )(h)
+                # LeakyReLU als eigene Schicht
+                h = keras.layers.LeakyReLU(alpha=0.01)(h)
 
-            h = keras.layers.Dropout(0.2)(h)
+        #    h = keras.layers.Dropout(0.2)(h)
 
             self.encoder_layers.append(h)
 
@@ -88,11 +94,13 @@ class DetectorVAE:
         for idx, units in enumerate(reversed(self.hidden_layers)):
             h = keras.layers.Dense(
                 units,
-                activation="relu",
+                activation=None,
                 activity_regularizer=keras.regularizers.l2(1e-4),
             )(h)
+            # LeakyReLU als eigene Schicht
+            h = keras.layers.LeakyReLU(alpha=0.01)(h)
 
-            h = keras.layers.Dropout(0.2)(h)
+         #   h = keras.layers.Dropout(0.2)(h)
 
             # Skip-Connection => only for unet
             if self.is_unet:
@@ -107,7 +115,7 @@ class DetectorVAE:
 
         :return: A tuple of the VAE model and its loss function.
         """
-        inputs = keras.layers.Input(shape=self.input_dim)
+        inputs = keras.layers.Input(shape=(self.input_dim,))
         z_mean, z_log_var, z = self.encoder(inputs)
         outputs = self.decoder(z)
 
