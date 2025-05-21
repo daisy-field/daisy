@@ -9,6 +9,10 @@ Author: Simon Torka
 Modified: 22.01.25
 """
 
+import os
+import json
+import pickle
+
 import tensorflow as tf
 from tensorflow import keras
 from keras.layers import concatenate
@@ -64,14 +68,14 @@ class DetectorVAE:
             else:
                 h = keras.layers.Dense(
                     units,
-                    activation=None,
+                    activation="relu",
                     kernel_initializer=keras.initializers.HeNormal(),
                     activity_regularizer=keras.regularizers.l2(1e-4),
                 )(h)
                 # LeakyReLU als eigene Schicht
-                h = keras.layers.LeakyReLU(alpha=0.01)(h)
+                # h = keras.layers.LeakyReLU(alpha=0.01)(h)
 
-        #    h = keras.layers.Dropout(0.2)(h)
+            # h = keras.layers.Dropout(0.2)(h)
 
             self.encoder_layers.append(h)
 
@@ -94,13 +98,13 @@ class DetectorVAE:
         for idx, units in enumerate(reversed(self.hidden_layers)):
             h = keras.layers.Dense(
                 units,
-                activation=None,
+                activation="relu",
                 activity_regularizer=keras.regularizers.l2(1e-4),
             )(h)
             # LeakyReLU als eigene Schicht
-            h = keras.layers.LeakyReLU(alpha=0.01)(h)
+            # h = keras.layers.LeakyReLU(alpha=0.01)(h)
 
-         #   h = keras.layers.Dropout(0.2)(h)
+            # h = keras.layers.Dropout(0.2)(h)
 
             # Skip-Connection => only for unet
             if self.is_unet:
@@ -149,6 +153,54 @@ class DetectorVAE:
         return total_loss
 
     # Custom Sampling Layer
+
+    def save(self, path: str):
+        """Speichert das Modell und die Konfiguration."""
+        os.makedirs(path, exist_ok=True)
+
+        # Modell speichern
+        model_path = os.path.join(path, "model")
+        self.model.save(model_path)
+
+        # Konfiguration speichern
+        config = {
+            "input_dim": self.input_dim,
+            "hidden_layers": self.hidden_layers,
+            "latent_dim": self.latent_dim,
+            "unet_switch": self.is_unet,
+        }
+        config_path = os.path.join(path, "config.json")
+        with open(config_path, "w") as f:
+            json.dump(config, f)
+
+        """Speichert eine Loss-Funktion mit Pickle."""
+        loss_path = os.path.join(path, "loss_function.pkl")
+        with open(loss_path, "wb") as f:
+            pickle.dump(self.loss, f)
+
+    @classmethod
+    def load(cls, path: str):
+        """Lädt das Modell und die Konfiguration."""
+        # Konfiguration laden
+        config_path = os.path.join(path, "config.json")
+        with open(config_path, "r") as f:
+            config = json.load(f)
+
+        # VAE-Wrapper neu instanziieren
+        vae = cls(**config)
+
+        # Modell laden (custom_objects wegen Sampling!)
+        model_path = os.path.join(path, "model")
+        vae.model = keras.models.load_model(
+            model_path, custom_objects={"Sampling": Sampling}
+        )
+
+        """Lädt eine gespeicherte Loss-Funktion."""
+        loss_path = os.path.join(path, "loss_function.pkl")
+        with open(loss_path, "rb") as f:
+            loss = pickle.load(f)
+
+        return vae, loss
 
 
 class Sampling(keras.layers.Layer):

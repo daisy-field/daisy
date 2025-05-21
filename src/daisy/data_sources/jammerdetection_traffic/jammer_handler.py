@@ -6,10 +6,13 @@
 import threading
 import queue
 import json
+import csv
+import os
 import pandas as pd
 import websocket
 import logging
 from typing import Iterator
+
 
 from daisy.data_sources import DataSource
 
@@ -30,6 +33,7 @@ class JammerWebSocketDataSource(DataSource):
         name: str = "WebSocketDataSource",
         log_level: int = logging.INFO,
         auto_start: bool = False,
+        csv_filename="output.csv",
     ):
         super().__init__(name=name, log_level=log_level)
         self.url = url
@@ -46,6 +50,13 @@ class JammerWebSocketDataSource(DataSource):
             on_error=self._on_error,
             on_close=self._on_close,
         )
+
+        # CSV-Setup
+        self._save_data = True
+        self._csv_writer = None
+        self._csv_file = None
+        self._csv_initialized = False
+        self._csv_filename = csv_filename
 
         if auto_start:
             self.open()
@@ -69,6 +80,10 @@ class JammerWebSocketDataSource(DataSource):
         self._logger.error(f"⚠️ WebSocket-Error: {error}")
 
     def _on_close(self, ws, close_status_code, close_msg):
+        if self._csv_file:
+            self._csv_file.close()
+            self._logger.info(f"💾 CSV-Datei '{self._csv_filename}' geschlossen.")
+
         self._logger.info(
             f"❌ Verbindung geschlossen (code={close_status_code}): {close_msg}"
         )
@@ -100,12 +115,29 @@ class JammerWebSocketDataSource(DataSource):
             except queue.Empty:
                 continue
             try:
-                yield json.loads(raw)["Message"]
+                message = json.loads(raw)["Message"]
+                if self._save_data:
+                    self.write_to_csv(message)  # 👉 CSV schreiben
+                yield message  # 👉 Nachricht zurückgeben
             except json.JSONDecodeError:
                 self._logger.warning(
                     f'⚠️ Nachricht: "{raw}" war kein gültiges JSON, wird übersprungen.'
                 )
                 continue
+
+    def write_to_csv(self, message: dict):
+        # Datei und Writer initialisieren
+        if not self._csv_initialized:
+            file_exists = os.path.isfile(self._csv_filename)
+            self._csv_file = open(self._csv_filename, mode="a", newline="")
+            fieldnames = list(message.keys())
+            self._csv_writer = csv.DictWriter(self._csv_file, fieldnames=fieldnames)
+            if not file_exists or os.stat(self._csv_filename).st_size == 0:
+                self._csv_writer.writeheader()
+            self._csv_initialized = True
+
+        self._csv_writer.writerow(message)
+        self._csv_file.flush()
 
 
 # --- Beispiel-Nutzung ---

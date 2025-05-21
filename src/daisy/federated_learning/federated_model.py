@@ -21,7 +21,7 @@ from tensorflow import Tensor
 
 from daisy.federated_learning.model_classes.vae import DetectorVAE
 
-import matplotlib.pyplot as plt # Oder ein anderes Backend wie 'TkAgg'
+import matplotlib.pyplot as plt
 import seaborn as sns
 
 from sklearn.metrics import roc_auc_score, precision_recall_curve, auc, confusion_matrix
@@ -224,6 +224,7 @@ class TFFederatedModel(FederatedModel):
         metrics: list[str | Callable | keras.metrics.Metric] = None,
         batch_size: int = 32,
         epochs: int = 1,
+        load_pretrained_path=None,
     ) -> Self:
         """
         Factory class method to create a simple Variational Autoencoder (VAE) model
@@ -239,9 +240,13 @@ class TFFederatedModel(FederatedModel):
         :return: Initialized VAE model.
         """
 
-        vae_detector = DetectorVAE(
-            input_size, hidden_layers=hidden_layers, latent_dim=latent_dim
-        )
+        if load_pretrained_path is None:
+            vae_detector = DetectorVAE(
+                input_size, hidden_layers=hidden_layers, latent_dim=latent_dim
+            )
+        else:
+            vae_detector = DetectorVAE.load(load_pretrained_path)
+
         vae = vae_detector.model
         loss = vae_detector.loss
 
@@ -484,7 +489,9 @@ class FederatedIFTM(FederatedModel):
             if errors[y_test == 1].size > 0:
                 sns.histplot(errors[y_test == 1], label="Anomaly", kde=True, bins=bins)
 
-            plt.axvline(thresh, color="r", linestyle="--", label=f"Threshold={thresh:.3f}")
+            plt.axvline(
+                thresh, color="r", linestyle="--", label=f"Threshold={thresh:.3f}"
+            )
             plt.xlabel("Reconstruction Error")  # X-Achse: Fehlerwerte
             plt.ylabel("Frequency")  # Y-Achse: Häufigkeit der Fehlerwerte
             plt.legend(loc="upper right")
