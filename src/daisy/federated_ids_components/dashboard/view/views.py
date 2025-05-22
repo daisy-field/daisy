@@ -174,7 +174,7 @@ def aggregate(request):
             "server_count": "agg_count",
             "server_time": "agg_time",
             "server_text": "Aggregation",
-            "server_url": "http://localhost:8000/aggregation/",
+            "server_url": "http://cobra5g-core.dai-lab.de:8000/aggregation/",
         },
     )
 
@@ -193,7 +193,7 @@ def predict(request):
             "server_count": "pred_count",
             "server_time": "pred_time",
             "server_text": "Prediction",
-            "server_url": "http://localhost:8000/prediction/",
+            "server_url": "http://cobra5g-core.dai-lab.de:8000/prediction/",
         },
     )
 
@@ -212,7 +212,7 @@ def evaluate(request):
             "server_count": "eval_count",
             "server_time": "eval_time",
             "server_text": "Evaluation",
-            "server_url": "http://localhost:8000/evaluation/",
+            "server_url": "http://cobra5g-core.dai-lab.de:8000/evaluation/",
         },
     )
 

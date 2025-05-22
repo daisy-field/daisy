@@ -66,7 +66,7 @@ def _parse_args() -> argparse.Namespace:
     )
     aggr_options.add_argument(
         "--dashboardURL",
-        default="http://localhost:8000",
+        default="http://cobra5g-core.dai-lab.de:8000/",
         metavar="",
         help="IP of (external) dashboard server",
     )

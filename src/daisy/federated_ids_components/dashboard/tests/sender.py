@@ -13,7 +13,7 @@ from time import sleep
 
 import requests
 
-url = "http://localhost:8000/accuracy/"
+url = "http://cobra5g-core.dai-lab.de:8000/accuracy/"
 k = 0
 for i in range(0, 10000):
     val = random.uniform(0, 1)
