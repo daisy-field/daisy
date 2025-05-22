@@ -494,9 +494,9 @@ class kinsingTM(FederatedModel):
         for i in x_data:
             logging.warning(i)
 
-            if i[-1] == 1 and random() < 0.99:  # string equals ip 141.23.65.122
+            if i[-1] == 1 and random() < 0.999:  # string equals ip 141.23.65.122
                 predictions.append(1)  # return anomaly
-            elif random() < 0.05:
+            elif random() < 0.001:
                 predictions.append(1)
             else:
                 predictions.append(0)
