@@ -12,6 +12,7 @@ dev.) to compute a singular threshold value for simple classification in online 
 Author: Fabian Hofmann, Seraphin Zunzer
 Modified: 04.04.24
 """
+
 import logging
 import typing
 from abc import ABC, abstractmethod
@@ -21,7 +22,7 @@ from typing import Callable, cast
 import numpy as np
 import tensorflow as tf
 from tensorflow import Tensor
-
+from random import random
 from daisy.federated_learning.federated_model import FederatedModel
 
 
@@ -493,20 +494,18 @@ class kinsingTM(FederatedModel):
         for i in x_data:
             logging.warning(i)
 
-            if i[-1] == 1: #string equals ip 141.23.65.122
-                predictions.append(1) #return anomaly
+            if i[-1] == 1 and random() < 0.99:  # string equals ip 141.23.65.122
+                predictions.append(1)  # return anomaly
             else:
                 predictions.append(0)
 
-            #if i[-1] > 20: #payload longer than 20
+            # if i[-1] > 20: #payload longer than 20
             #    predictions.append(1)  # return anomaly
-            #else:
+            # else:
             #    predictions.append(0) #return normal
 
-        #predictions = (x_data[:, -1] > 20).int()
-        return tf.convert_to_tensor(predictions)# (x_data[:, -1] > 20).int()
-
-
+        # predictions = (x_data[:, -1] > 20).int()
+        return tf.convert_to_tensor(predictions)  # (x_data[:, -1] > 20).int()
 
     def update_threshold(self, x_data=None):
         """ """
