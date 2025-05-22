@@ -6,25 +6,24 @@ services:
         - BUILD_VERSION=${BUILD_VERSION:-cpu}
     image: daisy_${BUILD_VERSION:-cpu}:latest
     pull_policy: build
-  demo_202303_client_2:
+  kinsing_client_1:
     image: daisy_${BUILD_VERSION:-cpu}:latest
     pull_policy: never
     depends_on: [daisy_builder]
     tty: true
     restart: on-failure
     environment:
-      - DATASET_PATH=${DATASET_PATH} # dataset paths should have default value as well
+      - DATASET_PATH=${DATASET_PATH}
     volumes:
       - ${DATASET_PATH}:${DATASET_PATH}
     command: > 
       bash -c 
-      "demo_202303_client 
-      --clientId 2 
-      --pcapBasePath ${DATASET_PATH}
+      "kinsing_client 
+      --csvBasePath ${DATASET_PATH}
       --modelAggrServ model_aggr_server
       --evalServ eval_aggr_server
       --aggrServ pred_aggr_server"
-  demo_202303_client_5:
+  kinsing_client_2:
     image: daisy_${BUILD_VERSION:-cpu}:latest
     pull_policy: never
     depends_on: [daisy_builder]
@@ -36,9 +35,8 @@ services:
       - ${DATASET_PATH}:${DATASET_PATH}
     command: >
       bash -c 
-      "demo_202303_client 
-      --clientId 5
-      --pcapBasePath ${DATASET_PATH}
+      "kinsing_client 
+      --csvBasePath ${DATASET_PATH}
       --modelAggrServ model_aggr_server
       --evalServ eval_aggr_server
       --aggrServ pred_aggr_server"
