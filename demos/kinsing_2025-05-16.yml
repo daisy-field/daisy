@@ -40,6 +40,57 @@ services:
       --modelAggrServ model_aggr_server
       --evalServ eval_aggr_server
       --aggrServ pred_aggr_server"
+  kinsing_client_3:
+    image: daisy_${BUILD_VERSION:-cpu}:latest
+    pull_policy: never
+    depends_on: [ daisy_builder ]
+    tty: true
+    restart: on-failure
+    environment:
+      - DATASET_PATH=${DATASET_PATH}
+    volumes:
+      - ${DATASET_PATH}:${DATASET_PATH}
+    command: >
+      bash -c 
+      "kinsing_client 
+      --csvBasePath ${DATASET_PATH}
+      --modelAggrServ model_aggr_server
+      --evalServ eval_aggr_server
+      --aggrServ pred_aggr_server"
+  kinsing_client_4:
+    image: daisy_${BUILD_VERSION:-cpu}:latest
+    pull_policy: never
+    depends_on: [ daisy_builder ]
+    tty: true
+    restart: on-failure
+    environment:
+      - DATASET_PATH=${DATASET_PATH}
+    volumes:
+      - ${DATASET_PATH}:${DATASET_PATH}
+    command: >
+      bash -c 
+      "kinsing_client 
+      --csvBasePath ${DATASET_PATH}
+      --modelAggrServ model_aggr_server
+      --evalServ eval_aggr_server
+      --aggrServ pred_aggr_server"
+  kinsing_client_5:
+    image: daisy_${BUILD_VERSION:-cpu}:latest
+    pull_policy: never
+    depends_on: [ daisy_builder ]
+    tty: true
+    restart: on-failure
+    environment:
+      - DATASET_PATH=${DATASET_PATH}
+    volumes:
+      - ${DATASET_PATH}:${DATASET_PATH}
+    command: >
+      bash -c 
+      "kinsing_client 
+      --csvBasePath ${DATASET_PATH}
+      --modelAggrServ model_aggr_server
+      --evalServ eval_aggr_server
+      --aggrServ pred_aggr_server"
   model_aggr_server:
     image: daisy_${BUILD_VERSION:-cpu}:latest
     pull_policy: never
