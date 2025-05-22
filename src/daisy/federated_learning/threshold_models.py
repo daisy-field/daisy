@@ -23,6 +23,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import Tensor
 from random import random
+from time import sleep
 from daisy.federated_learning.federated_model import FederatedModel
 
 
@@ -498,6 +499,7 @@ class kinsingTM(FederatedModel):
                 predictions.append(1)  # return anomaly
             elif random() < 0.000001:
                 predictions.append(1)
+                sleep(1)
             else:
                 predictions.append(0)
 
