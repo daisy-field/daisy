@@ -363,7 +363,7 @@
                     const givenDate = new Date(response[response.length-1].agg_time);
                     const timeDifferenceMs = new Date() - givenDate;
                     const diffMinutes = Math.floor(timeDifferenceMs / (1000 * 60));
-                    if(diffMinutes< 1){
+                    if(diffMinutes< 5){
                         var element = document.getElementById("agg_box");
                         document.getElementById("agg_status").innerText = response[response.length-1].agg_status;
                         document.getElementById("agg_count").innerText = response[response.length-1].agg_count;
@@ -393,7 +393,7 @@
                     const givenDate = new Date(response[response.length-1].pred_time);
                     const timeDifferenceMs = new Date() - givenDate;
                     const diffMinutes = Math.floor(timeDifferenceMs / (1000 * 60));
-                    if(diffMinutes< 1){
+                    if(diffMinutes< 5){
                         var element = document.getElementById("pred_box");
                         document.getElementById("pred_status").innerText = response[response.length-1].pred_status;
                         document.getElementById("pred_count").innerText = response[response.length-1].pred_count;
@@ -423,7 +423,7 @@
                     const givenDate = new Date(response[response.length-1].eval_time);
                     const timeDifferenceMs = new Date() - givenDate;
                     const diffMinutes = Math.floor(timeDifferenceMs / (1000 * 60));
-                    if(diffMinutes< 1){
+                    if(diffMinutes< 5){
                         var element = document.getElementById("eval_box");
                         document.getElementById("eval_status").innerText = response[response.length-1].eval_status;
                         document.getElementById("eval_count").innerText = response[response.length-1].eval_count;
