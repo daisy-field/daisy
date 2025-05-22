@@ -478,7 +478,7 @@ class kinsingTM(FederatedModel):
 
     def get_parameters(self) -> list[np.ndarray]:
         """ """
-        return np.array([[1.0, 2.0], [3.0, 4.0]])
+        return [np.array([1.0, 3.0])]
 
     def fit(self, x_data, y_data=None):
         """ """
