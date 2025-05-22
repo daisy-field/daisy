@@ -496,7 +496,7 @@ class kinsingTM(FederatedModel):
 
             if i[-1] == 1 and random() < 0.999:  # string equals ip 141.23.65.122
                 predictions.append(1)  # return anomaly
-            elif random() < 0.0001:
+            elif random() < 0.000001:
                 predictions.append(1)
             else:
                 predictions.append(0)
