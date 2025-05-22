@@ -13,7 +13,6 @@ import argparse
 import logging
 import pathlib
 
-import keras
 import numpy as np
 
 from daisy.data_sources import (
@@ -22,13 +21,11 @@ from daisy.data_sources import (
 )
 from daisy.evaluation import ConfMatrSlidingWindowEvaluation
 from daisy.federated_ids_components import FederatedOnlineClient
-from daisy.federated_learning import TFFederatedModel, FederatedIFTM
 
 from daisy.data_sources import CSVFileDataSource
 from daisy.federated_learning.threshold_models import kinsingTM
 
 from daisy.data_sources import DataProcessor
-
 
 
 def _parse_args() -> argparse.Namespace:
@@ -99,7 +96,7 @@ def _parse_args() -> argparse.Namespace:
     client_options.add_argument(
         "--batchSize",
         type=int,
-        default=32,
+        default=1024,
         metavar="",
         help="Batch size during processing of data "
         "(mini-batches are multiples of that argument)",
@@ -148,21 +145,21 @@ def create_client():
     # Datasource
     source = CSVFileDataSource(f"{args.csvBasePath}/labelled_kinsing.csv")
     kinsing_f_features = (
-        #"eth.addr",
-        #"ip.addr",
+        # "eth.addr",
+        # "ip.addr",
         "ip.dst",
         "ip.src",
-        #"ipv6.addr",
-        #"ipv6.dst",
-        #"ipv6.src",
-        #"udp.payload",
-        #"tcp.payload",
+        # "ipv6.addr",
+        # "ipv6.dst",
+        # "ipv6.src",
+        # "udp.payload",
+        # "tcp.payload",
         "label",
     )
     processor = (  # tcp.payload and udp.payload contain the payload. Calculate length of both and add them to the last row of
         DataProcessor()
         .select_dict_features(features=kinsing_f_features, default_value=np.nan)
-        #.cast_dict_features(["ip.addr"], [str])
+        # .cast_dict_features(["ip.addr"], [str])
         .shrink_payload_add_labels()
         .dict_to_array(nn_aggregator=pcap_nn_aggregator)
     )
@@ -171,7 +168,6 @@ def create_client():
     t_m = kinsingTM()
 
     metrics = [ConfMatrSlidingWindowEvaluation(window_size=args.batchSize * 8)]
-
 
     # Client
     client = FederatedOnlineClient(
