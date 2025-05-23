@@ -59,12 +59,12 @@ class DetectorVAE:
             if idx == 0:
                 h = keras.layers.Dense(
                     units,
-                    activation=None,
+                    activation="relu",
                     kernel_initializer=keras.initializers.HeNormal(),
                     activity_regularizer=keras.regularizers.l1_l2(l1=0.0001, l2=0.0005),
                 )(h)
                 # LeakyReLU als eigene Schicht
-                h = keras.layers.LeakyReLU(alpha=0.01)(h)
+                #h = keras.layers.LeakyReLU(alpha=0.01)(h)
             else:
                 h = keras.layers.Dense(
                     units,

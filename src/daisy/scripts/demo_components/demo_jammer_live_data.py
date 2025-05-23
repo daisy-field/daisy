@@ -188,7 +188,7 @@ def _parse_args() -> argparse.Namespace:
     client_options.add_argument(
         "--batchSize",
         type=int,
-        default=31,  # 32,
+        default=15,  # 32,
         metavar="",
         help="Batch size during processing of data "
         "(mini-batches are multiples of that argument)",
@@ -298,23 +298,23 @@ def create_relay():
     features_to_keep = [
         # "Jammer_On",
         "CQI_DLLA",
-        "MCS_DLLA",
-        "CQI_Change_DLLA",
+     ##   "MCS_DLLA",
+     ##   "CQI_Change_DLLA",
         "Nack_DLLA",
-        "Alloc_RBs_DLLA",
+    ##    "Alloc_RBs_DLLA",
         # "UL-BLER-CRC_UELink",
-        "C2I_UELink",
+     ##   "C2I_UELink",
         #   "Connected_UELink",
-        "Layers_DLLA",
-        "RI_Change_DLLA",
+     ##   "Layers_DLLA",
+     ##   "RI_Change_DLLA",
         "Margin_ChangeM_DLLA",
-        "DL_Aggregation_Level_1_DLLA",
+     ##   "DL_Aggregation_Level_1_DLLA",
         "DLAL_2_DLLA",
         "DLAL_4_DLLA",
-        "DLAL_8_DLLA",
-        "DLAL_16_DLLA",
+     ##   "DLAL_8_DLLA",
+     ##   "DLAL_16_DLLA",
         # "UL-MCS_UELink",
-        "UL_BLER_CRC_UELink",
+     ##   "UL_BLER_CRC_UELink",
     ]
 
     data_processor = (
@@ -341,16 +341,20 @@ def create_relay():
     optimizer = Adam(learning_rate=0.001)
 
     id_fn = TFFederatedModel.get_fvae(
-        input_size=15,
-        latent_dim=2,
+        input_size=5,#15,
+        latent_dim=1,
         hidden_layers=[],
         optimizer=optimizer,
         batch_size=args.batchSize,
-        epochs=1,
+        epochs=5,
         metrics=["accuracy"],
     )
-    t_m = EMAMADThresholdModel(alpha=0.05, mad_multiplier=2.5)  # EMAvgTM(alpha=0.05)
-    err_fn = tf.keras.losses.MeanAbsoluteError(reduction=tf.keras.losses.Reduction.NONE)
+
+    def mse_loss(y_true, y_pred):
+        return tf.reduce_mean(tf.square(y_true - y_pred), axis=1)
+
+    t_m = EMAMADThresholdModel(alpha=0.05, mad_multiplier=3)  # EMAvgTM(alpha=0.05)
+    err_fn = tf.keras.losses.MeanSquaredError(reduction=tf.keras.losses.Reduction.NONE)#tf.keras.losses.MeanAbsoluteError(reduction=tf.keras.losses.Reduction.NONE)
     model = FederatedIFTM(identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn)
 
     metrics = [ConfMatrSlidingWindowEvaluation(window_size=args.batchSize * 8)]

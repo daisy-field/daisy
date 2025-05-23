@@ -169,10 +169,6 @@ class TFFederatedModel(FederatedModel):
             return self._model.predict(x=x_data, batch_size=self._batch_size)
         return self._model(x_data, training=False).numpy()
 
-    def compute_errors(self, X):
-        recon = self._model.predict(X)
-        return np.mean(np.square(X - recon), axis=1)
-
     @classmethod
     def get_fae(
         cls,
@@ -251,6 +247,8 @@ class TFFederatedModel(FederatedModel):
         loss = vae_detector.loss
 
         vae.summary()
+        vae_detector.encoder.summary()
+        vae_detector.decoder.summary()
 
         return TFFederatedModel(vae, optimizer, loss, metrics, batch_size, epochs)
 
@@ -408,13 +406,18 @@ class FederatedIFTM(FederatedModel):
         pred_errs = self._ef(y_true, y_pred)
         mittelwert = np.mean(pred_errs)
         print(f"<<<<<<<<<<Fehlermittelwert: {mittelwert}")
+
+        # Compute errors and determine threshold using final labels
         self._tm.fit(pred_errs, y_data)
+        thresh = self._tm.get_threshold()
+        print(f"Set threshold: {thresh:.4f}")
+
         # Train IF
         if_history = self._if.fit(x_data, y_true)
 
         # for test
-        tensor = self._tm.predict(pred_errs)
-        detections = tensor.numpy().astype(int).reshape(-1, 1)
+        y_detection_tens = self._tm.predict(pred_errs)
+        y_detection = y_detection_tens.numpy().astype(int).reshape(-1, 1)
 
         # das sind die predictions self._tm.predict(pred_errs) true ist jammer on false jammer of die batchsoze ist 32
         # dassind die echten labels y_data
@@ -425,14 +428,14 @@ class FederatedIFTM(FederatedModel):
         else:
             print("Einige der Datenpunkte gejammt, andere nicht")
 
-        if np.all(detections):
+        if np.all(y_detection):
             print("Alle Vorhersagen weißen auf jamming hin")
-        elif not np.any(detections):
+        elif not np.any(y_detection):
             print("Keine der Vorhersagen weißt auf jamming hin")
         else:
             print("Einige der Vorhersagen weißt auf jamming hin")
 
-        if np.array_equal(y_data, detections):
+        if np.array_equal(y_data, y_detection):
             print("Vorhersage und Realität stimmen überein")
         else:
             print("Vorhersage und Realität stimmen nicht überein")
@@ -441,26 +444,17 @@ class FederatedIFTM(FederatedModel):
         if y_data.size == 0:
             y_data = np.zeros(x_data.shape[0])
 
-        self.evaluate(if_history, x_data, y_data)
+        self.evaluate(y_data, y_detection, thresh, pred_errs)
 
-    def evaluate(self, history, X_test, y_test):
+    def evaluate(self, y_real, y_pred, thresh, pred_errs):
         try:
-            y_test = y_test.squeeze()
-
-            # Rekonstruktionsfehler berechnen
-            errors = self._if.compute_errors(X_test)
-
-            # Compute errors and determine threshold using final labels
-            self._tm.fit(errors, y_test)
-            thresh = self._tm.get_threshold()
-            print(f"Set threshold: {thresh:.4f}")
-            y_pred = self._tm.predict(errors)
+            y_real = y_real.squeeze()
+            y_pred = y_pred.squeeze()
 
             # Metrics
-
-            cm = confusion_matrix(y_test, y_pred)
-            roc = roc_auc_score(y_test, errors)
-            prec, rec, _ = precision_recall_curve(y_test, errors)
+            cm = confusion_matrix(y_real, y_pred)
+            roc = roc_auc_score(y_real, y_pred)
+            prec, rec, _ = precision_recall_curve(y_real, y_pred)
             pr = auc(rec, prec)
 
             # Plots
@@ -468,10 +462,10 @@ class FederatedIFTM(FederatedModel):
             plt.subplot(1, 2, 1)
 
             # Gesamten Wertebereich bestimmen (nur falls Fehler vorhanden sind)
-            all_errors = errors[np.isin(y_test, [0, 1])]
-            if all_errors.size > 0:
-                min_val = all_errors.min()
-                max_val = all_errors.max()
+            all_errors = pred_errs[np.isin(y_real, [0, 1])]
+            if len(all_errors.numpy().tolist()) > 0:
+                min_val = min(all_errors.numpy().tolist())
+                max_val = max(all_errors.numpy().tolist())
             else:
                 min_val, max_val = 0, 1  # Fallback, falls keine Daten
 
@@ -482,12 +476,12 @@ class FederatedIFTM(FederatedModel):
             bins = np.linspace(min_val - 0.1, max_val + 0.1, num_bins + 1)
 
             # Histogramm für Normaldaten
-            if errors[y_test == 0].size > 0:
-                sns.histplot(errors[y_test == 0], label="Normal", kde=True, bins=bins)
+            if len(pred_errs[y_real == 0].numpy().tolist()) > 0:
+                sns.histplot(pred_errs[y_real == 0].numpy().tolist(), label="Normal", kde=True, bins=bins)
 
             # Histogramm für Anomaliedaten
-            if errors[y_test == 1].size > 0:
-                sns.histplot(errors[y_test == 1], label="Anomaly", kde=True, bins=bins)
+            if len(pred_errs[y_real == 1].numpy().tolist()) > 0:
+                sns.histplot(pred_errs[y_real == 1].numpy().tolist(), label="Anomaly", kde=True, bins=bins)
 
             plt.axvline(
                 thresh, color="r", linestyle="--", label=f"Threshold={thresh:.3f}"
@@ -517,9 +511,8 @@ class FederatedIFTM(FederatedModel):
 
         except Exception as e:
             print(f"Error: {e}")
-            print(f"X_test: {X_test}")
-            print(f"y_test: {y_test}")
-            print(f"errors if: {errors}")
+            print(f"y_test: {y_real}")
+            print(f"errors if: {pred_errs}")
             print(f"y_pred tm: {y_pred}")
 
     def predict(self, x_data) -> Optional[Tensor]:
