@@ -401,9 +401,13 @@ class FederatedIFTM(FederatedModel):
                 return
         else:
             y_true = x_data
+
         # Train TM
         y_pred = self._if.predict(x_data)
         pred_errs = self._ef(y_true, y_pred)
+
+        # reconstruction_errors = np.mean(np.square(y_true - y_pred), axis=1)
+
         mittelwert = np.mean(pred_errs)
         print(f"<<<<<<<<<<Fehlermittelwert: {mittelwert}")
 
@@ -412,33 +416,20 @@ class FederatedIFTM(FederatedModel):
         thresh = self._tm.get_threshold()
         print(f"Set threshold: {thresh:.4f}")
 
+        # if nur mit gutdaten tranineren
+        # Maske für Samples mit Fehler unterhalb des Schwellenwerts
+        mask = pred_errs > thresh
+        # Gefilterte X-Daten da gute daten 0 und schlechte 1 sind muss invertiert werden
+        x_data_below_threshold = x_data[tf.logical_not(mask)]
+        y_true_below_threshold = y_true[tf.logical_not(mask)]
+
         # Train IF
-        if_history = self._if.fit(x_data, y_true)
+        if len(x_data_below_threshold) > 2:
+            self._if.fit(x_data_below_threshold, y_true_below_threshold)
 
         # for test
         y_detection_tens = self._tm.predict(pred_errs)
         y_detection = y_detection_tens.numpy().astype(int).reshape(-1, 1)
-
-        # das sind die predictions self._tm.predict(pred_errs) true ist jammer on false jammer of die batchsoze ist 32
-        # dassind die echten labels y_data
-        if np.all(y_data):
-            print("Alle Datenpunkte gejammt")
-        elif not np.any(y_data):
-            print("Keiner der Datenpunkte gejammt")
-        else:
-            print("Einige der Datenpunkte gejammt, andere nicht")
-
-        if np.all(y_detection):
-            print("Alle Vorhersagen weißen auf jamming hin")
-        elif not np.any(y_detection):
-            print("Keine der Vorhersagen weißt auf jamming hin")
-        else:
-            print("Einige der Vorhersagen weißt auf jamming hin")
-
-        if np.array_equal(y_data, y_detection):
-            print("Vorhersage und Realität stimmen überein")
-        else:
-            print("Vorhersage und Realität stimmen nicht überein")
 
         # Überprüfen, ob y leer ist, und es ggf. mit Nullen auffüllen
         if y_data.size == 0:
@@ -477,11 +468,21 @@ class FederatedIFTM(FederatedModel):
 
             # Histogramm für Normaldaten
             if len(pred_errs[y_real == 0].numpy().tolist()) > 0:
-                sns.histplot(pred_errs[y_real == 0].numpy().tolist(), label="Normal", kde=True, bins=bins)
+                sns.histplot(
+                    pred_errs[y_real == 0].numpy().tolist(),
+                    label="Normal",
+                    kde=True,
+                    bins=bins,
+                )
 
             # Histogramm für Anomaliedaten
             if len(pred_errs[y_real == 1].numpy().tolist()) > 0:
-                sns.histplot(pred_errs[y_real == 1].numpy().tolist(), label="Anomaly", kde=True, bins=bins)
+                sns.histplot(
+                    pred_errs[y_real == 1].numpy().tolist(),
+                    label="Anomaly",
+                    kde=True,
+                    bins=bins,
+                )
 
             plt.axvline(
                 thresh, color="r", linestyle="--", label=f"Threshold={thresh:.3f}"

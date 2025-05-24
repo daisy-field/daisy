@@ -584,6 +584,7 @@ class FixThreshold(FederatedTM, ABC):
 
 
 class EMAMADThresholdModel(FederatedTM, ABC):
+    # alpha: einfluss neuer werte 0.1 ) 10%
     def __init__(self, alpha=0.1, mad_multiplier=3.0, window_size=100):
         self.alpha = alpha
         self.mad_multiplier = mad_multiplier
@@ -593,13 +594,10 @@ class EMAMADThresholdModel(FederatedTM, ABC):
         self.buffer = deque(maxlen=window_size)
 
         # Initial thresholds
-        self._lower_threshold = -np.inf
-        self._upper_threshold = np.inf
+        self._threshold = np.inf
 
+        # Setzt auch den Schwellenwert auf +- int.inf
         super().__init__(threshold=0.0)  # Threshold wird dynamisch gesetzt
-
-        # Und dann Schwellenwert setzen
-        self.update_threshold()
 
     def update_state(self, x: float):
         """Aktualisiert EMA und Puffer mit neuem Wert."""
@@ -613,15 +611,13 @@ class EMAMADThresholdModel(FederatedTM, ABC):
     def compute_thresholds(self):
         """Berechnet untere/obere Schwellenwerte basierend auf EMA und MAD."""
         if len(self.buffer) < 5:
-            return -np.inf, np.inf  # Anfangsphase: keine Schwelle
+            return np.inf  # Anfangsphase: keine Schwelle
 
         median = np.median(self.buffer)
         mad = np.median(np.abs(np.array(self.buffer) - median))
 
-        lower = self.ema - self.mad_multiplier * mad
         upper = self.ema + self.mad_multiplier * mad
-        self._threshold = upper
-        return lower, upper
+        return upper
 
     def fit(self, x_data, y_data=None):
         for x in x_data:
@@ -635,27 +631,17 @@ class EMAMADThresholdModel(FederatedTM, ABC):
                 x_data = tf.convert_to_tensor(x_data, dtype=tf.float32)
                 for x in x_data.numpy().flatten():
                     self.update_state(x)
-        self._lower_threshold, self._upper_threshold = self.compute_thresholds()
+        self._threshold = self.compute_thresholds()
 
     def predict(self, x_data) -> tf.Tensor:
         """Vergleicht Eingabe(n) mit dynamischen Schwellenwerten."""
-        x_tensor = tf.convert_to_tensor(x_data, dtype=tf.float32)
-
-        preds = []
-        for x in x_tensor.numpy().flatten():
-            self.update_state(x)
-            self._lower_threshold, self._upper_threshold = self.compute_thresholds()
-            preds.append(float(x < self._lower_threshold or x > self._upper_threshold))
-
-        return tf.convert_to_tensor([bool(p) for p in preds], dtype=tf.bool)
+        return x_data > self._threshold
 
     def score(self, x: float) -> float:
         """Gibt Distanz zum nächsten Schwellenwert zurück (Abweichung)."""
         self.update_state(x)
-        lower, upper = self.compute_thresholds()
-        if x < lower:
-            return lower - x
-        elif x > upper:
+        upper = self.compute_thresholds()
+        if x > upper:
             return x - upper
         else:
             return 0.0

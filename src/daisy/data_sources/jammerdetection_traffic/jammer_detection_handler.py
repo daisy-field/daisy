@@ -35,6 +35,7 @@ def scale_data_point(o_point: object) -> object:
         print(f"Error: {e}")
 
     # Extrahiere die numerischen Features
+    # keys = [key for key in o_point if key != "label"]
     features = np.array([o_point[key] for key in o_point if key != "label"])
 
     # Fitte und skaliere die Features

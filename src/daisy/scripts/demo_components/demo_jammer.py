@@ -41,7 +41,6 @@ from daisy.data_sources import (
 )
 import tensorflow as tf
 
-from daisy.data_sources.jammerdetection_traffic import scale_data_point
 from daisy.evaluation import ConfMatrSlidingWindowEvaluation
 from daisy.federated_ids_components import FederatedOnlineClient
 from daisy.federated_learning import (
@@ -244,44 +243,47 @@ def create_relay():
     check_args(args)
 
     m_aggr_serv = (args.modelAggrServ, args.modelAggrServPort)
-    eval_serv = None
-    if args.evalServ != "0.0.0.0":
-        eval_serv = (args.evalServ, args.evalServPort)
-    aggr_serv = None
-    if args.aggrServ != "0.0.0.0":
-        aggr_serv = (args.aggrServ, args.aggrServPort)
+    #   eval_serv = None
+    #   if args.evalServ != "0.0.0.0":
+    #       eval_serv = (args.evalServ, args.evalServPort)
+    #   aggr_serv = None
+    #   if args.aggrServ != "0.0.0.0":
+    #       aggr_serv = (args.aggrServ, args.aggrServPort)
 
     # Datasource
     data_source = CSVFileDataSource(
         files=[args.input_file for _ in range(1)], name="JammerClient:DataSource"
     )
 
+    # not live ['CQI', 'Layers', 'MCS', 'CQI_Change', 'RI_Change', 'Margin_ChangeM', 'Nack', 'Alloc_RBs', 'DL_Aggregation_Level_1', 'DLAL_2', 'DLAL_4', 'DLAL_8', 'DLAL_16', 'UL-BLER-CRC', 'C2I']
+    #     live ['CQI_DLLA', 'MCS_DLLA', 'CQI_Change_DLLA', 'Nack_DLLA', 'Alloc_RBs_DLLA', 'Layers_DLLA', 'RI_Change_DLLA', 'Margin_ChangeM_DLLA', 'DL_Aggregation_Level_1_DLLA', 'DLAL_2_DLLA', 'DLAL_4_DLLA', 'DLAL_8_DLLA', 'DLAL_16_DLLA', 'UL_BLER_CRC_UELink', 'C2I_UELink']
+
     features_to_keep = [
         "Jammer_On",
-        "CQI",
-        "MCS",
-        "CQI_Change",
-        "Nack",
-        "Alloc_RBs",
-        # "UL-BLER-CRC_UELink",
-        "C2I",
+        "CQI",  # 0 - 15
+        "MCS",  # 0 - 28
+        "CQI_Change",  # 0 - 3192
+        "Nack",  # 0 - 491
+        "Alloc_RBs",  # 2 - 57
+        # "UL-BLER-CRC_UELink", # 0 - 100
+        "C2I",  # -2.8 - 39.6
         #   "Connected_UELink",
-        "Layers",
-        "RI_Change",
-        "Margin_ChangeM",
-        "DL_Aggregation_Level_1",
-        "DLAL_2",
-        "DLAL_4",
-        "DLAL_8",
-        "DLAL_16",
-        # "UL-MCS_UELink",
-        "UL-BLER-CRC",
+        "Layers",  # 1 - 2
+        "RI_Change",  # 0 - 4291
+        "Margin_ChangeM",  # 0 - 30340
+        "DL_Aggregation_Level_1",  # 0 - 25160
+        "DLAL_2",  # 0 - 1803227
+        "DLAL_4",  # 0 - 22204
+        "DLAL_8",  # 0 - 4736
+        "DLAL_16",  # 0 - 0
+        # "UL-MCS_UELink", # 1 - 28
+        "UL_BLER_CRC_UELink",  # 0 - 100
     ]
 
     data_processor = (
         DataProcessor()
         .keep_dict_feature(features_to_keep)
-        .add_func(scale_data_point)
+        # .add_func(scale_data_point)
         .dict_to_array(nn_aggregator=pcap_nn_aggregator)
     )
     data_handler = DataHandler(
@@ -299,7 +301,7 @@ def create_relay():
     #    print(sample)
 
     # Model
-    optimizer = Adam(learning_rate=0.001)
+    optimizer = Adam(learning_rate=0.001, clipnorm=1.0)
 
     model_path = os.path.join(
         "/home/simon/daisy/src/daisy/federated_learning/model_classes",
@@ -310,18 +312,20 @@ def create_relay():
 
     id_fn = TFFederatedModel.get_fvae(
         input_size=15,
-        latent_dim=8,
-        hidden_layers=[128, 64, 32],
+        latent_dim=4,
+        hidden_layers=[8, 6],
         optimizer=optimizer,
         batch_size=args.batchSize,
-        epochs=50,
+        epochs=40,
         metrics=["accuracy"],
         load_pretrained_path=None,
     )
     t_m = EMAMADThresholdModel(
-        alpha=0.2, mad_multiplier=2.5
+        alpha=0.05, mad_multiplier=1.5
     )  # EMAvgTM(alpha=1)#ThresholdModelSimon()#FixThreshold(threshold=0.0601)#
-    err_fn = tf.keras.losses.MeanAbsoluteError(reduction=tf.keras.losses.Reduction.NONE)
+    err_fn = tf.keras.losses.MeanSquaredError(
+        reduction=tf.keras.losses.Reduction.NONE
+    )  # tf.keras.losses.MeanAbsoluteError(reduction=tf.keras.losses.Reduction.NONE)
     model = FederatedIFTM(identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn)
 
     metrics = [ConfMatrSlidingWindowEvaluation(window_size=args.batchSize * 8)]
@@ -334,8 +338,8 @@ def create_relay():
         label_split=15,
         metrics=metrics,
         m_aggr_server=m_aggr_serv,
-        eval_server=eval_serv,
-        aggr_server=aggr_serv,
+        #   eval_server=eval_serv,
+        #   aggr_server=aggr_serv,
         update_interval_t=args.updateInterval,
     )
     client.start()

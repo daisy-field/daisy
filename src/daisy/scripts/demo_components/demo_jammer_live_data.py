@@ -41,7 +41,6 @@ from daisy.data_sources import (
     JammerWebSocketDataSource,
     SimpleRemoteDataSource,
 )
-from daisy.data_sources.jammerdetection_traffic import scale_data_point
 
 import tensorflow as tf
 
@@ -188,7 +187,7 @@ def _parse_args() -> argparse.Namespace:
     client_options.add_argument(
         "--batchSize",
         type=int,
-        default=15,  # 32,
+        default=127,  # 32,
         metavar="",
         help="Batch size during processing of data "
         "(mini-batches are multiples of that argument)",
@@ -285,42 +284,42 @@ def create_relay():
     check_args(args)
 
     m_aggr_serv = (args.modelAggrServ, args.modelAggrServPort)
-    eval_serv = None
-    if args.evalServ != "0.0.0.0":
-        eval_serv = (args.evalServ, args.evalServPort)
-    aggr_serv = None
-    if args.aggrServ != "0.0.0.0":
-        aggr_serv = (args.aggrServ, args.aggrServPort)
+    #    eval_serv = None
+    #    if args.evalServ != "0.0.0.0":
+    #        eval_serv = (args.evalServ, args.evalServPort)
+    #    aggr_serv = None
+    #    if args.aggrServ != "0.0.0.0":
+    #        aggr_serv = (args.aggrServ, args.aggrServPort)
 
     # Datasource
     data_source = create_data_source(args)
 
     features_to_keep = [
         # "Jammer_On",
-        "CQI_DLLA",
-     ##   "MCS_DLLA",
-     ##   "CQI_Change_DLLA",
-        "Nack_DLLA",
-    ##    "Alloc_RBs_DLLA",
+        "CQI_DLLA",  # gut
+        "MCS_DLLA",
+        "CQI_Change_DLLA",
+        "Nack_DLLA",  # gut
+        "Alloc_RBs_DLLA",
         # "UL-BLER-CRC_UELink",
-     ##   "C2I_UELink",
+        "C2I_UELink",
         #   "Connected_UELink",
-     ##   "Layers_DLLA",
-     ##   "RI_Change_DLLA",
-        "Margin_ChangeM_DLLA",
-     ##   "DL_Aggregation_Level_1_DLLA",
-        "DLAL_2_DLLA",
-        "DLAL_4_DLLA",
-     ##   "DLAL_8_DLLA",
-     ##   "DLAL_16_DLLA",
+        "Layers_DLLA",
+        "RI_Change_DLLA",
+        "Margin_ChangeM_DLLA",  # gut
+        "DL_Aggregation_Level_1_DLLA",
+        "DLAL_2_DLLA",  # gut
+        "DLAL_4_DLLA",  # gut
+        "DLAL_8_DLLA",
+        "DLAL_16_DLLA",
         # "UL-MCS_UELink",
-     ##   "UL_BLER_CRC_UELink",
+        "UL_BLER_CRC_UELink",
     ]
 
     data_processor = (
         DataProcessor()
         .keep_dict_feature(features_to_keep)
-      #  .add_func(scale_data_point)
+        # .add_func(scale_data_point)
         .dict_to_array(nn_aggregator=pcap_nn_aggregator)
     )
     data_handler = DataHandler(
@@ -338,23 +337,22 @@ def create_relay():
     #    print(sample)
 
     # Model
-    optimizer = Adam(learning_rate=0.001)
+    optimizer = Adam(learning_rate=0.001, clipnorm=1.0)
 
     id_fn = TFFederatedModel.get_fvae(
-        input_size=5,#15,
-        latent_dim=1,
-        hidden_layers=[],
+        input_size=15,  # 15,
+        latent_dim=4,
+        hidden_layers=[8, 6],
         optimizer=optimizer,
         batch_size=args.batchSize,
-        epochs=5,
+        epochs=40,
         metrics=["accuracy"],
     )
 
-    def mse_loss(y_true, y_pred):
-        return tf.reduce_mean(tf.square(y_true - y_pred), axis=1)
-
-    t_m = EMAMADThresholdModel(alpha=0.05, mad_multiplier=3)  # EMAvgTM(alpha=0.05)
-    err_fn = tf.keras.losses.MeanSquaredError(reduction=tf.keras.losses.Reduction.NONE)#tf.keras.losses.MeanAbsoluteError(reduction=tf.keras.losses.Reduction.NONE)
+    t_m = EMAMADThresholdModel(alpha=0.05, mad_multiplier=1.5)  # EMAvgTM(alpha=0.05)
+    err_fn = tf.keras.losses.MeanSquaredError(
+        reduction=tf.keras.losses.Reduction.NONE
+    )  # tf.keras.losses.MeanAbsoluteError(reduction=tf.keras.losses.Reduction.NONE)
     model = FederatedIFTM(identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn)
 
     metrics = [ConfMatrSlidingWindowEvaluation(window_size=args.batchSize * 8)]
@@ -367,8 +365,8 @@ def create_relay():
         label_split=15,
         metrics=metrics,
         m_aggr_server=m_aggr_serv,
-        eval_server=eval_serv,
-        aggr_server=aggr_serv,
+        #      eval_server=eval_serv,
+        #     aggr_server=aggr_serv,
         update_interval_t=args.updateInterval,
     )
     client.start()
