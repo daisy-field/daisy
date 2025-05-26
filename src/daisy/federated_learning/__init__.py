@@ -63,6 +63,7 @@ __all__ = [
     "ThresholdModelSimon",
     "FixThreshold",
     "EMAMADThresholdModel",
+    "MLPThresholdModel",
 ]
 
 from .federated_aggregator import Aggregator, ModelAggregator
@@ -74,3 +75,4 @@ from .threshold_models import AvgTM, CumAvgTM, SMAvgTM, EMAvgTM
 from .threshold_models import FederatedTM
 from .threshold_models import MadTM
 from .threshold_models import ThresholdModelSimon, FixThreshold, EMAMADThresholdModel
+from .threshold_models import MLPThresholdModel

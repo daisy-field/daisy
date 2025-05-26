@@ -337,7 +337,7 @@ def create_relay():
     #    print(sample)
 
     # Model
-    optimizer = Adam(learning_rate=0.001, clipnorm=1.0)
+    optimizer = Adam(learning_rate=0.0001, clipnorm=1.0)
 
     id_fn = TFFederatedModel.get_fvae(
         input_size=15,  # 15,

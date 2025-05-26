@@ -295,7 +295,7 @@ class DataProcessor:
         point = o_point
         for func in self._functions:
             point = func(point)
-        #    print(f"{func} + {point}")
+        #   print(f"{func} + {point}")
         return point
 
 

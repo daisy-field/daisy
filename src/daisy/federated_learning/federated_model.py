@@ -299,6 +299,42 @@ class TFFederatedModel(FederatedModel):
 
         return TFFederatedModel(ftae, optimizer, loss, metrics, batch_size, epochs)
 
+    @classmethod
+    def get_fmlp(
+        cls,
+        input_size: int,
+        dense_layers: list[int] = [15, 12],
+        optimizer: str | keras.optimizers.Optimizer = "Adam",
+        loss: str | keras.losses.Loss = "mse",
+        metrics: list[str | Callable | keras.metrics.Metric] = None,
+        batch_size: int = 32,
+        epochs: int = 1,
+    ) -> Self:
+        """Factory class method to create a simple federated autoencoder model of a
+        fixed depth but with variable input size.
+
+        Should only serve as a quick and basic setup for a model.
+
+        :param input_size: Dimensionality of input/output of autoencoder.
+        :param optimizer: Optimizer to use during training.
+        :param loss: Loss function to use during training.
+        :param metrics: Evaluation metrics to be displayed during training and testing.
+        :param batch_size: Batch size during training and prediction.
+        :param epochs: Number of epochs (rounds) during training.
+        :return: Initialized federated autoencoder model.
+        """
+        model = keras.models.Sequential()
+        model.add(
+            keras.layers.Dense(
+                dense_layers[0], input_shape=(input_size,), activation="relu"
+            )
+        )
+        for units in dense_layers[1:]:
+            model.add(keras.layers.Dense(units, activation="relu"))
+            # model.add(Dropout(0.2))
+        model.add(keras.layers.Dense(1, activation="sigmoid"))
+        return TFFederatedModel(model, optimizer, loss, metrics, batch_size, epochs)
+
 
 class FederatedIFTM(FederatedModel):
     """Double union of two federated models, following the IFTM hybrid  model
@@ -354,6 +390,7 @@ class FederatedIFTM(FederatedModel):
         self._pf_mode = pf_mode
         self._prev_fit_sample = None
         self._prev_pred_sample = None
+        self._run_counter = 0
 
     def set_parameters(self, parameters: list[np.ndarray]):
         """Updates the internal parameters of the two underlying models by splitting
@@ -372,6 +409,75 @@ class FederatedIFTM(FederatedModel):
         params = self._if.get_parameters()
         params.extend(self._tm.get_parameters())
         return params
+
+    def fit2(self, x_data, y_data=None):
+        """Trains the IFTM model with the given data by calling the wrapped models;
+        first the IF to make a prediction, after which the error can be computed for
+        the fitting of the TM. Afterward, the IF is fitted. Note that one can run
+        IFTM in supervised mode by providing the true classes of each sample ---
+        however most TMs require only the input data.
+
+        Note that in case of an underlying prediction function (instead of a regular
+        IF), the window is shifted by one step into the past, i.e. the final sample
+        is only used to compute a prediction error, but not make a prediction,
+        and it is stored for the next fitting step.
+
+        Note this kind of model *absolutely requires* a time series in most cases and
+        therefore data passed to it, must be in order! Also for the first step in a
+        time series, it is impossible to compute a prediction error, since there is
+        no previous sample to compare it to.
+
+        :param x_data: Input data.
+        :param y_data: Expected output, optional since default IFTM is fully
+        unsupervised.
+        """
+        # Adjust input data depending on mode
+        if self._pf_mode:
+            x_data, y_true = self._shift_batch_window(x_data, fit=True)
+            if x_data is None:
+                return
+        else:
+            y_true = np.zeros(x_data.shape[0])  # x_data
+
+        if self._run_counter == 0:
+            self._run_counter += 1
+            self._if.fit(x_data, y_true)
+            y_pred = self._if.predict(x_data)
+            y_detection = self._tm.predict(y_pred).astype(int)
+
+        elif self._run_counter <= 4:
+            self._run_counter += 1
+            # Train TM
+            y_pred = self._if.predict(x_data)
+            # Train IF
+            y_detection = self._tm.predict(y_pred).astype(int)
+
+            if np.any(y_detection != 0):
+                # Maske für Samples mit Fehler unterhalb des Schwellenwerts
+                mask = y_detection != 0
+                # Gefilterte X-Daten da gute daten 0 und schlechte 1 sind muss invertiert werden
+                x_data_ok = x_data[tf.logical_not(mask)]
+                y_true_ok = y_true[tf.logical_not(mask)]
+
+                self._if.fit(x_data_ok, y_true_ok)
+            else:
+                self._if.fit(x_data, y_true)
+        else:
+            # Train TM
+            y_pred = self._if.predict(x_data)
+            pred_errs = self._ef(y_true, y_pred)
+
+            mittelwert = np.mean(pred_errs)
+            print(f"<<<<<<<<<<Fehlermittelwert: {mittelwert}")
+
+            thresh = self._tm.get_threshold()
+            print(f"Set threshold: {thresh:.4f}")
+
+            # for test
+            y_detection_tens = self._tm.predict(pred_errs)
+            y_detection = y_detection_tens.numpy().astype(int).reshape(-1, 1)
+
+        self.evaluate2(y_data, y_detection)
 
     def fit(self, x_data, y_data=None):
         """Trains the IFTM model with the given data by calling the wrapped models;
@@ -402,38 +508,81 @@ class FederatedIFTM(FederatedModel):
         else:
             y_true = x_data
 
-        # Train TM
-        y_pred = self._if.predict(x_data)
-        pred_errs = self._ef(y_true, y_pred)
-
-        # reconstruction_errors = np.mean(np.square(y_true - y_pred), axis=1)
-
-        mittelwert = np.mean(pred_errs)
-        print(f"<<<<<<<<<<Fehlermittelwert: {mittelwert}")
-
-        # Compute errors and determine threshold using final labels
-        self._tm.fit(pred_errs, y_data)
-        thresh = self._tm.get_threshold()
-        print(f"Set threshold: {thresh:.4f}")
-
-        # if nur mit gutdaten tranineren
-        # Maske für Samples mit Fehler unterhalb des Schwellenwerts
-        mask = pred_errs > thresh
-        # Gefilterte X-Daten da gute daten 0 und schlechte 1 sind muss invertiert werden
-        x_data_below_threshold = x_data[tf.logical_not(mask)]
-        y_true_below_threshold = y_true[tf.logical_not(mask)]
-
-        # Train IF
-        if len(x_data_below_threshold) > 2:
-            self._if.fit(x_data_below_threshold, y_true_below_threshold)
-
-        # for test
-        y_detection_tens = self._tm.predict(pred_errs)
-        y_detection = y_detection_tens.numpy().astype(int).reshape(-1, 1)
-
         # Überprüfen, ob y leer ist, und es ggf. mit Nullen auffüllen
         if y_data.size == 0:
             y_data = np.zeros(x_data.shape[0])
+
+        if self._run_counter == 0:
+            self._run_counter += 1
+            self._if.fit(x_data, y_true)
+            y_pred = self._if.predict(x_data)
+            pred_errs = self._ef(y_true, y_pred)
+
+            mittelwert = np.mean(pred_errs)
+            print(f"<<<<<<<<<<Fehlermittelwert: {mittelwert}")
+
+            # Compute errors and determine threshold using final labels
+            self._tm.fit(pred_errs, y_data)
+            thresh = self._tm.get_threshold()
+            print(f"Set threshold: {thresh:.4f}")
+
+            # for test
+            y_detection_tens = self._tm.predict(pred_errs)
+            y_detection = y_detection_tens.numpy().astype(int).reshape(-1, 1)
+        elif self._run_counter <= 4:
+            self._run_counter += 1
+            # Train TM
+            y_pred = self._if.predict(x_data)
+            pred_errs = self._ef(y_true, y_pred)
+
+            mittelwert = np.mean(pred_errs)
+            print(f"<<<<<<<<<<Fehlermittelwert: {mittelwert}")
+
+            thresh = self._tm.get_threshold()
+            print(f"Set threshold: {thresh:.4f}")
+
+            # for test
+            y_detection_tens = self._tm.predict(pred_errs)
+            y_detection = y_detection_tens.numpy().astype(int).reshape(-1, 1)
+
+            # ein paar anomalien lernen
+            # Finden der Indizes der Nullen
+            zero_indices = np.where(y_detection == 0)[0]
+
+            # Anzahl der zu ändernden Werte (20% der Nullen)
+            num_changes = int(len(zero_indices) * 0.4)
+
+            # Zufällige Auswahl von Indizes der Nullen
+            change_indices = np.random.choice(zero_indices, num_changes, replace=False)
+
+            # Ändere die ausgewählten 0en zu 1en
+            y_detection_add = y_detection.copy()
+            y_detection_add[change_indices] = 1
+
+            # Gefilterte X-Daten da gute daten 0 und schlechte 1 sind muss invertiert werden
+            x_data_below_threshold = x_data[y_detection_add.flatten() == 0]
+            y_true_below_threshold = y_true[y_detection_add.flatten() == 0]
+
+            self._tm.fit(pred_errs, y_data)
+            # Train IF
+            if len(x_data_below_threshold) > 2:
+                # Compute errors and determine threshold using final labels
+                self._if.fit(x_data_below_threshold, y_true_below_threshold)
+
+        else:
+            # Train TM
+            y_pred = self._if.predict(x_data)
+            pred_errs = self._ef(y_true, y_pred)
+
+            mittelwert = np.mean(pred_errs)
+            print(f"<<<<<<<<<<Fehlermittelwert: {mittelwert}")
+
+            thresh = self._tm.get_threshold()
+            print(f"Set threshold: {thresh:.4f}")
+
+            # for test
+            y_detection_tens = self._tm.predict(pred_errs)
+            y_detection = y_detection_tens.numpy().astype(int).reshape(-1, 1)
 
         self.evaluate(y_data, y_detection, thresh, pred_errs)
 
@@ -441,6 +590,9 @@ class FederatedIFTM(FederatedModel):
         try:
             y_real = y_real.squeeze()
             y_pred = y_pred.squeeze()
+
+            if np.any(y_real != 0):
+                print("jetzt")
 
             # Metrics
             cm = confusion_matrix(y_real, y_pred)
@@ -516,6 +668,44 @@ class FederatedIFTM(FederatedModel):
             print(f"errors if: {pred_errs}")
             print(f"y_pred tm: {y_pred}")
 
+    def evaluate2(self, y_real, y_pred):
+        try:
+            y_real = y_real.squeeze()
+            y_pred = y_pred.squeeze()
+
+            if np.any(y_real != 0):
+                print("jetzt")
+
+            # Metrics
+            cm = confusion_matrix(y_real, y_pred)
+            roc = roc_auc_score(y_real, y_pred)
+            prec, rec, _ = precision_recall_curve(y_real, y_pred)
+            pr = auc(rec, prec)
+
+            # Plots
+            plt.figure(figsize=(6, 5))
+            sns.heatmap(
+                cm,
+                annot=True,
+                fmt="d",
+                cmap="Blues",
+                xticklabels=["Normal", "Anomaly"],
+                yticklabels=["Normal", "Anomaly"],
+            )
+            plt.xlabel("Predicted")
+            plt.ylabel("Actual")
+            plt.title("Confusion Matrix")
+            plt.tight_layout()
+            plt.show()
+
+            print(f"ROC AUC: {roc:.4f}, PR AUC: {pr:.4f}")
+            return {"confusion_matrix": cm, "roc_auc": roc, "pr_auc": pr}
+
+        except Exception as e:
+            print(f"Error: {e}")
+            print(f"y_test: {y_real}")
+            print(f"y_pred tm: {y_pred}")
+
     def predict(self, x_data) -> Optional[Tensor]:
         """Makes a prediction on the given data and returns it by calling the wrapped
         models; first the IF to make a prediction, after which the error can be
@@ -579,3 +769,68 @@ class FederatedIFTM(FederatedModel):
             y_true = x_data
             x_data = tf.concat([prev_sample, x_data[:-1]], 0)
         return x_data, y_true
+
+
+# def fit(self, x_data, y_data=None):
+#    """Trains the IFTM model with the given data by calling the wrapped models;
+#    first the IF to make a prediction, after which the error can be computed for
+#    the fitting of the TM. Afterward, the IF is fitted. Note that one can run
+#    IFTM in supervised mode by providing the true classes of each sample ---
+#    however most TMs require only the input data.
+
+#    Note that in case of an underlying prediction function (instead of a regular
+#    IF), the window is shifted by one step into the past, i.e. the final sample
+#    is only used to compute a prediction error, but not make a prediction,
+#    and it is stored for the next fitting step.
+
+#    Note this kind of model *absolutely requires* a time series in most cases and
+#    therefore data passed to it, must be in order! Also for the first step in a
+#    time series, it is impossible to compute a prediction error, since there is
+#    no previous sample to compare it to.
+
+#    :param x_data: Input data.
+#    :param y_data: Expected output, optional since default IFTM is fully
+#    unsupervised.
+#    """
+#    # Adjust input data depending on mode
+#    if self._pf_mode:
+#        x_data, y_true = self._shift_batch_window(x_data, fit=True)
+#        if x_data is None:
+#            return
+#    else:
+#        y_true = x_data
+
+#    # Train TM
+#    y_pred = self._if.predict(x_data)
+#    pred_errs = self._ef(y_true, y_pred)
+
+#    # reconstruction_errors = np.mean(np.square(y_true - y_pred), axis=1)
+
+#    mittelwert = np.mean(pred_errs)
+#    print(f"<<<<<<<<<<Fehlermittelwert: {mittelwert}")
+
+#    # Compute errors and determine threshold using final labels
+#    self._tm.fit(pred_errs, y_data)
+#    thresh = self._tm.get_threshold()
+#    print(f"Set threshold: {thresh:.4f}")
+
+#    # if nur mit gutdaten tranineren
+#    # Maske für Samples mit Fehler unterhalb des Schwellenwerts
+#    mask = pred_errs > thresh
+#    # Gefilterte X-Daten da gute daten 0 und schlechte 1 sind muss invertiert werden
+#    x_data_below_threshold = x_data[tf.logical_not(mask)]
+#    y_true_below_threshold = y_true[tf.logical_not(mask)]
+
+#    # Train IF
+#    if len(x_data_below_threshold) > 2:
+#        self._if.fit(x_data_below_threshold, y_true_below_threshold)
+
+#    # for test
+#    y_detection_tens = self._tm.predict(pred_errs)
+#    y_detection = y_detection_tens.numpy().astype(int).reshape(-1, 1)
+
+#    # Überprüfen, ob y leer ist, und es ggf. mit Nullen auffüllen
+#    if y_data.size == 0:
+#        y_data = np.zeros(x_data.shape[0])
+
+#    self.evaluate(y_data, y_detection, thresh, pred_errs)

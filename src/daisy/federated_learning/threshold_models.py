@@ -661,3 +661,25 @@ class EMAMADThresholdModel(FederatedTM, ABC):
         self.ema = parameters[0].item()
         self.buffer = deque(parameters[1].tolist(), maxlen=self.window_size)
         super().set_parameters(parameters)
+
+
+class MLPThresholdModel(FederatedTM, ABC):
+    # alpha: einfluss neuer werte 0.1 ) 10%
+    def __init__(self, threshold: float = 0.5):
+        self._threshold = threshold
+
+        # Setzt auch den Schwellenwert auf +- int.inf
+        super().__init__(self._threshold)  # Threshold wird dynamisch gesetzt
+
+    def fit(self, x_data, y_data=None):
+        pass
+
+    def predict(self, x_data) -> tf.Tensor:
+        """Vergleicht Eingabe(n) mit dynamischen Schwellenwerten."""
+        return x_data >= self._threshold
+
+    def get_parameters(self) -> list[np.ndarray]:
+        pass
+
+    def update_threshold(self, x_data=None):
+        pass

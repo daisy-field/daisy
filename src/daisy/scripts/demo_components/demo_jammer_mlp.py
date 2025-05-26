@@ -46,7 +46,7 @@ from daisy.federated_ids_components import FederatedOnlineClient
 from daisy.federated_learning import (
     TFFederatedModel,
     FederatedIFTM,
-    EMAMADThresholdModel,
+    MLPThresholdModel,
 )
 
 from keras.optimizers import Adam
@@ -310,20 +310,16 @@ def create_relay():
 
     print(model_path)
 
-    id_fn = TFFederatedModel.get_fvae(
+    id_fn = TFFederatedModel.get_fmlp(
         input_size=15,
-        latent_dim=4,
-        hidden_layers=[8, 6],
+        dense_layers=[8],
         optimizer=optimizer,
         batch_size=args.batchSize,
-        epochs=40,
+        epochs=1,
         metrics=["accuracy"],
-        load_pretrained_path=None,
     )
-    t_m = EMAMADThresholdModel(
-        alpha=0.05, mad_multiplier=1.5
-    )  # EMAvgTM(alpha=1)#ThresholdModelSimon()#FixThreshold(threshold=0.0601)#
-    err_fn = tf.keras.losses.MeanSquaredError(
+    t_m = MLPThresholdModel(threshold=0.75)
+    err_fn = tf.keras.losses.BinaryCrossentropy(
         reduction=tf.keras.losses.Reduction.NONE
     )  # tf.keras.losses.MeanAbsoluteError(reduction=tf.keras.losses.Reduction.NONE)
     model = FederatedIFTM(identify_fn=id_fn, threshold_m=t_m, error_fn=err_fn)
