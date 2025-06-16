@@ -71,16 +71,16 @@ if __name__ == "__main__":
     pars = argparse.ArgumentParser(description = "Attack description")
 
     pars.add_argument("attack_name", type = str, help = "Name of attack") 
-    pars.add_argument("attack_start", type = parse_time, help = "Time when the attack ends ISO8601")
-    pars.add_argument("attack_end", type = parse_time, help = "Time when the attack ends ISO8601") 
+    pars.add_argument("attack_start", type = str, help = "Time when the attack ends ISO8601")
+    pars.add_argument("attack_end", type = str, help = "Time when the attack ends ISO8601") 
     pars.add_argument("attack_type", type = str, help = "Type of attack and MITRE ATT&CK ID")
-    pars.add_argument("target", type = parse_ip, help = "Target of attack ipv4 or ipv6") 
-    pars.add_argument("source", type = parse_ip, help = "Source of attack ipv4 or ipv6")
+    pars.add_argument("target", type = str, help = "Target of attack ipv4 or ipv6") 
+    pars.add_argument("source", type = str, help = "Source of attack ipv4 or ipv6")
     pars.add_argument("timezone", type = str, help = "timezone from target and source. default Europe/Berlin")
 
     args = pars.parse_args()
 
-    if(args.timezone==None):
+    if not args.timezone:
         attack_start= pars_time(args.attack_start)
         attack_end = pars_time(args.attack_end)
     else:

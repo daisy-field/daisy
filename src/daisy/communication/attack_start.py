@@ -20,9 +20,9 @@ def single_message_acceptor():
     """
     endpoint = StreamEndpoint(
         name="Acceptor",
-        addr=("127.0.0.1", 32000), #???
-        remote_addr=("127.0.0.1", 13000),#???
-        acceptor=True,
+        addr=("127.0.0.1", 32000), #optional
+        remote_addr=("127.0.0.1", 13000),#optional
+        acceptor=None,
         multithreading=True,
         buffer_size=10000,
     )
@@ -34,7 +34,7 @@ def single_message_acceptor():
         print("nothing to receive")
     sleep(2)
 
-    endpoint.stop
+    endpoint.stop()
 
     message_to_list(msg)
 

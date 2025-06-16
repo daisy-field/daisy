@@ -3,8 +3,8 @@
 # === Konfiguration ===
 NEW_PORT=2222
 USER="tempuser"
-PASSWORT="TempPasswort123!"
-TIMELIMIT=30  # Sekunden für SSH-Verfügbarkeit
+PASSWORT="TempPassword123!"
+TIMELIMIT=300  # Sekunden für SSH-Verfügbarkeit
 
 # === Neuen Benutzer erstellen ===
 
