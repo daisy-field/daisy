@@ -5,24 +5,25 @@ Modified: 14.05.2025
 """
 
 import logging
-import datetime
+
 import argparse
 import ipaddress
 from zoneinfo import ZoneInfo
 from time import sleep
+from datetime import datetime, timezone
 
 from daisy.communication import StreamEndpoint
 
 
-def initiat_attack_massages_taget(target_ip, attack_massage):
+def initiat_attack_massages(ip, attack_massage,):
     """ 
     :param taget_ip: ip address of the target e.g. "127.0.0.1"
     :param attack_massage: Generated message with attack definition
     """
     endpoint = StreamEndpoint(
-        name="target_massage",
-        addr=(target_ip, 13000), # anderer port?
-        remote_addr=(target_ip, 32000), #anderer port?
+        name="attack_massage",
+        addr=(ip, 13000), # anderer port?
+        remote_addr=(ip, 32000), #anderer port?
         acceptor=False,
         multithreading=True,
         buffer_size=10000,
@@ -33,10 +34,11 @@ def initiat_attack_massages_taget(target_ip, attack_massage):
     try:
         endpoint.receive(5)
     except TimeoutError:
-        print("Can't inform target!")
+        print("Can't inform target or source!")
     sleep(2)
 
     endpoint.stop()
+
 
 def generate_massage(attack_name, attack_start, attack_end, attack_type, target, source):
     """ 
@@ -71,7 +73,7 @@ if __name__ == "__main__":
     pars = argparse.ArgumentParser(description = "Attack description")
 
     pars.add_argument("attack_name", type = str, help = "Name of attack") 
-    pars.add_argument("attack_start", type = str, help = "Time when the attack ends ISO8601")
+    pars.add_argument("attack_start", type = str, help = "Time when the attack starts ISO8601")
     pars.add_argument("attack_end", type = str, help = "Time when the attack ends ISO8601") 
     pars.add_argument("attack_type", type = str, help = "Type of attack and MITRE ATT&CK ID")
     pars.add_argument("target", type = str, help = "Target of attack ipv4 or ipv6") 
@@ -87,10 +89,19 @@ if __name__ == "__main__":
         attack_start= pars_time(args.attack_start, timezone=args.timezone)
         attack_end= pars_time(args.attack_end, timezone=args.timezone)
 
+    time_check=attack_start-datetime.now(timezone.utc)
+    if time_check<=0:
+        print("Time is over! try a later starting.time")
+    if attack_end-attack_start<=0:
+        print("the End can't be bevor start!")
+
+
     target = pars_ip(args.target)
-    pars_ip(args.source)
+    source = pars_ip(args.source)
 
 
-    msg = generate_massage(args.attack_name, attack_start, attack_end, args.attack_type, target, args.source)
+    msg = generate_massage(args.attack_name, attack_start, attack_end, args.attack_type, target, source)
 
-    initiat_attack_massages_taget(target, msg)
+    initiat_attack_massages(target, msg)
+    initiat_attack_massages(source, msg)
+
