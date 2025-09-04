@@ -19,7 +19,12 @@ Author: Fabian Hofmann
 Modified: 03.04.24
 """
 
-__all__ = ["StreamEndpoint", "EndpointServer"]
+__all__ = ["StreamEndpoint", "EndpointServer", "connect_to_target","arpspoof_run","start_webserver","path_traversal","slowloris_run", "reverse_shell_target"]
 
 from .message_stream import EndpointServer
 from .message_stream import StreamEndpoint
+from .connect_to_target import connect_to_target
+from .arp_spoof import run as arpspoof_run
+from .app import start_webserver, path_traversal
+from .slowloris import main as slowloris_run
+from .reverse_shell_target import reverse_shell_target
