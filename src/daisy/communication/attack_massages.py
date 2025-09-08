@@ -10,7 +10,7 @@ import argparse
 import ipaddress
 from zoneinfo import ZoneInfo
 from time import sleep
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from daisy.communication import StreamEndpoint
 
@@ -20,22 +20,20 @@ def initiat_attack_massages(ip, attack_massage,):
     :param taget_ip: ip address of the target e.g. "127.0.0.1"
     :param attack_massage: Generated message with attack definition
     """
+    
     endpoint = StreamEndpoint(
         name="attack_massage",
         addr=(ip, 13000), # anderer port?
         remote_addr=(ip, 32000), #anderer port?
         acceptor=False,
-        multithreading=True,
-        buffer_size=10000,
+        multithreading=False,
     )
-    endpoint.start()
+    endpoint.start(blocking=False)
+    print("start")
 
     endpoint.send(attack_massage)
-    try:
-        endpoint.receive(5)
-    except TimeoutError:
-        print("Can't inform target or source!")
-    sleep(2)
+    print("sendet")
+
 
     endpoint.stop()
 
@@ -49,11 +47,11 @@ def generate_massage(attack_name, attack_start, attack_end, attack_type, target,
     :param target: Target of attack
     :param source: Source of attack
     """
-    return f"{attack_name}§{attack_start}§{attack_end}§{attack_type}§{target}${source}"
+    return f"{attack_name}§{attack_start}§{attack_end}§{attack_type}§{target}§{source}"
 
 def pars_time(time_str, timezone="Europe/Berlin"):
     try:
-        dt_naive = datetime.datetime.fromisoformat(time_str) # without Timezone
+        dt_naive = datetime.fromisoformat(time_str) # without Timezone
         return dt_naive.replace(tzinfo=ZoneInfo(timezone)) 
     except ValueError:
         raise argparse.ArgumentTypeError(" invalid timeformat. Expected: YYYY-MM-DDTHH-MM-SS" )
@@ -90,9 +88,9 @@ if __name__ == "__main__":
         attack_end= pars_time(args.attack_end, timezone=args.timezone)
 
     time_check=attack_start-datetime.now(timezone.utc)
-    if time_check<=0:
+    if time_check<= timedelta(0):
         print("Time is over! try a later starting.time")
-    if attack_end-attack_start<=0:
+    if attack_end-attack_start<= timedelta(0):
         print("the End can't be bevor start!")
 
 
@@ -102,6 +100,8 @@ if __name__ == "__main__":
 
     msg = generate_massage(args.attack_name, attack_start, attack_end, args.attack_type, target, source)
 
-    initiat_attack_massages(target, msg)
-    initiat_attack_massages(source, msg)
+    
+
+    initiat_attack_massages(str(target), msg)
+    initiat_attack_massages(str(source), msg)
 

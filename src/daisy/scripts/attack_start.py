@@ -27,11 +27,10 @@ def single_message_acceptor():
     """
     endpoint = StreamEndpoint(
         name="Acceptor",
-        addr=("127.0.0.1", 32000), #optional
-        remote_addr=("127.0.0.1", 13000),#optional
-        acceptor=None,
-        multithreading=True,
-        buffer_size=10000,
+        addr=("0.0.0.0", 32000), 
+        acceptor=True,
+        multithreading=False,
+        
     )
     endpoint.start()
       
@@ -39,6 +38,7 @@ def single_message_acceptor():
         msg = endpoint.receive(5)
     except TimeoutError:
         print("nothing to receive")
+        exit(-1)
     sleep(2)
 
     endpoint.stop()
@@ -49,13 +49,14 @@ def single_message_acceptor():
     hostname = socket.gethostname()
     ip = socket.gethostbyname(hostname)
 
-    time_to_wait= attack_info[1]-datetime.now(timezone.utc)
+    time_to_wait= datetime.fromisoformat(attack_info[1])-datetime.now(timezone.utc)
 
-    
+    print(attack_info)
+    print(ip)
        
 
 
-    if attack_info[4] == ip:
+    if attack_info[4] == ip or attack_info[4]== "127.0.0.1":
         print( attack_info[0]+" at "+ attack_info[1]+" from "+ attack_info[4])
         relay_target = start_collection(attack_info)
         sleep(time_to_wait)
@@ -69,7 +70,7 @@ def single_message_acceptor():
         
         
 
-    elif attack_info[5] == ip:
+    elif attack_info[5] == ip or attack_info[5]=="127.0.0.1": 
         print(attack_info[0]+" at "+ attack_info[1]+" to"+ attack_info[5])
         relay_source = start_collection(attack_info)
         sleep(time_to_wait)
@@ -92,6 +93,7 @@ def single_message_acceptor():
     
     else:
         print("Im not target or source!")
+        exit(-1)
 
     sleep(300)
    
