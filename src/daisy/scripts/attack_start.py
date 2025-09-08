@@ -59,7 +59,7 @@ def single_message_acceptor():
     if attack_info[4] == ip or attack_info[4]== "127.0.0.1":
         print( attack_info[0]+" at "+ attack_info[1]+" from "+ attack_info[4])
         relay_target = start_collection(attack_info)
-        sleep(time_to_wait)
+        sleep(time_to_wait.total_seconds())
         if attack_info[0]== "reverse_shell":
             reverse_shell_target()
         
@@ -73,7 +73,7 @@ def single_message_acceptor():
     elif attack_info[5] == ip or attack_info[5]=="127.0.0.1": 
         print(attack_info[0]+" at "+ attack_info[1]+" to"+ attack_info[5])
         relay_source = start_collection(attack_info)
-        sleep(time_to_wait)
+        sleep(time_to_wait.total_seconds())
         if attack_info[0] == "reverse_shell":
             sleep(30)
             connect_to_target(attack_info[4], attack_info[5])

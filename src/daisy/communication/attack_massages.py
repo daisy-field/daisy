@@ -26,7 +26,7 @@ def initiat_attack_massages(ip, attack_massage,):
         addr=(ip, 13000), # anderer port?
         remote_addr=(ip, 32000), #anderer port?
         acceptor=False,
-        multithreading=False,
+        multithreading=True,
     )
     endpoint.start(blocking=False)
     print("start")
@@ -36,6 +36,7 @@ def initiat_attack_massages(ip, attack_massage,):
 
 
     endpoint.stop()
+    sleep(1)
 
 
 def generate_massage(attack_name, attack_start, attack_end, attack_type, target, source):
