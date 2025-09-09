@@ -1152,12 +1152,15 @@ class StreamEndpoint:
         self.stop(shutdown=True)
 
     def __del__(self):
-        if (
-            not self._shutdown
-            and threading.current_thread() != self._sender
-            and threading.current_thread() != self._receiver
-        ):
-            self.stop(shutdown=True)
+        if not self._shutdown:
+            if self._sender and self._receiver:
+                if (
+                    threading.current_thread() != self._sender
+                    and threading.current_thread() != self._receiver
+                ):
+                    self.stop(shutdown=True)
+            else:
+                self.stop(shutdown=True)
 
     @classmethod
     def create_quick_sender_ep(

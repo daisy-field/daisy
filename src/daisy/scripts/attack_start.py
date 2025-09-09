@@ -50,6 +50,8 @@ def single_message_acceptor():
     ip = socket.gethostbyname(hostname)
 
     time_to_wait= datetime.fromisoformat(attack_info[1])-datetime.now(timezone.utc)
+    print(datetime.now(timezone.utc))
+    print(time_to_wait)
 
     print(attack_info)
     print(ip)
@@ -65,6 +67,9 @@ def single_message_acceptor():
         
         if attack_info[0] == ("path_traversal" or "slowloris"):
             start_webserver()
+
+        time_to_stop= datetime.fromisoformat(attack_info[2])-datetime.now(timezone.utc)
+        sleep(time_to_stop.total_seconds())
         relay_target.stop()
 
         
@@ -88,6 +93,9 @@ def single_message_acceptor():
         if attack_info[0]=="slowloris":
             sleep(30)
             slowloris_run(attack_info[4])
+
+        time_to_stop= datetime.fromisoformat(attack_info[2])-datetime.now(timezone.utc)
+        sleep(time_to_stop.total_seconds())
         relay_source.stop()
 
     
@@ -95,7 +103,7 @@ def single_message_acceptor():
         print("Im not target or source!")
         exit(-1)
 
-    sleep(300)
+    sleep(30)
    
 def start_collection(attack_info): #name, start time, end time, lable, target, source
 
