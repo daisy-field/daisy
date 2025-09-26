@@ -7,6 +7,15 @@ Modified: 14.05.2025
 import logging
 
 import argparse
+"""send messages to coordinate attacks and their recording.
+
+Author: Sandra Schneider
+Modified: 14.05.2025
+"""
+
+import logging
+
+import argparse
 import ipaddress
 from zoneinfo import ZoneInfo
 from time import sleep
@@ -15,7 +24,7 @@ from datetime import datetime, timezone, timedelta
 from daisy.communication import StreamEndpoint
 
 
-def initiat_attack_massages(ip, attack_massage,):
+def initiat_attack_massages(ip    , attack_massage,x):
     """ 
     :param taget_ip: ip address of the target e.g. "127.0.0.1"
     :param attack_massage: Generated message with attack definition
@@ -23,8 +32,7 @@ def initiat_attack_massages(ip, attack_massage,):
     
     endpoint = StreamEndpoint(
         name="attack_massage",
-        addr=(ip, 13000), # anderer port?
-        remote_addr=(ip, 32000), #anderer port?
+        remote_addr=(ip, 32000+x), #anderer port?
         acceptor=False,
         multithreading=True,
     )
@@ -52,8 +60,8 @@ def generate_massage(attack_name, attack_start, attack_end, attack_type, target,
 
 def pars_time(time_str, timezone="Europe/Berlin"):
     try:
-        dt_naive = datetime.fromisoformat(time_str) # without Timezone
-        return dt_naive.replace(tzinfo=ZoneInfo(timezone)) 
+       dt_naive = datetime.fromisoformat(time_str) # without Timezone
+       return dt_naive#.replace(tzinfo=ZoneInfo(timezone)) 
     except ValueError:
         raise argparse.ArgumentTypeError(" invalid timeformat. Expected: YYYY-MM-DDTHH-MM-SS" )
 
@@ -103,6 +111,5 @@ if __name__ == "__main__":
 
     
 
-    initiat_attack_massages(str(target), msg)
-    initiat_attack_massages(str(source), msg)
-
+    initiat_attack_massages(str(target), msg,0)
+    initiat_attack_massages(str(source), msg,1)

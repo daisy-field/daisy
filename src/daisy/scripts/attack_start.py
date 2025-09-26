@@ -27,7 +27,7 @@ def single_message_acceptor():
     """
     endpoint = StreamEndpoint(
         name="Acceptor",
-        addr=("0.0.0.0", 32000), 
+        addr=("0.0.0.0", 32000+1), 
         acceptor=True,
         multithreading=False,
         
@@ -50,11 +50,9 @@ def single_message_acceptor():
     ip = socket.gethostbyname(hostname)
 
     time_to_wait= datetime.fromisoformat(attack_info[1])-datetime.now(timezone.utc)
-
+    print(time_to_wait)
     print(attack_info)
     print(ip)
-       
-
 
     if attack_info[4] == ip or attack_info[4]== "127.0.0.1":
         print( attack_info[0]+" at "+ attack_info[1]+" from "+ attack_info[4])
@@ -65,6 +63,9 @@ def single_message_acceptor():
         
         if attack_info[0] == ("path_traversal" or "slowloris"):
             start_webserver()
+
+        time_to_stop= datetime.fromisoformat(attack_info[2])-datetime.now(timezone.utc)
+        sleep(time_to_stop.total_seconds())
         relay_target.stop()
 
         
@@ -88,6 +89,9 @@ def single_message_acceptor():
         if attack_info[0]=="slowloris":
             sleep(30)
             slowloris_run(attack_info[4])
+
+        time_to_stop= datetime.fromisoformat(attack_info[2])-datetime.now(timezone.utc)
+        sleep(time_to_stop.total_seconds())
         relay_source.stop()
 
     
@@ -95,14 +99,14 @@ def single_message_acceptor():
         print("Im not target or source!")
         exit(-1)
 
-    sleep(300)
+    exit(-1)
    
 def start_collection(attack_info): #name, start time, end time, lable, target, source
 
     source = LivePysharkDataSource()
     #events = EventHandler().append_event(label= attack_info[3], condition = )
     processor = PysharkProcessor().packet_to_dict()
-    handler = DataHandler(data_source=source, data_processor=processor)
+    handler = DataHandler(data_source=source, data_processor=processor, multithreading=True)
     relay = CSVFileRelay(target_file= attack_info[0]+".csv", data_handler=handler, overwrite_file=True, separator=";")
 
     logging.basicConfig(
