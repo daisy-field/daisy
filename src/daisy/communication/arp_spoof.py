@@ -10,7 +10,7 @@ def scan(target_ip):
     broadcast = scapy.Ether(dst = "ff:ff:ff:ff:ff:ff")
     arp_request_broadcast = broadcast/arp_request
     answered = scapy.srp(arp_request_broadcast, timeout = 1, verbose = False)
-    print("hier",answered)
+
     return answered[0][1].hwsrc
 
 def arpspoof(target, gateway):

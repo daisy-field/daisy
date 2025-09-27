@@ -112,4 +112,5 @@ if __name__ == "__main__":
     
 
     initiat_attack_massages(str(target), msg,0)
+
     initiat_attack_massages(str(source), msg,1)

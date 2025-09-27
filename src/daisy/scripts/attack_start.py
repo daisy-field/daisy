@@ -50,6 +50,8 @@ def single_message_acceptor():
     ip = socket.gethostbyname(hostname)
 
     time_to_wait= datetime.fromisoformat(attack_info[1])-datetime.now(timezone.utc)
+
+    print(datetime.now(timezone.utc))
     print(time_to_wait)
     print(attack_info)
     print(ip)
@@ -99,7 +101,9 @@ def single_message_acceptor():
         print("Im not target or source!")
         exit(-1)
 
-    exit(-1)
+
+    sleep(30)
+
    
 def start_collection(attack_info): #name, start time, end time, lable, target, source
 
