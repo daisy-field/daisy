@@ -12,7 +12,7 @@ import argparse
 Author: Sandra Schneider
 Modified: 14.05.2025
 """
-
+import json
 import logging
 
 import argparse
@@ -24,7 +24,7 @@ from datetime import datetime, timezone, timedelta
 from daisy.communication import StreamEndpoint
 
 
-def initiat_attack_massages(ip    , attack_massage,x):
+def initiat_attack_massages(ip, attack_massage):
     """ 
     :param taget_ip: ip address of the target e.g. "127.0.0.1"
     :param attack_massage: Generated message with attack definition
@@ -32,7 +32,7 @@ def initiat_attack_massages(ip    , attack_massage,x):
     
     endpoint = StreamEndpoint(
         name="attack_massage",
-        remote_addr=(ip, 32000+x), #anderer port?
+        remote_addr=(ip, 32000), 
         acceptor=False,
         multithreading=True,
     )
@@ -47,29 +47,25 @@ def initiat_attack_massages(ip    , attack_massage,x):
     sleep(1)
 
 
-def generate_massage(attack_name, attack_start, attack_end, attack_type, target, source):
-    """ 
-    :param attack_name: Name of attack
-    :param attack_start: Time when the attack starts
-    :param attack_end: Time when the attack ends
-    :param attack_type: Type of attack and MITRE ATT&CK ID
-    :param target: Target of attack
-    :param source: Source of attack
-    """
-    return f"{attack_name}§{attack_start}§{attack_end}§{attack_type}§{target}§{source}"
 
-def pars_time(time_str, timezone="Europe/Berlin"):
+def pars_time(time_str):
     try:
-       dt_naive = datetime.fromisoformat(time_str) # without Timezone
-       return dt_naive#.replace(tzinfo=ZoneInfo(timezone)) 
+       dt_naive = datetime.fromisoformat(time_str).astimezone() # without Timezone
+       return dt_naive
     except ValueError:
-        raise argparse.ArgumentTypeError(" invalid timeformat. Expected: YYYY-MM-DDTHH-MM-SS" )
+        raise argparse.ArgumentTypeError(" invalid timeformat. Expected: YYYY-MM-DDTHH:MM:SS" )
 
 def pars_ip(ip_str):
     try:
         return ipaddress.ip_address(ip_str)
     except ValueError:
         raise argparse.ArgumentTypeError("invalid ip-address")
+    
+def check_start_time(attack_start):
+    time_check=attack_start-datetime.now().astimezone()
+    if time_check<= timedelta(0):
+        print("Time is over! try a later starting.time")
+  
 
 if __name__ == "__main__":
     logging.basicConfig(
@@ -79,38 +75,40 @@ if __name__ == "__main__":
     )
     pars = argparse.ArgumentParser(description = "Attack description")
 
-    pars.add_argument("attack_name", type = str, help = "Name of attack") 
-    pars.add_argument("attack_start", type = str, help = "Time when the attack starts ISO8601")
-    pars.add_argument("attack_end", type = str, help = "Time when the attack ends ISO8601") 
-    pars.add_argument("attack_type", type = str, help = "Type of attack and MITRE ATT&CK ID")
-    pars.add_argument("target", type = str, help = "Target of attack ipv4 or ipv6") 
-    pars.add_argument("source", type = str, help = "Source of attack ipv4 or ipv6")
-    pars.add_argument("timezone", type = str, help = "timezone from target and source. default Europe/Berlin")
+    pars.add_argument("attack_plan", type = str, help = "JSON-File for coordination the data collection") 
 
     args = pars.parse_args()
-
-    if not args.timezone:
-        attack_start= pars_time(args.attack_start)
-        attack_end = pars_time(args.attack_end)
-    else:
-        attack_start= pars_time(args.attack_start, timezone=args.timezone)
-        attack_end= pars_time(args.attack_end, timezone=args.timezone)
-
-    time_check=attack_start-datetime.now(timezone.utc)
-    if time_check<= timedelta(0):
-        print("Time is over! try a later starting.time")
-    if attack_end-attack_start<= timedelta(0):
-        print("the End can't be bevor start!")
-
-
-    target = pars_ip(args.target)
-    source = pars_ip(args.source)
-
-
-    msg = generate_massage(args.attack_name, attack_start, attack_end, args.attack_type, target, source)
-
     
 
-    initiat_attack_massages(str(target), msg,0)
+    with open(args.attack_plan, "r", encoding="utf-8") as f:
+        routemap= json.load(f)
+    timer_check = 0
+    end = 0 # limitierung das nur auf einer seite aufgezeichnet wird... da end sonnst überschrieben wird... idee?
+    ip_list= []
+    for step in routemap:
+        
+        if step["type"] == "collection":
+             time_stampe=pars_time(step["start"])
+             check_start_time(time_stampe)
+             end = end + step["duration"]
+             pars_ip(step["ip"])
+             ip_list.append(step["ip"])
+        if step["type"] == "delay":
+            timer_check = timer_check + step["duration"]
+        if step["type"] == "attack":
+            timer_check = timer_check + step["duration"]
+            pars_ip(step["target"])
+            pars_ip(step["source"])
+            ip_list.append(step["target"])
+            ip_list.append(step["source"])
+    
+    if end < timer_check:
+        print("Zeitplan haut nicht hin")
+        exit
+        
+    ip_list =  list(set(ip_list))
 
-    initiat_attack_massages(str(source), msg,1)
+    body = json.dumps(routemap).encode()
+
+    for ip in ip_list:
+        initiat_attack_massages(ip, body)

