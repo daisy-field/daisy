@@ -5,7 +5,7 @@ import random
 import socket
 import time
 import ssl
-args={"port":80, "sockets":150, "verbose": True, "randuseragent":True, "useproxy":False,"proxy-host":"127.0.0.1", "proxy-port":8080,"https":False,"sleeptime":15}
+args={"port":5000, "sockets":150, "verbose": True, "randuseragent":True, "useproxy":False,"proxy-host":"127.0.0.1", "proxy-port":8080,"https":False,"sleeptime":15}
 
 
 def send_line(self, line):
